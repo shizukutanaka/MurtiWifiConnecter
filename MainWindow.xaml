@@ -1,0 +1,82 @@
+<Window x:Class="MurtiWifiConnecter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MurtiWifiConnecter"
+        xmlns:properties="clr-namespace:MurtiWifiConnecter.Properties"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid Margin="20">
+        <Grid.Resources>
+            <!-- 言語ごとのフォント定義例（代表のみ） -->
+            <FontFamily x:Key="FontFamilyDefault">Segoe UI</FontFamily>
+            <FontFamily x:Key="FontFamilyJa">Yu Gothic UI</FontFamily>
+            <FontFamily x:Key="FontFamilyZh">Microsoft YaHei UI</FontFamily>
+            <FontFamily x:Key="FontFamilyRu">Segoe UI</FontFamily>
+            <FontFamily x:Key="FontFamilyAr">Arial</FontFamily>
+            <FontFamily x:Key="FontFamilyFr">Segoe UI</FontFamily>
+            <!-- ...他言語も同様に追加可能... -->
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
+            <TextBlock Text="Language:" Margin="0,0,6,0" VerticalAlignment="Center"/>
+            <ComboBox x:Name="LanguageComboBox" Width="150" SelectionChanged="LanguageComboBox_SelectionChanged">
+    <ComboBoxItem Content="English" Tag="en" IsSelected="True"/>
+    <ComboBoxItem Content="日本語" Tag="ja"/>
+    <ComboBoxItem Content="中文" Tag="zh"/>
+    <ComboBoxItem Content="Français" Tag="fr"/>
+    <ComboBoxItem Content="Русский" Tag="ru"/>
+    <ComboBoxItem Content="العربية" Tag="ar"/>
+    <ComboBoxItem Content="Deutsch" Tag="de"/>
+    <ComboBoxItem Content="Español" Tag="es"/>
+    <ComboBoxItem Content="Italiano" Tag="it"/>
+    <ComboBoxItem Content="한국어" Tag="ko"/>
+</ComboBox>
+<Button x:Name="RefreshButton" Content="⟳" Width="32" Height="28" Margin="10,0,0,0" Click="RefreshButton_Click" ToolTip="{x:Static properties:Resources.RefreshNetworks}"/>
+        </StackPanel>
+        <TextBlock x:Name="TitleTextBlock" Grid.Row="1" Text="{x:Static properties:Resources.AvailableNetworks}" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" FontFamily="{DynamicResource FontFamilyDefault}"/>
+        <ListBox x:Name="WifiListBox" Grid.Row="2" Height="250">
+    <ListBox.ItemTemplate>
+        <DataTemplate>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ProgressBar Width="60" Height="14" Minimum="0" Maximum="100" Value="{Binding SignalStrength}" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding SSID}" FontWeight="Bold"/>
+                <TextBlock Text=" ("/>
+                <TextBlock Text="{Binding SignalStrength}"/>
+                <TextBlock Text="%)"/>
+            </StackPanel>
+        </DataTemplate>
+    </ListBox.ItemTemplate>
+    <ListBox.ItemContainerStyle>
+        <Style TargetType="ListBoxItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                    <Setter Property="Background" Value="#FFCCE5FF"/>
+                    <Setter Property="Foreground" Value="#003366"/>
+                    <Setter Property="FontWeight" Value="ExtraBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </ListBox.ItemContainerStyle>
+</ListBox>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Grid Width="200" Margin="0,0,10,0">
+    <PasswordBox x:Name="PasswordBox" Width="200" PasswordChanged="PasswordBox_PasswordChanged"/>
+    <TextBlock x:Name="PasswordPlaceholderText"
+               Text="{x:Static properties:Resources.PasswordPlaceholder}"
+               IsHitTestVisible="False"
+               Foreground="Gray"
+               Margin="5,0,0,0"
+               VerticalAlignment="Center"
+               Visibility="Visible"/>
+</Grid>
+            <Button x:Name="ConnectButton" Content="{x:Static properties:Resources.Connect}" Width="100" Click="ConnectButton_Click" FontFamily="{DynamicResource FontFamilyDefault}"/>
+        </StackPanel>
+    </Grid>
+</Window>
