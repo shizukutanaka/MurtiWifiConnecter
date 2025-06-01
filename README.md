@@ -17,7 +17,7 @@ A minimal utility for Windows PCs with multiple WiFi adapters. Allows you to vie
 3. Build and run as administrator
 
 ## Author
-Shizuku Tanaka / shizukutanaka
+Shizuku Tanaka
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
