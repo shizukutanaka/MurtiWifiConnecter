@@ -1,2 +1,0 @@
-af,am,ar,az,bg,bn,bs,ca,cs,cy,da,de,el,en,es,et,eu,fa,fi,fil,fo,fr,ga,gl,gu,he,hi,hr,hu,hy,id,is,it,ja,jv,ka,kk,km,kn,ko,ky,lb,lo,lt,lv,mg,mk,ml,mn,mr,ms,mt,nb,ne,nl,nn,oc,or,pa,pl,ps,pt,qu,rm,ro,ru,rw,sa,sd,si,sk,sl,so,sq,sr,sv,sw,ta,te,tg,th,tk,tl,tr,tt,ug,uk,ur,uz,vi,vo,wa,wo,xh,yi,yo,zh,zu
-# ISO 639-1 codes for 100+ languages
