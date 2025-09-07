@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MurtiWifiConnecter"
         xmlns:properties="clr-namespace:MurtiWifiConnecter.Properties"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Murti WiFi Connecter" Height="500" Width="900" MinHeight="400" MinWidth="600" Closing="Window_Closing" KeyDown="MainWindow_KeyDown">
     <Grid Margin="20">
         <Grid.Resources>
             <!-- 言語ごとのフォント定義例（代表のみ） -->
@@ -25,8 +25,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-            <TextBlock Text="Language:" Margin="0,0,6,0" VerticalAlignment="Center"/>
-            <ComboBox x:Name="LanguageComboBox" Width="150" SelectionChanged="LanguageComboBox_SelectionChanged">
+            <TextBlock Text="Language:" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12"/>
+            <ComboBox x:Name="LanguageComboBox" Width="120" Height="28" SelectionChanged="LanguageComboBox_SelectionChanged" TabIndex="1">
     <ComboBoxItem Content="English" Tag="en" IsSelected="True"/>
     <ComboBoxItem Content="日本語" Tag="ja"/>
     <ComboBoxItem Content="中文" Tag="zh"/>
@@ -38,18 +38,25 @@
     <ComboBoxItem Content="Italiano" Tag="it"/>
     <ComboBoxItem Content="한국어" Tag="ko"/>
 </ComboBox>
-<Button x:Name="RefreshButton" Content="⟳" Width="32" Height="28" Margin="10,0,0,0" Click="RefreshButton_Click" ToolTip="{x:Static properties:Resources.RefreshNetworks}"/>
+<Button x:Name="RefreshButton" Content="⟳" Width="32" Height="28" Margin="10,0,0,0" Click="RefreshButton_Click" ToolTip="{x:Static properties:Resources.RefreshNetworks}" FontSize="14" FontWeight="Bold" TabIndex="2"/>
         </StackPanel>
-        <TextBlock x:Name="TitleTextBlock" Grid.Row="1" Text="{x:Static properties:Resources.AvailableNetworks}" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" FontFamily="{DynamicResource FontFamilyDefault}"/>
-        <ListBox x:Name="WifiListBox" Grid.Row="2" Height="250">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock x:Name="TitleTextBlock" Text="{x:Static properties:Resources.AvailableNetworks}" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource FontFamilyDefault}" VerticalAlignment="Center"/>
+            <Button x:Name="QuickConnectButton" Content="⚡" Width="28" Height="28" Margin="15,0,0,0" Click="QuickConnectButton_Click" ToolTip="最近の接続先に素早く接続" FontSize="16" FontWeight="Bold" TabIndex="6" Visibility="Collapsed"/>
+        </StackPanel>
+        <ListBox x:Name="WifiListBox" Grid.Row="2" Height="280" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" TabIndex="3" KeyDown="WifiListBox_KeyDown">
     <ListBox.ItemTemplate>
         <DataTemplate>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <ProgressBar Width="60" Height="14" Minimum="0" Maximum="100" Value="{Binding SignalStrength}" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding SSID}" FontWeight="Bold"/>
-                <TextBlock Text=" ("/>
-                <TextBlock Text="{Binding SignalStrength}"/>
-                <TextBlock Text="%)"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,2">
+                <ProgressBar Width="60" Height="14" Minimum="0" Maximum="100" Value="{Binding SignalStrength}" Margin="0,0,8,0">
+                    <ProgressBar.Foreground>
+                        <SolidColorBrush Color="{Binding SignalStrength, Converter={x:Static local:SignalColorConverter.Instance}}"/>
+                    </ProgressBar.Foreground>
+                </ProgressBar>
+                <TextBlock Text="{Binding DisplayText}" FontWeight="Bold" MinWidth="200" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding SignalStrength}" FontWeight="Normal" Margin="0,0,2,0"/>
+                <TextBlock Text="%" FontWeight="Normal" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding SignalQuality}" FontSize="10" Foreground="Gray"/>
             </StackPanel>
         </DataTemplate>
     </ListBox.ItemTemplate>
@@ -65,18 +72,30 @@
         </Style>
     </ListBox.ItemContainerStyle>
 </ListBox>
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Grid Width="200" Margin="0,0,10,0">
-    <PasswordBox x:Name="PasswordBox" Width="200" PasswordChanged="PasswordBox_PasswordChanged"/>
-    <TextBlock x:Name="PasswordPlaceholderText"
-               Text="{x:Static properties:Resources.PasswordPlaceholder}"
-               IsHitTestVisible="False"
-               Foreground="Gray"
-               Margin="5,0,0,0"
-               VerticalAlignment="Center"
-               Visibility="Visible"/>
-</Grid>
-            <Button x:Name="ConnectButton" Content="{x:Static properties:Resources.Connect}" Width="100" Click="ConnectButton_Click" FontFamily="{DynamicResource FontFamilyDefault}"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <StackPanel Orientation="Vertical" Margin="0,0,15,0">
+                <Grid Width="220">
+                    <PasswordBox x:Name="PasswordBox" Width="220" Height="32" PasswordChanged="PasswordBox_PasswordChanged" FontSize="12" Padding="8,6" TabIndex="4" KeyDown="PasswordBox_KeyDown"/>
+                    <TextBlock x:Name="PasswordPlaceholderText"
+                               Text="{x:Static properties:Resources.PasswordPlaceholder}"
+                               IsHitTestVisible="False"
+                               Foreground="DarkGray"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Visibility="Visible"/>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,2,0,0" Height="16">
+                    <ProgressBar x:Name="PasswordStrengthBar" Width="100" Height="4" Minimum="0" Maximum="100" 
+                                 Value="{Binding PasswordStrength, Converter={x:Static local:PasswordStrengthToPercentageConverter.Instance}, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 Foreground="{Binding PasswordStrength, Converter={x:Static local:PasswordStrengthToColorConverter.Instance}, RelativeSource={RelativeSource AncestorType=Window}}"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock x:Name="PasswordStrengthText" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
+                               Text="{Binding PasswordStrength, Converter={x:Static local:PasswordStrengthToTextConverter.Instance}, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="{Binding PasswordStrength, Converter={x:Static local:PasswordStrengthToColorConverter.Instance}, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                </StackPanel>
+            </StackPanel>
+            <Button x:Name="ConnectButton" Content="{x:Static properties:Resources.Connect}" Width="120" Height="32" Click="ConnectButton_Click" FontFamily="{DynamicResource FontFamilyDefault}" FontSize="12" FontWeight="SemiBold" TabIndex="5" IsDefault="True"/>
         </StackPanel>
     </Grid>
 </Window>

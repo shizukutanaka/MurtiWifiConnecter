@@ -24,4 +24,7 @@
   <data name="PasswordPlaceholder" xml:space="preserve">
     <value>パスワード(必要な場合)</value>
   </data>
+  <data name="RefreshNetworks" xml:space="preserve">
+    <value>ネットワークを更新</value>
+  </data>
 </root>
