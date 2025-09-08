@@ -3,19 +3,36 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MurtiWifiConnecter
 {
-    // Martin式の包括的エラー処理システム
+    /// <summary>
+    /// 統合エラー処理システム
+    /// </summary>
     public static class ErrorHandler
     {
         private static readonly ConcurrentDictionary<string, ErrorStats> _errorStats = new();
         private static long _totalErrors = 0;
-        private static readonly object _lockObject = new();
+        private static readonly ConcurrentDictionary<string, RetryPolicy> _retryPolicies = new();
+        private static readonly ConcurrentDictionary<string, CircuitBreakerState> _circuitBreakers = new();
+        private static readonly Timer _cleanupTimer;
+        private static readonly Timer _circuitBreakerTimer;
         
-        // Carmack式の効率的エラー追跡
-        public static void LogError(string context, Exception ex, ConnectionLogger? logger = null, 
-            [CallerMemberName] string memberName = "", 
+        static ErrorHandler()
+        {
+            InitializeDefaultRetryPolicies();
+            // 1時間ごとに古いエラー統計をクリーンアップ
+            _cleanupTimer = new Timer(CleanupOldStats, null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
+            // サーキットブレーカーの定期チェック
+            _circuitBreakerTimer = new Timer(UpdateCircuitBreakers, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+        
+        /// <summary>
+        /// エラーをログに記録
+        /// </summary>
+        public static void LogError(string context, Exception ex, ConnectionLogger? logger = null,
+            [CallerMemberName] string memberName = "",
             [CallerFilePath] string filePath = "",
             [CallerLineNumber] int lineNumber = 0)
         {
@@ -25,211 +42,423 @@ namespace MurtiWifiConnecter
                 
                 // エラー統計を更新
                 var errorKey = $"{context}:{ex.GetType().Name}";
-                _errorStats.AddOrUpdate(errorKey, 
+                _errorStats.AddOrUpdate(errorKey,
                     new ErrorStats { Count = 1, LastOccurrence = DateTime.Now, Context = context },
                     (key, existing) => { existing.Count++; existing.LastOccurrence = DateTime.Now; return existing; });
                 
-                // 構造化ログメッセージ
-                var errorDetails = new
+                // ロガーが提供されている場合はログ出力
+                if (logger != null)
                 {
-                    Context = context,
-                    Member = memberName,
-                    File = System.IO.Path.GetFileName(filePath),
-                    Line = lineNumber,
-                    ExceptionType = ex.GetType().Name,
-                    Message = ex.Message,
-                    StackTrace = ex.StackTrace?.Split('\n').Take(3) // 上位3行のみ
-                };
-                
-                var errorMessage = $"[{DateTime.Now:HH:mm:ss.fff}] ERROR in {context} ({memberName}@{System.IO.Path.GetFileName(filePath)}:{lineNumber}): {ex.Message}";
-                
-                // ログ出力
-                logger?.LogError(context, errorMessage, ex);
-                Debug.WriteLine(errorMessage);
-                
-                // 重要なエラーの場合は詳細出力
-                if (IsHighPriorityError(ex))
-                {
-                    Debug.WriteLine($"[CRITICAL] {ex}");
+                    var message = $"[{context}] {ex.GetType().Name}: {ex.Message} at {System.IO.Path.GetFileName(filePath)}:{lineNumber} in {memberName}";
+                    logger.Log(ConnectionLogger.LogLevel.Error, context, message);
                 }
                 
-                // 頻発エラーの検出
-                if (_errorStats[errorKey].Count > 10)
+                // デバッグ出力
+                Debug.WriteLine($"[ERROR] {context}: {ex.Message}");
+            }
+            catch
+            {
+                // エラーハンドラ内でのエラーは無視
+            }
+        }
+        
+        /// <summary>
+        /// リトライポリシーに基づいた操作の実行
+        /// </summary>
+        public static async Task<T> ExecuteWithRetryAsync<T>(
+            string operation,
+            Func<CancellationToken, Task<T>> func,
+            RetryPolicy? customPolicy = null,
+            CancellationToken cancellationToken = default)
+        {
+            var policy = customPolicy ?? GetRetryPolicy(operation);
+            var attempts = 0;
+            var lastException = null as Exception;
+            
+            while (attempts < policy.MaxAttempts && !cancellationToken.IsCancellationRequested)
+            {
+                attempts++;
+                
+                try
                 {
-                    Debug.WriteLine($"[WARNING] Frequent error detected: {errorKey} (count: {_errorStats[errorKey].Count})");
+                    return await func(cancellationToken);
+                }
+                catch (Exception ex) when (attempts < policy.MaxAttempts && policy.ShouldRetry(ex))
+                {
+                    lastException = ex;
+                    var delay = policy.GetDelay(attempts);
+                    
+                    LogError($"{operation}.Retry", ex);
+                    
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken);
+                    }
+                }
+            }
+            
+            throw lastException ?? new InvalidOperationException($"操作 {operation} が {attempts} 回の試行後に失敗しました");
+        }
+        
+        /// <summary>
+        /// エラー回復の試行
+        /// </summary>
+        public static async Task<RecoveryResult> AttemptRecoveryAsync(
+            string context,
+            Exception exception,
+            Func<Task<bool>> recoveryAction,
+            CancellationToken cancellationToken = default)
+        {
+            var result = new RecoveryResult
+            {
+                Context = context,
+                StartTime = DateTime.Now
+            };
+            
+            try
+            {
+                LogError($"{context}.RecoveryAttempt", exception);
+                
+                result.Success = await recoveryAction();
+                result.Duration = DateTime.Now - result.StartTime;
+                
+                if (result.Success)
+                {
+                    Debug.WriteLine($"[RECOVERY] {context}: 回復成功");
+                }
+                else
+                {
+                    Debug.WriteLine($"[RECOVERY] {context}: 回復失敗");
+                }
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                result.Duration = DateTime.Now - result.StartTime;
+                LogError($"{context}.RecoveryFailed", ex);
+                return result;
+            }
+        }
+        
+        /// <summary>
+        /// サーキットブレーカー付きで操作を実行
+        /// </summary>
+        public static async Task<T> ExecuteWithCircuitBreakerAsync<T>(
+            string operation,
+            Func<Task<T>> func,
+            int failureThreshold = 5,
+            TimeSpan? breakDuration = null,
+            T? defaultValue = default)
+        {
+            var circuitBreaker = GetOrCreateCircuitBreaker(operation, failureThreshold, breakDuration ?? TimeSpan.FromMinutes(2));
+            
+            // サーキットがオープンの場合
+            if (circuitBreaker.State == CircuitBreakerStateEnum.Open)
+            {
+                if (DateTime.Now - circuitBreaker.LastFailure < circuitBreaker.BreakDuration)
+                {
+                    LogError($"{operation}.CircuitOpen", new InvalidOperationException("Circuit breaker is open"));
+                    return defaultValue;
+                }
+                else
+                {
+                    // ハーフオープン状態に移行
+                    circuitBreaker.State = CircuitBreakerStateEnum.HalfOpen;
+                }
+            }
+            
+            try
+            {
+                var result = await func();
+                
+                // 成功時の処理
+                if (circuitBreaker.State == CircuitBreakerStateEnum.HalfOpen)
+                {
+                    circuitBreaker.State = CircuitBreakerStateEnum.Closed;
+                    circuitBreaker.FailureCount = 0;
+                }
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                circuitBreaker.FailureCount++;
+                circuitBreaker.LastFailure = DateTime.Now;
+                
+                // 閾値を超えた場合はサーキットをオープン
+                if (circuitBreaker.FailureCount >= circuitBreaker.FailureThreshold)
+                {
+                    circuitBreaker.State = CircuitBreakerStateEnum.Open;
+                }
+                
+                LogError($"{operation}.CircuitBreaker", ex);
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// エラーの種類を判定
+        /// </summary>
+        public static ErrorCategory CategorizeError(Exception ex)
+        {
+            return ex switch
+            {
+                UnauthorizedAccessException => ErrorCategory.Security,
+                System.Net.NetworkInformation.NetworkInformationException => ErrorCategory.Network,
+                TimeoutException => ErrorCategory.Timeout,
+                IOException => ErrorCategory.IO,
+                OutOfMemoryException => ErrorCategory.Resource,
+                OperationCanceledException => ErrorCategory.Cancellation,
+                ArgumentException => ErrorCategory.Validation,
+                System.Management.ManagementException => ErrorCategory.System,
+                _ => ErrorCategory.Unknown
+            };
+        }
+        
+        /// <summary>
+        /// ユーザーフレンドリーなエラーメッセージを生成
+        /// </summary>
+        public static string GetUserFriendlyErrorMessage(Exception ex)
+        {
+            var category = CategorizeError(ex);
+            
+            return category switch
+            {
+                ErrorCategory.Security => "管理者権限が必要です。アプリケーションを管理者として実行してください。",
+                ErrorCategory.Network => "ネットワーク接続に問題があります。WiFiアダプターの状態を確認してください。",
+                ErrorCategory.Timeout => "接続がタイムアウトしました。しばらく待ってから再試行してください。",
+                ErrorCategory.IO => "ファイルの読み書きに失敗しました。ディスク容量やアクセス権限を確認してください。",
+                ErrorCategory.Resource => "メモリ不足です。他のアプリケーションを終了してから再試行してください。",
+                ErrorCategory.Cancellation => "操作がキャンセルされました。",
+                ErrorCategory.Validation => "入力データに問題があります。SSIDやパスワードを確認してください。",
+                ErrorCategory.System => "システムエラーが発生しました。WindowsのWiFiサービスを確認してください。",
+                _ => $"予期しないエラーが発生しました: {ex.Message}"
+            };
+        }
+        
+        /// <summary>
+        /// エラー統計を取得
+        /// </summary>
+        public static ErrorStatsSummary GetErrorStatistics()
+        {
+            return new ErrorStatsSummary
+            {
+                TotalErrors = _totalErrors,
+                ErrorsByContext = _errorStats.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => (kvp.Value.Count, kvp.Value.LastOccurrence)),
+                TopErrors = _errorStats
+                    .OrderByDescending(kvp => kvp.Value.Count)
+                    .Take(10)
+                    .Select(kvp => new ErrorSummaryItem
+                    {
+                        Context = kvp.Value.Context,
+                        ErrorType = kvp.Key.Split(':')[1],
+                        Count = kvp.Value.Count,
+                        LastOccurrence = kvp.Value.LastOccurrence
+                    })
+                    .ToList()
+            };
+        }
+        
+        private static void InitializeDefaultRetryPolicies()
+        {
+            _retryPolicies["NetworkConnection"] = new RetryPolicy
+            {
+                MaxAttempts = 3,
+                InitialDelay = TimeSpan.FromSeconds(1),
+                MaxDelay = TimeSpan.FromSeconds(10),
+                BackoffMultiplier = 2,
+                ShouldRetry = ex => ex is TimeoutException || ex.Message.Contains("ネットワーク")
+            };
+            
+            _retryPolicies["FileOperation"] = new RetryPolicy
+            {
+                MaxAttempts = 2,
+                InitialDelay = TimeSpan.FromMilliseconds(500),
+                MaxDelay = TimeSpan.FromSeconds(2),
+                BackoffMultiplier = 1.5,
+                ShouldRetry = ex => ex is System.IO.IOException
+            };
+            
+            _retryPolicies["Default"] = new RetryPolicy
+            {
+                MaxAttempts = 2,
+                InitialDelay = TimeSpan.FromSeconds(1),
+                MaxDelay = TimeSpan.FromSeconds(5),
+                BackoffMultiplier = 2,
+                ShouldRetry = ex => !(ex is ArgumentException || ex is InvalidOperationException)
+            };
+        }
+        
+        private static RetryPolicy GetRetryPolicy(string operation)
+        {
+            return _retryPolicies.GetValueOrDefault(operation) ?? _retryPolicies["Default"];
+        }
+        
+        private static CircuitBreakerState GetOrCreateCircuitBreaker(string operation, int failureThreshold, TimeSpan breakDuration)
+        {
+            return _circuitBreakers.GetOrAdd(operation, _ => new CircuitBreakerState
+            {
+                Operation = operation,
+                FailureThreshold = failureThreshold,
+                BreakDuration = breakDuration,
+                State = CircuitBreakerStateEnum.Closed
+            });
+        }
+        
+        private static void UpdateCircuitBreakers(object? state)
+        {
+            try
+            {
+                var now = DateTime.Now;
+                foreach (var breaker in _circuitBreakers.Values)
+                {
+                    // オープン状態で十分な時間が経過した場合、ハーフオープンに移行
+                    if (breaker.State == CircuitBreakerStateEnum.Open &&
+                        now - breaker.LastFailure > breaker.BreakDuration)
+                    {
+                        breaker.State = CircuitBreakerStateEnum.HalfOpen;
+                    }
                 }
             }
             catch
             {
-                // エラーハンドラー内でのエラーは最小限の情報のみ出力
-                Debug.WriteLine($"[CRITICAL] Error in ErrorHandler: {ex?.Message}");
+                // サーキットブレーカー更新エラーは無視
             }
         }
         
-        private static bool IsHighPriorityError(Exception ex)
-        {
-            return ex is OutOfMemoryException || 
-                   ex is StackOverflowException ||
-                   ex is System.Security.SecurityException ||
-                   ex is UnauthorizedAccessException;
-        }
-
-        public static T SafeExecute<T>(Func<T> action, T defaultValue, string context = "Unknown", ConnectionLogger? logger = null)
+        private static void CleanupOldStats(object? state)
         {
             try
             {
-                return action();
-            }
-            catch (Exception ex)
-            {
-                LogError(context, ex, logger);
-                return defaultValue;
-            }
-        }
-
-        public static void SafeExecute(Action action, string context = "Unknown", ConnectionLogger? logger = null)
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception ex)
-            {
-                LogError(context, ex, logger);
-            }
-        }
-
-        public static string GetUserFriendlyErrorMessage(Exception ex)
-        {
-            return ex switch
-            {
-                System.Net.NetworkInformation.PingException => "ネットワーク接続に問題があります。",
-                System.TimeoutException => "操作がタイムアウトしました。しばらく待ってから再試行してください。",
-                System.UnauthorizedAccessException => "管理者権限が必要な操作です。",
-                System.ComponentModel.Win32Exception win32Ex when win32Ex.NativeErrorCode == 2 => "必要なシステムコンポーネントが見つかりません。",
-                System.ComponentModel.Win32Exception win32Ex when win32Ex.NativeErrorCode == 5 => "アクセスが拒否されました。管理者として実行してください。",
-                System.IO.FileNotFoundException => "必要なファイルが見つかりません。",
-                System.IO.DirectoryNotFoundException => "指定されたフォルダが見つかりません。",
-                System.InvalidOperationException => "現在この操作は実行できません。",
-                System.ArgumentException => "入力データに問題があります。",
-                _ => "予期しないエラーが発生しました。"
-            };
-        }
-
-        public static bool IsRetriableError(Exception ex)
-        {
-            return ex switch
-            {
-                System.TimeoutException => true,
-                System.Net.NetworkInformation.PingException => true,
-                System.Net.Sockets.SocketException => true,
-                System.ComponentModel.Win32Exception win32Ex when win32Ex.NativeErrorCode == 1460 => true, // Timeout
-                _ => false
-            };
-        }
-
-        public static bool IsUserActionRequired(Exception ex)
-        {
-            return ex switch
-            {
-                System.UnauthorizedAccessException => true,
-                System.ComponentModel.Win32Exception win32Ex when win32Ex.NativeErrorCode == 5 => true,
-                System.IO.FileNotFoundException => true,
-                System.ArgumentException => true,
-                _ => false
-            };
-        }
-        
-        // エラー統計の取得（高品質コード品質保証）
-        public static ErrorSummary GetErrorSummary()
-        {
-            lock (_lockObject)
-            {
-                return new ErrorSummary
+                var cutoffTime = DateTime.Now.AddHours(-24);
+                var keysToRemove = _errorStats
+                    .Where(kvp => kvp.Value.LastOccurrence < cutoffTime)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                
+                foreach (var key in keysToRemove)
                 {
-                    TotalErrors = _totalErrors,
-                    UniqueErrorTypes = _errorStats.Count,
-                    MostFrequentErrors = _errorStats
-                        .OrderByDescending(kvp => kvp.Value.Count)
-                        .Take(5)
-                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                    RecentErrors = _errorStats.Values
-                        .Where(stat => stat.LastOccurrence > DateTime.Now.AddHours(-1))
-                        .Count()
-                };
-            }
-        }
-        
-        public static void ClearErrorStats()
-        {
-            lock (_lockObject)
-            {
-                _errorStats.Clear();
-                Interlocked.Exchange(ref _totalErrors, 0);
-            }
-        }
-        
-        public static SystemStability GetSystemStability()
-        {
-            var recentErrors = _errorStats.Values
-                .Where(stat => stat.LastOccurrence > DateTime.Now.AddMinutes(-30))
-                .Sum(stat => stat.Count);
-            
-            var stabilityScore = Math.Max(0, 100 - (recentErrors * 5));
-            
-            return new SystemStability
-            {
-                Score = stabilityScore,
-                RecentErrorCount = recentErrors,
-                IsStable = stabilityScore >= 80,
-                Recommendation = stabilityScore switch
-                {
-                    >= 90 => "システムは安定しています",
-                    >= 80 => "軽微な問題があります。監視を継続してください",
-                    >= 60 => "不安定な状態です。再起動を検討してください",
-                    >= 40 => "深刻な問題があります。ログを確認してください",
-                    _ => "システムが不安定です。即座に対処が必要です"
+                    _errorStats.TryRemove(key, out _);
                 }
-            };
+                
+                // 古いサーキットブレーカーもクリーンアップ
+                var breakersToRemove = _circuitBreakers
+                    .Where(kvp => kvp.Value.LastFailure < cutoffTime)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                    
+                foreach (var key in breakersToRemove)
+                {
+                    _circuitBreakers.TryRemove(key, out _);
+                }
+            }
+            catch
+            {
+                // クリーンアップエラーは無視
+            }
+        }
+        
+        // 内部クラス
+        private class ErrorStats
+        {
+            public int Count { get; set; }
+            public DateTime LastOccurrence { get; set; }
+            public string Context { get; set; } = string.Empty;
         }
     }
     
-    public class ErrorStats
+    /// <summary>
+    /// リトライポリシー
+    /// </summary>
+    public class RetryPolicy
     {
-        public int Count { get; set; }
-        public DateTime LastOccurrence { get; set; }
-        public string Context { get; set; } = string.Empty;
+        public int MaxAttempts { get; set; } = 3;
+        public TimeSpan InitialDelay { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan MaxDelay { get; set; } = TimeSpan.FromSeconds(30);
+        public double BackoffMultiplier { get; set; } = 2.0;
+        public Func<Exception, bool> ShouldRetry { get; set; } = ex => true;
+        
+        public TimeSpan GetDelay(int attemptNumber)
+        {
+            var delay = TimeSpan.FromMilliseconds(InitialDelay.TotalMilliseconds * Math.Pow(BackoffMultiplier, attemptNumber - 1));
+            return delay > MaxDelay ? MaxDelay : delay;
+        }
     }
     
-    public class ErrorSummary
+    /// <summary>
+    /// 回復結果
+    /// </summary>
+    public class RecoveryResult
+    {
+        public bool Success { get; set; }
+        public string Context { get; set; } = string.Empty;
+        public string? ErrorMessage { get; set; }
+        public DateTime StartTime { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+    
+    /// <summary>
+    /// エラー統計サマリー
+    /// </summary>
+    public class ErrorStatsSummary
     {
         public long TotalErrors { get; set; }
-        public int UniqueErrorTypes { get; set; }
-        public Dictionary<string, ErrorStats> MostFrequentErrors { get; set; } = new();
-        public int RecentErrors { get; set; }
-        
-        public override string ToString()
-        {
-            return $"Total: {TotalErrors}, Types: {UniqueErrorTypes}, Recent: {RecentErrors}";
-        }
+        public Dictionary<string, (int Count, DateTime LastOccurrence)> ErrorsByContext { get; set; } = new();
+        public List<ErrorSummaryItem> TopErrors { get; set; } = new();
     }
     
-    public class SystemStability
+    /// <summary>
+    /// エラーサマリー項目
+    /// </summary>
+    public class ErrorSummaryItem
     {
-        public int Score { get; set; }
-        public int RecentErrorCount { get; set; }
-        public bool IsStable { get; set; }
-        public string Recommendation { get; set; } = string.Empty;
-        
-        public string GetStabilityIcon()
-        {
-            return Score switch
-            {
-                >= 90 => "🟢",
-                >= 80 => "🟡",
-                >= 60 => "🟠",
-                _ => "🔴"
-            };
-        }
+        public string Context { get; set; } = string.Empty;
+        public string ErrorType { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public DateTime LastOccurrence { get; set; }
+    }
+    
+    /// <summary>
+    /// サーキットブレーナーの状態
+    /// </summary>
+    public class CircuitBreakerState
+    {
+        public string Operation { get; set; } = string.Empty;
+        public CircuitBreakerStateEnum State { get; set; } = CircuitBreakerStateEnum.Closed;
+        public int FailureCount { get; set; }
+        public int FailureThreshold { get; set; } = 5;
+        public DateTime LastFailure { get; set; } = DateTime.MinValue;
+        public TimeSpan BreakDuration { get; set; } = TimeSpan.FromMinutes(2);
+    }
+    
+    /// <summary>
+    /// サーキットブレーナーの状態列挙
+    /// </summary>
+    public enum CircuitBreakerStateEnum
+    {
+        Closed,    // 正常状態
+        Open,      // エラーが多く、リクエストをブロック
+        HalfOpen   // テスト的にリクエストを許可
+    }
+    
+    /// <summary>
+    /// エラーのカテゴリー
+    /// </summary>
+    public enum ErrorCategory
+    {
+        Unknown,
+        Security,      // セキュリティ関連
+        Network,       // ネットワーク関連
+        Timeout,       // タイムアウト
+        IO,            // ファイルI/O
+        Resource,      // リソース不足
+        Cancellation,  // キャンセル
+        Validation,    // 入力検証
+        System         // システムエラー
     }
 }

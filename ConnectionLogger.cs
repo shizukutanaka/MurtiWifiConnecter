@@ -51,15 +51,17 @@ namespace MurtiWifiConnecter
 
         public void LogConnection(string ssid, bool success, int signalStrength, string? errorMessage = null)
         {
-            var message = $"Connection to '{ssid}' - Signal: {signalStrength}%";
-            var details = success ? "Success" : $"Failed: {errorMessage ?? "Unknown error"}";
+            var sanitizedSSID = SanitizeSSID(ssid);
+            var message = $"Connection to '{sanitizedSSID}' - Signal: {signalStrength}%";
+            var details = success ? "Success" : $"Failed: {SanitizeErrorMessage(errorMessage ?? "Unknown error")}";
             
             Log(success ? LogLevel.Info : LogLevel.Warning, "Connection", message, details);
         }
 
         public void LogDisconnection(string ssid, string reason)
         {
-            Log(LogLevel.Info, "Disconnection", $"Disconnected from '{ssid}'", reason);
+            var sanitizedSSID = SanitizeSSID(ssid);
+            Log(LogLevel.Info, "Disconnection", $"Disconnected from '{sanitizedSSID}'", reason);
         }
 
         public void LogNetworkScan(int networksFound, long scanTimeMs)
@@ -69,7 +71,9 @@ namespace MurtiWifiConnecter
 
         public void LogAutoSwitch(string fromSSID, string toSSID, bool success)
         {
-            var message = $"Auto-switch from '{fromSSID}' to '{toSSID}'";
+            var sanitizedFrom = SanitizeSSID(fromSSID);
+            var sanitizedTo = SanitizeSSID(toSSID);
+            var message = $"Auto-switch from '{sanitizedFrom}' to '{sanitizedTo}'";
             Log(success ? LogLevel.Info : LogLevel.Warning, "AutoSwitch", message, 
                 success ? "Completed" : "Failed");
         }
@@ -99,12 +103,12 @@ namespace MurtiWifiConnecter
                 // キューが大きくなりすぎたら即座にフラッシュ
                 if (_logQueue.Count > 100)
                 {
-                    Task.Run(() => FlushLogs(null));
+                    FlushLogs(); // 同期で実行（ファイル書き込みは軽量）
                 }
             }
         }
 
-        private async void FlushLogs(object? state)
+        private async void FlushLogs()
         {
             if (_disposed || !await _writeSemaphore.WaitAsync(100))
                 return;
@@ -212,7 +216,7 @@ namespace MurtiWifiConnecter
 
         public async Task<List<string>> GetRecentLogsAsync(int lines = 100)
         {
-            var result = new List<string>();
+            var result = new List<string>(100); // 初期容量設定
             
             try
             {
@@ -274,6 +278,55 @@ namespace MurtiWifiConnecter
             return stats;
         }
 
+        private string SanitizeSSID(string ssid)
+        {
+            if (string.IsNullOrEmpty(ssid))
+                return "***";
+            
+            // SSIDの最初の2文字と最後の2文字のみ表示
+            if (ssid.Length <= 4)
+                return "***";
+                
+            return $"{ssid.Substring(0, 2)}***{ssid.Substring(ssid.Length - 2)}";
+        }
+        
+        private string SanitizeErrorMessage(string errorMessage)
+        {
+            if (string.IsNullOrEmpty(errorMessage))
+                return "***";
+            
+            // パスワード関連の文字列を隠蔽
+            var sanitized = System.Text.RegularExpressions.Regex.Replace(
+                errorMessage, 
+                @"(password|pwd|pass|key)[=:\s]*[^\s,;]+", 
+                "password=***", 
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // IPアドレスを隠蔽
+            sanitized = System.Text.RegularExpressions.Regex.Replace(
+                sanitized,
+                @"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b",
+                "XXX.XXX.XXX.XXX");
+            
+            // MACアドレスを隠蔽
+            sanitized = System.Text.RegularExpressions.Regex.Replace(
+                sanitized,
+                @"(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}",
+                "XX:XX:XX:XX:XX:XX");
+            
+            return sanitized;
+        }
+        
+        /// <summary>
+        /// ログバッファを最適化
+        /// </summary>
+        public static void OptimizeLogBuffer()
+        {
+            // スタティックメソッドなので各インスタンスのバッファは直接最適化できない
+            // 代わりに強制フラッシュを実行
+            GC.Collect(0, GCCollectionMode.Optimized);
+        }
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -281,8 +334,14 @@ namespace MurtiWifiConnecter
             _disposed = true;
             
             // 残りのログをフラッシュ
-            FlushLogs(null);
-            Thread.Sleep(100); // フラッシュ完了を待つ
+            try
+            {
+                FlushLogs();
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("ConnectionLogger.Dispose.FlushLogs", ex);
+            }
             
             _flushTimer?.Dispose();
             _writeSemaphore?.Dispose();

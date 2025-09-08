@@ -97,5 +97,13 @@
             </StackPanel>
             <Button x:Name="ConnectButton" Content="{x:Static properties:Resources.Connect}" Width="120" Height="32" Click="ConnectButton_Click" FontFamily="{DynamicResource FontFamilyDefault}" FontSize="12" FontWeight="SemiBold" TabIndex="5" IsDefault="True"/>
         </StackPanel>
+        
+        <!-- Loading Panel -->
+        <Grid x:Name="LoadingPanel" Grid.Row="0" Grid.RowSpan="4" Visibility="Collapsed" Background="#80000000">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Background="White" Padding="20" MinWidth="200">
+                <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,10"/>
+                <TextBlock x:Name="LoadingText" Text="処理中..." HorizontalAlignment="Center" FontSize="12"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

@@ -7,68 +7,60 @@ using System.Threading.Tasks;
 
 namespace MurtiWifiConnecter
 {
-    public class WifiProfileManager
+    public class WifiProfileManager : IDisposable
     {
-        private readonly string _backupDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MurtiWifiConnecter", "Backups");
+        private readonly string _backupDirectory;
+        private readonly Dictionary<string, WifiProfileInfo> _profileCache;
+        private readonly object _lockObject = new object();
+        private DateTime _lastCacheRefresh = DateTime.MinValue;
+        private readonly System.Threading.Timer _cacheCleanupTimer;
+        private bool _disposed = false;
+        private const int CacheValidityMinutes = 3; // 5分から3分に短縮
+        private const int MaxCacheSize = 20; // キャッシュサイズ制限
+        
+        public WifiProfileManager()
+        {
+            // QuickSettingsManagerからアプリケーションデータパスを取得
+            var appDataPath = string.IsNullOrEmpty(QuickSettingsManager.AppDataPath)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MurtiWifiConnecter")
+                : QuickSettingsManager.AppDataPath;
+            
+            _backupDirectory = Path.Combine(appDataPath, "Backups");
+            _profileCache = new Dictionary<string, WifiProfileInfo>(MaxCacheSize);
+            
+            // 定期的にキャッシュをクリーンアップ
+            _cacheCleanupTimer = new System.Threading.Timer(CacheCleanupCallback, null, 
+                TimeSpan.FromMinutes(CacheValidityMinutes), TimeSpan.FromMinutes(CacheValidityMinutes));
+        }
         public async Task<List<string>> GetSavedProfilesAsync()
         {
             try
             {
-                return await Task.Run(() =>
+                var output = await NetworkUtils.ExecuteNetshCommandAsync("wlan show profiles", 10000);
+                if (string.IsNullOrEmpty(output)) return new List<string>();
+
+                var profiles = new List<string>();
+                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                
+                foreach (var line in lines)
                 {
-                    var profiles = new List<string>();
-                    Process proc = null;
-
-                    try
+                    if (line.Contains(":") && (line.Contains("All User Profile") || line.Contains("User Profile")))
                     {
-                        var psi = new ProcessStartInfo("netsh", "wlan show profiles")
+                        var colonIndex = line.LastIndexOf(':');
+                        if (colonIndex > 0 && colonIndex < line.Length - 1)
                         {
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
-                        };
-
-                        proc = Process.Start(psi);
-                        if (proc == null) return profiles;
-
-                        if (!proc.WaitForExit(10000))
-                        {
-                            proc.Kill();
-                            return profiles;
-                        }
-
-                        string output = proc.StandardOutput.ReadToEnd();
-                        if (proc.ExitCode != 0) return profiles;
-
-                        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var line in lines)
-                        {
-                            if (line.Contains(":") && (line.Contains("All User Profile") || line.Contains("User Profile")))
-                            {
-                                var colonIndex = line.LastIndexOf(':');
-                                if (colonIndex > 0 && colonIndex < line.Length - 1)
-                                {
-                                    var profileName = line.Substring(colonIndex + 1).Trim();
-                                    if (!string.IsNullOrWhiteSpace(profileName))
-                                        profiles.Add(profileName);
-                                }
-                            }
+                            var profileName = line.Substring(colonIndex + 1).Trim();
+                            if (!string.IsNullOrWhiteSpace(profileName))
+                                profiles.Add(profileName);
                         }
                     }
-                    catch { }
-                    finally
-                    {
-                        try { proc?.Kill(); } catch { }
-                        proc?.Dispose();
-                    }
+                }
 
-                    return profiles.Distinct().OrderBy(p => p).ToList();
-                });
+                return profiles.Distinct().OrderBy(p => p).ToList();
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorHandler.LogError("WifiProfileManager.GetSavedProfilesAsync", ex);
                 return new List<string>();
             }
         }
@@ -79,45 +71,24 @@ namespace MurtiWifiConnecter
 
             try
             {
-                return await Task.Run(() =>
+                var safeProfileName = System.Security.SecurityElement.Escape(profileName);
+                var success = await NetworkUtils.ExecuteNetshCommandWithResultAsync(
+                    $"wlan delete profile name=\"{safeProfileName}\"", 10000);
+                
+                // キャッシュからも削除
+                if (success)
                 {
-                    Process proc = null;
-                    try
+                    lock (_lockObject)
                     {
-                        var safeProfileName = System.Security.SecurityElement.Escape(profileName);
-                        var psi = new ProcessStartInfo("netsh", $"wlan delete profile name=\"{safeProfileName}\"")
-                        {
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
-                        };
-
-                        proc = Process.Start(psi);
-                        if (proc == null) return false;
-
-                        if (!proc.WaitForExit(10000))
-                        {
-                            proc.Kill();
-                            return false;
-                        }
-
-                        return proc.ExitCode == 0;
+                        _profileCache.Remove(profileName);
                     }
-                    catch
-                    {
-                        return false;
-                    }
-                    finally
-                    {
-                        try { proc?.Kill(); } catch { }
-                        proc?.Dispose();
-                    }
-                });
+                }
+                
+                return success;
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorHandler.LogError("WifiProfileManager.DeleteProfileAsync", ex);
                 return false;
             }
         }
@@ -127,81 +98,71 @@ namespace MurtiWifiConnecter
             if (string.IsNullOrWhiteSpace(profileName)) 
                 return new WifiProfileInfo { ProfileName = profileName };
 
+            // キャッシュチェック（5分間有効）
+            lock (_lockObject)
+            {
+                if (_profileCache.TryGetValue(profileName, out var cachedInfo) &&
+                    (DateTime.Now - _lastCacheRefresh).TotalMinutes < CacheValidityMinutes)
+                {
+                    return cachedInfo;
+                }
+            }
+
             try
             {
-                return await Task.Run(() =>
+                var safeProfileName = System.Security.SecurityElement.Escape(profileName);
+                var output = await NetworkUtils.ExecuteNetshCommandAsync(
+                    $"wlan show profile name=\"{safeProfileName}\" key=clear", 10000);
+
+                var info = new WifiProfileInfo { ProfileName = profileName };
+                
+                if (!string.IsNullOrEmpty(output))
                 {
-                    var info = new WifiProfileInfo { ProfileName = profileName };
-                    Process proc = null;
+                    var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-                    try
+                    foreach (var line in lines)
                     {
-                        var safeProfileName = System.Security.SecurityElement.Escape(profileName);
-                        var psi = new ProcessStartInfo("netsh", $"wlan show profile name=\"{safeProfileName}\" key=clear")
+                        var trimmedLine = line.Trim();
+                        if (trimmedLine.StartsWith("SSID name", StringComparison.OrdinalIgnoreCase))
                         {
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
-                        };
-
-                        proc = Process.Start(psi);
-                        if (proc == null) return info;
-
-                        if (!proc.WaitForExit(10000))
-                        {
-                            proc.Kill();
-                            return info;
+                            var colonIndex = trimmedLine.IndexOf(':');
+                            if (colonIndex > 0)
+                            {
+                                info.SSID = trimmedLine.Substring(colonIndex + 1).Trim().Trim('"');
+                            }
                         }
-
-                        if (proc.ExitCode != 0) return info;
-
-                        string output = proc.StandardOutput.ReadToEnd();
-                        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-                        foreach (var line in lines)
+                        else if (trimmedLine.StartsWith("Authentication", StringComparison.OrdinalIgnoreCase))
                         {
-                            var trimmedLine = line.Trim();
-                            if (trimmedLine.StartsWith("SSID name", StringComparison.OrdinalIgnoreCase))
+                            var colonIndex = trimmedLine.IndexOf(':');
+                            if (colonIndex > 0)
                             {
-                                var colonIndex = trimmedLine.IndexOf(':');
-                                if (colonIndex > 0)
-                                {
-                                    info.SSID = trimmedLine.Substring(colonIndex + 1).Trim().Trim('"');
-                                }
+                                info.Authentication = trimmedLine.Substring(colonIndex + 1).Trim();
                             }
-                            else if (trimmedLine.StartsWith("Authentication", StringComparison.OrdinalIgnoreCase))
+                        }
+                        else if (trimmedLine.StartsWith("Connection mode", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var colonIndex = trimmedLine.IndexOf(':');
+                            if (colonIndex > 0)
                             {
-                                var colonIndex = trimmedLine.IndexOf(':');
-                                if (colonIndex > 0)
-                                {
-                                    info.Authentication = trimmedLine.Substring(colonIndex + 1).Trim();
-                                }
-                            }
-                            else if (trimmedLine.StartsWith("Connection mode", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var colonIndex = trimmedLine.IndexOf(':');
-                                if (colonIndex > 0)
-                                {
-                                    info.AutoConnect = trimmedLine.Substring(colonIndex + 1).Trim()
-                                        .Equals("Connect automatically", StringComparison.OrdinalIgnoreCase);
-                                }
+                                info.AutoConnect = trimmedLine.Substring(colonIndex + 1).Trim()
+                                    .Equals("Connect automatically", StringComparison.OrdinalIgnoreCase);
                             }
                         }
                     }
-                    catch { }
-                    finally
-                    {
-                        try { proc?.Kill(); } catch { }
-                        proc?.Dispose();
-                    }
+                }
 
-                    return info;
-                });
+                // キャッシュに保存
+                lock (_lockObject)
+                {
+                    _profileCache[profileName] = info;
+                    _lastCacheRefresh = DateTime.Now;
+                }
+
+                return info;
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorHandler.LogError("WifiProfileManager.GetProfileInfoAsync", ex);
                 return new WifiProfileInfo { ProfileName = profileName };
             }
         }
@@ -239,15 +200,30 @@ namespace MurtiWifiConnecter
                 
                 await File.WriteAllLinesAsync(backupPath, backupContent);
                 
-                // 古いバックアップを削除（最新10個を保持）
-                var backupFiles = Directory.GetFiles(_backupDirectory, "*.txt")
-                    .OrderByDescending(f => new FileInfo(f).CreationTime)
-                    .Skip(10)
-                    .ToList();
-                    
-                foreach (var oldFile in backupFiles)
+                // メモリ効率化: LINQ回避でバックアップクリーンアップ
+                var backupFiles = Directory.GetFiles(_backupDirectory, "*.txt");
+                if (backupFiles.Length > 5) // 10個から5個に削減
                 {
-                    try { File.Delete(oldFile); } catch { }
+                    var fileInfos = new (string Path, DateTime Created)[backupFiles.Length];
+                    for (int i = 0; i < backupFiles.Length; i++)
+                    {
+                        fileInfos[i] = (backupFiles[i], new FileInfo(backupFiles[i]).CreationTime);
+                    }
+                    
+                    Array.Sort(fileInfos, (a, b) => b.Created.CompareTo(a.Created));
+                    
+                    for (int i = 5; i < fileInfos.Length; i++)
+                    {
+                        try 
+                        { 
+                            // セキュリティ強化: バックアップファイルの安全な削除
+                            SecurityManager.SecureDeleteFile(fileInfos[i].Path); 
+                        } 
+                        catch (Exception ex)
+                        {
+                            ErrorHandler.LogError("WifiProfileManager.BackupCleanup", ex);
+                        }
+                    }
                 }
                 
                 return true;
@@ -267,10 +243,17 @@ namespace MurtiWifiConnecter
                     
                 return await Task.Run(() =>
                 {
-                    return Directory.GetFiles(_backupDirectory, "*.txt")
-                        .Select(f => Path.GetFileNameWithoutExtension(f))
-                        .OrderByDescending(f => f)
-                        .ToList();
+                    // メモリ効率化: LINQ回避
+                    var files = Directory.GetFiles(_backupDirectory, "*.txt");
+                    var result = new List<string>(files.Length);
+                    
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        result.Add(Path.GetFileNameWithoutExtension(files[i]));
+                    }
+                    
+                    result.Sort((a, b) => string.Compare(b, a, StringComparison.Ordinal));
+                    return result;
                 });
             }
             catch
@@ -317,14 +300,23 @@ namespace MurtiWifiConnecter
     </MSM>
 </WLANProfile>";
 
-                var tempPath = Path.Combine(Path.GetTempPath(), $"wifi_restore_{Guid.NewGuid():N}.xml");
+                // セキュリティ強化: 安全な一時ファイル作成
+                var tempPath = SecurityManager.CreateSecureTempFile(".xml");
                 await File.WriteAllTextAsync(tempPath, profileXml);
                 
                 var success = await NetworkUtils.ExecuteNetshCommandWithResultAsync(
                     $"wlan add profile filename=\"{tempPath}\" user=current",
                     10000);
-                    
-                try { File.Delete(tempPath); } catch { }
+                
+                // セキュリティ強化: 機密データの安全な削除
+                try 
+                { 
+                    SecurityManager.SecureDeleteFile(tempPath); 
+                } 
+                catch (Exception ex)
+                {
+                    ErrorHandler.LogError("WifiProfileManager.SecureFileDelete", ex);
+                }
                 
                 return success;
             }
@@ -358,6 +350,46 @@ namespace MurtiWifiConnecter
             {
                 return 0;
             }
+        }
+        
+        private void CacheCleanupCallback(object state)
+        {
+            if (_disposed) return;
+            
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (_profileCache.Count > MaxCacheSize)
+                    {
+                        _profileCache.Clear(); // 簡単なクリーンアップ
+                        _lastCacheRefresh = DateTime.MinValue;
+                    }
+                    
+                    // 古いキャッシュエントリのクリア
+                    if ((DateTime.Now - _lastCacheRefresh).TotalMinutes > CacheValidityMinutes * 2)
+                    {
+                        _profileCache.Clear();
+                        _lastCacheRefresh = DateTime.MinValue;
+                    }
+                }
+                catch { }
+            }
+        }
+        
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            
+            _cacheCleanupTimer?.Dispose();
+            
+            lock (_lockObject)
+            {
+                _profileCache.Clear();
+            }
+            
+            GC.SuppressFinalize(this);
         }
     }
 
