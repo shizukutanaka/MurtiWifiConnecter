@@ -44,6 +44,8 @@ namespace MurtiWifiConnecter
         private readonly ConnectionQualityMonitor _qualityMonitor;
         private readonly NetworkPerformanceTracker _performanceTracker;
         private readonly ConnectionDiagnostics _connectionDiagnostics;
+        private readonly AutoConnectManager _autoConnectManager;
+        private readonly ConnectionRetryManager _retryManager;
         
         private bool _isInitialized = false;
 
@@ -87,6 +89,10 @@ namespace MurtiWifiConnecter
             _qualityMonitor = new ConnectionQualityMonitor(_connectionStats, _connectionLogger);
             _performanceTracker = new NetworkPerformanceTracker(_connectionLogger);
             _connectionDiagnostics = new ConnectionDiagnostics(_connectionLogger);
+            
+            // 新機能マネージャーの初期化
+            _autoConnectManager = new AutoConnectManager(_connectionLogger);
+            _retryManager = new ConnectionRetryManager(_connectionLogger);
             
             _recoveryManager.RecoveryStarted += OnRecoveryStarted;
             _recoveryManager.RecoveryCompleted += OnRecoveryCompleted;
@@ -295,6 +301,17 @@ namespace MurtiWifiConnecter
             var scanStartTime = DateTime.Now;
             try
             {
+                // 最適化されたスキャナーを使用
+                var networks = await OptimizedWifiScanner.ScanNetworksAsync(_connectionHistory, _cancellationTokenSource.Token);
+                
+                // UI更新
+                await UpdateWifiListUIAsync(networks);
+                
+                // パフォーマンス記録
+                var scanDuration = DateTime.Now - scanStartTime;
+                SystemManager.RecordNetworkScan(networks.Count, scanDuration);
+                
+                return; // 旧実装をスキップ
                 string connectedSsid = await NetworkUtils.GetCurrentConnectedSSIDAsync(_cancellationTokenSource.Token);
                 var wifiList = new List<WifiNetwork>(50); // 初期容量設定でメモリ効率化
                 
@@ -519,11 +536,18 @@ namespace MurtiWifiConnecter
             
             try
             {
-                var result = await FastWifiConnector.ConnectAsync(selected.SSID, password, _cancellationTokenSource.Token);
+                // 自動再試行機能を使用して接続
+                var result = await _retryManager.ConnectWithRetryAsync(selected.SSID, password, _cancellationTokenSource.Token);
                 
                 if (result.Success)
                 {
                     _connectionHistory.AddSuccessfulConnection(selected.SSID);
+                    
+                    // パスワードを自動保存
+                    if (_autoConnectManager.AutoSavePasswords && !string.IsNullOrEmpty(password))
+                    {
+                        await _autoConnectManager.SaveProfileAsync(selected.SSID, password);
+                    }
                     
                     // WiFi分析に接続成功を記録
                     var connectionTime = TimeSpan.FromSeconds(10); // 推定接続時間
@@ -802,6 +826,53 @@ namespace MurtiWifiConnecter
                 e.Handled = true;
             }
         }
+        
+        private async void WifiListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork selected)
+                return;
+                
+            if (selected.IsConnected)
+            {
+                System.Windows.MessageBox.Show($"{selected.SSID}は既に接続されています。");
+                return;
+            }
+            
+            // 保存済みパスワードで自動接続を試行
+            var savedPassword = _autoConnectManager.GetSavedPassword(selected.SSID);
+            if (!string.IsNullOrEmpty(savedPassword))
+            {
+                ConnectButton.IsEnabled = false;
+                ConnectButton.Content = "自動接続中...";
+                Cursor = System.Windows.Input.Cursors.Wait;
+                
+                try
+                {
+                    if (await _autoConnectManager.TryAutoConnectAsync(selected.SSID, _cancellationTokenSource.Token))
+                    {
+                        _connectionHistory.AddSuccessfulConnection(selected.SSID);
+                        System.Windows.MessageBox.Show($"{selected.SSID}に自動接続しました。");
+                        await LoadWifiNetworksAsync();
+                    }
+                    else
+                    {
+                        // 自動接続失敗時はパスワード入力画面へ
+                        PasswordBox.Focus();
+                    }
+                }
+                finally
+                {
+                    ConnectButton.IsEnabled = true;
+                    ConnectButton.Content = "接続";
+                    Cursor = System.Windows.Input.Cursors.Arrow;
+                }
+            }
+            else
+            {
+                // パスワード未保存の場合は入力欄にフォーカス
+                PasswordBox.Focus();
+            }
+        }
 
         private async void PasswordBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
@@ -1010,6 +1081,7 @@ namespace MurtiWifiConnecter
                 _qualityMonitor?.Dispose();
                 _performanceTracker?.Dispose();
                 _connectionDiagnostics?.Dispose();
+                _autoConnectManager?.Dispose();
                 
                 // WiFiネットワークリストのクリア
                 WifiNetworks?.Clear();
@@ -1774,6 +1846,28 @@ namespace MurtiWifiConnecter
             {
                 Hide();
             }
+        }
+        
+        /// <summary>
+        /// UIのWiFiリストを更新
+        /// </summary>
+        private async Task UpdateWifiListUIAsync(List<WifiNetwork> networks)
+        {
+            if (_cancellationTokenSource.Token.IsCancellationRequested)
+                return;
+                
+            await Dispatcher.InvokeAsync(() =>
+            {
+                // 表示制限
+                var displayNetworks = networks.Take(QuickSettingsManager.GetSetting("max_displayed_networks", 50)).ToList();
+                
+                // 効率的な更新
+                UpdateNetworkListEfficiently(displayNetworks);
+                
+                // クイック接続ボタンの表示制御
+                var hasHistory = displayNetworks.Any(w => w.HasConnectedBefore);
+                QuickConnectButton.Visibility = hasHistory ? Visibility.Visible : Visibility.Collapsed;
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
         
         /// <summary>

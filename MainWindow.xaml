@@ -44,7 +44,7 @@
             <TextBlock x:Name="TitleTextBlock" Text="{x:Static properties:Resources.AvailableNetworks}" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource FontFamilyDefault}" VerticalAlignment="Center"/>
             <Button x:Name="QuickConnectButton" Content="⚡" Width="28" Height="28" Margin="15,0,0,0" Click="QuickConnectButton_Click" ToolTip="最近の接続先に素早く接続" FontSize="16" FontWeight="Bold" TabIndex="6" Visibility="Collapsed"/>
         </StackPanel>
-        <ListBox x:Name="WifiListBox" Grid.Row="2" Height="280" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" TabIndex="3" KeyDown="WifiListBox_KeyDown">
+        <ListBox x:Name="WifiListBox" Grid.Row="2" Height="280" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" TabIndex="3" KeyDown="WifiListBox_KeyDown" MouseDoubleClick="WifiListBox_MouseDoubleClick">
     <ListBox.ItemTemplate>
         <DataTemplate>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,2">
