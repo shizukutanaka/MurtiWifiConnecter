@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
             <TextBlock Text="Language:" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12"/>
@@ -98,12 +99,55 @@
             <Button x:Name="ConnectButton" Content="{x:Static properties:Resources.Connect}" Width="120" Height="32" Click="ConnectButton_Click" FontFamily="{DynamicResource FontFamilyDefault}" FontSize="12" FontWeight="SemiBold" TabIndex="5" IsDefault="True"/>
         </StackPanel>
         
-        <!-- Loading Panel -->
-        <Grid x:Name="LoadingPanel" Grid.Row="0" Grid.RowSpan="4" Visibility="Collapsed" Background="#80000000">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Background="White" Padding="20" MinWidth="200">
-                <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,10"/>
-                <TextBlock x:Name="LoadingText" Text="処理中..." HorizontalAlignment="Center" FontSize="12"/>
-            </StackPanel>
+        <!-- Loading Panel with Animation -->
+        <Grid x:Name="LoadingPanel" Grid.Row="0" Grid.RowSpan="4" Visibility="Collapsed" Background="#80000000" Opacity="0">
+            <Grid.Resources>
+                <Storyboard x:Key="FadeInAnimation">
+                    <DoubleAnimation Storyboard.TargetName="LoadingPanel" 
+                                     Storyboard.TargetProperty="Opacity" 
+                                     From="0" To="1" Duration="0:0:0.3"/>
+                </Storyboard>
+                <Storyboard x:Key="FadeOutAnimation">
+                    <DoubleAnimation Storyboard.TargetName="LoadingPanel" 
+                                     Storyboard.TargetProperty="Opacity" 
+                                     From="1" To="0" Duration="0:0:0.3"/>
+                </Storyboard>
+            </Grid.Resources>
+            <Border Background="White" CornerRadius="8" Padding="20" MinWidth="200" MaxWidth="300"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" 
+                    Effect="{StaticResource {x:Static SystemParameters.DropShadowKey}}">
+                <StackPanel>
+                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,10" 
+                                 Foreground="#FF2196F3" Background="#FFE3F2FD"/>
+                    <TextBlock x:Name="LoadingText" Text="処理中..." HorizontalAlignment="Center" 
+                               FontSize="12" Foreground="#FF424242"/>
+                </StackPanel>
+            </Border>
         </Grid>
+        
+        <!-- Status Bar -->
+        <Border Grid.Row="4" Background="#FFF5F5F5" BorderBrush="#FFDDDDDD" BorderThickness="0,1,0,0" Height="24">
+            <Grid Margin="10,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock x:Name="StatusText" Grid.Column="0" Text="準備完了" 
+                           FontSize="10" Foreground="#FF666666" VerticalAlignment="Center"/>
+                
+                <TextBlock x:Name="NetworkCountText" Grid.Column="1" Text="" 
+                           FontSize="10" Foreground="#FF666666" VerticalAlignment="Center" Margin="10,0"/>
+                
+                <TextBlock x:Name="LastUpdateText" Grid.Column="2" Text="" 
+                           FontSize="10" Foreground="#FF666666" VerticalAlignment="Center" Margin="10,0"/>
+                
+                <ProgressBar x:Name="MemoryUsageBar" Grid.Column="3" Width="60" Height="8" 
+                             Minimum="0" Maximum="100" Margin="10,0,0,0" VerticalAlignment="Center"
+                             Foreground="#FFFF9800" Background="#FFFBE9E7" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

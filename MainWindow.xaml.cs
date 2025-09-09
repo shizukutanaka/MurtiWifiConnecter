@@ -285,9 +285,88 @@ namespace MurtiWifiConnecter
             await Dispatcher.InvokeAsync(() =>
             {
                 RefreshButton.IsEnabled = !isRefreshing;
-                RefreshButton.Content = isRefreshing ? "更新中..." : "更新";
-                Cursor = isRefreshing ? System.Windows.Input.Cursors.Wait : System.Windows.Input.Cursors.Arrow;
+                RefreshButton.Content = isRefreshing ? "更新中..." : "⟳";
+                
+                // アニメーション付きローディング表示
+                if (isRefreshing)
+                {
+                    ShowLoadingPanel("ネットワークをスキャン中...");
+                }
+                else
+                {
+                    HideLoadingPanel();
+                }
+                
+                // ステータス更新
+                UpdateStatusBar(isRefreshing ? "スキャン中..." : "準備完了", WifiNetworks?.Count ?? 0);
             }, System.Windows.Threading.DispatcherPriority.Background);
+        }
+        
+        private void ShowLoadingPanel(string message = "処理中...")
+        {
+            LoadingText.Text = message;
+            LoadingPanel.Visibility = Visibility.Visible;
+            
+            // フェードインアニメーション
+            try
+            {
+                var fadeIn = (System.Windows.Media.Animation.Storyboard)LoadingPanel.Resources["FadeInAnimation"];
+                fadeIn?.Begin();
+            }
+            catch
+            {
+                // アニメーションエラーは無視
+            }
+        }
+        
+        private void HideLoadingPanel()
+        {
+            try
+            {
+                // フェードアウトアニメーション
+                var fadeOut = (System.Windows.Media.Animation.Storyboard)LoadingPanel.Resources["FadeOutAnimation"];
+                if (fadeOut != null)
+                {
+                    fadeOut.Completed += (s, e) => LoadingPanel.Visibility = Visibility.Collapsed;
+                    fadeOut.Begin();
+                }
+                else
+                {
+                    LoadingPanel.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch
+            {
+                // アニメーションエラーの場合は直接非表示
+                LoadingPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+        
+        private void UpdateStatusBar(string status, int networkCount)
+        {
+            try
+            {
+                StatusText.Text = status;
+                NetworkCountText.Text = networkCount > 0 ? $"{networkCount} ネットワーク" : "";
+                LastUpdateText.Text = $"最終更新: {DateTime.Now:HH:mm:ss}";
+                
+                // メモリ使用量表示（高負荷時のみ）
+                var memoryMB = GC.GetTotalMemory(false) / (1024 * 1024);
+                if (memoryMB > 50) // 50MB以上で表示
+                {
+                    MemoryUsageBar.Visibility = Visibility.Visible;
+                    MemoryUsageBar.Value = Math.Min(100, memoryMB / 2); // 200MBを100%とする
+                    MemoryUsageBar.ToolTip = $"メモリ使用量: {memoryMB}MB";
+                }
+                else
+                {
+                    MemoryUsageBar.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch
+            {
+                // UI更新エラーは無視
+            }
         }
 
         public async Task LoadWifiNetworksAsync()
