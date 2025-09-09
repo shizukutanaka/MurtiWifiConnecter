@@ -14,7 +14,7 @@ namespace MurtiWifiConnecter
         private static DateTime _lastMemoryOptimization = DateTime.MinValue;
         
         /// <summary>
-        /// メモリ最適化（MemoryOptimizerに委任）
+        /// メモリ最適化（統合版）
         /// </summary>
         public static void OptimizeMemory()
         {
@@ -26,14 +26,41 @@ namespace MurtiWifiConnecter
                 
                 _lastMemoryOptimization = DateTime.Now;
                 
-                // MemoryOptimizerに委任
-                if (MemoryOptimizer.IsMemoryPressureHigh())
+                try
                 {
-                    MemoryOptimizer.OptimizeMemoryFull();
+                    // メモリ使用量をチェック
+                    var workingSet = GC.GetTotalMemory(false);
+                    var isHighPressure = workingSet > 100_000_000; // 100MB以上で高負荷
+                    
+                    if (isHighPressure)
+                    {
+                        // フル最適化
+                        GC.Collect(0, GCCollectionMode.Optimized);
+                        GC.Collect(1, GCCollectionMode.Optimized);
+                        GC.Collect(2, GCCollectionMode.Optimized);
+                        GC.WaitForPendingFinalizers();
+                        GC.Collect();
+                    }
+                    else
+                    {
+                        // 軽量最適化
+                        GC.Collect(0, GCCollectionMode.Optimized);
+                    }
+                    
+                    // プロセス優先度を調整
+                    var currentProcess = Process.GetCurrentProcess();
+                    if (isHighPressure && currentProcess.PriorityClass != ProcessPriorityClass.BelowNormal)
+                    {
+                        currentProcess.PriorityClass = ProcessPriorityClass.BelowNormal;
+                    }
+                    else if (!isHighPressure && currentProcess.PriorityClass == ProcessPriorityClass.BelowNormal)
+                    {
+                        currentProcess.PriorityClass = ProcessPriorityClass.Normal;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    MemoryOptimizer.OptimizeMemoryLight();
+                    ErrorHandler.LogError("SystemManager.OptimizeMemory", ex);
                 }
             }
         }

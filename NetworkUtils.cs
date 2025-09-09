@@ -404,10 +404,6 @@ namespace MurtiWifiConnecter
             };
         }
 
-        public static void OptimizeMemory()
-        {
-            SystemManager.OptimizeMemory();
-        }
         
         // WiFiネットワークスキャン（軽量版）
         public static async Task<Dictionary<string, int>> ScanWifiNetworksAsync(CancellationToken cancellationToken = default)

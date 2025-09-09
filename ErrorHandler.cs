@@ -55,6 +55,9 @@ namespace MurtiWifiConnecter
                 
                 // デバッグ出力
                 Debug.WriteLine($"[ERROR] {context}: {ex.Message}");
+                
+                // 自動回復の試行
+                TryAutoRecovery(context, ex);
             }
             catch
             {
@@ -400,6 +403,58 @@ namespace MurtiWifiConnecter
         public string? ErrorMessage { get; set; }
         public DateTime StartTime { get; set; }
         public TimeSpan Duration { get; set; }
+        /// <summary>
+        /// 自動回復を試行
+        /// </summary>
+        private static void TryAutoRecovery(string context, Exception ex)
+        {
+            try
+            {
+                // メモリ不足エラー
+                if (ex is OutOfMemoryException)
+                {
+                    Task.Run(() => SystemManager.OptimizeMemory());
+                    return;
+                }
+                
+                // ファイルアクセスエラー
+                if (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // 少し待ってから処理を続行
+                    Task.Delay(1000);
+                    return;
+                }
+                
+                // ネットワークエラー
+                if (ex is System.Net.NetworkInformation.PingException || 
+                    ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase))
+                {
+                    // ネットワーク診断を実行
+                    Task.Run(async () => 
+                    {
+                        try
+                        {
+                            await NetworkDiagnostics.RunBasicDiagnosticsAsync();
+                        }
+                        catch { }
+                    });
+                    return;
+                }
+                
+                // WiFi接続エラー
+                if (context.Contains("WiFi", StringComparison.OrdinalIgnoreCase) ||
+                    context.Contains("Connection", StringComparison.OrdinalIgnoreCase))
+                {
+                    // WiFiスキャンキャッシュをクリア
+                    OptimizedWifiScanner.ClearCache();
+                    return;
+                }
+            }
+            catch
+            {
+                // 自動回復中のエラーは無視
+            }
+        }
     }
     
     /// <summary>

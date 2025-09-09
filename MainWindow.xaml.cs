@@ -40,8 +40,7 @@ namespace MurtiWifiConnecter
         private readonly ConnectionRecoveryManager _recoveryManager;
         private readonly SystemTrayManager _systemTrayManager;
         private readonly SmartConnectionManager _smartConnectionManager;
-        private readonly ConnectionHealthChecker _healthChecker;
-        private readonly ConnectionQualityMonitor _qualityMonitor;
+        private readonly ConnectionMonitor _connectionMonitor;
         private readonly NetworkPerformanceTracker _performanceTracker;
         private readonly ConnectionDiagnostics _connectionDiagnostics;
         private readonly AutoConnectManager _autoConnectManager;
@@ -83,10 +82,9 @@ namespace MurtiWifiConnecter
             
             _recoveryManager = new ConnectionRecoveryManager(_connectionStats, _connectionLogger);
             
-            // スマート接続管理の初期化
-            _healthChecker = new ConnectionHealthChecker(_connectionLogger);
-            _smartConnectionManager = new SmartConnectionManager(_connectionHistory, _connectionStats, _connectionLogger, _healthChecker);
-            _qualityMonitor = new ConnectionQualityMonitor(_connectionStats, _connectionLogger);
+            // 統合接続監視の初期化
+            _connectionMonitor = new ConnectionMonitor(_connectionLogger);
+            _smartConnectionManager = new SmartConnectionManager(_connectionHistory, _connectionStats, _connectionLogger);
             _performanceTracker = new NetworkPerformanceTracker(_connectionLogger);
             _connectionDiagnostics = new ConnectionDiagnostics(_connectionLogger);
             
@@ -98,12 +96,11 @@ namespace MurtiWifiConnecter
             _recoveryManager.RecoveryCompleted += OnRecoveryCompleted;
             _recoveryManager.RecoveryFailed += OnRecoveryFailed;
             
-            // スマート接続管理イベント
+            // 統合接続監視イベント
+            _connectionMonitor.StatusChanged += OnConnectionStatusChanged;
+            _connectionMonitor.ConnectionDegraded += OnConnectionDegraded;
             _smartConnectionManager.ConnectionSwitchRecommended += OnConnectionSwitchRecommended;
             _smartConnectionManager.ConnectionSwitched += OnConnectionSwitched;
-            _healthChecker.ConnectionDegraded += OnConnectionDegraded;
-            _healthChecker.ConnectionRecovered += OnConnectionRecovered;
-            _qualityMonitor.QualityChanged += OnConnectionQualityChanged;
             _performanceTracker.PerformanceChanged += OnPerformanceChanged;
             _connectionDiagnostics.DiagnosticCompleted += OnDiagnosticCompleted;
 
@@ -1077,8 +1074,7 @@ namespace MurtiWifiConnecter
                 _connectionLogger?.Dispose();
                 _recoveryManager?.Dispose();
                 _smartConnectionManager?.Dispose();
-                _healthChecker?.Dispose();
-                _qualityMonitor?.Dispose();
+                _connectionMonitor?.Dispose();
                 _performanceTracker?.Dispose();
                 _connectionDiagnostics?.Dispose();
                 _autoConnectManager?.Dispose();
@@ -1201,56 +1197,14 @@ namespace MurtiWifiConnecter
             }
         }
         
-        private async void OnConnectionDegraded(object? sender, ConnectionHealthEventArgs e)
-        {
-            try
-            {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    if (QuickSettingsManager.GetSetting("tray_notifications", true))
-                    {
-                        _systemTrayManager?.ShowBalloonTip(
-                            "接続品質低下",
-                            $"現在の接続品質: {e.Health.GetQualityDescription()}",
-                            System.Windows.Forms.ToolTipIcon.Warning);
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("MainWindow.OnConnectionDegraded", ex, _connectionLogger);
-            }
-        }
-        
-        private async void OnConnectionRecovered(object? sender, ConnectionHealthEventArgs e)
-        {
-            try
-            {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    if (QuickSettingsManager.GetSetting("tray_notifications", true))
-                    {
-                        _systemTrayManager?.ShowBalloonTip(
-                            "接続品質回復",
-                            $"接続品質が回復しました: {e.Health.GetQualityDescription()}",
-                            System.Windows.Forms.ToolTipIcon.Info);
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("MainWindow.OnConnectionRecovered", ex, _connectionLogger);
-            }
-        }
-        
-        private void OnConnectionQualityChanged(object? sender, QualityChangedEventArgs e)
+        private void OnConnectionStatusChanged(object? sender, ConnectionStatusChangedEventArgs e)
         {
             try
             {
                 Dispatcher.InvokeAsync(() =>
                 {
-                    // タイトルバーに接続品質情報を表示
-                    var qualityDesc = e.Quality switch
+                    var current = e.CurrentStatus;
+                    var qualityDesc = current.Quality switch
                     {
                         ConnectionQuality.Excellent => "★★★★★",
                         ConnectionQuality.Good => "★★★★☆",
@@ -1262,36 +1216,59 @@ namespace MurtiWifiConnecter
                         _ => "不明"
                     };
                     
-                    if (!string.IsNullOrEmpty(e.SSID))
+                    // タイトルバー更新
+                    if (!string.IsNullOrEmpty(current.SSID))
                     {
-                        Title = $"Murti WiFi Connecter - {e.SSID} ({e.SignalStrength}% {qualityDesc})";
-                        
-                        // 品質が大幅に変化した場合は通知
-                        if (Math.Abs((int)e.Quality - (int)e.PreviousQuality) >= 2)
-                        {
-                            var message = e.Quality > e.PreviousQuality ? 
-                                $"接続品質が改善されました: {qualityDesc}" : 
-                                $"接続品質が低下しました: {qualityDesc}";
-                                
-                            if (QuickSettingsManager.GetSetting("tray_notifications", true))
-                            {
-                                var iconType = e.Quality >= ConnectionQuality.Good ? 
-                                    System.Windows.Forms.ToolTipIcon.Info : 
-                                    System.Windows.Forms.ToolTipIcon.Warning;
-                                    
-                                _systemTrayManager?.ShowBalloonTip("接続品質変化", message, iconType);
-                            }
-                        }
+                        Title = $"Murti WiFi Connecter - {current.SSID} ({current.SignalStrength}% {qualityDesc} {(int)current.Latency.TotalMilliseconds}ms)";
                     }
                     else
                     {
                         Title = "Murti WiFi Connecter";
                     }
+                    
+                    // 品質変化の通知
+                    var previous = e.PreviousStatus;
+                    if (Math.Abs((int)current.Quality - (int)previous.Quality) >= 1)
+                    {
+                        var message = current.Quality > previous.Quality ? 
+                            $"接続品質が改善されました: {current.GetQualityDescription()}" : 
+                            $"接続品質が低下しました: {current.GetQualityDescription()}";
+                            
+                        if (QuickSettingsManager.GetSetting("tray_notifications", true))
+                        {
+                            var iconType = current.Quality >= ConnectionQuality.Good ? 
+                                System.Windows.Forms.ToolTipIcon.Info : 
+                                System.Windows.Forms.ToolTipIcon.Warning;
+                                
+                            _systemTrayManager?.ShowBalloonTip("接続品質変化", message, iconType);
+                        }
+                    }
                 }, System.Windows.Threading.DispatcherPriority.Background);
             }
             catch (Exception ex)
             {
-                ErrorHandler.LogError("MainWindow.OnConnectionQualityChanged", ex, _connectionLogger);
+                ErrorHandler.LogError("MainWindow.OnConnectionStatusChanged", ex, _connectionLogger);
+            }
+        }
+        
+        private void OnConnectionDegraded(object? sender, ConnectionDegradedEventArgs e)
+        {
+            try
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (QuickSettingsManager.GetSetting("tray_notifications", true))
+                    {
+                        _systemTrayManager?.ShowBalloonTip(
+                            "接続品質低下",
+                            $"理由: {e.Reason} - {e.Status.GetQualityDescription()}",
+                            System.Windows.Forms.ToolTipIcon.Warning);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("MainWindow.OnConnectionDegraded", ex, _connectionLogger);
             }
         }
         

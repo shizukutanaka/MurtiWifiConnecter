@@ -12,7 +12,6 @@ namespace MurtiWifiConnecter
         private readonly ConnectionHistory _history;
         private readonly ConnectionStatistics _stats;
         private readonly ConnectionLogger _logger;
-        private readonly ConnectionHealthChecker _healthChecker;
         private readonly Timer _optimizationTimer;
         private bool _disposed;
         private volatile bool _isOptimizing;
@@ -24,39 +23,14 @@ namespace MurtiWifiConnecter
         public event EventHandler<ConnectionSwitchEventArgs>? ConnectionSwitchRecommended;
         public event EventHandler<ConnectionSwitchEventArgs>? ConnectionSwitched;
         
-        public SmartConnectionManager(ConnectionHistory history, ConnectionStatistics stats, ConnectionLogger logger, ConnectionHealthChecker healthChecker)
+        public SmartConnectionManager(ConnectionHistory history, ConnectionStatistics stats, ConnectionLogger logger)
         {
             _history = history;
             _stats = stats;
             _logger = logger;
-            _healthChecker = healthChecker ?? throw new ArgumentNullException(nameof(healthChecker));
-            
-            // 接続品質監視のイベント処理
-            _healthChecker.ConnectionDegraded += OnConnectionDegraded;
             
             // 5分間隔で最適化チェック
             _optimizationTimer = new Timer(PerformOptimization, null, OptimizationInterval, OptimizationInterval);
-        }
-        
-        private async void OnConnectionDegraded(object? sender, ConnectionHealthEventArgs e)
-        {
-            if (!AutoSwitchEnabled || _isOptimizing) return;
-            
-            try
-            {
-                _logger.Log(ConnectionLogger.LogLevel.Info, "SmartConnection", 
-                    $"接続品質低下を検知: {e.Health.GetQualityDescription()}");
-                    
-                var recommendation = await AnalyzeAndRecommendSwitchAsync();
-                if (recommendation != null)
-                {
-                    ConnectionSwitchRecommended?.Invoke(this, new ConnectionSwitchEventArgs { Recommendation = recommendation });
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("SmartConnectionManager.OnConnectionDegraded", ex, _logger);
-            }
         }
         
         private async void PerformOptimization(object? state)
