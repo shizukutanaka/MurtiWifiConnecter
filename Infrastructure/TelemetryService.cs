@@ -1,439 +1,203 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MurtiWifiConnecter.Interfaces;
 
 namespace MurtiWifiConnecter.Infrastructure
 {
-    public class TelemetryService : ITelemetryService, IDisposable
+    /// <summary>
+    /// テレメトリサービスインターフェース
+    /// </summary>
+    public interface ITelemetryService
     {
-        private readonly IConfigurationService _configService;
-        private readonly ILoggingService _logger;
-        private readonly ConcurrentDictionary<string, TelemetryMetric> _metrics;
-        private readonly ConcurrentDictionary<string, TelemetryEvent> _events;
-        private readonly Timer _aggregationTimer;
-        private readonly SemaphoreSlim _aggregationLock;
-        private bool _telemetryEnabled;
+        void TrackEvent(string eventName, Dictionary<string, string> properties = null, Dictionary<string, double> metrics = null);
+        void TrackMetric(string name, double value, Dictionary<string, string> properties = null);
+        void TrackException(Exception exception, Dictionary<string, string> properties = null);
+        void TrackDependency(string name, string type, string data, DateTime startTime, TimeSpan duration, bool success);
+        void TrackPageView(string pageName, TimeSpan? duration = null, Dictionary<string, string> properties = null);
+        Task<TelemetryReport> GenerateReportAsync(DateTime startTime, DateTime endTime);
+        void StartOperation(string operationName);
+        void StopOperation(string operationName, bool success = true);
+    }
 
-        public event EventHandler<TelemetryEventArgs> MetricRecorded;
-        public event EventHandler<TelemetryEventArgs> EventTracked;
+    /// <summary>
+    /// テレメトリサービスの実装
+    /// </summary>
+    public class TelemetryService : ITelemetryService
+    {
+        private readonly List<TelemetryEvent> _events;
+        private readonly List<TelemetryMetric> _metrics;
+        private readonly List<TelemetryException> _exceptions;
+        private readonly List<TelemetryDependency> _dependencies;
+        private readonly List<TelemetryPageView> _pageViews;
+        private readonly Dictionary<string, Stopwatch> _operations;
+        private readonly object _lock = new object();
 
-        public TelemetryService(IConfigurationService configService, ILoggingService logger)
+        public TelemetryService()
         {
-            _configService = configService;
-            _logger = logger;
-            _metrics = new ConcurrentDictionary<string, TelemetryMetric>();
-            _events = new ConcurrentDictionary<string, TelemetryEvent>();
-            _aggregationLock = new SemaphoreSlim(1, 1);
-            
-            LoadConfiguration();
-            
-            // Start aggregation timer (every minute)
-            _aggregationTimer = new Timer(AggregateMetrics, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _events = new List<TelemetryEvent>();
+            _metrics = new List<TelemetryMetric>();
+            _exceptions = new List<TelemetryException>();
+            _dependencies = new List<TelemetryDependency>();
+            _pageViews = new List<TelemetryPageView>();
+            _operations = new Dictionary<string, Stopwatch>();
+        }
+
+        public void TrackEvent(string eventName, Dictionary<string, string> properties = null, Dictionary<string, double> metrics = null)
+        {
+            lock (_lock)
+            {
+                _events.Add(new TelemetryEvent
+                {
+                    Name = eventName,
+                    Timestamp = DateTime.Now,
+                    Properties = properties ?? new Dictionary<string, string>(),
+                    Metrics = metrics ?? new Dictionary<string, double>()
+                });
+            }
         }
 
         public void TrackMetric(string name, double value, Dictionary<string, string> properties = null)
         {
-            if (!_telemetryEnabled)
-                return;
-
-            try
+            lock (_lock)
             {
-                var key = GenerateMetricKey(name, properties);
-                var metric = _metrics.AddOrUpdate(key,
-                    k => new TelemetryMetric
-                    {
-                        Name = name,
-                        Count = 1,
-                        Sum = value,
-                        Min = value,
-                        Max = value,
-                        LastValue = value,
-                        Properties = properties ?? new Dictionary<string, string>(),
-                        FirstOccurrence = DateTime.UtcNow,
-                        LastOccurrence = DateTime.UtcNow
-                    },
-                    (k, existing) =>
-                    {
-                        existing.Count++;
-                        existing.Sum += value;
-                        existing.Min = Math.Min(existing.Min, value);
-                        existing.Max = Math.Max(existing.Max, value);
-                        existing.LastValue = value;
-                        existing.LastOccurrence = DateTime.UtcNow;
-                        return existing;
-                    });
-
-                MetricRecorded?.Invoke(this, new TelemetryEventArgs
+                _metrics.Add(new TelemetryMetric
                 {
                     Name = name,
                     Value = value,
-                    Properties = properties,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = DateTime.Now,
+                    Properties = properties ?? new Dictionary<string, string>()
                 });
-
-                _logger.LogDebug($"Metric tracked: {name} = {value}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to track metric: {name}", ex);
-            }
-        }
-
-        public void TrackEvent(string name, Dictionary<string, string> properties = null, Dictionary<string, double> metrics = null)
-        {
-            if (!_telemetryEnabled)
-                return;
-
-            try
-            {
-                var key = GenerateEventKey(name, properties);
-                var telemetryEvent = _events.AddOrUpdate(key,
-                    k => new TelemetryEvent
-                    {
-                        Name = name,
-                        Count = 1,
-                        Properties = properties ?? new Dictionary<string, string>(),
-                        Metrics = metrics ?? new Dictionary<string, double>(),
-                        FirstOccurrence = DateTime.UtcNow,
-                        LastOccurrence = DateTime.UtcNow
-                    },
-                    (k, existing) =>
-                    {
-                        existing.Count++;
-                        existing.LastOccurrence = DateTime.UtcNow;
-                        
-                        // Update metrics
-                        if (metrics != null)
-                        {
-                            foreach (var metric in metrics)
-                            {
-                                if (existing.Metrics.ContainsKey(metric.Key))
-                                {
-                                    existing.Metrics[metric.Key] += metric.Value;
-                                }
-                                else
-                                {
-                                    existing.Metrics[metric.Key] = metric.Value;
-                                }
-                            }
-                        }
-                        
-                        return existing;
-                    });
-
-                EventTracked?.Invoke(this, new TelemetryEventArgs
-                {
-                    Name = name,
-                    Properties = properties,
-                    Metrics = metrics,
-                    Timestamp = DateTime.UtcNow
-                });
-
-                _logger.LogDebug($"Event tracked: {name}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to track event: {name}", ex);
             }
         }
 
         public void TrackException(Exception exception, Dictionary<string, string> properties = null)
         {
-            if (!_telemetryEnabled)
-                return;
-
-            try
+            lock (_lock)
             {
-                var exceptionProperties = new Dictionary<string, string>(properties ?? new Dictionary<string, string>())
+                _exceptions.Add(new TelemetryException
                 {
-                    ["ExceptionType"] = exception.GetType().FullName,
-                    ["Message"] = exception.Message,
-                    ["StackTrace"] = exception.StackTrace ?? string.Empty
-                };
-
-                if (exception.InnerException != null)
-                {
-                    exceptionProperties["InnerException"] = exception.InnerException.Message;
-                }
-
-                TrackEvent("Exception", exceptionProperties);
-                
-                _logger.LogError($"Exception tracked: {exception.GetType().Name}", exception);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to track exception", ex);
+                    Exception = exception,
+                    Timestamp = DateTime.Now,
+                    Properties = properties ?? new Dictionary<string, string>(),
+                    SeverityLevel = DetermineSeverity(exception)
+                });
             }
         }
 
         public void TrackDependency(string name, string type, string data, DateTime startTime, TimeSpan duration, bool success)
         {
-            if (!_telemetryEnabled)
-                return;
-
-            try
+            lock (_lock)
             {
-                var properties = new Dictionary<string, string>
+                _dependencies.Add(new TelemetryDependency
                 {
-                    ["Type"] = type,
-                    ["Data"] = data,
-                    ["Success"] = success.ToString(),
-                    ["StartTime"] = startTime.ToString("O")
-                };
-
-                var metrics = new Dictionary<string, double>
-                {
-                    ["Duration"] = duration.TotalMilliseconds
-                };
-
-                TrackEvent($"Dependency.{name}", properties, metrics);
-                
-                _logger.LogDebug($"Dependency tracked: {name} ({type}) - {duration.TotalMilliseconds}ms");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to track dependency: {name}", ex);
+                    Name = name,
+                    Type = type,
+                    Data = data,
+                    StartTime = startTime,
+                    Duration = duration,
+                    Success = success,
+                    Properties = new Dictionary<string, string>()
+                });
             }
         }
 
         public void TrackPageView(string pageName, TimeSpan? duration = null, Dictionary<string, string> properties = null)
         {
-            if (!_telemetryEnabled)
-                return;
-
-            try
+            lock (_lock)
             {
-                var metrics = new Dictionary<string, double>();
-                if (duration.HasValue)
+                _pageViews.Add(new TelemetryPageView
                 {
-                    metrics["Duration"] = duration.Value.TotalMilliseconds;
-                }
-
-                TrackEvent($"PageView.{pageName}", properties, metrics);
-                
-                _logger.LogDebug($"Page view tracked: {pageName}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to track page view: {pageName}", ex);
+                    PageName = pageName,
+                    Timestamp = DateTime.Now,
+                    Duration = duration,
+                    Properties = properties ?? new Dictionary<string, string>()
+                });
             }
         }
 
-        public async Task<TelemetryReport> GetReportAsync(DateTime? startTime = null, DateTime? endTime = null)
+        public void StartOperation(string operationName)
         {
-            await _aggregationLock.WaitAsync();
-            try
+            lock (_lock)
             {
-                var report = new TelemetryReport
+                if (!_operations.ContainsKey(operationName))
                 {
-                    StartTime = startTime ?? DateTime.UtcNow.AddHours(-24),
-                    EndTime = endTime ?? DateTime.UtcNow,
-                    GeneratedAt = DateTime.UtcNow
-                };
-
-                // Filter and aggregate metrics
-                report.Metrics = _metrics.Values
-                    .Where(m => (!startTime.HasValue || m.FirstOccurrence >= startTime.Value) &&
-                               (!endTime.HasValue || m.LastOccurrence <= endTime.Value))
-                    .Select(m => new TelemetryMetricSummary
-                    {
-                        Name = m.Name,
-                        Count = m.Count,
-                        Average = m.Sum / m.Count,
-                        Min = m.Min,
-                        Max = m.Max,
-                        Sum = m.Sum,
-                        Properties = m.Properties
-                    })
-                    .ToList();
-
-                // Filter and aggregate events
-                report.Events = _events.Values
-                    .Where(e => (!startTime.HasValue || e.FirstOccurrence >= startTime.Value) &&
-                               (!endTime.HasValue || e.LastOccurrence <= endTime.Value))
-                    .Select(e => new TelemetryEventSummary
-                    {
-                        Name = e.Name,
-                        Count = e.Count,
-                        Properties = e.Properties,
-                        Metrics = e.Metrics
-                    })
-                    .ToList();
-
-                return report;
-            }
-            finally
-            {
-                _aggregationLock.Release();
+                    _operations[operationName] = Stopwatch.StartNew();
+                }
             }
         }
 
-        public async Task FlushAsync()
+        public void StopOperation(string operationName, bool success = true)
         {
-            await _aggregationLock.WaitAsync();
-            try
+            lock (_lock)
             {
-                // In a real implementation, this would send data to a telemetry service
-                _logger.LogInfo($"Flushing telemetry: {_metrics.Count} metrics, {_events.Count} events");
-                
-                // For now, just log summary
-                foreach (var metric in _metrics.Values)
+                if (_operations.TryGetValue(operationName, out var stopwatch))
                 {
-                    _logger.LogDebug($"Metric: {metric.Name} - Count: {metric.Count}, Avg: {metric.Sum / metric.Count:F2}");
+                    stopwatch.Stop();
+                    TrackMetric($"{operationName}_Duration", stopwatch.ElapsedMilliseconds,
+                        new Dictionary<string, string> { { "Success", success.ToString() } });
+                    _operations.Remove(operationName);
                 }
-                
-                foreach (var evt in _events.Values)
-                {
-                    _logger.LogDebug($"Event: {evt.Name} - Count: {evt.Count}");
-                }
-            }
-            finally
-            {
-                _aggregationLock.Release();
             }
         }
 
-        public async Task ClearAsync()
+        public async Task<TelemetryReport> GenerateReportAsync(DateTime startTime, DateTime endTime)
         {
-            await _aggregationLock.WaitAsync();
-            try
+            return await Task.Run(() =>
             {
-                _metrics.Clear();
-                _events.Clear();
-                _logger.LogInfo("Telemetry data cleared");
-            }
-            finally
-            {
-                _aggregationLock.Release();
-            }
-        }
-
-        private void AggregateMetrics(object state)
-        {
-            if (!_telemetryEnabled)
-                return;
-
-            Task.Run(async () =>
-            {
-                await _aggregationLock.WaitAsync();
-                try
+                lock (_lock)
                 {
-                    // Remove old metrics (older than 24 hours)
-                    var cutoff = DateTime.UtcNow.AddHours(-24);
-                    
-                    var oldMetrics = _metrics.Where(kvp => kvp.Value.LastOccurrence < cutoff).Select(kvp => kvp.Key).ToList();
-                    foreach (var key in oldMetrics)
+                    var report = new TelemetryReport
                     {
-                        _metrics.TryRemove(key, out _);
-                    }
-                    
-                    var oldEvents = _events.Where(kvp => kvp.Value.LastOccurrence < cutoff).Select(kvp => kvp.Key).ToList();
-                    foreach (var key in oldEvents)
+                        StartTime = startTime,
+                        EndTime = endTime,
+                        Events = _events.Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime).ToList(),
+                        Metrics = _metrics.Where(m => m.Timestamp >= startTime && m.Timestamp <= endTime).ToList(),
+                        Exceptions = _exceptions.Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime).ToList(),
+                        Dependencies = _dependencies.Where(d => d.StartTime >= startTime && d.StartTime <= endTime).ToList(),
+                        PageViews = _pageViews.Where(p => p.Timestamp >= startTime && p.Timestamp <= endTime).ToList()
+                    };
+
+                    report.Summary = new Dictionary<string, object>
                     {
-                        _events.TryRemove(key, out _);
-                    }
-                    
-                    _logger.LogDebug($"Telemetry aggregation: Removed {oldMetrics.Count} old metrics and {oldEvents.Count} old events");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("Failed to aggregate telemetry", ex);
-                }
-                finally
-                {
-                    _aggregationLock.Release();
+                        { "TotalEvents", report.Events.Count },
+                        { "TotalMetrics", report.Metrics.Count },
+                        { "TotalExceptions", report.Exceptions.Count },
+                        { "TotalDependencies", report.Dependencies.Count },
+                        { "TotalPageViews", report.PageViews.Count },
+                        { "SuccessRate", CalculateSuccessRate(report.Dependencies) },
+                        { "AverageResponseTime", CalculateAverageResponseTime(report.Dependencies) }
+                    };
+
+                    return report;
                 }
             });
         }
 
-        private string GenerateMetricKey(string name, Dictionary<string, string> properties)
+        private string DetermineSeverity(Exception exception)
         {
-            if (properties == null || properties.Count == 0)
-                return name;
-            
-            var sortedProps = string.Join(",", properties.OrderBy(p => p.Key).Select(p => $"{p.Key}={p.Value}"));
-            return $"{name}|{sortedProps}";
+            if (exception is OutOfMemoryException || exception is StackOverflowException)
+                return "Critical";
+            if (exception is UnauthorizedAccessException || exception is System.Security.SecurityException)
+                return "Error";
+            if (exception is ArgumentException || exception is InvalidOperationException)
+                return "Warning";
+            return "Information";
         }
 
-        private string GenerateEventKey(string name, Dictionary<string, string> properties)
+        private double CalculateSuccessRate(List<TelemetryDependency> dependencies)
         {
-            return GenerateMetricKey(name, properties);
+            if (dependencies.Count == 0) return 100.0;
+            var successCount = dependencies.Count(d => d.Success);
+            return (double)successCount / dependencies.Count * 100;
         }
 
-        private void LoadConfiguration()
+        private double CalculateAverageResponseTime(List<TelemetryDependency> dependencies)
         {
-            _telemetryEnabled = _configService.GetValue("Telemetry:Enabled", true);
+            if (dependencies.Count == 0) return 0;
+            return dependencies.Average(d => d.Duration.TotalMilliseconds);
         }
-
-        public void Dispose()
-        {
-            _aggregationTimer?.Dispose();
-            FlushAsync().Wait(5000);
-            _aggregationLock?.Dispose();
-        }
-    }
-
-    public class TelemetryMetric
-    {
-        public string Name { get; set; }
-        public long Count { get; set; }
-        public double Sum { get; set; }
-        public double Min { get; set; }
-        public double Max { get; set; }
-        public double LastValue { get; set; }
-        public Dictionary<string, string> Properties { get; set; }
-        public DateTime FirstOccurrence { get; set; }
-        public DateTime LastOccurrence { get; set; }
-    }
-
-    public class TelemetryEvent
-    {
-        public string Name { get; set; }
-        public long Count { get; set; }
-        public Dictionary<string, string> Properties { get; set; }
-        public Dictionary<string, double> Metrics { get; set; }
-        public DateTime FirstOccurrence { get; set; }
-        public DateTime LastOccurrence { get; set; }
-    }
-
-    public class TelemetryReport
-    {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public DateTime GeneratedAt { get; set; }
-        public List<TelemetryMetricSummary> Metrics { get; set; }
-        public List<TelemetryEventSummary> Events { get; set; }
-    }
-
-    public class TelemetryMetricSummary
-    {
-        public string Name { get; set; }
-        public long Count { get; set; }
-        public double Average { get; set; }
-        public double Min { get; set; }
-        public double Max { get; set; }
-        public double Sum { get; set; }
-        public Dictionary<string, string> Properties { get; set; }
-    }
-
-    public class TelemetryEventSummary
-    {
-        public string Name { get; set; }
-        public long Count { get; set; }
-        public Dictionary<string, string> Properties { get; set; }
-        public Dictionary<string, double> Metrics { get; set; }
-    }
-
-    public class TelemetryEventArgs : EventArgs
-    {
-        public string Name { get; set; }
-        public double? Value { get; set; }
-        public Dictionary<string, string> Properties { get; set; }
-        public Dictionary<string, double> Metrics { get; set; }
-        public DateTime Timestamp { get; set; }
     }
 }

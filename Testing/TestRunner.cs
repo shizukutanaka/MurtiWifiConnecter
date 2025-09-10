@@ -3,536 +3,243 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
-using MurtiWifiConnecter.Interfaces;
 
 namespace MurtiWifiConnecter.Testing
 {
-    public interface ITestRunner
+    /// <summary>
+    /// テストランナー
+    /// </summary>
+    public class TestRunner
     {
-        Task<TestResults> RunAllTestsAsync(CancellationToken cancellationToken = default);
-        Task<TestResults> RunTestSuiteAsync(string suiteName, CancellationToken cancellationToken = default);
-        Task<TestResults> RunTestsAsync(IEnumerable<Type> testClasses, CancellationToken cancellationToken = default);
-        Task<TestResult> RunSingleTestAsync(Type testClass, string methodName, CancellationToken cancellationToken = default);
-        List<TestSuite> GetAvailableTestSuites();
-        TestResults GetLastResults();
-        event EventHandler<TestProgressEventArgs> TestProgress;
-        event EventHandler<TestCompletedEventArgs> TestCompleted;
-    }
+        private readonly List<TestResult> _results;
+        private readonly Stopwatch _stopwatch;
 
-    public class TestRunner : ITestRunner, IDisposable
-    {
-        private readonly ILoggingService _logger;
-        private readonly ITelemetryService _telemetryService;
-        private readonly IServiceContainer _serviceContainer;
-        private readonly Dictionary<string, TestSuite> _testSuites;
-        private readonly SemaphoreSlim _executionSemaphore;
-        private TestResults _lastResults;
-
-        public event EventHandler<TestProgressEventArgs> TestProgress;
-        public event EventHandler<TestCompletedEventArgs> TestCompleted;
-
-        public TestRunner(ILoggingService logger, ITelemetryService telemetryService, IServiceContainer serviceContainer)
+        public TestRunner()
         {
-            _logger = logger;
-            _telemetryService = telemetryService;
-            _serviceContainer = serviceContainer;
-            _testSuites = new Dictionary<string, TestSuite>();
-            _executionSemaphore = new SemaphoreSlim(1, 1);
-
-            DiscoverTestSuites();
+            _results = new List<TestResult>();
+            _stopwatch = new Stopwatch();
         }
 
-        public async Task<TestResults> RunAllTestsAsync(CancellationToken cancellationToken = default)
+        /// <summary>
+        /// 指定されたアセンブリ内のすべてのテストを実行
+        /// </summary>
+        public async Task<TestRunSummary> RunAllTestsAsync(Assembly assembly)
         {
-            await _executionSemaphore.WaitAsync(cancellationToken);
-            
-            try
-            {
-                _logger.LogInfo("Starting full test run");
-                var startTime = DateTime.UtcNow;
+            var testClasses = assembly.GetTypes()
+                .Where(t => t.GetCustomAttribute<TestClassAttribute>() != null)
+                .ToList();
 
-                var results = new TestResults
-                {
-                    StartTime = startTime,
-                    TotalTests = _testSuites.Values.Sum(s => s.TestMethods.Count)
-                };
-
-                var testClasses = _testSuites.Values
-                    .SelectMany(s => s.TestMethods)
-                    .Select(m => m.DeclaringType)
-                    .Distinct()
-                    .ToList();
-
-                foreach (var testClass in testClasses)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
-
-                    var classResults = await RunTestClassAsync(testClass, cancellationToken);
-                    results.TestResults.AddRange(classResults.TestResults);
-                    results.PassedTests += classResults.PassedTests;
-                    results.FailedTests += classResults.FailedTests;
-                    results.SkippedTests += classResults.SkippedTests;
-
-                    TestProgress?.Invoke(this, new TestProgressEventArgs
-                    {
-                        CurrentTest = results.TestResults.Count,
-                        TotalTests = results.TotalTests,
-                        CurrentTestName = $"{testClass.Name} completed"
-                    });
-                }
-
-                results.EndTime = DateTime.UtcNow;
-                results.Duration = results.EndTime - results.StartTime;
-                results.IsSuccess = results.FailedTests == 0;
-
-                _lastResults = results;
-
-                _telemetryService.TrackEvent("TestRun.Completed", new Dictionary<string, string>
-                {
-                    ["TotalTests"] = results.TotalTests.ToString(),
-                    ["PassedTests"] = results.PassedTests.ToString(),
-                    ["FailedTests"] = results.FailedTests.ToString(),
-                    ["Duration"] = results.Duration.TotalSeconds.ToString(),
-                    ["Success"] = results.IsSuccess.ToString()
-                });
-
-                _logger.LogInfo($"Test run completed: {results.PassedTests}/{results.TotalTests} passed in {results.Duration.TotalSeconds:F1}s");
-
-                TestCompleted?.Invoke(this, new TestCompletedEventArgs { Results = results });
-                return results;
-            }
-            finally
-            {
-                _executionSemaphore.Release();
-            }
-        }
-
-        public async Task<TestResults> RunTestSuiteAsync(string suiteName, CancellationToken cancellationToken = default)
-        {
-            if (!_testSuites.TryGetValue(suiteName, out var suite))
-                throw new ArgumentException($"Test suite '{suiteName}' not found", nameof(suiteName));
-
-            var testClasses = suite.TestMethods.Select(m => m.DeclaringType).Distinct().ToList();
-            return await RunTestsAsync(testClasses, cancellationToken);
-        }
-
-        public async Task<TestResults> RunTestsAsync(IEnumerable<Type> testClasses, CancellationToken cancellationToken = default)
-        {
-            var results = new TestResults
-            {
-                StartTime = DateTime.UtcNow
-            };
+            _stopwatch.Start();
 
             foreach (var testClass in testClasses)
             {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                var classResults = await RunTestClassAsync(testClass, cancellationToken);
-                results.TestResults.AddRange(classResults.TestResults);
-                results.PassedTests += classResults.PassedTests;
-                results.FailedTests += classResults.FailedTests;
-                results.SkippedTests += classResults.SkippedTests;
+                await RunTestClassAsync(testClass);
             }
 
-            results.EndTime = DateTime.UtcNow;
-            results.Duration = results.EndTime - results.StartTime;
-            results.TotalTests = results.TestResults.Count;
-            results.IsSuccess = results.FailedTests == 0;
+            _stopwatch.Stop();
 
-            return results;
+            return GenerateSummary();
         }
 
-        public async Task<TestResult> RunSingleTestAsync(Type testClass, string methodName, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// 特定のテストクラスを実行
+        /// </summary>
+        public async Task<TestRunSummary> RunTestClassAsync(Type testClass)
         {
-            var method = testClass.GetMethod(methodName);
-            if (method == null)
-                throw new ArgumentException($"Test method '{methodName}' not found in class '{testClass.Name}'");
+            var testMethods = testClass.GetMethods()
+                .Where(m => m.GetCustomAttribute<TestMethodAttribute>() != null)
+                .ToList();
 
-            return await ExecuteTestMethodAsync(testClass, method, cancellationToken);
-        }
+            var instance = Activator.CreateInstance(testClass);
 
-        private async Task<TestResults> RunTestClassAsync(Type testClass, CancellationToken cancellationToken)
-        {
-            var results = new TestResults { StartTime = DateTime.UtcNow };
+            // Setup実行
+            var setupMethod = testClass.GetMethod("Setup");
+            setupMethod?.Invoke(instance, null);
 
-            try
+            foreach (var method in testMethods)
             {
-                var testMethods = GetTestMethods(testClass);
-                var instance = CreateTestInstance(testClass);
-
-                await ExecuteSetupMethod(instance, testClass);
-
-                foreach (var method in testMethods)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
-
-                    var result = await ExecuteTestMethodAsync(testClass, method, cancellationToken, instance);
-                    results.TestResults.Add(result);
-
-                    if (result.Status == TestStatus.Passed)
-                        results.PassedTests++;
-                    else if (result.Status == TestStatus.Failed)
-                        results.FailedTests++;
-                    else
-                        results.SkippedTests++;
-                }
-
-                await ExecuteTeardownMethod(instance, testClass);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error running test class {testClass.Name}", ex);
-                
-                results.TestResults.Add(new TestResult
-                {
-                    TestClass = testClass.Name,
-                    TestMethod = "ClassSetup",
-                    Status = TestStatus.Failed,
-                    ErrorMessage = ex.Message,
-                    Duration = TimeSpan.Zero
-                });
-                results.FailedTests++;
+                await RunTestMethodAsync(instance, method);
             }
 
-            results.EndTime = DateTime.UtcNow;
-            results.Duration = results.EndTime - results.StartTime;
-            results.TotalTests = results.TestResults.Count;
+            // Teardown実行
+            var teardownMethod = testClass.GetMethod("Teardown");
+            teardownMethod?.Invoke(instance, null);
 
-            return results;
+            return GenerateSummary();
         }
 
-        private async Task<TestResult> ExecuteTestMethodAsync(Type testClass, MethodInfo method, CancellationToken cancellationToken, object instance = null)
+        /// <summary>
+        /// 個別のテストメソッドを実行
+        /// </summary>
+        private async Task RunTestMethodAsync(object instance, MethodInfo method)
         {
             var result = new TestResult
             {
-                TestClass = testClass.Name,
-                TestMethod = method.Name,
-                StartTime = DateTime.UtcNow
+                TestName = $"{instance.GetType().Name}.{method.Name}",
+                StartTime = DateTime.Now
             };
 
-            var stopwatch = Stopwatch.StartNew();
+            var methodStopwatch = Stopwatch.StartNew();
 
             try
             {
-                instance ??= CreateTestInstance(testClass);
-                
-                if (HasSkipAttribute(method))
+                if (method.ReturnType == typeof(Task))
                 {
-                    result.Status = TestStatus.Skipped;
-                    result.SkipReason = GetSkipReason(method);
-                    return result;
-                }
-
-                await ExecuteBeforeTestMethod(instance, testClass);
-
-                if (IsAsyncMethod(method))
-                {
-                    var task = (Task)method.Invoke(instance, null);
-                    await task;
+                    await (Task)method.Invoke(instance, null);
                 }
                 else
                 {
                     method.Invoke(instance, null);
                 }
 
-                await ExecuteAfterTestMethod(instance, testClass);
-
-                result.Status = TestStatus.Passed;
+                result.Success = true;
+                result.Message = "Test passed";
             }
             catch (Exception ex)
             {
-                result.Status = TestStatus.Failed;
-                result.ErrorMessage = ex.InnerException?.Message ?? ex.Message;
-                result.StackTrace = ex.InnerException?.StackTrace ?? ex.StackTrace;
-
-                _logger.LogWarning($"Test failed: {testClass.Name}.{method.Name} - {result.ErrorMessage}");
+                result.Success = false;
+                result.Exception = ex.InnerException ?? ex;
+                result.Message = result.Exception.Message;
             }
             finally
             {
-                stopwatch.Stop();
-                result.Duration = stopwatch.Elapsed;
-                result.EndTime = DateTime.UtcNow;
+                methodStopwatch.Stop();
+                result.Duration = methodStopwatch.Elapsed;
+                result.EndTime = DateTime.Now;
+                _results.Add(result);
             }
-
-            return result;
         }
 
-        private void DiscoverTestSuites()
+        /// <summary>
+        /// テスト実行サマリーを生成
+        /// </summary>
+        private TestRunSummary GenerateSummary()
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            
-            foreach (var assembly in assemblies)
+            return new TestRunSummary
             {
-                try
-                {
-                    var testClasses = assembly.GetTypes()
-                        .Where(t => t.IsClass && !t.IsAbstract && HasTestMethods(t))
-                        .ToList();
-
-                    foreach (var testClass in testClasses)
-                    {
-                        var suiteAttribute = testClass.GetCustomAttribute<TestSuiteAttribute>();
-                        var suiteName = suiteAttribute?.Name ?? "Default";
-
-                        if (!_testSuites.TryGetValue(suiteName, out var suite))
-                        {
-                            suite = new TestSuite
-                            {
-                                Name = suiteName,
-                                Description = suiteAttribute?.Description ?? $"Test suite for {suiteName}",
-                                TestMethods = new List<MethodInfo>()
-                            };
-                            _testSuites[suiteName] = suite;
-                        }
-
-                        var testMethods = GetTestMethods(testClass);
-                        suite.TestMethods.AddRange(testMethods);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"Error discovering tests in assembly {assembly.FullName}", ex);
-                }
-            }
-
-            _logger.LogInfo($"Discovered {_testSuites.Count} test suites with {_testSuites.Values.Sum(s => s.TestMethods.Count)} tests");
-        }
-
-        private List<MethodInfo> GetTestMethods(Type testClass)
-        {
-            return testClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(m => m.GetCustomAttribute<TestMethodAttribute>() != null)
-                .ToList();
-        }
-
-        private bool HasTestMethods(Type type)
-        {
-            return type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Any(m => m.GetCustomAttribute<TestMethodAttribute>() != null);
-        }
-
-        private object CreateTestInstance(Type testClass)
-        {
-            try
-            {
-                return _serviceContainer.CreateInstance(testClass);
-            }
-            catch
-            {
-                return Activator.CreateInstance(testClass);
-            }
-        }
-
-        private async Task ExecuteSetupMethod(object instance, Type testClass)
-        {
-            var setupMethod = testClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetCustomAttribute<SetupAttribute>() != null);
-
-            if (setupMethod != null)
-            {
-                if (IsAsyncMethod(setupMethod))
-                {
-                    var task = (Task)setupMethod.Invoke(instance, null);
-                    await task;
-                }
-                else
-                {
-                    setupMethod.Invoke(instance, null);
-                }
-            }
-        }
-
-        private async Task ExecuteTeardownMethod(object instance, Type testClass)
-        {
-            var teardownMethod = testClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetCustomAttribute<TeardownAttribute>() != null);
-
-            if (teardownMethod != null)
-            {
-                if (IsAsyncMethod(teardownMethod))
-                {
-                    var task = (Task)teardownMethod.Invoke(instance, null);
-                    await task;
-                }
-                else
-                {
-                    teardownMethod.Invoke(instance, null);
-                }
-            }
-        }
-
-        private async Task ExecuteBeforeTestMethod(object instance, Type testClass)
-        {
-            var beforeMethod = testClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetCustomAttribute<BeforeTestAttribute>() != null);
-
-            if (beforeMethod != null)
-            {
-                if (IsAsyncMethod(beforeMethod))
-                {
-                    var task = (Task)beforeMethod.Invoke(instance, null);
-                    await task;
-                }
-                else
-                {
-                    beforeMethod.Invoke(instance, null);
-                }
-            }
-        }
-
-        private async Task ExecuteAfterTestMethod(object instance, Type testClass)
-        {
-            var afterMethod = testClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetCustomAttribute<AfterTestAttribute>() != null);
-
-            if (afterMethod != null)
-            {
-                if (IsAsyncMethod(afterMethod))
-                {
-                    var task = (Task)afterMethod.Invoke(instance, null);
-                    await task;
-                }
-                else
-                {
-                    afterMethod.Invoke(instance, null);
-                }
-            }
-        }
-
-        private bool IsAsyncMethod(MethodInfo method)
-        {
-            return method.ReturnType == typeof(Task) || method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
-        }
-
-        private bool HasSkipAttribute(MethodInfo method)
-        {
-            return method.GetCustomAttribute<SkipAttribute>() != null;
-        }
-
-        private string GetSkipReason(MethodInfo method)
-        {
-            var skipAttribute = method.GetCustomAttribute<SkipAttribute>();
-            return skipAttribute?.Reason ?? "Test skipped";
-        }
-
-        public List<TestSuite> GetAvailableTestSuites()
-        {
-            return _testSuites.Values.ToList();
-        }
-
-        public TestResults GetLastResults()
-        {
-            return _lastResults;
-        }
-
-        public void Dispose()
-        {
-            _executionSemaphore?.Dispose();
+                TotalTests = _results.Count,
+                PassedTests = _results.Count(r => r.Success),
+                FailedTests = _results.Count(r => !r.Success),
+                TotalDuration = _stopwatch.Elapsed,
+                Results = _results.ToList(),
+                SuccessRate = _results.Count > 0 
+                    ? (double)_results.Count(r => r.Success) / _results.Count * 100 
+                    : 0
+            };
         }
     }
 
-    // Test attributes
-    [AttributeUsage(AttributeTargets.Class)]
-    public class TestSuiteAttribute : Attribute
+    /// <summary>
+    /// テスト結果
+    /// </summary>
+    public class TestResult
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
-
-        public TestSuiteAttribute(string name)
-        {
-            Name = name;
-        }
+        public string TestName { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public Exception Exception { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public TimeSpan Duration { get; set; }
     }
 
+    /// <summary>
+    /// テスト実行サマリー
+    /// </summary>
+    public class TestRunSummary
+    {
+        public int TotalTests { get; set; }
+        public int PassedTests { get; set; }
+        public int FailedTests { get; set; }
+        public double SuccessRate { get; set; }
+        public TimeSpan TotalDuration { get; set; }
+        public List<TestResult> Results { get; set; }
+    }
+
+    /// <summary>
+    /// テストクラス属性
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class TestClassAttribute : Attribute
+    {
+        public string Description { get; set; }
+    }
+
+    /// <summary>
+    /// テストメソッド属性
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class TestMethodAttribute : Attribute
     {
         public string Description { get; set; }
+        public int Priority { get; set; } = 0;
     }
 
-    [AttributeUsage(AttributeTargets.Method)]
-    public class SetupAttribute : Attribute { }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class TeardownAttribute : Attribute { }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class BeforeTestAttribute : Attribute { }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class AfterTestAttribute : Attribute { }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class SkipAttribute : Attribute
+    /// <summary>
+    /// テストアサーション
+    /// </summary>
+    public static class Assert
     {
-        public string Reason { get; set; }
-
-        public SkipAttribute(string reason = null)
+        public static void IsTrue(bool condition, string message = null)
         {
-            Reason = reason;
+            if (!condition)
+                throw new AssertionException(message ?? "Expected condition to be true");
+        }
+
+        public static void IsFalse(bool condition, string message = null)
+        {
+            if (condition)
+                throw new AssertionException(message ?? "Expected condition to be false");
+        }
+
+        public static void AreEqual<T>(T expected, T actual, string message = null)
+        {
+            if (!Equals(expected, actual))
+                throw new AssertionException(message ?? $"Expected {expected} but got {actual}");
+        }
+
+        public static void AreNotEqual<T>(T expected, T actual, string message = null)
+        {
+            if (Equals(expected, actual))
+                throw new AssertionException(message ?? $"Expected values to be different but both were {expected}");
+        }
+
+        public static void IsNull(object obj, string message = null)
+        {
+            if (obj != null)
+                throw new AssertionException(message ?? "Expected null but got an object");
+        }
+
+        public static void IsNotNull(object obj, string message = null)
+        {
+            if (obj == null)
+                throw new AssertionException(message ?? "Expected an object but got null");
+        }
+
+        public static void Throws<T>(Action action, string message = null) where T : Exception
+        {
+            try
+            {
+                action();
+                throw new AssertionException(message ?? $"Expected exception of type {typeof(T).Name} was not thrown");
+            }
+            catch (T)
+            {
+                // Expected exception was thrown
+            }
+            catch (Exception ex)
+            {
+                throw new AssertionException($"Expected exception of type {typeof(T).Name} but got {ex.GetType().Name}");
+            }
         }
     }
 
-    // Test data models
-    public class TestSuite
+    /// <summary>
+    /// アサーション例外
+    /// </summary>
+    public class AssertionException : Exception
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public List<MethodInfo> TestMethods { get; set; } = new List<MethodInfo>();
-    }
-
-    public class TestResults
-    {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public TimeSpan Duration { get; set; }
-        public int TotalTests { get; set; }
-        public int PassedTests { get; set; }
-        public int FailedTests { get; set; }
-        public int SkippedTests { get; set; }
-        public bool IsSuccess { get; set; }
-        public List<TestResult> TestResults { get; set; } = new List<TestResult>();
-
-        public double PassRate => TotalTests > 0 ? (double)PassedTests / TotalTests * 100 : 0;
-    }
-
-    public class TestResult
-    {
-        public string TestClass { get; set; }
-        public string TestMethod { get; set; }
-        public TestStatus Status { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public TimeSpan Duration { get; set; }
-        public string ErrorMessage { get; set; }
-        public string StackTrace { get; set; }
-        public string SkipReason { get; set; }
-        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
-    }
-
-    public enum TestStatus
-    {
-        Passed,
-        Failed,
-        Skipped
-    }
-
-    // Event args
-    public class TestProgressEventArgs : EventArgs
-    {
-        public int CurrentTest { get; set; }
-        public int TotalTests { get; set; }
-        public string CurrentTestName { get; set; }
-        public double ProgressPercentage => TotalTests > 0 ? (double)CurrentTest / TotalTests * 100 : 0;
-    }
-
-    public class TestCompletedEventArgs : EventArgs
-    {
-        public TestResults Results { get; set; }
+        public AssertionException(string message) : base(message) { }
     }
 }

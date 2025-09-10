@@ -1,400 +1,351 @@
 using System;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
-using Microsoft.Win32;
-using MurtiWifiConnecter.Interfaces;
+using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace MurtiWifiConnecter.UserExperience
 {
-    public class AccessibilityManager : IAccessibilityManager
+    /// <summary>
+    /// アクセシビリティ管理クラス
+    /// </summary>
+    public class AccessibilityManager
     {
-        private readonly ILoggingService _logger;
-        private readonly IConfigurationService _configService;
-        private AccessibilitySettings _currentSettings;
-        private bool _systemHighContrast;
-        private bool _systemScreenReader;
-        private double _systemTextScale;
+        private static AccessibilityManager _instance;
+        private AccessibilitySettings _settings;
+        private readonly List<Control> _registeredControls;
 
-        public event EventHandler<AccessibilitySettingsChangedEventArgs> SettingsChanged;
+        public static AccessibilityManager Instance => _instance ??= new AccessibilityManager();
 
-        public bool IsHighContrastEnabled => _currentSettings?.HighContrastEnabled ?? _systemHighContrast;
-        public bool IsScreenReaderActive => _currentSettings?.ScreenReaderActive ?? _systemScreenReader;
-        
-        public double TextScaleFactor
+        public AccessibilitySettings Settings => _settings;
+
+        private AccessibilityManager()
         {
-            get => _currentSettings?.TextScaleFactor ?? _systemTextScale;
-            set => SetTextScaleFactorAsync(value);
-        }
-
-        public AccessibilityManager(ILoggingService logger, IConfigurationService configService)
-        {
-            _logger = logger;
-            _configService = configService;
-            
-            InitializeSystemSettings();
-            LoadUserSettings();
-            
-            // Monitor system changes
-            SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
-        }
-
-        public async Task ApplyAccessibilitySettingsAsync(AccessibilitySettings settings)
-        {
-            if (settings == null)
-                throw new ArgumentNullException(nameof(settings));
-            
-            try
+            _registeredControls = new List<Control>();
+            _settings = new AccessibilitySettings
             {
-                var oldSettings = _currentSettings;
-                _currentSettings = new AccessibilitySettings
+                HighContrastEnabled = false,
+                ScreenReaderActive = false,
+                TextScaleFactor = 1.0,
+                ReducedMotion = false,
+                KeyboardNavigationOnly = false,
+                CustomSettings = new Dictionary<string, object>()
+            };
+        }
+
+        /// <summary>
+        /// アクセシビリティ設定を適用
+        /// </summary>
+        public void ApplySettings(AccessibilitySettings settings)
+        {
+            _settings = settings;
+
+            // ハイコントラストモードの適用
+            if (settings.HighContrastEnabled)
+            {
+                ThemeManager.Instance.SetTheme("HighContrast");
+            }
+
+            // テキストスケールの適用
+            foreach (var control in _registeredControls)
+            {
+                ApplyTextScaling(control, settings.TextScaleFactor);
+            }
+
+            // キーボードナビゲーションの設定
+            if (settings.KeyboardNavigationOnly)
+            {
+                EnableKeyboardNavigation();
+            }
+
+            OnSettingsChanged?.Invoke(settings);
+        }
+
+        /// <summary>
+        /// コントロールを登録
+        /// </summary>
+        public void RegisterControl(Control control)
+        {
+            if (!_registeredControls.Contains(control))
+            {
+                _registeredControls.Add(control);
+                ApplyAccessibilityToControl(control);
+            }
+        }
+
+        /// <summary>
+        /// コントロールの登録解除
+        /// </summary>
+        public void UnregisterControl(Control control)
+        {
+            _registeredControls.Remove(control);
+        }
+
+        /// <summary>
+        /// コントロールにアクセシビリティ設定を適用
+        /// </summary>
+        private void ApplyAccessibilityToControl(Control control)
+        {
+            // スクリーンリーダー用の説明を設定
+            if (_settings.ScreenReaderActive)
+            {
+                SetScreenReaderProperties(control);
+            }
+
+            // テキストスケーリングを適用
+            ApplyTextScaling(control, _settings.TextScaleFactor);
+
+            // タブ順序を設定
+            SetTabOrder(control);
+
+            // キーボードショートカットを設定
+            if (_settings.KeyboardNavigationOnly)
+            {
+                SetKeyboardShortcuts(control);
+            }
+        }
+
+        /// <summary>
+        /// スクリーンリーダー用のプロパティを設定
+        /// </summary>
+        private void SetScreenReaderProperties(Control control)
+        {
+            if (control is Button button)
+            {
+                button.AccessibleName = button.Text;
+                button.AccessibleDescription = $"ボタン: {button.Text}を押す";
+                button.AccessibleRole = AccessibleRole.PushButton;
+            }
+            else if (control is TextBox textBox)
+            {
+                textBox.AccessibleName = textBox.Name;
+                textBox.AccessibleDescription = "テキスト入力フィールド";
+                textBox.AccessibleRole = AccessibleRole.Text;
+            }
+            else if (control is Label label)
+            {
+                label.AccessibleName = label.Text;
+                label.AccessibleRole = AccessibleRole.StaticText;
+            }
+            else if (control is ComboBox comboBox)
+            {
+                comboBox.AccessibleName = comboBox.Name;
+                comboBox.AccessibleDescription = "ドロップダウンリスト";
+                comboBox.AccessibleRole = AccessibleRole.ComboBox;
+            }
+        }
+
+        /// <summary>
+        /// テキストスケーリングを適用
+        /// </summary>
+        private void ApplyTextScaling(Control control, double scaleFactor)
+        {
+            if (control.Font != null)
+            {
+                var newSize = (float)(control.Font.Size * scaleFactor);
+                control.Font = new System.Drawing.Font(
+                    control.Font.FontFamily,
+                    newSize,
+                    control.Font.Style
+                );
+            }
+
+            // 子コントロールにも適用
+            foreach (Control child in control.Controls)
+            {
+                ApplyTextScaling(child, scaleFactor);
+            }
+        }
+
+        /// <summary>
+        /// タブ順序を設定
+        /// </summary>
+        private void SetTabOrder(Control control)
+        {
+            int tabIndex = 0;
+            foreach (Control child in control.Controls)
+            {
+                if (child.CanFocus)
                 {
-                    HighContrastEnabled = settings.HighContrastEnabled,
-                    ScreenReaderActive = settings.ScreenReaderActive,
-                    TextScaleFactor = Math.Max(0.5, Math.Min(3.0, settings.TextScaleFactor)),
-                    ReducedMotion = settings.ReducedMotion,
-                    KeyboardNavigationOnly = settings.KeyboardNavigationOnly,
-                    CustomSettings = new System.Collections.Generic.Dictionary<string, object>(settings.CustomSettings ?? new System.Collections.Generic.Dictionary<string, object>())
-                };
-                
-                await ApplySettingsToUIAsync();
-                await SaveUserSettingsAsync();
-                
-                SettingsChanged?.Invoke(this, new AccessibilitySettingsChangedEventArgs
+                    child.TabIndex = tabIndex++;
+                    child.TabStop = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// キーボードショートカットを設定
+        /// </summary>
+        private void SetKeyboardShortcuts(Control control)
+        {
+            control.KeyDown += (sender, e) =>
+            {
+                // Escキーでフォーカスを親コントロールに移動
+                if (e.KeyCode == Keys.Escape)
                 {
-                    OldSettings = oldSettings,
-                    NewSettings = _currentSettings,
-                    Timestamp = DateTime.UtcNow
-                });
-                
-                _logger.LogInfo("Accessibility settings applied successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to apply accessibility settings", ex);
-                throw;
-            }
-        }
-
-        public async Task<AccessibilitySettings> GetCurrentSettingsAsync()
-        {
-            return await Task.FromResult(new AccessibilitySettings
-            {
-                HighContrastEnabled = IsHighContrastEnabled,
-                ScreenReaderActive = IsScreenReaderActive,
-                TextScaleFactor = TextScaleFactor,
-                ReducedMotion = _currentSettings?.ReducedMotion ?? false,
-                KeyboardNavigationOnly = _currentSettings?.KeyboardNavigationOnly ?? false,
-                CustomSettings = _currentSettings?.CustomSettings ?? new System.Collections.Generic.Dictionary<string, object>()
-            });
-        }
-
-        private void InitializeSystemSettings()
-        {
-            try
-            {
-                _systemHighContrast = SystemParameters.HighContrast;
-                _systemScreenReader = IsScreenReaderRunning();
-                _systemTextScale = GetSystemTextScale();
-                
-                _logger.LogDebug($"System accessibility: HighContrast={_systemHighContrast}, ScreenReader={_systemScreenReader}, TextScale={_systemTextScale}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to initialize system accessibility settings", ex);
-                _systemHighContrast = false;
-                _systemScreenReader = false;
-                _systemTextScale = 1.0;
-            }
-        }
-
-        private void LoadUserSettings()
-        {
-            try
-            {
-                _currentSettings = new AccessibilitySettings
+                    control.Parent?.Focus();
+                }
+                // Tab/Shift+Tabでナビゲーション
+                else if (e.KeyCode == Keys.Tab)
                 {
-                    HighContrastEnabled = _configService.GetValue("Accessibility:HighContrast", _systemHighContrast),
-                    ScreenReaderActive = _configService.GetValue("Accessibility:ScreenReader", _systemScreenReader),
-                    TextScaleFactor = _configService.GetValue("Accessibility:TextScale", _systemTextScale),
-                    ReducedMotion = _configService.GetValue("Accessibility:ReducedMotion", false),
-                    KeyboardNavigationOnly = _configService.GetValue("Accessibility:KeyboardOnly", false),
-                    CustomSettings = _configService.GetValue<System.Collections.Generic.Dictionary<string, object>>("Accessibility:Custom") ?? 
-                                   new System.Collections.Generic.Dictionary<string, object>()
-                };
-                
-                // Apply settings on startup
-                _ = ApplySettingsToUIAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to load user accessibility settings", ex);
-                _currentSettings = new AccessibilitySettings
-                {
-                    HighContrastEnabled = _systemHighContrast,
-                    ScreenReaderActive = _systemScreenReader,
-                    TextScaleFactor = _systemTextScale
-                };
-            }
-        }
-
-        private async Task SaveUserSettingsAsync()
-        {
-            try
-            {
-                await _configService.SetValueAsync("Accessibility:HighContrast", _currentSettings.HighContrastEnabled);
-                await _configService.SetValueAsync("Accessibility:ScreenReader", _currentSettings.ScreenReaderActive);
-                await _configService.SetValueAsync("Accessibility:TextScale", _currentSettings.TextScaleFactor);
-                await _configService.SetValueAsync("Accessibility:ReducedMotion", _currentSettings.ReducedMotion);
-                await _configService.SetValueAsync("Accessibility:KeyboardOnly", _currentSettings.KeyboardNavigationOnly);
-                await _configService.SetValueAsync("Accessibility:Custom", _currentSettings.CustomSettings);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to save accessibility settings", ex);
-            }
-        }
-
-        private async Task ApplySettingsToUIAsync()
-        {
-            try
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var app = Application.Current;
-                    
-                    // Apply text scaling
-                    var textScale = _currentSettings.TextScaleFactor;
-                    app.Resources["AccessibilityTextScale"] = textScale;
-                    
-                    // Apply high contrast settings
-                    if (_currentSettings.HighContrastEnabled)
-                    {
-                        ApplyHighContrastTheme();
-                    }
-                    
-                    // Apply reduced motion settings
-                    if (_currentSettings.ReducedMotion)
-                    {
-                        app.Resources["AccessibilityAnimationDuration"] = TimeSpan.Zero;
-                        app.Resources["AccessibilityTransitionDuration"] = TimeSpan.Zero;
-                    }
-                    else
-                    {
-                        app.Resources["AccessibilityAnimationDuration"] = TimeSpan.FromMilliseconds(300);
-                        app.Resources["AccessibilityTransitionDuration"] = TimeSpan.FromMilliseconds(200);
-                    }
-                    
-                    // Apply keyboard navigation settings
-                    if (_currentSettings.KeyboardNavigationOnly)
-                    {
-                        app.Resources["AccessibilityFocusVisualStyle"] = CreateEnhancedFocusVisual();
-                    }
-                    
-                    // Apply custom settings
-                    foreach (var setting in _currentSettings.CustomSettings ?? new System.Collections.Generic.Dictionary<string, object>())
-                    {
-                        try
-                        {
-                            app.Resources[$"Accessibility.{setting.Key}"] = setting.Value;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning($"Failed to apply custom accessibility setting: {setting.Key}", ex);
-                        }
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to apply accessibility settings to UI", ex);
-            }
-        }
-
-        private void ApplyHighContrastTheme()
-        {
-            try
-            {
-                var app = Application.Current;
-                
-                // High contrast colors
-                app.Resources["HighContrastBackground"] = new SolidColorBrush(Colors.Black);
-                app.Resources["HighContrastForeground"] = new SolidColorBrush(Colors.White);
-                app.Resources["HighContrastAccent"] = new SolidColorBrush(Colors.Yellow);
-                app.Resources["HighContrastBorder"] = new SolidColorBrush(Colors.White);
-                app.Resources["HighContrastSelection"] = new SolidColorBrush(Colors.Blue);
-                
-                // Override default brushes
-                app.Resources[SystemColors.WindowBrushKey] = app.Resources["HighContrastBackground"];
-                app.Resources[SystemColors.WindowTextBrushKey] = app.Resources["HighContrastForeground"];
-                app.Resources[SystemColors.HighlightBrushKey] = app.Resources["HighContrastSelection"];
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to apply high contrast theme", ex);
-            }
-        }
-
-        private Style CreateEnhancedFocusVisual()
-        {
-            var style = new Style();
-            
-            var setter = new Setter
-            {
-                Property = Control.TemplateProperty,
-                Value = new ControlTemplate
-                {
-                    TargetType = typeof(Control)
+                    SelectNextControl(control, !e.Shift, true, true, true);
                 }
             };
-            
-            // Enhanced focus rectangle
-            var factory = new FrameworkElementFactory(typeof(System.Windows.Shapes.Rectangle));
-            factory.SetValue(System.Windows.Shapes.Rectangle.StrokeProperty, new SolidColorBrush(Colors.Yellow));
-            factory.SetValue(System.Windows.Shapes.Rectangle.StrokeThicknessProperty, 3.0);
-            factory.SetValue(System.Windows.Shapes.Rectangle.StrokeDashArrayProperty, new DoubleCollection { 2, 2 });
-            
-            ((ControlTemplate)setter.Value).VisualTree = factory;
-            style.Setters.Add(setter);
-            
-            return style;
         }
 
-        private bool IsScreenReaderRunning()
+        /// <summary>
+        /// キーボードナビゲーションを有効化
+        /// </summary>
+        private void EnableKeyboardNavigation()
         {
-            try
+            foreach (var control in _registeredControls)
             {
-                // Check for common screen readers
-                var processes = System.Diagnostics.Process.GetProcesses();
-                var screenReaderProcesses = new[] { "nvda", "jaws", "sapi", "narrator", "windowseyes", "zoomtext" };
-                
-                foreach (var process in processes)
+                control.TabStop = true;
+                SetKeyboardShortcuts(control);
+            }
+        }
+
+        /// <summary>
+        /// 次のコントロールを選択
+        /// </summary>
+        private bool SelectNextControl(Control control, bool forward, bool tabStopOnly, bool nested, bool wrap)
+        {
+            if (control.Parent != null)
+            {
+                return control.Parent.SelectNextControl(control, forward, tabStopOnly, nested, wrap);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 設定変更イベント
+        /// </summary>
+        public event Action<AccessibilitySettings> OnSettingsChanged;
+
+        /// <summary>
+        /// アクセシビリティチェックを実行
+        /// </summary>
+        public List<AccessibilityIssue> CheckAccessibility(Control control)
+        {
+            var issues = new List<AccessibilityIssue>();
+
+            // コントラスト比のチェック
+            CheckColorContrast(control, issues);
+
+            // フォントサイズのチェック
+            CheckFontSize(control, issues);
+
+            // キーボードアクセシビリティのチェック
+            CheckKeyboardAccessibility(control, issues);
+
+            // スクリーンリーダー対応のチェック
+            CheckScreenReaderSupport(control, issues);
+
+            return issues;
+        }
+
+        private void CheckColorContrast(Control control, List<AccessibilityIssue> issues)
+        {
+            if (control.BackColor != null && control.ForeColor != null)
+            {
+                double contrastRatio = CalculateContrastRatio(control.BackColor, control.ForeColor);
+                if (contrastRatio < 4.5) // WCAG AA基準
                 {
-                    try
+                    issues.Add(new AccessibilityIssue
                     {
-                        var processName = process.ProcessName.ToLowerInvariant();
-                        if (Array.Exists(screenReaderProcesses, sr => processName.Contains(sr)))
-                        {
-                            return true;
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore access denied errors
-                    }
-                }
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug("Failed to detect screen reader", ex);
-                return false;
-            }
-        }
-
-        private double GetSystemTextScale()
-        {
-            try
-            {
-                using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Accessibility");
-                var value = key?.GetValue("TextScaleFactor");
-                
-                if (value is int intValue)
-                {
-                    return intValue / 100.0; // Convert from percentage
-                }
-                
-                return 1.0; // Default scale
-            }
-            catch
-            {
-                return 1.0; // Default scale
-            }
-        }
-
-        private void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
-        {
-            if (e.Category == UserPreferenceCategory.Accessibility)
-            {
-                _ = HandleAccessibilityChangeAsync();
-            }
-        }
-
-        private async Task HandleAccessibilityChangeAsync()
-        {
-            try
-            {
-                var oldHighContrast = _systemHighContrast;
-                var oldScreenReader = _systemScreenReader;
-                var oldTextScale = _systemTextScale;
-                
-                InitializeSystemSettings();
-                
-                // If user hasn't overridden system settings, update them
-                bool settingsChanged = false;
-                
-                if (_currentSettings.HighContrastEnabled == oldHighContrast && _systemHighContrast != oldHighContrast)
-                {
-                    _currentSettings.HighContrastEnabled = _systemHighContrast;
-                    settingsChanged = true;
-                }
-                
-                if (_currentSettings.ScreenReaderActive == oldScreenReader && _systemScreenReader != oldScreenReader)
-                {
-                    _currentSettings.ScreenReaderActive = _systemScreenReader;
-                    settingsChanged = true;
-                }
-                
-                if (Math.Abs(_currentSettings.TextScaleFactor - oldTextScale) < 0.01 && Math.Abs(_systemTextScale - oldTextScale) > 0.01)
-                {
-                    _currentSettings.TextScaleFactor = _systemTextScale;
-                    settingsChanged = true;
-                }
-                
-                if (settingsChanged)
-                {
-                    await ApplySettingsToUIAsync();
-                    await SaveUserSettingsAsync();
-                    
-                    SettingsChanged?.Invoke(this, new AccessibilitySettingsChangedEventArgs
-                    {
-                        OldSettings = new AccessibilitySettings
-                        {
-                            HighContrastEnabled = oldHighContrast,
-                            ScreenReaderActive = oldScreenReader,
-                            TextScaleFactor = oldTextScale
-                        },
-                        NewSettings = _currentSettings,
-                        Timestamp = DateTime.UtcNow
+                        ControlName = control.Name,
+                        IssueType = "Color Contrast",
+                        Description = $"コントラスト比が不十分です: {contrastRatio:F2}",
+                        Severity = IssueSeverity.Warning
                     });
                 }
             }
-            catch (Exception ex)
+        }
+
+        private void CheckFontSize(Control control, List<AccessibilityIssue> issues)
+        {
+            if (control.Font != null && control.Font.Size < 8)
             {
-                _logger.LogError("Failed to handle system preference change", ex);
+                issues.Add(new AccessibilityIssue
+                {
+                    ControlName = control.Name,
+                    IssueType = "Font Size",
+                    Description = "フォントサイズが小さすぎます",
+                    Severity = IssueSeverity.Warning
+                });
             }
         }
 
-        private async void SetTextScaleFactorAsync(double value)
+        private void CheckKeyboardAccessibility(Control control, List<AccessibilityIssue> issues)
         {
-            var clampedValue = Math.Max(0.5, Math.Min(3.0, value));
-            
-            if (Math.Abs(_currentSettings.TextScaleFactor - clampedValue) < 0.01)
-                return;
-            
-            var oldSettings = await GetCurrentSettingsAsync();
-            _currentSettings.TextScaleFactor = clampedValue;
-            
-            await ApplySettingsToUIAsync();
-            await SaveUserSettingsAsync();
-            
-            SettingsChanged?.Invoke(this, new AccessibilitySettingsChangedEventArgs
+            if (control.CanFocus && !control.TabStop)
             {
-                OldSettings = oldSettings,
-                NewSettings = _currentSettings,
-                Timestamp = DateTime.UtcNow
-            });
+                issues.Add(new AccessibilityIssue
+                {
+                    ControlName = control.Name,
+                    IssueType = "Keyboard Navigation",
+                    Description = "キーボードでアクセスできません",
+                    Severity = IssueSeverity.Error
+                });
+            }
         }
+
+        private void CheckScreenReaderSupport(Control control, List<AccessibilityIssue> issues)
+        {
+            if (string.IsNullOrEmpty(control.AccessibleName))
+            {
+                issues.Add(new AccessibilityIssue
+                {
+                    ControlName = control.Name,
+                    IssueType = "Screen Reader",
+                    Description = "スクリーンリーダー用の名前が設定されていません",
+                    Severity = IssueSeverity.Warning
+                });
+            }
+        }
+
+        private double CalculateContrastRatio(System.Drawing.Color bg, System.Drawing.Color fg)
+        {
+            double bgLuminance = GetRelativeLuminance(bg);
+            double fgLuminance = GetRelativeLuminance(fg);
+
+            double lighter = Math.Max(bgLuminance, fgLuminance);
+            double darker = Math.Min(bgLuminance, fgLuminance);
+
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        private double GetRelativeLuminance(System.Drawing.Color color)
+        {
+            double r = color.R / 255.0;
+            double g = color.G / 255.0;
+            double b = color.B / 255.0;
+
+            r = r <= 0.03928 ? r / 12.92 : Math.Pow((r + 0.055) / 1.055, 2.4);
+            g = g <= 0.03928 ? g / 12.92 : Math.Pow((g + 0.055) / 1.055, 2.4);
+            b = b <= 0.03928 ? b / 12.92 : Math.Pow((b + 0.055) / 1.055, 2.4);
+
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+    }
+
+    /// <summary>
+    /// アクセシビリティの問題
+    /// </summary>
+    public class AccessibilityIssue
+    {
+        public string ControlName { get; set; }
+        public string IssueType { get; set; }
+        public string Description { get; set; }
+        public IssueSeverity Severity { get; set; }
+    }
+
+    /// <summary>
+    /// 問題の重要度
+    /// </summary>
+    public enum IssueSeverity
+    {
+        Info,
+        Warning,
+        Error,
+        Critical
     }
 }

@@ -1,652 +1,333 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using MurtiWifiConnecter.Interfaces;
 
 namespace MurtiWifiConnecter.Automation
 {
+    /// <summary>
+    /// ワークフローエンジン
+    /// </summary>
     public interface IWorkflowEngine
     {
-        Task<string> CreateWorkflowAsync(WorkflowDefinition definition);
-        Task<WorkflowExecutionResult> ExecuteWorkflowAsync(string workflowId, Dictionary<string, object> parameters = null);
-        Task<bool> DeleteWorkflowAsync(string workflowId);
-        Task<List<WorkflowInfo>> GetWorkflowsAsync();
-        Task<WorkflowExecutionHistory> GetExecutionHistoryAsync(string workflowId);
+        Task<WorkflowResult> ExecuteWorkflowAsync(Workflow workflow);
+        void RegisterAction(string actionType, Func<WorkflowAction, Task<ActionResult>> handler);
+        List<Workflow> GetActiveWorkflows();
     }
 
-    public class WorkflowEngine : IWorkflowEngine, IDisposable
+    /// <summary>
+    /// ワークフローエンジンの実装
+    /// </summary>
+    public class WorkflowEngine : IWorkflowEngine
     {
-        private readonly ILoggingService _logger;
-        private readonly Dictionary<string, WorkflowDefinition> _workflows;
-        private readonly Dictionary<string, List<WorkflowExecution>> _executionHistory;
-        private readonly object _lock = new object();
+        private readonly Dictionary<string, Func<WorkflowAction, Task<ActionResult>>> _actionHandlers;
+        private readonly List<Workflow> _activeWorkflows;
 
-        public WorkflowEngine(ILoggingService logger)
+        public WorkflowEngine()
         {
-            _logger = logger;
-            _workflows = new Dictionary<string, WorkflowDefinition>();
-            _executionHistory = new Dictionary<string, List<WorkflowExecution>>();
+            _actionHandlers = new Dictionary<string, Func<WorkflowAction, Task<ActionResult>>>();
+            _activeWorkflows = new List<Workflow>();
+            RegisterDefaultActions();
         }
 
-        public async Task<string> CreateWorkflowAsync(WorkflowDefinition definition)
+        /// <summary>
+        /// ワークフローを実行
+        /// </summary>
+        public async Task<WorkflowResult> ExecuteWorkflowAsync(Workflow workflow)
         {
-            if (definition == null)
-                throw new ArgumentNullException(nameof(definition));
-            
-            if (string.IsNullOrWhiteSpace(definition.Name))
-                throw new ArgumentException("Workflow name cannot be empty", nameof(definition));
-            
-            if (definition.Steps == null || !definition.Steps.Any())
-                throw new ArgumentException("Workflow must have at least one step", nameof(definition));
-            
-            var workflowId = Guid.NewGuid().ToString();
-            definition.Id = workflowId;
-            definition.CreatedAt = DateTime.UtcNow;
-            
-            lock (_lock)
-            {
-                _workflows[workflowId] = definition;
-                _executionHistory[workflowId] = new List<WorkflowExecution>();
-            }
-            
-            _logger.LogInfo($"Workflow created: {definition.Name} ({workflowId})");
-            return await Task.FromResult(workflowId);
-        }
+            _activeWorkflows.Add(workflow);
+            workflow.Status = WorkflowStatus.Running;
+            workflow.StartTime = DateTime.Now;
 
-        public async Task<WorkflowExecutionResult> ExecuteWorkflowAsync(string workflowId, Dictionary<string, object> parameters = null)
-        {
-            if (string.IsNullOrWhiteSpace(workflowId))
-                throw new ArgumentException("Workflow ID cannot be empty", nameof(workflowId));
-            
-            WorkflowDefinition workflow;
-            lock (_lock)
+            var result = new WorkflowResult
             {
-                if (!_workflows.TryGetValue(workflowId, out workflow))
-                    throw new ArgumentException($"Workflow not found: {workflowId}", nameof(workflowId));
-            }
-            
-            var execution = new WorkflowExecution
-            {
-                Id = Guid.NewGuid().ToString(),
-                WorkflowId = workflowId,
-                StartTime = DateTime.UtcNow,
-                Parameters = parameters ?? new Dictionary<string, object>(),
-                Status = WorkflowExecutionStatus.Running,
-                StepResults = new List<WorkflowStepResult>()
+                WorkflowId = workflow.Id,
+                StartTime = workflow.StartTime.Value,
+                ActionResults = new List<ActionResult>()
             };
-            
-            var result = new WorkflowExecutionResult
-            {
-                ExecutionId = execution.Id,
-                WorkflowId = workflowId,
-                StartTime = execution.StartTime,
-                Status = WorkflowExecutionStatus.Running
-            };
-            
-            lock (_lock)
-            {
-                _executionHistory[workflowId].Add(execution);
-            }
-            
-            _logger.LogInfo($"Starting workflow execution: {workflow.Name} ({execution.Id})");
-            
+
             try
             {
-                var context = new WorkflowExecutionContext
+                foreach (var action in workflow.Actions.OrderBy(a => a.Order))
                 {
-                    WorkflowId = workflowId,
-                    ExecutionId = execution.Id,
-                    Parameters = execution.Parameters,
-                    Variables = new Dictionary<string, object>()
-                };
-                
-                foreach (var step in workflow.Steps.OrderBy(s => s.Order))
-                {
-                    var stepResult = await ExecuteStepAsync(step, context);
-                    execution.StepResults.Add(stepResult);
-                    result.StepResults.Add(stepResult);
-                    
-                    if (!stepResult.Success && step.StopOnFailure)
+                    if (!ShouldExecuteAction(action, result.ActionResults))
+                        continue;
+
+                    var actionResult = await ExecuteActionAsync(action);
+                    result.ActionResults.Add(actionResult);
+
+                    if (!actionResult.Success && action.IsRequired)
                     {
-                        execution.Status = WorkflowExecutionStatus.Failed;
-                        result.Status = WorkflowExecutionStatus.Failed;
-                        result.ErrorMessage = stepResult.ErrorMessage;
+                        result.Success = false;
+                        result.ErrorMessage = $"Required action '{action.Name}' failed: {actionResult.ErrorMessage}";
                         break;
                     }
-                    
-                    // Update context variables with step outputs
-                    if (stepResult.Outputs != null)
-                    {
-                        foreach (var output in stepResult.Outputs)
-                        {
-                            context.Variables[output.Key] = output.Value;
-                        }
-                    }
                 }
-                
-                if (result.Status == WorkflowExecutionStatus.Running)
+
+                if (result.Success && result.ActionResults.All(r => r.Success))
                 {
-                    execution.Status = WorkflowExecutionStatus.Completed;
-                    result.Status = WorkflowExecutionStatus.Completed;
+                    workflow.Status = WorkflowStatus.Completed;
+                    result.Success = true;
                 }
-                
-                execution.EndTime = DateTime.UtcNow;
-                result.EndTime = execution.EndTime.Value;
+                else if (!result.Success)
+                {
+                    workflow.Status = WorkflowStatus.Failed;
+                }
+            }
+            catch (Exception ex)
+            {
+                workflow.Status = WorkflowStatus.Failed;
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+            finally
+            {
+                workflow.EndTime = DateTime.Now;
+                result.EndTime = DateTime.Now;
                 result.Duration = result.EndTime - result.StartTime;
-                
-                _logger.LogInfo($"Workflow execution completed: {workflow.Name} ({execution.Id}) - Status: {result.Status}");
+                _activeWorkflows.Remove(workflow);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// アクションハンドラーを登録
+        /// </summary>
+        public void RegisterAction(string actionType, Func<WorkflowAction, Task<ActionResult>> handler)
+        {
+            _actionHandlers[actionType] = handler;
+        }
+
+        /// <summary>
+        /// アクティブなワークフローを取得
+        /// </summary>
+        public List<Workflow> GetActiveWorkflows()
+        {
+            return _activeWorkflows.ToList();
+        }
+
+        /// <summary>
+        /// アクションを実行
+        /// </summary>
+        private async Task<ActionResult> ExecuteActionAsync(WorkflowAction action)
+        {
+            var result = new ActionResult
+            {
+                ActionId = action.Id,
+                ActionName = action.Name,
+                StartTime = DateTime.Now
+            };
+
+            try
+            {
+                if (_actionHandlers.TryGetValue(action.Type, out var handler))
+                {
+                    result = await handler(action);
+                }
+                else
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"No handler registered for action type: {action.Type}";
+                }
             }
             catch (Exception ex)
             {
-                execution.Status = WorkflowExecutionStatus.Failed;
-                execution.EndTime = DateTime.UtcNow;
-                execution.ErrorMessage = ex.Message;
-                
-                result.Status = WorkflowExecutionStatus.Failed;
-                result.EndTime = execution.EndTime.Value;
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+            finally
+            {
+                result.EndTime = DateTime.Now;
                 result.Duration = result.EndTime - result.StartTime;
-                result.ErrorMessage = ex.Message;
-                
-                _logger.LogError($"Workflow execution failed: {workflow.Name} ({execution.Id})", ex);
             }
-            
+
             return result;
         }
 
-        public async Task<bool> DeleteWorkflowAsync(string workflowId)
+        /// <summary>
+        /// アクションを実行すべきかチェック
+        /// </summary>
+        private bool ShouldExecuteAction(WorkflowAction action, List<ActionResult> previousResults)
         {
-            if (string.IsNullOrWhiteSpace(workflowId))
-                return false;
-            
-            lock (_lock)
-            {
-                var removed = _workflows.Remove(workflowId);
-                if (removed)
-                {
-                    _executionHistory.Remove(workflowId);
-                    _logger.LogInfo($"Workflow deleted: {workflowId}");
-                }
-                return removed;
-            }
-        }
+            if (action.Conditions == null || !action.Conditions.Any())
+                return true;
 
-        public async Task<List<WorkflowInfo>> GetWorkflowsAsync()
-        {
-            lock (_lock)
+            foreach (var condition in action.Conditions)
             {
-                var workflowInfos = _workflows.Values.Select(w => new WorkflowInfo
-                {
-                    Id = w.Id,
-                    Name = w.Name,
-                    Description = w.Description,
-                    CreatedAt = w.CreatedAt,
-                    StepCount = w.Steps?.Count ?? 0,
-                    LastExecutionTime = _executionHistory.TryGetValue(w.Id, out var history) 
-                        ? history.LastOrDefault()?.StartTime 
-                        : null
-                }).ToList();
-                
-                return workflowInfos;
+                if (!EvaluateCondition(condition, previousResults))
+                    return false;
             }
-        }
 
-        public async Task<WorkflowExecutionHistory> GetExecutionHistoryAsync(string workflowId)
-        {
-            if (string.IsNullOrWhiteSpace(workflowId))
-                throw new ArgumentException("Workflow ID cannot be empty", nameof(workflowId));
-            
-            lock (_lock)
-            {
-                if (!_workflows.TryGetValue(workflowId, out var workflow))
-                    throw new ArgumentException($"Workflow not found: {workflowId}", nameof(workflowId));
-                
-                var executions = _executionHistory.TryGetValue(workflowId, out var history) 
-                    ? history.ToList() 
-                    : new List<WorkflowExecution>();
-                
-                return await Task.FromResult(new WorkflowExecutionHistory
-                {
-                    WorkflowId = workflowId,
-                    WorkflowName = workflow.Name,
-                    Executions = executions
-                });
-            }
-        }
-
-        private async Task<WorkflowStepResult> ExecuteStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var stepResult = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                _logger.LogDebug($"Executing workflow step: {step.Name} ({step.Id})");
-                
-                switch (step.Type)
-                {
-                    case WorkflowStepType.WifiConnect:
-                        stepResult = await ExecuteWifiConnectStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.WifiDisconnect:
-                        stepResult = await ExecuteWifiDisconnectStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.WifiScan:
-                        stepResult = await ExecuteWifiScanStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.Delay:
-                        stepResult = await ExecuteDelayStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.Condition:
-                        stepResult = await ExecuteConditionStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.Log:
-                        stepResult = await ExecuteLogStepAsync(step, context);
-                        break;
-                    
-                    case WorkflowStepType.Custom:
-                        stepResult = await ExecuteCustomStepAsync(step, context);
-                        break;
-                    
-                    default:
-                        throw new NotSupportedException($"Workflow step type not supported: {step.Type}");
-                }
-                
-                stepResult.EndTime = DateTime.UtcNow;
-                stepResult.Duration = stepResult.EndTime.Value - stepResult.StartTime;
-                
-                _logger.LogDebug($"Workflow step completed: {step.Name} ({step.Id}) - Success: {stepResult.Success}");
-            }
-            catch (Exception ex)
-            {
-                stepResult.Success = false;
-                stepResult.ErrorMessage = ex.Message;
-                stepResult.EndTime = DateTime.UtcNow;
-                stepResult.Duration = stepResult.EndTime.Value - stepResult.StartTime;
-                
-                _logger.LogError($"Workflow step failed: {step.Name} ({step.Id})", ex);
-            }
-            
-            return stepResult;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteWifiConnectStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var ssid = ResolveParameter(step.Parameters.GetValueOrDefault("ssid", "").ToString(), context);
-                var password = ResolveParameter(step.Parameters.GetValueOrDefault("password", "").ToString(), context);
-                
-                var connectionResult = await FastWifiConnector.ConnectAsync(ssid, password);
-                
-                result.Success = connectionResult.Success;
-                result.ErrorMessage = connectionResult.Success ? null : connectionResult.Message;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["connected"] = connectionResult.Success,
-                    ["ssid"] = ssid,
-                    ["message"] = connectionResult.Message
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteWifiDisconnectStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var disconnected = await FastWifiConnector.DisconnectAsync();
-                
-                result.Success = disconnected;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["disconnected"] = disconnected
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteWifiScanStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var networks = await NetworkUtils.ScanWifiNetworksAsync();
-                
-                result.Success = true;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["networkCount"] = networks.Count,
-                    ["networks"] = networks
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteDelayStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var delayMs = Convert.ToInt32(step.Parameters.GetValueOrDefault("delayMs", 1000));
-                await Task.Delay(delayMs);
-                
-                result.Success = true;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["delayMs"] = delayMs
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteConditionStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var condition = step.Parameters.GetValueOrDefault("condition", "").ToString();
-                var conditionResult = EvaluateCondition(condition, context);
-                
-                result.Success = true;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["conditionResult"] = conditionResult,
-                    ["condition"] = condition
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteLogStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            try
-            {
-                var message = ResolveParameter(step.Parameters.GetValueOrDefault("message", "").ToString(), context);
-                var level = step.Parameters.GetValueOrDefault("level", "Info").ToString();
-                
-                switch (level.ToLowerInvariant())
-                {
-                    case "debug":
-                        _logger.LogDebug(message);
-                        break;
-                    case "info":
-                        _logger.LogInfo(message);
-                        break;
-                    case "warning":
-                        _logger.LogWarning(message);
-                        break;
-                    case "error":
-                        _logger.LogError(message);
-                        break;
-                    default:
-                        _logger.LogInfo(message);
-                        break;
-                }
-                
-                result.Success = true;
-                result.Outputs = new Dictionary<string, object>
-                {
-                    ["message"] = message,
-                    ["level"] = level
-                };
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.ErrorMessage = ex.Message;
-            }
-            
-            return result;
-        }
-
-        private async Task<WorkflowStepResult> ExecuteCustomStepAsync(WorkflowStep step, WorkflowExecutionContext context)
-        {
-            var result = new WorkflowStepResult
-            {
-                StepId = step.Id,
-                StepName = step.Name,
-                StartTime = DateTime.UtcNow
-            };
-            
-            // Custom step execution would be implemented here
-            // This is a placeholder for extensibility
-            result.Success = true;
-            result.Outputs = new Dictionary<string, object>
-            {
-                ["customStepExecuted"] = true
-            };
-            
-            return await Task.FromResult(result);
-        }
-
-        private string ResolveParameter(string parameter, WorkflowExecutionContext context)
-        {
-            if (string.IsNullOrEmpty(parameter))
-                return parameter;
-            
-            // Simple variable substitution: ${variableName}
-            foreach (var variable in context.Variables)
-            {
-                parameter = parameter.Replace($"${{{variable.Key}}}", variable.Value?.ToString() ?? "");
-            }
-            
-            foreach (var param in context.Parameters)
-            {
-                parameter = parameter.Replace($"${{{param.Key}}}", param.Value?.ToString() ?? "");
-            }
-            
-            return parameter;
-        }
-
-        private bool EvaluateCondition(string condition, WorkflowExecutionContext context)
-        {
-            // Simple condition evaluation - in a real implementation, you'd use a proper expression evaluator
-            condition = ResolveParameter(condition, context);
-            
-            // Basic condition parsing (very simplified)
-            if (condition.Contains("=="))
-            {
-                var parts = condition.Split(new[] { "==" }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 2)
-                {
-                    return parts[0].Trim().Equals(parts[1].Trim(), StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            
-            // Default to true for now
             return true;
         }
 
-        public void Dispose()
+        /// <summary>
+        /// 条件を評価
+        /// </summary>
+        private bool EvaluateCondition(ActionCondition condition, List<ActionResult> previousResults)
         {
-            lock (_lock)
+            var targetResult = previousResults.FirstOrDefault(r => r.ActionId == condition.DependsOnActionId);
+            if (targetResult == null)
+                return false;
+
+            return condition.RequiredOutcome switch
             {
-                _workflows.Clear();
-                _executionHistory.Clear();
-            }
-            
-            _logger.LogInfo("WorkflowEngine disposed");
+                ActionOutcome.Success => targetResult.Success,
+                ActionOutcome.Failure => !targetResult.Success,
+                ActionOutcome.Any => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// デフォルトアクションを登録
+        /// </summary>
+        private void RegisterDefaultActions()
+        {
+            // WiFi接続アクション
+            RegisterAction("WifiConnect", async (action) =>
+            {
+                await Task.Delay(100); // シミュレーション
+                return new ActionResult
+                {
+                    ActionId = action.Id,
+                    ActionName = action.Name,
+                    Success = true,
+                    Data = new Dictionary<string, object> { { "SSID", action.Parameters.GetValueOrDefault("SSID") } }
+                };
+            });
+
+            // WiFi切断アクション
+            RegisterAction("WifiDisconnect", async (action) =>
+            {
+                await Task.Delay(50); // シミュレーション
+                return new ActionResult
+                {
+                    ActionId = action.Id,
+                    ActionName = action.Name,
+                    Success = true
+                };
+            });
+
+            // 通知アクション
+            RegisterAction("Notification", async (action) =>
+            {
+                await Task.Delay(10); // シミュレーション
+                return new ActionResult
+                {
+                    ActionId = action.Id,
+                    ActionName = action.Name,
+                    Success = true,
+                    Data = new Dictionary<string, object> { { "Message", action.Parameters.GetValueOrDefault("Message") } }
+                };
+            });
+
+            // 待機アクション
+            RegisterAction("Wait", async (action) =>
+            {
+                if (action.Parameters.TryGetValue("Duration", out var durationStr) && 
+                    int.TryParse(durationStr?.ToString(), out var duration))
+                {
+                    await Task.Delay(duration);
+                }
+                return new ActionResult
+                {
+                    ActionId = action.Id,
+                    ActionName = action.Name,
+                    Success = true
+                };
+            });
         }
     }
 
-    // Data classes for workflow system
-    public class WorkflowDefinition
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public List<WorkflowStep> Steps { get; set; } = new List<WorkflowStep>();
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class WorkflowStep
+    /// <summary>
+    /// ワークフロー
+    /// </summary>
+    public class Workflow
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; }
-        public int Order { get; set; }
-        public WorkflowStepType Type { get; set; }
-        public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
-        public bool StopOnFailure { get; set; } = true;
-    }
-
-    public enum WorkflowStepType
-    {
-        WifiConnect,
-        WifiDisconnect,
-        WifiScan,
-        Delay,
-        Condition,
-        Log,
-        Custom
-    }
-
-    public class WorkflowExecutionContext
-    {
-        public string WorkflowId { get; set; }
-        public string ExecutionId { get; set; }
-        public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
-        public Dictionary<string, object> Variables { get; set; } = new Dictionary<string, object>();
-    }
-
-    public class WorkflowExecution
-    {
-        public string Id { get; set; }
-        public string WorkflowId { get; set; }
-        public DateTime StartTime { get; set; }
+        public string Description { get; set; }
+        public List<WorkflowAction> Actions { get; set; } = new();
+        public WorkflowStatus Status { get; set; } = WorkflowStatus.Pending;
+        public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
-        public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
-        public WorkflowExecutionStatus Status { get; set; }
-        public string ErrorMessage { get; set; }
-        public List<WorkflowStepResult> StepResults { get; set; } = new List<WorkflowStepResult>();
+        public Dictionary<string, object> Variables { get; set; } = new();
     }
 
-    public class WorkflowExecutionResult
+    /// <summary>
+    /// ワークフローアクション
+    /// </summary>
+    public class WorkflowAction
     {
-        public string ExecutionId { get; set; }
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public int Order { get; set; }
+        public Dictionary<string, object> Parameters { get; set; } = new();
+        public List<ActionCondition> Conditions { get; set; } = new();
+        public bool IsRequired { get; set; } = true;
+        public TimeSpan? Timeout { get; set; }
+    }
+
+    /// <summary>
+    /// アクション条件
+    /// </summary>
+    public class ActionCondition
+    {
+        public string DependsOnActionId { get; set; }
+        public ActionOutcome RequiredOutcome { get; set; }
+    }
+
+    /// <summary>
+    /// ワークフロー結果
+    /// </summary>
+    public class WorkflowResult
+    {
         public string WorkflowId { get; set; }
+        public bool Success { get; set; } = true;
+        public string ErrorMessage { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public TimeSpan Duration { get; set; }
-        public WorkflowExecutionStatus Status { get; set; }
-        public string ErrorMessage { get; set; }
-        public List<WorkflowStepResult> StepResults { get; set; } = new List<WorkflowStepResult>();
+        public List<ActionResult> ActionResults { get; set; } = new();
     }
 
-    public class WorkflowStepResult
+    /// <summary>
+    /// アクション結果
+    /// </summary>
+    public class ActionResult
     {
-        public string StepId { get; set; }
-        public string StepName { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
-        public TimeSpan? Duration { get; set; }
+        public string ActionId { get; set; }
+        public string ActionName { get; set; }
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }
-        public Dictionary<string, object> Outputs { get; set; } = new Dictionary<string, object>();
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public TimeSpan Duration { get; set; }
+        public Dictionary<string, object> Data { get; set; } = new();
     }
 
-    public class WorkflowInfo
+    /// <summary>
+    /// ワークフローステータス
+    /// </summary>
+    public enum WorkflowStatus
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public int StepCount { get; set; }
-        public DateTime? LastExecutionTime { get; set; }
-    }
-
-    public class WorkflowExecutionHistory
-    {
-        public string WorkflowId { get; set; }
-        public string WorkflowName { get; set; }
-        public List<WorkflowExecution> Executions { get; set; } = new List<WorkflowExecution>();
-    }
-
-    public enum WorkflowExecutionStatus
-    {
-        Scheduled,
+        Pending,
         Running,
         Completed,
         Failed,
-        Canceled
+        Cancelled
+    }
+
+    /// <summary>
+    /// アクション結果
+    /// </summary>
+    public enum ActionOutcome
+    {
+        Success,
+        Failure,
+        Any
     }
 }

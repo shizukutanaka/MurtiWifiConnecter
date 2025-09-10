@@ -1,973 +1,390 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
+using MurtiWifiConnecter.Services;
+using MurtiWifiConnecter.Infrastructure;
+using MurtiWifiConnecter.Automation;
+using MurtiWifiConnecter.Testing;
 
 namespace MurtiWifiConnecter.Testing.Integration
 {
     /// <summary>
-    /// Comprehensive integration test suite that validates all system components work together correctly
-    /// Tests all major subsystems: WiFi management, UI, accessibility, scalability, monitoring, security, etc.
+    /// 統合テストスイート
     /// </summary>
+    [TestClass(Description = "Comprehensive integration tests for WiFi connection functionality")]
     public class ComprehensiveIntegrationTestSuite
     {
-        private readonly ILogger<ComprehensiveIntegrationTestSuite> _logger;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly TestMetricsCollector _metricsCollector;
-        private readonly TestReportGenerator _reportGenerator;
-        private readonly CancellationTokenSource _cancellationTokenSource;
+        private IWifiService _wifiService;
+        private INotificationService _notificationService;
+        private ITelemetryService _telemetryService;
+        private ITaskScheduler _taskScheduler;
+        private IWorkflowEngine _workflowEngine;
 
-        public ComprehensiveIntegrationTestSuite(
-            ILogger<ComprehensiveIntegrationTestSuite> logger,
-            IServiceProvider serviceProvider)
+        public void Setup()
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            _metricsCollector = new TestMetricsCollector();
-            _reportGenerator = new TestReportGenerator();
-            _cancellationTokenSource = new CancellationTokenSource();
+            _wifiService = new WifiService();
+            _notificationService = new WindowsNotificationService();
+            _telemetryService = new TelemetryService();
+            _taskScheduler = new TaskScheduler();
+            _workflowEngine = new WorkflowEngine();
         }
 
-        /// <summary>
-        /// Execute the complete integration test suite
-        /// </summary>
-        public async Task<IntegrationTestResults> ExecuteFullTestSuiteAsync()
+        public void Teardown()
         {
-            var testResults = new IntegrationTestResults
-            {
-                TestSuiteStartTime = DateTime.UtcNow,
-                TestId = Guid.NewGuid().ToString()
-            };
+            _taskScheduler?.Dispose();
+            _notificationService?.Dispose();
+        }
 
-            _logger.LogInformation("Starting comprehensive integration test suite execution");
+        [TestMethod(Description = "Test WiFi scanning and network discovery")]
+        public async Task TestWifiScanningIntegration()
+        {
+            // Arrange
+            _telemetryService.StartOperation("WifiScan");
 
             try
             {
-                // Phase 1: Core System Integration Tests
-                _logger.LogInformation("Phase 1: Core System Integration Tests");
-                testResults.CoreSystemTests = await ExecuteCoreSystemTestsAsync();
+                // Act
+                var networks = await _wifiService.ScanNetworksAsync();
 
-                // Phase 2: UI and Accessibility Integration Tests
-                _logger.LogInformation("Phase 2: UI and Accessibility Integration Tests");
-                testResults.UIAccessibilityTests = await ExecuteUIAccessibilityTestsAsync();
+                // Assert
+                Assert.IsNotNull(networks, "Networks collection should not be null");
+                Assert.IsTrue(networks.Any(), "Should discover at least one network");
 
-                // Phase 3: Performance and Scalability Tests
-                _logger.LogInformation("Phase 3: Performance and Scalability Tests");
-                testResults.PerformanceScalabilityTests = await ExecutePerformanceScalabilityTestsAsync();
+                // Verify network properties
+                foreach (var network in networks)
+                {
+                    Assert.IsNotNull(network.SSID, "SSID should not be null");
+                    Assert.IsTrue(network.SignalStrength >= 0 && network.SignalStrength <= 100, 
+                        "Signal strength should be between 0 and 100");
+                }
 
-                // Phase 4: Security and Compliance Tests
-                _logger.LogInformation("Phase 4: Security and Compliance Tests");
-                testResults.SecurityComplianceTests = await ExecuteSecurityComplianceTestsAsync();
-
-                // Phase 5: Monitoring and Observability Tests
-                _logger.LogInformation("Phase 5: Monitoring and Observability Tests");
-                testResults.MonitoringObservabilityTests = await ExecuteMonitoringObservabilityTestsAsync();
-
-                // Phase 6: Globalization and Localization Tests
-                _logger.LogInformation("Phase 6: Globalization and Localization Tests");
-                testResults.GlobalizationTests = await ExecuteGlobalizationTestsAsync();
-
-                // Phase 7: DevOps and CI/CD Integration Tests
-                _logger.LogInformation("Phase 7: DevOps and CI/CD Integration Tests");
-                testResults.DevOpsCICDTests = await ExecuteDevOpsCICDTestsAsync();
-
-                // Phase 8: End-to-End Scenario Tests
-                _logger.LogInformation("Phase 8: End-to-End Scenario Tests");
-                testResults.EndToEndScenarioTests = await ExecuteEndToEndScenarioTestsAsync();
-
-                testResults.TestSuiteEndTime = DateTime.UtcNow;
-                testResults.TotalExecutionTime = testResults.TestSuiteEndTime - testResults.TestSuiteStartTime;
-                testResults.OverallSuccessRate = CalculateOverallSuccessRate(testResults);
-
-                _logger.LogInformation($"Integration test suite completed. Overall success rate: {testResults.OverallSuccessRate:P2}");
-
-                return testResults;
+                _telemetryService.StopOperation("WifiScan", true);
+                _telemetryService.TrackEvent("WifiScanCompleted", 
+                    new Dictionary<string, string> { { "NetworkCount", networks.Count().ToString() } });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during integration test suite execution");
-                testResults.TestSuiteEndTime = DateTime.UtcNow;
-                testResults.TotalExecutionTime = testResults.TestSuiteEndTime - testResults.TestSuiteStartTime;
-                testResults.HasCriticalFailures = true;
-                testResults.CriticalFailureMessage = ex.Message;
-                return testResults;
+                _telemetryService.StopOperation("WifiScan", false);
+                _telemetryService.TrackException(ex);
+                throw;
             }
         }
 
-        /// <summary>
-        /// Execute core system integration tests
-        /// </summary>
-        private async Task<CoreSystemTestResults> ExecuteCoreSystemTestsAsync()
+        [TestMethod(Description = "Test connection workflow end-to-end")]
+        public async Task TestConnectionWorkflowIntegration()
         {
-            var results = new CoreSystemTestResults();
-            var stopwatch = Stopwatch.StartNew();
+            // Arrange
+            var workflow = CreateConnectionWorkflow("TestNetwork", "TestPassword");
+            
+            // Act
+            var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
 
-            try
-            {
-                // Test WiFi core functionality integration
-                results.WiFiCoreIntegrationTest = await TestWiFiCoreIntegrationAsync();
-                
-                // Test connection management integration
-                results.ConnectionManagementTest = await TestConnectionManagementIntegrationAsync();
-                
-                // Test network utilities integration
-                results.NetworkUtilitiesTest = await TestNetworkUtilitiesIntegrationAsync();
-                
-                // Test error handling integration
-                results.ErrorHandlingTest = await TestErrorHandlingIntegrationAsync();
-                
-                // Test memory optimization integration
-                results.MemoryOptimizationTest = await TestMemoryOptimizationIntegrationAsync();
+            // Assert
+            Assert.IsNotNull(result, "Workflow result should not be null");
+            Assert.IsTrue(result.ActionResults.Any(), "Should have executed at least one action");
+            
+            // Verify each action was executed
+            var scanAction = result.ActionResults.FirstOrDefault(r => r.ActionName == "ScanNetworks");
+            Assert.IsNotNull(scanAction, "Scan action should be executed");
 
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.WiFiCoreIntegrationTest,
-                    results.ConnectionManagementTest,
-                    results.NetworkUtilitiesTest,
-                    results.ErrorHandlingTest,
-                    results.MemoryOptimizationTest
+            var connectAction = result.ActionResults.FirstOrDefault(r => r.ActionName == "ConnectToNetwork");
+            Assert.IsNotNull(connectAction, "Connect action should be executed");
+
+            _telemetryService.TrackEvent("WorkflowCompleted", 
+                new Dictionary<string, string> 
+                { 
+                    { "WorkflowId", workflow.Id },
+                    { "Success", result.Success.ToString() },
+                    { "ActionsExecuted", result.ActionResults.Count.ToString() }
                 });
-
-                _logger.LogInformation($"Core system tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during core system tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
         }
 
-        /// <summary>
-        /// Execute UI and accessibility integration tests
-        /// </summary>
-        private async Task<UIAccessibilityTestResults> ExecuteUIAccessibilityTestsAsync()
+        [TestMethod(Description = "Test notification system integration")]
+        public async Task TestNotificationSystemIntegration()
         {
-            var results = new UIAccessibilityTestResults();
-            var stopwatch = Stopwatch.StartNew();
+            // Arrange
+            var testMessage = "Integration test notification";
+            var testTitle = "Test Title";
 
+            // Act & Assert - Test different notification types
             try
             {
-                // Test accessibility framework integration
-                results.AccessibilityFrameworkTest = await TestAccessibilityFrameworkIntegrationAsync();
-                
-                // Test UI response optimization
-                results.UIResponseOptimizationTest = await TestUIResponseOptimizationAsync();
-                
-                // Test system tray integration
-                results.SystemTrayIntegrationTest = await TestSystemTrayIntegrationAsync();
-                
-                // Test quick settings integration
-                results.QuickSettingsIntegrationTest = await TestQuickSettingsIntegrationAsync();
-                
-                // Test WCAG compliance
-                results.WCAGComplianceTest = await TestWCAGComplianceAsync();
+                _notificationService.ShowToast(testTitle, testMessage, ToastDuration.Short);
+                await Task.Delay(100); // Allow notification to process
 
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.AccessibilityFrameworkTest,
-                    results.UIResponseOptimizationTest,
-                    results.SystemTrayIntegrationTest,
-                    results.QuickSettingsIntegrationTest,
-                    results.WCAGComplianceTest
-                });
+                _notificationService.ShowBalloon(testTitle, testMessage, BalloonIcon.Info);
+                await Task.Delay(100);
 
-                _logger.LogInformation($"UI and accessibility tests completed with {results.SuccessRate:P2} success rate");
-                return results;
+                // Test confirmation dialog (would show in real scenario)
+                // var confirmResult = await _notificationService.ShowConfirmationAsync("Test confirmation?");
+
+                _telemetryService.TrackEvent("NotificationTest", 
+                    new Dictionary<string, string> { { "Type", "Integration" } });
+
+                Assert.IsTrue(true, "Notifications executed without exceptions");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during UI and accessibility tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
+                _telemetryService.TrackException(ex);
+                Assert.IsTrue(false, $"Notification test failed: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Execute performance and scalability integration tests
-        /// </summary>
-        private async Task<PerformanceScalabilityTestResults> ExecutePerformanceScalabilityTestsAsync()
+        [TestMethod(Description = "Test task scheduling integration")]
+        public async Task TestTaskSchedulingIntegration()
         {
-            var results = new PerformanceScalabilityTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
+            // Arrange
+            var executedTasks = new List<string>();
+            var testTask = new ScheduledTask
             {
-                // Test scalability framework
-                results.ScalabilityFrameworkTest = await TestScalabilityFrameworkAsync();
-                
-                // Test performance monitoring
-                results.PerformanceMonitoringTest = await TestPerformanceMonitoringAsync();
-                
-                // Test load balancing
-                results.LoadBalancingTest = await TestLoadBalancingAsync();
-                
-                // Test auto-scaling
-                results.AutoScalingTest = await TestAutoScalingAsync();
-                
-                // Test resource optimization
-                results.ResourceOptimizationTest = await TestResourceOptimizationAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
+                Id = "test-task-1",
+                Name = "Test Scheduled Task",
+                Action = async () =>
                 {
-                    results.ScalabilityFrameworkTest,
-                    results.PerformanceMonitoringTest,
-                    results.LoadBalancingTest,
-                    results.AutoScalingTest,
-                    results.ResourceOptimizationTest
-                });
-
-                _logger.LogInformation($"Performance and scalability tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during performance and scalability tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        /// <summary>
-        /// Execute security and compliance integration tests
-        /// </summary>
-        private async Task<SecurityComplianceTestResults> ExecuteSecurityComplianceTestsAsync()
-        {
-            var results = new SecurityComplianceTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
-            {
-                // Test security manager integration
-                results.SecurityManagerTest = await TestSecurityManagerIntegrationAsync();
-                
-                // Test encryption and decryption
-                results.EncryptionTest = await TestEncryptionIntegrationAsync();
-                
-                // Test audit logging
-                results.AuditLoggingTest = await TestAuditLoggingIntegrationAsync();
-                
-                // Test compliance reporting
-                results.ComplianceReportingTest = await TestComplianceReportingAsync();
-                
-                // Test vulnerability scanning
-                results.VulnerabilityScanningTest = await TestVulnerabilityScanningAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
+                    executedTasks.Add("test-task-1");
+                    await Task.Delay(10);
+                },
+                Schedule = new TaskSchedule
                 {
-                    results.SecurityManagerTest,
-                    results.EncryptionTest,
-                    results.AuditLoggingTest,
-                    results.ComplianceReportingTest,
-                    results.VulnerabilityScanningTest
-                });
-
-                _logger.LogInformation($"Security and compliance tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during security and compliance tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        /// <summary>
-        /// Execute monitoring and observability integration tests
-        /// </summary>
-        private async Task<MonitoringObservabilityTestResults> ExecuteMonitoringObservabilityTestsAsync()
-        {
-            var results = new MonitoringObservabilityTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
-            {
-                // Test comprehensive monitoring system
-                results.MonitoringSystemTest = await TestMonitoringSystemIntegrationAsync();
-                
-                // Test metrics collection
-                results.MetricsCollectionTest = await TestMetricsCollectionAsync();
-                
-                // Test alerting system
-                results.AlertingSystemTest = await TestAlertingSystemAsync();
-                
-                // Test dashboard integration
-                results.DashboardIntegrationTest = await TestDashboardIntegrationAsync();
-                
-                // Test anomaly detection
-                results.AnomalyDetectionTest = await TestAnomalyDetectionAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.MonitoringSystemTest,
-                    results.MetricsCollectionTest,
-                    results.AlertingSystemTest,
-                    results.DashboardIntegrationTest,
-                    results.AnomalyDetectionTest
-                });
-
-                _logger.LogInformation($"Monitoring and observability tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during monitoring and observability tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        /// <summary>
-        /// Execute globalization and localization integration tests
-        /// </summary>
-        private async Task<GlobalizationTestResults> ExecuteGlobalizationTestsAsync()
-        {
-            var results = new GlobalizationTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
-            {
-                // Test globalization framework
-                results.GlobalizationFrameworkTest = await TestGlobalizationFrameworkAsync();
-                
-                // Test multi-language support
-                results.MultiLanguageTest = await TestMultiLanguageSupportAsync();
-                
-                // Test cultural adaptation
-                results.CulturalAdaptationTest = await TestCulturalAdaptationAsync();
-                
-                // Test RTL/LTR layout support
-                results.RTLLTRLayoutTest = await TestRTLLTRLayoutSupportAsync();
-                
-                // Test resource management
-                results.ResourceManagementTest = await TestResourceManagementAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.GlobalizationFrameworkTest,
-                    results.MultiLanguageTest,
-                    results.CulturalAdaptationTest,
-                    results.RTLLTRLayoutTest,
-                    results.ResourceManagementTest
-                });
-
-                _logger.LogInformation($"Globalization tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during globalization tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        /// <summary>
-        /// Execute DevOps and CI/CD integration tests
-        /// </summary>
-        private async Task<DevOpsCICDTestResults> ExecuteDevOpsCICDTestsAsync()
-        {
-            var results = new DevOpsCICDTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
-            {
-                // Test CI/CD pipeline
-                results.CICDPipelineTest = await TestCICDPipelineAsync();
-                
-                // Test build automation
-                results.BuildAutomationTest = await TestBuildAutomationAsync();
-                
-                // Test deployment automation
-                results.DeploymentAutomationTest = await TestDeploymentAutomationAsync();
-                
-                // Test rollback mechanisms
-                results.RollbackMechanismsTest = await TestRollbackMechanismsAsync();
-                
-                // Test environment management
-                results.EnvironmentManagementTest = await TestEnvironmentManagementAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.CICDPipelineTest,
-                    results.BuildAutomationTest,
-                    results.DeploymentAutomationTest,
-                    results.RollbackMechanismsTest,
-                    results.EnvironmentManagementTest
-                });
-
-                _logger.LogInformation($"DevOps and CI/CD tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during DevOps and CI/CD tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        /// <summary>
-        /// Execute end-to-end scenario integration tests
-        /// </summary>
-        private async Task<EndToEndScenarioTestResults> ExecuteEndToEndScenarioTestsAsync()
-        {
-            var results = new EndToEndScenarioTestResults();
-            var stopwatch = Stopwatch.StartNew();
-
-            try
-            {
-                // Test complete user workflow scenarios
-                results.CompleteUserWorkflowTest = await TestCompleteUserWorkflowAsync();
-                
-                // Test system recovery scenarios
-                results.SystemRecoveryTest = await TestSystemRecoveryAsync();
-                
-                // Test high availability scenarios
-                results.HighAvailabilityTest = await TestHighAvailabilityAsync();
-                
-                // Test disaster recovery
-                results.DisasterRecoveryTest = await TestDisasterRecoveryAsync();
-                
-                // Test cross-component integration
-                results.CrossComponentIntegrationTest = await TestCrossComponentIntegrationAsync();
-
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.SuccessRate = CalculateSuccessRate(new[]
-                {
-                    results.CompleteUserWorkflowTest,
-                    results.SystemRecoveryTest,
-                    results.HighAvailabilityTest,
-                    results.DisasterRecoveryTest,
-                    results.CrossComponentIntegrationTest
-                });
-
-                _logger.LogInformation($"End-to-end scenario tests completed with {results.SuccessRate:P2} success rate");
-                return results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during end-to-end scenario tests");
-                results.ExecutionTime = stopwatch.Elapsed;
-                results.HasFailures = true;
-                results.ErrorMessage = ex.Message;
-                return results;
-            }
-        }
-
-        #region Individual Test Methods (Placeholder Implementations)
-
-        private async Task<TestResult> TestWiFiCoreIntegrationAsync()
-        {
-            // Simulated test for WiFi core integration
-            await Task.Delay(100);
-            return new TestResult { Success = true, Message = "WiFi core integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(100) };
-        }
-
-        private async Task<TestResult> TestConnectionManagementIntegrationAsync()
-        {
-            await Task.Delay(150);
-            return new TestResult { Success = true, Message = "Connection management integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(150) };
-        }
-
-        private async Task<TestResult> TestNetworkUtilitiesIntegrationAsync()
-        {
-            await Task.Delay(120);
-            return new TestResult { Success = true, Message = "Network utilities integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(120) };
-        }
-
-        private async Task<TestResult> TestErrorHandlingIntegrationAsync()
-        {
-            await Task.Delay(80);
-            return new TestResult { Success = true, Message = "Error handling integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(80) };
-        }
-
-        private async Task<TestResult> TestMemoryOptimizationIntegrationAsync()
-        {
-            await Task.Delay(200);
-            return new TestResult { Success = true, Message = "Memory optimization integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(200) };
-        }
-
-        private async Task<TestResult> TestAccessibilityFrameworkIntegrationAsync()
-        {
-            await Task.Delay(300);
-            return new TestResult { Success = true, Message = "Accessibility framework integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(300) };
-        }
-
-        private async Task<TestResult> TestUIResponseOptimizationAsync()
-        {
-            await Task.Delay(180);
-            return new TestResult { Success = true, Message = "UI response optimization test passed", ExecutionTime = TimeSpan.FromMilliseconds(180) };
-        }
-
-        private async Task<TestResult> TestSystemTrayIntegrationAsync()
-        {
-            await Task.Delay(90);
-            return new TestResult { Success = true, Message = "System tray integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(90) };
-        }
-
-        private async Task<TestResult> TestQuickSettingsIntegrationAsync()
-        {
-            await Task.Delay(110);
-            return new TestResult { Success = true, Message = "Quick settings integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(110) };
-        }
-
-        private async Task<TestResult> TestWCAGComplianceAsync()
-        {
-            await Task.Delay(400);
-            return new TestResult { Success = true, Message = "WCAG compliance test passed", ExecutionTime = TimeSpan.FromMilliseconds(400) };
-        }
-
-        private async Task<TestResult> TestScalabilityFrameworkAsync()
-        {
-            await Task.Delay(500);
-            return new TestResult { Success = true, Message = "Scalability framework test passed", ExecutionTime = TimeSpan.FromMilliseconds(500) };
-        }
-
-        private async Task<TestResult> TestPerformanceMonitoringAsync()
-        {
-            await Task.Delay(250);
-            return new TestResult { Success = true, Message = "Performance monitoring test passed", ExecutionTime = TimeSpan.FromMilliseconds(250) };
-        }
-
-        private async Task<TestResult> TestLoadBalancingAsync()
-        {
-            await Task.Delay(300);
-            return new TestResult { Success = true, Message = "Load balancing test passed", ExecutionTime = TimeSpan.FromMilliseconds(300) };
-        }
-
-        private async Task<TestResult> TestAutoScalingAsync()
-        {
-            await Task.Delay(350);
-            return new TestResult { Success = true, Message = "Auto-scaling test passed", ExecutionTime = TimeSpan.FromMilliseconds(350) };
-        }
-
-        private async Task<TestResult> TestResourceOptimizationAsync()
-        {
-            await Task.Delay(220);
-            return new TestResult { Success = true, Message = "Resource optimization test passed", ExecutionTime = TimeSpan.FromMilliseconds(220) };
-        }
-
-        private async Task<TestResult> TestSecurityManagerIntegrationAsync()
-        {
-            await Task.Delay(400);
-            return new TestResult { Success = true, Message = "Security manager integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(400) };
-        }
-
-        private async Task<TestResult> TestEncryptionIntegrationAsync()
-        {
-            await Task.Delay(300);
-            return new TestResult { Success = true, Message = "Encryption integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(300) };
-        }
-
-        private async Task<TestResult> TestAuditLoggingIntegrationAsync()
-        {
-            await Task.Delay(180);
-            return new TestResult { Success = true, Message = "Audit logging integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(180) };
-        }
-
-        private async Task<TestResult> TestComplianceReportingAsync()
-        {
-            await Task.Delay(320);
-            return new TestResult { Success = true, Message = "Compliance reporting test passed", ExecutionTime = TimeSpan.FromMilliseconds(320) };
-        }
-
-        private async Task<TestResult> TestVulnerabilityScanningAsync()
-        {
-            await Task.Delay(600);
-            return new TestResult { Success = true, Message = "Vulnerability scanning test passed", ExecutionTime = TimeSpan.FromMilliseconds(600) };
-        }
-
-        private async Task<TestResult> TestMonitoringSystemIntegrationAsync()
-        {
-            await Task.Delay(350);
-            return new TestResult { Success = true, Message = "Monitoring system integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(350) };
-        }
-
-        private async Task<TestResult> TestMetricsCollectionAsync()
-        {
-            await Task.Delay(200);
-            return new TestResult { Success = true, Message = "Metrics collection test passed", ExecutionTime = TimeSpan.FromMilliseconds(200) };
-        }
-
-        private async Task<TestResult> TestAlertingSystemAsync()
-        {
-            await Task.Delay(250);
-            return new TestResult { Success = true, Message = "Alerting system test passed", ExecutionTime = TimeSpan.FromMilliseconds(250) };
-        }
-
-        private async Task<TestResult> TestDashboardIntegrationAsync()
-        {
-            await Task.Delay(180);
-            return new TestResult { Success = true, Message = "Dashboard integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(180) };
-        }
-
-        private async Task<TestResult> TestAnomalyDetectionAsync()
-        {
-            await Task.Delay(400);
-            return new TestResult { Success = true, Message = "Anomaly detection test passed", ExecutionTime = TimeSpan.FromMilliseconds(400) };
-        }
-
-        private async Task<TestResult> TestGlobalizationFrameworkAsync()
-        {
-            await Task.Delay(300);
-            return new TestResult { Success = true, Message = "Globalization framework test passed", ExecutionTime = TimeSpan.FromMilliseconds(300) };
-        }
-
-        private async Task<TestResult> TestMultiLanguageSupportAsync()
-        {
-            await Task.Delay(250);
-            return new TestResult { Success = true, Message = "Multi-language support test passed", ExecutionTime = TimeSpan.FromMilliseconds(250) };
-        }
-
-        private async Task<TestResult> TestCulturalAdaptationAsync()
-        {
-            await Task.Delay(200);
-            return new TestResult { Success = true, Message = "Cultural adaptation test passed", ExecutionTime = TimeSpan.FromMilliseconds(200) };
-        }
-
-        private async Task<TestResult> TestRTLLTRLayoutSupportAsync()
-        {
-            await Task.Delay(150);
-            return new TestResult { Success = true, Message = "RTL/LTR layout support test passed", ExecutionTime = TimeSpan.FromMilliseconds(150) };
-        }
-
-        private async Task<TestResult> TestResourceManagementAsync()
-        {
-            await Task.Delay(180);
-            return new TestResult { Success = true, Message = "Resource management test passed", ExecutionTime = TimeSpan.FromMilliseconds(180) };
-        }
-
-        private async Task<TestResult> TestCICDPipelineAsync()
-        {
-            await Task.Delay(800);
-            return new TestResult { Success = true, Message = "CI/CD pipeline test passed", ExecutionTime = TimeSpan.FromMilliseconds(800) };
-        }
-
-        private async Task<TestResult> TestBuildAutomationAsync()
-        {
-            await Task.Delay(400);
-            return new TestResult { Success = true, Message = "Build automation test passed", ExecutionTime = TimeSpan.FromMilliseconds(400) };
-        }
-
-        private async Task<TestResult> TestDeploymentAutomationAsync()
-        {
-            await Task.Delay(500);
-            return new TestResult { Success = true, Message = "Deployment automation test passed", ExecutionTime = TimeSpan.FromMilliseconds(500) };
-        }
-
-        private async Task<TestResult> TestRollbackMechanismsAsync()
-        {
-            await Task.Delay(300);
-            return new TestResult { Success = true, Message = "Rollback mechanisms test passed", ExecutionTime = TimeSpan.FromMilliseconds(300) };
-        }
-
-        private async Task<TestResult> TestEnvironmentManagementAsync()
-        {
-            await Task.Delay(250);
-            return new TestResult { Success = true, Message = "Environment management test passed", ExecutionTime = TimeSpan.FromMilliseconds(250) };
-        }
-
-        private async Task<TestResult> TestCompleteUserWorkflowAsync()
-        {
-            await Task.Delay(1000);
-            return new TestResult { Success = true, Message = "Complete user workflow test passed", ExecutionTime = TimeSpan.FromMilliseconds(1000) };
-        }
-
-        private async Task<TestResult> TestSystemRecoveryAsync()
-        {
-            await Task.Delay(600);
-            return new TestResult { Success = true, Message = "System recovery test passed", ExecutionTime = TimeSpan.FromMilliseconds(600) };
-        }
-
-        private async Task<TestResult> TestHighAvailabilityAsync()
-        {
-            await Task.Delay(750);
-            return new TestResult { Success = true, Message = "High availability test passed", ExecutionTime = TimeSpan.FromMilliseconds(750) };
-        }
-
-        private async Task<TestResult> TestDisasterRecoveryAsync()
-        {
-            await Task.Delay(900);
-            return new TestResult { Success = true, Message = "Disaster recovery test passed", ExecutionTime = TimeSpan.FromMilliseconds(900) };
-        }
-
-        private async Task<TestResult> TestCrossComponentIntegrationAsync()
-        {
-            await Task.Delay(800);
-            return new TestResult { Success = true, Message = "Cross-component integration test passed", ExecutionTime = TimeSpan.FromMilliseconds(800) };
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Calculate success rate from test results
-        /// </summary>
-        private double CalculateSuccessRate(TestResult[] testResults)
-        {
-            if (testResults == null || testResults.Length == 0)
-                return 0.0;
-
-            int successCount = testResults.Count(tr => tr.Success);
-            return (double)successCount / testResults.Length;
-        }
-
-        /// <summary>
-        /// Calculate overall success rate from all test categories
-        /// </summary>
-        private double CalculateOverallSuccessRate(IntegrationTestResults results)
-        {
-            var successRates = new List<double>();
-
-            if (results.CoreSystemTests != null && !results.CoreSystemTests.HasFailures)
-                successRates.Add(results.CoreSystemTests.SuccessRate);
-
-            if (results.UIAccessibilityTests != null && !results.UIAccessibilityTests.HasFailures)
-                successRates.Add(results.UIAccessibilityTests.SuccessRate);
-
-            if (results.PerformanceScalabilityTests != null && !results.PerformanceScalabilityTests.HasFailures)
-                successRates.Add(results.PerformanceScalabilityTests.SuccessRate);
-
-            if (results.SecurityComplianceTests != null && !results.SecurityComplianceTests.HasFailures)
-                successRates.Add(results.SecurityComplianceTests.SuccessRate);
-
-            if (results.MonitoringObservabilityTests != null && !results.MonitoringObservabilityTests.HasFailures)
-                successRates.Add(results.MonitoringObservabilityTests.SuccessRate);
-
-            if (results.GlobalizationTests != null && !results.GlobalizationTests.HasFailures)
-                successRates.Add(results.GlobalizationTests.SuccessRate);
-
-            if (results.DevOpsCICDTests != null && !results.DevOpsCICDTests.HasFailures)
-                successRates.Add(results.DevOpsCICDTests.SuccessRate);
-
-            if (results.EndToEndScenarioTests != null && !results.EndToEndScenarioTests.HasFailures)
-                successRates.Add(results.EndToEndScenarioTests.SuccessRate);
-
-            return successRates.Count > 0 ? successRates.Average() : 0.0;
-        }
-    }
-
-    /// <summary>
-    /// Test metrics collector for gathering performance and quality metrics
-    /// </summary>
-    public class TestMetricsCollector
-    {
-        private readonly Dictionary<string, object> _metrics;
-
-        public TestMetricsCollector()
-        {
-            _metrics = new Dictionary<string, object>();
-        }
-
-        public void RecordMetric(string name, object value)
-        {
-            _metrics[name] = value;
-        }
-
-        public Dictionary<string, object> GetAllMetrics()
-        {
-            return new Dictionary<string, object>(_metrics);
-        }
-    }
-
-    /// <summary>
-    /// Test report generator for creating comprehensive test reports
-    /// </summary>
-    public class TestReportGenerator
-    {
-        public async Task<string> GenerateTestReportAsync(IntegrationTestResults results)
-        {
-            var report = new
-            {
-                TestSuiteId = results.TestId,
-                ExecutionTime = results.TotalExecutionTime,
-                OverallSuccessRate = results.OverallSuccessRate,
-                TestResults = new
-                {
-                    CoreSystemTests = results.CoreSystemTests,
-                    UIAccessibilityTests = results.UIAccessibilityTests,
-                    PerformanceScalabilityTests = results.PerformanceScalabilityTests,
-                    SecurityComplianceTests = results.SecurityComplianceTests,
-                    MonitoringObservabilityTests = results.MonitoringObservabilityTests,
-                    GlobalizationTests = results.GlobalizationTests,
-                    DevOpsCICDTests = results.DevOpsCICDTests,
-                    EndToEndScenarioTests = results.EndToEndScenarioTests
+                    Type = ScheduleType.Once,
+                    ExecutionTime = DateTime.Now.AddMilliseconds(100)
                 }
             };
 
-            return JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+            // Act
+            _taskScheduler.ScheduleTask(testTask);
+            _taskScheduler.StartScheduler();
+
+            // Wait for task execution
+            await Task.Delay(500);
+
+            // Assert
+            Assert.IsTrue(executedTasks.Contains("test-task-1"), "Scheduled task should be executed");
+            Assert.AreEqual(TaskStatus.Completed, testTask.Status, "Task status should be completed");
+
+            _taskScheduler.StopScheduler();
+            _telemetryService.TrackEvent("TaskSchedulingTest", 
+                new Dictionary<string, string> { { "TasksExecuted", executedTasks.Count.ToString() } });
+        }
+
+        [TestMethod(Description = "Test telemetry data collection")]
+        public async Task TestTelemetryIntegration()
+        {
+            // Arrange
+            var startTime = DateTime.Now.AddMinutes(-1);
+            var endTime = DateTime.Now;
+
+            // Act - Generate various telemetry data
+            _telemetryService.TrackEvent("TestEvent", 
+                new Dictionary<string, string> { { "Source", "Integration" } },
+                new Dictionary<string, double> { { "Duration", 123.45 } });
+
+            _telemetryService.TrackMetric("TestMetric", 42.0, 
+                new Dictionary<string, string> { { "Unit", "Seconds" } });
+
+            try
+            {
+                throw new InvalidOperationException("Test exception for telemetry");
+            }
+            catch (Exception ex)
+            {
+                _telemetryService.TrackException(ex, 
+                    new Dictionary<string, string> { { "TestContext", "Integration" } });
+            }
+
+            _telemetryService.TrackDependency("TestDependency", "HTTP", "GET /api/test", 
+                DateTime.Now.AddSeconds(-2), TimeSpan.FromSeconds(1), true);
+
+            // Generate report
+            var report = await _telemetryService.GenerateReportAsync(startTime, endTime);
+
+            // Assert
+            Assert.IsNotNull(report, "Telemetry report should not be null");
+            Assert.IsTrue(report.Events.Any(), "Should have recorded events");
+            Assert.IsTrue(report.Metrics.Any(), "Should have recorded metrics");
+            Assert.IsTrue(report.Exceptions.Any(), "Should have recorded exceptions");
+            Assert.IsTrue(report.Dependencies.Any(), "Should have recorded dependencies");
+            Assert.IsNotNull(report.Summary, "Report summary should not be null");
+        }
+
+        [TestMethod(Description = "Test error handling and recovery")]
+        public async Task TestErrorHandlingIntegration()
+        {
+            // Arrange
+            var workflow = CreateFailingWorkflow();
+
+            // Act
+            var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
+
+            // Assert
+            Assert.IsNotNull(result, "Result should not be null even when workflow fails");
+            Assert.IsFalse(result.Success, "Workflow should fail as expected");
+            Assert.IsTrue(result.ActionResults.Any(r => !r.Success), "Should have failed actions");
+
+            // Verify error is properly tracked
+            var failedAction = result.ActionResults.FirstOrDefault(r => !r.Success);
+            Assert.IsNotNull(failedAction, "Should have at least one failed action");
+            Assert.IsNotNull(failedAction.ErrorMessage, "Failed action should have error message");
+
+            _telemetryService.TrackEvent("ErrorHandlingTest", 
+                new Dictionary<string, string> 
+                { 
+                    { "ExpectedFailure", "true" },
+                    { "FailedActions", result.ActionResults.Count(r => !r.Success).ToString() }
+                });
+        }
+
+        [TestMethod(Description = "Test performance under load")]
+        public async Task TestPerformanceIntegration()
+        {
+            // Arrange
+            const int concurrentOperations = 10;
+            var tasks = new List<Task>();
+            var startTime = DateTime.Now;
+
+            // Act - Simulate concurrent operations
+            for (int i = 0; i < concurrentOperations; i++)
+            {
+                int taskId = i;
+                tasks.Add(Task.Run(async () =>
+                {
+                    _telemetryService.StartOperation($"ConcurrentOp_{taskId}");
+                    try
+                    {
+                        // Simulate work
+                        await Task.Delay(100);
+                        var networks = await _wifiService.ScanNetworksAsync();
+                        _telemetryService.StopOperation($"ConcurrentOp_{taskId}", true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _telemetryService.StopOperation($"ConcurrentOp_{taskId}", false);
+                        _telemetryService.TrackException(ex);
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+            var totalDuration = DateTime.Now - startTime;
+
+            // Assert
+            Assert.IsTrue(totalDuration.TotalSeconds < 10, "Operations should complete within reasonable time");
+
+            _telemetryService.TrackMetric("PerformanceTest_Duration", totalDuration.TotalMilliseconds);
+            _telemetryService.TrackMetric("PerformanceTest_ConcurrentOps", concurrentOperations);
+        }
+
+        /// <summary>
+        /// 接続ワークフローを作成
+        /// </summary>
+        private Workflow CreateConnectionWorkflow(string ssid, string password)
+        {
+            return new Workflow
+            {
+                Name = "WiFi Connection Workflow",
+                Description = "Complete workflow for connecting to WiFi network",
+                Actions = new List<WorkflowAction>
+                {
+                    new WorkflowAction
+                    {
+                        Name = "ScanNetworks",
+                        Type = "WifiScan",
+                        Order = 1,
+                        Parameters = new Dictionary<string, object>()
+                    },
+                    new WorkflowAction
+                    {
+                        Name = "ConnectToNetwork",
+                        Type = "WifiConnect",
+                        Order = 2,
+                        Parameters = new Dictionary<string, object>
+                        {
+                            { "SSID", ssid },
+                            { "Password", password }
+                        }
+                    },
+                    new WorkflowAction
+                    {
+                        Name = "NotifySuccess",
+                        Type = "Notification",
+                        Order = 3,
+                        Parameters = new Dictionary<string, object>
+                        {
+                            { "Message", $"Successfully connected to {ssid}" }
+                        }
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// 失敗するワークフローを作成（エラーハンドリングテスト用）
+        /// </summary>
+        private Workflow CreateFailingWorkflow()
+        {
+            return new Workflow
+            {
+                Name = "Failing Workflow",
+                Description = "Workflow designed to fail for testing error handling",
+                Actions = new List<WorkflowAction>
+                {
+                    new WorkflowAction
+                    {
+                        Name = "SuccessfulAction",
+                        Type = "Wait",
+                        Order = 1,
+                        Parameters = new Dictionary<string, object> { { "Duration", 10 } }
+                    },
+                    new WorkflowAction
+                    {
+                        Name = "FailingAction",
+                        Type = "NonExistentActionType",
+                        Order = 2,
+                        IsRequired = true
+                    }
+                }
+            };
         }
     }
 
-    #region Test Result Data Structures
-
-    public class IntegrationTestResults
+    /// <summary>
+    /// WiFiサービス統合テスト
+    /// </summary>
+    [TestClass(Description = "WiFi service specific integration tests")]
+    public class WifiServiceIntegrationTests
     {
-        public string TestId { get; set; }
-        public DateTime TestSuiteStartTime { get; set; }
-        public DateTime TestSuiteEndTime { get; set; }
-        public TimeSpan TotalExecutionTime { get; set; }
-        public double OverallSuccessRate { get; set; }
-        public bool HasCriticalFailures { get; set; }
-        public string CriticalFailureMessage { get; set; }
+        private IWifiService _wifiService;
 
-        public CoreSystemTestResults CoreSystemTests { get; set; }
-        public UIAccessibilityTestResults UIAccessibilityTests { get; set; }
-        public PerformanceScalabilityTestResults PerformanceScalabilityTests { get; set; }
-        public SecurityComplianceTestResults SecurityComplianceTests { get; set; }
-        public MonitoringObservabilityTestResults MonitoringObservabilityTests { get; set; }
-        public GlobalizationTestResults GlobalizationTests { get; set; }
-        public DevOpsCICDTestResults DevOpsCICDTests { get; set; }
-        public EndToEndScenarioTestResults EndToEndScenarioTests { get; set; }
+        public void Setup()
+        {
+            _wifiService = new WifiService();
+        }
+
+        [TestMethod(Description = "Test network scanning with various parameters")]
+        public async Task TestNetworkScanningVariations()
+        {
+            // Test different scanning scenarios
+            var standardScan = await _wifiService.ScanNetworksAsync();
+            Assert.IsNotNull(standardScan, "Standard scan should return results");
+
+            // Verify network data integrity
+            foreach (var network in standardScan)
+            {
+                Assert.IsNotNull(network.SSID, "Each network should have an SSID");
+                Assert.IsTrue(network.SignalStrength >= 0, "Signal strength should be non-negative");
+            }
+        }
+
+        [TestMethod(Description = "Test connection state management")]
+        public async Task TestConnectionStateManagement()
+        {
+            // Get current connection status
+            var initialStatus = await _wifiService.GetConnectionStatusAsync();
+            Assert.IsNotNull(initialStatus, "Should be able to get connection status");
+
+            // Test status properties
+            Assert.IsNotNull(initialStatus.SSID, "SSID should be available (may be empty if disconnected)");
+        }
     }
-
-    public class CoreSystemTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult WiFiCoreIntegrationTest { get; set; }
-        public TestResult ConnectionManagementTest { get; set; }
-        public TestResult NetworkUtilitiesTest { get; set; }
-        public TestResult ErrorHandlingTest { get; set; }
-        public TestResult MemoryOptimizationTest { get; set; }
-    }
-
-    public class UIAccessibilityTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult AccessibilityFrameworkTest { get; set; }
-        public TestResult UIResponseOptimizationTest { get; set; }
-        public TestResult SystemTrayIntegrationTest { get; set; }
-        public TestResult QuickSettingsIntegrationTest { get; set; }
-        public TestResult WCAGComplianceTest { get; set; }
-    }
-
-    public class PerformanceScalabilityTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult ScalabilityFrameworkTest { get; set; }
-        public TestResult PerformanceMonitoringTest { get; set; }
-        public TestResult LoadBalancingTest { get; set; }
-        public TestResult AutoScalingTest { get; set; }
-        public TestResult ResourceOptimizationTest { get; set; }
-    }
-
-    public class SecurityComplianceTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult SecurityManagerTest { get; set; }
-        public TestResult EncryptionTest { get; set; }
-        public TestResult AuditLoggingTest { get; set; }
-        public TestResult ComplianceReportingTest { get; set; }
-        public TestResult VulnerabilityScanningTest { get; set; }
-    }
-
-    public class MonitoringObservabilityTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult MonitoringSystemTest { get; set; }
-        public TestResult MetricsCollectionTest { get; set; }
-        public TestResult AlertingSystemTest { get; set; }
-        public TestResult DashboardIntegrationTest { get; set; }
-        public TestResult AnomalyDetectionTest { get; set; }
-    }
-
-    public class GlobalizationTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult GlobalizationFrameworkTest { get; set; }
-        public TestResult MultiLanguageTest { get; set; }
-        public TestResult CulturalAdaptationTest { get; set; }
-        public TestResult RTLLTRLayoutTest { get; set; }
-        public TestResult ResourceManagementTest { get; set; }
-    }
-
-    public class DevOpsCICDTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult CICDPipelineTest { get; set; }
-        public TestResult BuildAutomationTest { get; set; }
-        public TestResult DeploymentAutomationTest { get; set; }
-        public TestResult RollbackMechanismsTest { get; set; }
-        public TestResult EnvironmentManagementTest { get; set; }
-    }
-
-    public class EndToEndScenarioTestResults
-    {
-        public TimeSpan ExecutionTime { get; set; }
-        public double SuccessRate { get; set; }
-        public bool HasFailures { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public TestResult CompleteUserWorkflowTest { get; set; }
-        public TestResult SystemRecoveryTest { get; set; }
-        public TestResult HighAvailabilityTest { get; set; }
-        public TestResult DisasterRecoveryTest { get; set; }
-        public TestResult CrossComponentIntegrationTest { get; set; }
-    }
-
-    public class TestResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-        public TimeSpan ExecutionTime { get; set; }
-        public Dictionary<string, object> AdditionalData { get; set; } = new Dictionary<string, object>();
-    }
-
-    #endregion
 }

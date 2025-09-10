@@ -3,20 +3,6 @@ using System.Collections.Generic;
 
 namespace MurtiWifiConnecter
 {
-    /// <summary>
-    /// ネットワーク状態
-    /// </summary>
-    public class NetworkStatus
-    {
-        public bool IsConnected { get; set; }
-        public string ConnectedSSID { get; set; }
-        public int SignalStrength { get; set; }
-        public string IpAddress { get; set; }
-        public string MacAddress { get; set; }
-        public long BytesSent { get; set; }
-        public long BytesReceived { get; set; }
-        public DateTime ConnectedSince { get; set; }
-    }
 
     /// <summary>
     /// Ping結果

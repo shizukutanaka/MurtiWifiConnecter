@@ -1,307 +1,278 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MurtiWifiConnecter.Interfaces;
+using System.Timers;
 
 namespace MurtiWifiConnecter.Automation
 {
+    /// <summary>
+    /// タスクスケジューラー
+    /// </summary>
     public interface ITaskScheduler
     {
-        Task<string> ScheduleTaskAsync(string name, Func<CancellationToken, Task> task, TimeSpan delay);
-        Task<string> ScheduleRecurringTaskAsync(string name, Func<CancellationToken, Task> task, TimeSpan interval);
-        Task<bool> CancelTaskAsync(string taskId);
-        Task<List<ScheduledTaskInfo>> GetScheduledTasksAsync();
-        void Dispose();
+        void ScheduleTask(ScheduledTask task);
+        void CancelTask(string taskId);
+        void StartScheduler();
+        void StopScheduler();
+        List<ScheduledTask> GetActiveTasks();
+        event Action<ScheduledTask> TaskExecuted;
+        event Action<ScheduledTask, Exception> TaskFailed;
     }
 
+    /// <summary>
+    /// タスクスケジューラーの実装
+    /// </summary>
     public class TaskScheduler : ITaskScheduler, IDisposable
     {
-        private readonly ILoggingService _logger;
-        private readonly ConcurrentDictionary<string, ScheduledTaskWrapper> _scheduledTasks;
-        private readonly Timer _cleanupTimer;
-        private bool _disposed;
+        private readonly ConcurrentDictionary<string, ScheduledTask> _scheduledTasks;
+        private readonly ConcurrentDictionary<string, System.Timers.Timer> _timers;
+        private readonly SemaphoreSlim _executionSemaphore;
+        private readonly int _maxConcurrentTasks;
+        private bool _isRunning;
 
-        public TaskScheduler(ILoggingService logger)
+        public event Action<ScheduledTask> TaskExecuted;
+        public event Action<ScheduledTask, Exception> TaskFailed;
+
+        public TaskScheduler(int maxConcurrentTasks = 5)
         {
-            _logger = logger;
-            _scheduledTasks = new ConcurrentDictionary<string, ScheduledTaskWrapper>();
-            
-            // Cleanup completed tasks every 5 minutes
-            _cleanupTimer = new Timer(CleanupCompletedTasks, null, 
-                TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+            _scheduledTasks = new ConcurrentDictionary<string, ScheduledTask>();
+            _timers = new ConcurrentDictionary<string, System.Timers.Timer>();
+            _maxConcurrentTasks = maxConcurrentTasks;
+            _executionSemaphore = new SemaphoreSlim(maxConcurrentTasks, maxConcurrentTasks);
         }
 
-        public async Task<string> ScheduleTaskAsync(string name, Func<CancellationToken, Task> task, TimeSpan delay)
+        /// <summary>
+        /// タスクをスケジュール
+        /// </summary>
+        public void ScheduleTask(ScheduledTask task)
         {
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Task name cannot be empty", nameof(name));
-            
-            if (task == null)
-                throw new ArgumentNullException(nameof(task));
-            
-            if (delay < TimeSpan.Zero)
-                throw new ArgumentException("Delay cannot be negative", nameof(delay));
-            
-            var taskId = GenerateTaskId();
-            var wrapper = new ScheduledTaskWrapper
-            {
-                Id = taskId,
-                Name = name,
-                Task = task,
-                ScheduledTime = DateTime.UtcNow.Add(delay),
-                IsRecurring = false,
-                Status = TaskStatus.Scheduled
-            };
-            
-            wrapper.CancellationTokenSource = new CancellationTokenSource();
-            
-            _scheduledTasks[taskId] = wrapper;
-            
-            // Schedule the task execution
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(delay, wrapper.CancellationTokenSource.Token);
-                    await ExecuteTaskAsync(wrapper);
-                }
-                catch (OperationCanceledException)
-                {
-                    wrapper.Status = TaskStatus.Canceled;
-                    _logger.LogInfo($"Scheduled task cancelled: {name} ({taskId})");
-                }
-                catch (Exception ex)
-                {
-                    wrapper.Status = TaskStatus.Failed;
-                    wrapper.LastError = ex;
-                    _logger.LogError($"Scheduled task failed: {name} ({taskId})", ex);
-                }
-            });
-            
-            _logger.LogInfo($"Task scheduled: {name} ({taskId}) - Delay: {delay}");
-            return taskId;
-        }
+            if (task == null || string.IsNullOrEmpty(task.Id))
+                throw new ArgumentException("Invalid task");
 
-        public async Task<string> ScheduleRecurringTaskAsync(string name, Func<CancellationToken, Task> task, TimeSpan interval)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Task name cannot be empty", nameof(name));
-            
-            if (task == null)
-                throw new ArgumentNullException(nameof(task));
-            
-            if (interval <= TimeSpan.Zero)
-                throw new ArgumentException("Interval must be positive", nameof(interval));
-            
-            var taskId = GenerateTaskId();
-            var wrapper = new ScheduledTaskWrapper
-            {
-                Id = taskId,
-                Name = name,
-                Task = task,
-                ScheduledTime = DateTime.UtcNow.Add(interval),
-                IsRecurring = true,
-                RecurringInterval = interval,
-                Status = TaskStatus.Scheduled
-            };
-            
-            wrapper.CancellationTokenSource = new CancellationTokenSource();
-            
-            _scheduledTasks[taskId] = wrapper;
-            
-            // Schedule the recurring task execution
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    while (!wrapper.CancellationTokenSource.Token.IsCancellationRequested)
-                    {
-                        await Task.Delay(interval, wrapper.CancellationTokenSource.Token);
-                        
-                        if (!wrapper.CancellationTokenSource.Token.IsCancellationRequested)
-                        {
-                            wrapper.ScheduledTime = DateTime.UtcNow.Add(interval);
-                            await ExecuteTaskAsync(wrapper);
-                            wrapper.ExecutionCount++;
-                        }
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    wrapper.Status = TaskStatus.Canceled;
-                    _logger.LogInfo($"Recurring task cancelled: {name} ({taskId})");
-                }
-                catch (Exception ex)
-                {
-                    wrapper.Status = TaskStatus.Failed;
-                    wrapper.LastError = ex;
-                    _logger.LogError($"Recurring task failed: {name} ({taskId})", ex);
-                }
-            });
-            
-            _logger.LogInfo($"Recurring task scheduled: {name} ({taskId}) - Interval: {interval}");
-            return taskId;
-        }
+            _scheduledTasks[task.Id] = task;
 
-        public async Task<bool> CancelTaskAsync(string taskId)
-        {
-            if (string.IsNullOrWhiteSpace(taskId))
-                return false;
-            
-            if (_scheduledTasks.TryGetValue(taskId, out var wrapper))
+            if (_isRunning)
             {
-                wrapper.CancellationTokenSource?.Cancel();
-                wrapper.Status = TaskStatus.Canceled;
-                
-                _logger.LogInfo($"Task cancelled: {wrapper.Name} ({taskId})");
-                return await Task.FromResult(true);
+                SetupTimer(task);
             }
-            
-            return await Task.FromResult(false);
         }
 
-        public async Task<List<ScheduledTaskInfo>> GetScheduledTasksAsync()
+        /// <summary>
+        /// タスクをキャンセル
+        /// </summary>
+        public void CancelTask(string taskId)
         {
-            var taskInfos = _scheduledTasks.Values.Select(wrapper => new ScheduledTaskInfo
+            if (_timers.TryRemove(taskId, out var timer))
             {
-                Id = wrapper.Id,
-                Name = wrapper.Name,
-                ScheduledTime = wrapper.ScheduledTime,
-                IsRecurring = wrapper.IsRecurring,
-                RecurringInterval = wrapper.RecurringInterval,
-                Status = wrapper.Status,
-                ExecutionCount = wrapper.ExecutionCount,
-                LastExecutionTime = wrapper.LastExecutionTime,
-                LastError = wrapper.LastError?.Message
-            }).ToList();
-            
-            return await Task.FromResult(taskInfos);
+                timer.Stop();
+                timer.Dispose();
+            }
+
+            if (_scheduledTasks.TryRemove(taskId, out var task))
+            {
+                task.Status = TaskStatus.Cancelled;
+            }
         }
 
-        private async Task ExecuteTaskAsync(ScheduledTaskWrapper wrapper)
+        /// <summary>
+        /// スケジューラーを開始
+        /// </summary>
+        public void StartScheduler()
         {
+            if (_isRunning) return;
+
+            _isRunning = true;
+
+            foreach (var task in _scheduledTasks.Values)
+            {
+                if (task.Status == TaskStatus.Pending)
+                {
+                    SetupTimer(task);
+                }
+            }
+        }
+
+        /// <summary>
+        /// スケジューラーを停止
+        /// </summary>
+        public void StopScheduler()
+        {
+            _isRunning = false;
+
+            foreach (var timer in _timers.Values)
+            {
+                timer.Stop();
+                timer.Dispose();
+            }
+            _timers.Clear();
+        }
+
+        /// <summary>
+        /// アクティブなタスクを取得
+        /// </summary>
+        public List<ScheduledTask> GetActiveTasks()
+        {
+            var activeTasks = new List<ScheduledTask>();
+            foreach (var task in _scheduledTasks.Values)
+            {
+                if (task.Status == TaskStatus.Pending || task.Status == TaskStatus.Running)
+                {
+                    activeTasks.Add(task);
+                }
+            }
+            return activeTasks;
+        }
+
+        /// <summary>
+        /// タイマーを設定
+        /// </summary>
+        private void SetupTimer(ScheduledTask task)
+        {
+            var now = DateTime.Now;
+            var nextExecution = CalculateNextExecution(task, now);
+
+            if (nextExecution.HasValue)
+            {
+                var delay = (nextExecution.Value - now).TotalMilliseconds;
+                if (delay > 0)
+                {
+                    var timer = new System.Timers.Timer(delay);
+                    timer.Elapsed += async (sender, e) => await ExecuteTask(task);
+                    timer.AutoReset = false;
+                    timer.Start();
+
+                    _timers[task.Id] = timer;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 次の実行時刻を計算
+        /// </summary>
+        private DateTime? CalculateNextExecution(ScheduledTask task, DateTime now)
+        {
+            switch (task.Schedule.Type)
+            {
+                case ScheduleType.Once:
+                    return task.Schedule.ExecutionTime > now ? task.Schedule.ExecutionTime : null;
+
+                case ScheduleType.Interval:
+                    if (task.LastExecuted == null)
+                        return now.Add(task.Schedule.Interval);
+                    return task.LastExecuted.Value.Add(task.Schedule.Interval);
+
+                case ScheduleType.Daily:
+                    var dailyTime = now.Date.Add(task.Schedule.TimeOfDay);
+                    return dailyTime > now ? dailyTime : dailyTime.AddDays(1);
+
+                case ScheduleType.Weekly:
+                    var daysUntilTarget = ((int)task.Schedule.DayOfWeek - (int)now.DayOfWeek + 7) % 7;
+                    var weeklyTime = now.Date.AddDays(daysUntilTarget).Add(task.Schedule.TimeOfDay);
+                    return weeklyTime > now ? weeklyTime : weeklyTime.AddDays(7);
+
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// タスクを実行
+        /// </summary>
+        private async Task ExecuteTask(ScheduledTask task)
+        {
+            await _executionSemaphore.WaitAsync();
+
             try
             {
-                wrapper.Status = TaskStatus.Running;
-                wrapper.LastExecutionTime = DateTime.UtcNow;
-                
-                _logger.LogDebug($"Executing task: {wrapper.Name} ({wrapper.Id})");
-                
-                await wrapper.Task(wrapper.CancellationTokenSource.Token);
-                
-                wrapper.Status = wrapper.IsRecurring ? TaskStatus.Scheduled : TaskStatus.Completed;
-                
-                _logger.LogDebug($"Task completed: {wrapper.Name} ({wrapper.Id})");
-            }
-            catch (OperationCanceledException) when (wrapper.CancellationTokenSource.Token.IsCancellationRequested)
-            {
-                wrapper.Status = TaskStatus.Canceled;
-                throw;
-            }
-            catch (Exception ex)
-            {
-                wrapper.Status = TaskStatus.Failed;
-                wrapper.LastError = ex;
-                _logger.LogError($"Task execution failed: {wrapper.Name} ({wrapper.Id})", ex);
-                throw;
-            }
-        }
+                task.Status = TaskStatus.Running;
+                task.LastExecuted = DateTime.Now;
 
-        private void CleanupCompletedTasks(object state)
-        {
-            try
-            {
-                var completedTasks = _scheduledTasks
-                    .Where(kvp => kvp.Value.Status == TaskStatus.Completed || 
-                                 kvp.Value.Status == TaskStatus.Failed ||
-                                 kvp.Value.Status == TaskStatus.Canceled)
-                    .Where(kvp => DateTime.UtcNow - kvp.Value.LastExecutionTime > TimeSpan.FromHours(1))
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-                
-                foreach (var taskId in completedTasks)
+                await task.Action();
+
+                task.Status = TaskStatus.Completed;
+                task.ExecutionCount++;
+
+                TaskExecuted?.Invoke(task);
+
+                // 繰り返しタスクの場合は再スケジュール
+                if (task.Schedule.Type != ScheduleType.Once)
                 {
-                    if (_scheduledTasks.TryRemove(taskId, out var wrapper))
-                    {
-                        wrapper.CancellationTokenSource?.Dispose();
-                    }
-                }
-                
-                if (completedTasks.Count > 0)
-                {
-                    _logger.LogDebug($"Cleaned up {completedTasks.Count} completed tasks");
+                    task.Status = TaskStatus.Pending;
+                    SetupTimer(task);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to cleanup completed tasks", ex);
+                task.Status = TaskStatus.Failed;
+                task.LastError = ex.Message;
+                TaskFailed?.Invoke(task, ex);
             }
-        }
-
-        private string GenerateTaskId()
-        {
-            return $"task_{DateTime.UtcNow.Ticks}_{Guid.NewGuid():N}";
+            finally
+            {
+                _executionSemaphore.Release();
+                _timers.TryRemove(task.Id, out _);
+            }
         }
 
         public void Dispose()
         {
-            if (_disposed)
-                return;
-            
-            _disposed = true;
-            
-            _cleanupTimer?.Dispose();
-            
-            // Cancel all running tasks
-            foreach (var wrapper in _scheduledTasks.Values)
-            {
-                wrapper.CancellationTokenSource?.Cancel();
-                wrapper.CancellationTokenSource?.Dispose();
-            }
-            
-            _scheduledTasks.Clear();
-            
-            _logger.LogInfo("TaskScheduler disposed");
-        }
-
-        private class ScheduledTaskWrapper
-        {
-            public string Id { get; set; }
-            public string Name { get; set; }
-            public Func<CancellationToken, Task> Task { get; set; }
-            public DateTime ScheduledTime { get; set; }
-            public bool IsRecurring { get; set; }
-            public TimeSpan? RecurringInterval { get; set; }
-            public TaskStatus Status { get; set; }
-            public int ExecutionCount { get; set; }
-            public DateTime? LastExecutionTime { get; set; }
-            public Exception LastError { get; set; }
-            public CancellationTokenSource CancellationTokenSource { get; set; }
+            StopScheduler();
+            _executionSemaphore?.Dispose();
         }
     }
 
-    public class ScheduledTaskInfo
+    /// <summary>
+    /// スケジュール済みタスク
+    /// </summary>
+    public class ScheduledTask
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; }
-        public DateTime ScheduledTime { get; set; }
-        public bool IsRecurring { get; set; }
-        public TimeSpan? RecurringInterval { get; set; }
-        public TaskStatus Status { get; set; }
+        public string Description { get; set; }
+        public Func<Task> Action { get; set; }
+        public TaskSchedule Schedule { get; set; }
+        public TaskStatus Status { get; set; } = TaskStatus.Pending;
+        public DateTime? LastExecuted { get; set; }
         public int ExecutionCount { get; set; }
-        public DateTime? LastExecutionTime { get; set; }
         public string LastError { get; set; }
+        public Dictionary<string, object> Metadata { get; set; } = new();
     }
 
+    /// <summary>
+    /// タスクスケジュール
+    /// </summary>
+    public class TaskSchedule
+    {
+        public ScheduleType Type { get; set; }
+        public DateTime ExecutionTime { get; set; }
+        public TimeSpan Interval { get; set; }
+        public TimeSpan TimeOfDay { get; set; }
+        public DayOfWeek DayOfWeek { get; set; }
+        public bool IsEnabled { get; set; } = true;
+    }
+
+    /// <summary>
+    /// スケジュールタイプ
+    /// </summary>
+    public enum ScheduleType
+    {
+        Once,
+        Interval,
+        Daily,
+        Weekly
+    }
+
+    /// <summary>
+    /// タスクステータス
+    /// </summary>
     public enum TaskStatus
     {
-        Scheduled,
+        Pending,
         Running,
         Completed,
         Failed,
-        Canceled
+        Cancelled
     }
 }

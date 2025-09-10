@@ -17,17 +17,6 @@ namespace MurtiWifiConnecter
         public DateTime? LastScan { get; set; }
     }
 
-    /// <summary>
-    /// WiFi接続結果
-    /// </summary>
-    public class WifiConnectionResult
-    {
-        public bool Success { get; set; }
-        public string ErrorMessage { get; set; }
-        public string ConnectedSSID { get; set; }
-        public string Message { get; set; }
-        public NetworkSecurityAssessment SecurityAssessment { get; set; }
-    }
 
     /// <summary>
     /// ネットワークセキュリティ評価
@@ -46,17 +35,6 @@ namespace MurtiWifiConnecter
         public string Recommendation { get; set; }
     }
 
-    /// <summary>
-    /// セキュリティレベル
-    /// </summary>
-    public enum SecurityLevel
-    {
-        None = 0,
-        Low = 1,
-        Medium = 2,
-        High = 3,
-        VeryHigh = 4
-    }
 
     /// <summary>
     /// 保存されたプロファイル
