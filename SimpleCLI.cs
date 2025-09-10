@@ -10,18 +10,29 @@ namespace MurtiWifiConnecter
     /// </summary>
     public class SimpleCLI
     {
-        private readonly OptimizedWifiManager _wifiManager;
-        private readonly AutoReconnectService _autoReconnect;
-        private readonly ConnectionHistory _history;
-        private readonly ComprehensiveBackupManager _backupManager;
-        private readonly NetworkPriorityManager _priorityManager;
-        private readonly EnhancedWifiScanner _scanner;
-        private readonly WiFiTroubleshooter _troubleshooter;
+        private OptimizedWifiManager _wifiManager;
+        private AutoReconnectService _autoReconnect;
+        private ConnectionHistory _history;
+        private ComprehensiveBackupManager _backupManager;
+        private NetworkPriorityManager _priorityManager;
+        private EnhancedWifiScanner _scanner;
+        private WiFiTroubleshooter _troubleshooter;
         private bool _running = true;
+        private bool _initialized = false;
 
         public SimpleCLI()
         {
-            // サービス初期化
+            // 遅延初期化 - 軽量化のため
+        }
+
+        private void EnsureInitialized()
+        {
+            if (_initialized) return;
+
+            // 軽量サービスファクトリを使用
+            LightweightServiceFactory.RegisterDefaults();
+            
+            // サービス初期化（必要時のみ）
             var wifiService = new WifiService();
             var connectionService = new ConnectionManagementService(
                 null, // logger removed
@@ -43,6 +54,8 @@ namespace MurtiWifiConnecter
             _backupManager = new ComprehensiveBackupManager(null, _priorityManager);
             _scanner = new EnhancedWifiScanner(_priorityManager);
             _troubleshooter = new WiFiTroubleshooter(_scanner);
+            
+            _initialized = true;
         }
 
         public async Task RunAsync(string[] args)
@@ -50,6 +63,7 @@ namespace MurtiWifiConnecter
             // コマンドライン引数処理
             if (args != null && args.Length > 0)
             {
+                EnsureInitialized();
                 await ProcessCommand(args);
                 return;
             }
@@ -57,6 +71,8 @@ namespace MurtiWifiConnecter
             // インタラクティブモード
             Console.WriteLine("=== MurtiWifi Connector CLI ===");
             Console.WriteLine("Type 'help' for available commands\n");
+            
+            EnsureInitialized();
 
             while (_running)
             {

@@ -39,19 +39,28 @@ namespace MurtiWifiConnecter
         
         public SecurityLevel GetSecurityLevel()
         {
-            // SSIDからセキュリティタイプを推測（簡易版）
-            var ssidLower = SSID.ToLower();
+            // SSIDからセキュリティタイプを推測（最適化版）
+            if (string.IsNullOrEmpty(SSID))
+                return SecurityLevel.Unknown;
             
-            if (ssidLower.Contains("wpa3") || ssidLower.Contains("secure"))
+            var ssidSpan = SSID.AsSpan();
+            
+            // 高性能な文字列比較を使用
+            if (Contains(ssidSpan, "wpa3") || Contains(ssidSpan, "secure"))
                 return SecurityLevel.High;
-            else if (ssidLower.Contains("wpa2") || ssidLower.Contains("protected"))
+            else if (Contains(ssidSpan, "wpa2") || Contains(ssidSpan, "protected"))
                 return SecurityLevel.Medium;
-            else if (ssidLower.Contains("wpa") || ssidLower.Contains("secure"))
+            else if (Contains(ssidSpan, "wpa"))
                 return SecurityLevel.Low;
-            else if (ssidLower.Contains("open") || ssidLower.Contains("guest"))
+            else if (Contains(ssidSpan, "open") || Contains(ssidSpan, "guest"))
                 return SecurityLevel.None;
             else
                 return SecurityLevel.Unknown;
+        }
+        
+        private static bool Contains(ReadOnlySpan<char> source, ReadOnlySpan<char> value)
+        {
+            return source.Contains(value, StringComparison.OrdinalIgnoreCase);
         }
         
         public ConnectionRecommendation GetConnectionRecommendation()

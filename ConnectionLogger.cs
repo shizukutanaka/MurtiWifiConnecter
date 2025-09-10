@@ -1,25 +1,18 @@
 using System;
+using MurtiWifiConnecter.Services;
 
 namespace MurtiWifiConnecter
 {
     /// <summary>
-    /// 軽量接続ログクラス - 削除されたConnectionLoggerの代替
+    /// 接続ログクラス - SimpleLoggingServiceのラッパー
     /// </summary>
     public class ConnectionLogger : IDisposable
     {
-        public enum LogLevel
-        {
-            Debug,
-            Info,
-            Warning,
-            Error
-        }
-
-        private readonly Services.SimpleLoggingService _loggingService;
+        private readonly SimpleLoggingService _loggingService;
 
         public ConnectionLogger()
         {
-            _loggingService = new Services.SimpleLoggingService();
+            _loggingService = new SimpleLoggingService();
         }
 
         public void Log(LogLevel level, string category, string message)
@@ -38,10 +31,13 @@ namespace MurtiWifiConnecter
                 case LogLevel.Error:
                     _loggingService.LogError($"[{category}] {message}");
                     break;
+                case LogLevel.Critical:
+                    _loggingService.LogCritical($"[{category}] {message}");
+                    break;
             }
         }
 
-        public void LogConnection(string ssid, bool success, int signalStrength, string? errorMessage = null)
+        public void LogConnection(string ssid, bool success, int signalStrength, string errorMessage = null)
         {
             var status = success ? "成功" : "失敗";
             var message = $"接続: {ssid} - {status} (信号強度: {signalStrength}%)";
