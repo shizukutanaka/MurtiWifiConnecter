@@ -10,6 +10,8 @@ namespace MurtiWifiConnecter
         private NotifyIcon _notifyIcon;
         private readonly MainWindow _mainWindow;
         private bool _disposed = false;
+        private DateTime _lastNotificationTime = DateTime.MinValue;
+        private NotificationLevel _lastNotificationLevel = NotificationLevel.Info;
         
         public event EventHandler ShowMainWindowRequested;
         public event EventHandler ExitApplicationRequested;
@@ -201,10 +203,120 @@ namespace MurtiWifiConnecter
                 if (_disposed || _notifyIcon == null) return;
                 
                 _notifyIcon.ShowBalloonTip(timeout, title, text, icon);
+                _lastNotificationTime = DateTime.Now;
             }
             catch (Exception ex)
             {
                 ErrorHandler.LogError("SystemTrayManager.ShowBalloonTip", ex);
+            }
+        }
+        
+        public void ShowProgressNotification(string operation, int progressPercent)
+        {
+            try
+            {
+                if (_disposed || _notifyIcon == null) return;
+                
+                var title = $"{operation} - {progressPercent}%";
+                var text = progressPercent switch
+                {
+                    < 25 => "開始中...",
+                    < 50 => "処理中...",
+                    < 75 => "もうすぐ完了...",
+                    < 100 => "最終処理中...",
+                    _ => "完了"
+                };
+                
+                var timeout = progressPercent >= 100 ? 2000 : 1500;
+                ShowBalloonTip(title, text, ToolTipIcon.Info, timeout);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemTrayManager.ShowProgressNotification", ex);
+            }
+        }
+        
+        public void ShowConnectionStatusNotification(string ssid, bool connected, string qualityInfo = null)
+        {
+            try
+            {
+                if (_disposed || _notifyIcon == null) return;
+                
+                var title = connected ? "接続成功" : "接続失敗";
+                var text = connected 
+                    ? $"{ssid}に接続しました" + (string.IsNullOrEmpty(qualityInfo) ? "" : $"\n{qualityInfo}")
+                    : $"{ssid}への接続に失敗しました";
+                
+                var icon = connected ? ToolTipIcon.Info : ToolTipIcon.Warning;
+                var timeout = connected ? 3000 : 4000;
+                
+                ShowBalloonTip(title, text, icon, timeout);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemTrayManager.ShowConnectionStatusNotification", ex);
+            }
+        }
+        
+        public void ShowSecurityWarning(string networkName, string warningMessage, SecurityWarningLevel level)
+        {
+            try
+            {
+                if (_disposed || _notifyIcon == null) return;
+                
+                var now = DateTime.Now;
+                var minInterval = level switch
+                {
+                    SecurityWarningLevel.Critical => TimeSpan.FromMinutes(1),
+                    SecurityWarningLevel.High => TimeSpan.FromMinutes(5),
+                    SecurityWarningLevel.Medium => TimeSpan.FromMinutes(10),
+                    _ => TimeSpan.FromMinutes(30)
+                };
+                
+                if (now - _lastNotificationTime < minInterval && _lastNotificationLevel != NotificationLevel.Critical)
+                    return;
+                
+                var title = level switch
+                {
+                    SecurityWarningLevel.Critical => "🔴 緊急セキュリティ警告",
+                    SecurityWarningLevel.High => "⚠️ セキュリティ警告",
+                    SecurityWarningLevel.Medium => "⚡ セキュリティ注意",
+                    _ => "ℹ️ セキュリティ情報"
+                };
+                
+                var text = $"ネットワーク: {networkName}\n{warningMessage}";
+                var icon = level >= SecurityWarningLevel.High ? ToolTipIcon.Error : ToolTipIcon.Warning;
+                var timeout = level switch
+                {
+                    SecurityWarningLevel.Critical => 8000,
+                    SecurityWarningLevel.High => 6000,
+                    SecurityWarningLevel.Medium => 4000,
+                    _ => 3000
+                };
+                
+                ShowBalloonTip(title, text, icon, timeout);
+                _lastNotificationLevel = level >= SecurityWarningLevel.High ? NotificationLevel.Critical : NotificationLevel.Warning;
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemTrayManager.ShowSecurityWarning", ex);
+            }
+        }
+        
+        public void ShowMaintenanceNotification(string maintenanceType, string details)
+        {
+            try
+            {
+                if (_disposed || _notifyIcon == null) return;
+                
+                var title = $"メンテナンス: {maintenanceType}";
+                var text = details;
+                
+                ShowBalloonTip(title, text, ToolTipIcon.Info, 2000);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemTrayManager.ShowMaintenanceNotification", ex);
             }
         }
         
@@ -288,5 +400,20 @@ namespace MurtiWifiConnecter
         {
             Dispose(false);
         }
+    }
+    
+    public enum NotificationLevel
+    {
+        Info,
+        Warning,
+        Critical
+    }
+    
+    public enum SecurityWarningLevel
+    {
+        Low,
+        Medium,
+        High,
+        Critical
     }
 }

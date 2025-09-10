@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using MurtiWifiConnecter.Infrastructure.Resilience;
 
 namespace MurtiWifiConnecter
 {
@@ -31,7 +34,7 @@ namespace MurtiWifiConnecter
         /// <summary>
         /// エラーをログに記録
         /// </summary>
-        public static void LogError(string context, Exception ex, ConnectionLogger? logger = null,
+        public static void LogError(string context, Exception ex,
             [CallerMemberName] string memberName = "",
             [CallerFilePath] string filePath = "",
             [CallerLineNumber] int lineNumber = 0)
@@ -46,12 +49,9 @@ namespace MurtiWifiConnecter
                     new ErrorStats { Count = 1, LastOccurrence = DateTime.Now, Context = context },
                     (key, existing) => { existing.Count++; existing.LastOccurrence = DateTime.Now; return existing; });
                 
-                // ロガーが提供されている場合はログ出力
-                if (logger != null)
-                {
-                    var message = $"[{context}] {ex.GetType().Name}: {ex.Message} at {System.IO.Path.GetFileName(filePath)}:{lineNumber} in {memberName}";
-                    logger.Log(ConnectionLogger.LogLevel.Error, context, message);
-                }
+                // 統合ログサービスにログ出力
+                var message = $"[{context}] {ex.GetType().Name}: {ex.Message} at {System.IO.Path.GetFileName(filePath)}:{lineNumber} in {memberName}";
+                Services.Log.Error(message, ex);
                 
                 // デバッグ出力
                 Debug.WriteLine($"[ERROR] {context}: {ex.Message}");
@@ -445,8 +445,7 @@ namespace MurtiWifiConnecter
                 if (context.Contains("WiFi", StringComparison.OrdinalIgnoreCase) ||
                     context.Contains("Connection", StringComparison.OrdinalIgnoreCase))
                 {
-                    // WiFiスキャンキャッシュをクリア
-                    OptimizedWifiScanner.ClearCache();
+                    // 最適化されたスキャナーは削除されました
                     return;
                 }
             }
@@ -515,5 +514,39 @@ namespace MurtiWifiConnecter
         Cancellation,  // キャンセル
         Validation,    // 入力検証
         System         // システムエラー
+    }
+
+    /// <summary>
+    /// 最近のエラーを取得
+    /// </summary>
+    public static List<ErrorInfo> GetRecentErrors(int maxCount = 50)
+    {
+        try
+        {
+            var recentErrors = new List<ErrorInfo>();
+            var cutoffTime = DateTime.Now.AddHours(-24);
+
+            foreach (var kvp in _errorStats)
+            {
+                if (kvp.Value.LastOccurrence >= cutoffTime)
+                {
+                    recentErrors.Add(new ErrorInfo
+                    {
+                        Timestamp = kvp.Value.LastOccurrence,
+                        Category = kvp.Value.Context,
+                        Message = $"エラー発生回数: {kvp.Value.Count}回",
+                        Details = $"エラーキー: {kvp.Key}"
+                    });
+                }
+            }
+
+            return recentErrors.OrderByDescending(e => e.Timestamp)
+                              .Take(maxCount)
+                              .ToList();
+        }
+        catch
+        {
+            return new List<ErrorInfo>();
+        }
     }
 }

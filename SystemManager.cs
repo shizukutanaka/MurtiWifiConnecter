@@ -95,7 +95,7 @@ namespace MurtiWifiConnecter
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMinutes(10), cancellationToken);
+                await Task.Delay(TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false);
                 
                 if (!cancellationToken.IsCancellationRequested)
                 {
@@ -149,5 +149,50 @@ namespace MurtiWifiConnecter
         Good,
         Warning,
         Critical
+    }
+    
+    public static class SystemManagerExtensions
+    {
+        public static void SetMemoryThreshold(int thresholdMB)
+        {
+            try
+            {
+                SystemManager.SetMemoryThreshold(thresholdMB * 1024 * 1024); // MB to bytes
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemManager.SetMemoryThreshold", ex);
+            }
+        }
+        
+        public static async Task OptimizeStartupAsync()
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    // ガベージコレクション実行
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    
+                    // プロセス優先度を高に設定（一時的）
+                    try
+                    {
+                        Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+                        Thread.Sleep(1000);
+                        Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
+                    }
+                    catch
+                    {
+                        // 権限がない場合は無視
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SystemManager.OptimizeStartup", ex);
+            }
+        }
     }
 }

@@ -44,8 +44,29 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock x:Name="TitleTextBlock" Text="{x:Static properties:Resources.AvailableNetworks}" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource FontFamilyDefault}" VerticalAlignment="Center"/>
             <Button x:Name="QuickConnectButton" Content="⚡" Width="28" Height="28" Margin="15,0,0,0" Click="QuickConnectButton_Click" ToolTip="最近の接続先に素早く接続" FontSize="16" FontWeight="Bold" TabIndex="6" Visibility="Collapsed"/>
+            
+            <!-- Advanced Feature Buttons -->
+            <Button x:Name="DiagnosticsButton" Content="🔧" Width="28" Height="28" Margin="5,0,0,0" Click="DiagnosticsButton_Click" ToolTip="ネットワーク診断" FontSize="14" TabIndex="7"/>
+            <Button x:Name="SecurityButton" Content="🛡️" Width="28" Height="28" Margin="5,0,0,0" Click="SecurityButton_Click" ToolTip="セキュリティ分析" FontSize="14" TabIndex="8"/>
+            <Button x:Name="BackupButton" Content="💾" Width="28" Height="28" Margin="5,0,0,0" Click="BackupButton_Click" ToolTip="プロファイルバックアップ" FontSize="14" TabIndex="9"/>
+            <Button x:Name="PowerButton" Content="⚡" Width="28" Height="28" Margin="5,0,0,0" Click="PowerButton_Click" ToolTip="電力管理" FontSize="14" TabIndex="10"/>
+            <Button x:Name="SettingsButton" Content="⚙️" Width="28" Height="28" Margin="5,0,0,0" Click="SettingsButton_Click" ToolTip="詳細設定" FontSize="14" TabIndex="11"/>
+            <Button x:Name="MonitorButton" Content="📊" Width="28" Height="28" Margin="5,0,0,0" Click="MonitorButton_Click" ToolTip="パフォーマンスモニタ" FontSize="14" TabIndex="12"/>
         </StackPanel>
         <ListBox x:Name="WifiListBox" Grid.Row="2" Height="280" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" TabIndex="3" KeyDown="WifiListBox_KeyDown" MouseDoubleClick="WifiListBox_MouseDoubleClick">
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="接続" Click="ContextMenu_Connect_Click" InputGestureText="Enter"/>
+                    <MenuItem Header="自動接続" Click="ContextMenu_AutoConnect_Click" InputGestureText="Ctrl+Enter"/>
+                    <Separator/>
+                    <MenuItem Header="ネットワーク分析" Click="ContextMenu_Analyze_Click"/>
+                    <MenuItem Header="速度テスト" Click="ContextMenu_SpeedTest_Click"/>
+                    <MenuItem Header="セキュリティ分析" Click="ContextMenu_Security_Click"/>
+                    <Separator/>
+                    <MenuItem Header="パスワード忘却" Click="ContextMenu_ForgetPassword_Click"/>
+                    <MenuItem Header="プロファイル削除" Click="ContextMenu_DeleteProfile_Click"/>
+                </ContextMenu>
+            </ListBox.ContextMenu>
     <ListBox.ItemTemplate>
         <DataTemplate>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,2">

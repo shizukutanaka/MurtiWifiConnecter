@@ -46,7 +46,7 @@ namespace MurtiWifiConnecter
 
                 try
                 {
-                    lastResult = await FastWifiConnector.ConnectAsync(ssid, password, cancellationToken);
+                    lastResult = await FastWifiConnector.ConnectAsync(ssid, password, cancellationToken).ConfigureAwait(false);
                     
                     if (lastResult.Success)
                     {
@@ -69,7 +69,7 @@ namespace MurtiWifiConnecter
                         _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "Retry", 
                             $"Waiting {currentDelay}ms before retry {attempt + 1}");
                         
-                        await Task.Delay(currentDelay, cancellationToken);
+                        await Task.Delay(currentDelay, cancellationToken).ConfigureAwait(false);
                         
                         // 指数バックオフ（2倍ずつ増加、最大値まで）
                         currentDelay = Math.Min(currentDelay * 2, _maxRetryDelayMs);
@@ -119,7 +119,7 @@ namespace MurtiWifiConnecter
             while (DateTime.Now < endTime && !cancellationToken.IsCancellationRequested)
             {
                 // 現在の接続状態を確認
-                var currentSSID = await FastWifiConnector.GetCurrentConnectedSSIDAsync();
+                var currentSSID = await FastWifiConnector.GetCurrentConnectedSSIDAsync().ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(currentSSID))
                 {
                     if (string.Equals(currentSSID, lastSSID, StringComparison.OrdinalIgnoreCase))
@@ -131,7 +131,7 @@ namespace MurtiWifiConnecter
                 }
 
                 // 再接続試行
-                var result = await FastWifiConnector.ConnectAsync(lastSSID, password, cancellationToken);
+                var result = await FastWifiConnector.ConnectAsync(lastSSID, password, cancellationToken).ConfigureAwait(false);
                 if (result.Success)
                 {
                     _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "Reconnect", 
@@ -140,7 +140,7 @@ namespace MurtiWifiConnecter
                 }
 
                 // 待機
-                await Task.Delay(delayMs, cancellationToken);
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
                 
                 // 待機時間を増加（最大10秒）
                 delayMs = Math.Min(delayMs + 1000, 10000);

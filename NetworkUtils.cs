@@ -7,6 +7,8 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
+using MurtiWifiConnecter.Infrastructure.Validation;
+using MurtiWifiConnecter.Services;
 
 namespace MurtiWifiConnecter
 {
@@ -182,13 +184,35 @@ namespace MurtiWifiConnecter
 
         public static async Task<bool> ConnectWithRetryAsync(string ssid, string password, int maxRetries = 3, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(ssid)) return false;
+            // Input validation
+            var ssidValidation = InputValidator.ValidateSSID(ssid);
+            if (!ssidValidation.IsValid)
+            {
+                ErrorHandler.LogError("NetworkUtils.ConnectWithRetry", new ArgumentException($"Invalid SSID: {ssidValidation.ErrorMessage}"));
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(password))
+            {
+                var passwordValidation = InputValidator.ValidateWiFiPassword(password);
+                if (!passwordValidation.IsValid)
+                {
+                    ErrorHandler.LogError("NetworkUtils.ConnectWithRetry", new ArgumentException($"Invalid password: {passwordValidation.ErrorMessage}"));
+                    return false;
+                }
+            }
+
+            if (maxRetries < 1 || maxRetries > 10)
+            {
+                ErrorHandler.LogError("NetworkUtils.ConnectWithRetry", new ArgumentException("Max retries must be between 1 and 10"));
+                return false;
+            }
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 if (cancellationToken.IsCancellationRequested) return false;
 
-                var attemptTimeout = attempt == 1 ? QuickSettingsManager.Constants.QuickTimeoutMs : QuickSettingsManager.Constants.NormalTimeoutMs;
+                var attemptTimeout = ConnectionTimeoutOptimizer.GetOptimalTimeout("wifi_connect", attempt > 1);
 
                 try
                 {
@@ -239,7 +263,8 @@ namespace MurtiWifiConnecter
         {
             return await ErrorHandler.ExecuteWithRetryAsync(async () =>
             {
-                var result = await ExecuteNetshCommandAsync("wlan show interfaces", 3000, cancellationToken);
+                var timeout = ConnectionTimeoutOptimizer.GetOptimalTimeout("current_ssid");
+                var result = await ExecuteNetshCommandAsync("wlan show interfaces", timeout, cancellationToken);
                 if (!result.Success || string.IsNullOrEmpty(result.Output)) 
                     return null;
                 
@@ -296,7 +321,7 @@ namespace MurtiWifiConnecter
             </authEncryption>
             <sharedKey>
                 <keyType>passPhrase</keyType>
-                <protected>false</protected>
+                <protected>true</protected>
                 <keyMaterial>{safePassword}</keyMaterial>
             </sharedKey>
         </security>
@@ -304,16 +329,22 @@ namespace MurtiWifiConnecter
 </WLANProfile>";
 
                 var tempPath = Path.Combine(Path.GetTempPath(), $"wifi_{CreateSafeFileName(ssid)}_{Guid.NewGuid():N}.xml");
-                await File.WriteAllTextAsync(tempPath, profileXml, cancellationToken);
+                try
+                {
+                    await File.WriteAllTextAsync(tempPath, profileXml, cancellationToken);
 
-                var success = await ExecuteNetshCommandWithResultAsync(
-                    $"wlan add profile filename=\"{tempPath}\" user=current",
-                    10000,
-                    cancellationToken);
+                    var success = await ExecuteNetshCommandWithResultAsync(
+                        $"wlan add profile filename=\"{tempPath}\" user=current",
+                        10000,
+                        cancellationToken);
 
-                try { File.Delete(tempPath); } catch { }
-
-                return success;
+                    return success;
+                }
+                finally
+                {
+                    // Ensure temp file is always cleaned up
+                    try { File.Delete(tempPath); } catch { }
+                }
             }
             catch (OperationCanceledException)
             {
@@ -351,11 +382,15 @@ namespace MurtiWifiConnecter
         {
             if (string.IsNullOrWhiteSpace(ssid)) return string.Empty;
 
-            // 長さ制限（WiFi SSID最大32バイト）
-            if (ssid.Length > 32) return string.Empty;
+            var validation = InputValidator.ValidateSSID(ssid);
+            if (!validation.IsValid)
+            {
+                ErrorHandler.LogWarning($"SSID sanitization failed: {validation.ErrorMessage}");
+                return string.Empty;
+            }
 
-            // 制御文字を除去
-            return System.Text.RegularExpressions.Regex.Replace(ssid, @"[\x00-\x1F\x7F]", "");
+            // Use the sanitization from InputValidator for consistency
+            return InputValidator.SanitizeInput(ssid);
         }
 
         public static string CreateSafeFileName(string input, int maxLength = 20)
@@ -412,33 +447,45 @@ namespace MurtiWifiConnecter
             
             try
             {
-                // タイムアウトを更に短縮（軽量化）
-                var result = await ExecuteNetshCommandAsync("wlan show interfaces", 2000, cancellationToken);
+                // 最適化されたタイムアウトを使用
+                var timeout = ConnectionTimeoutOptimizer.GetOptimalTimeout("wifi_scan");
+                var result = await ExecuteNetshCommandAsync("wlan show interfaces", timeout, cancellationToken);
                 if (!result.Success) return networks;
                 
-                // 簡易スキャン - 現在接続中のネットワークの信号強度のみ取得
-                var lines = result.Output.Split('\n');
-                string? currentSSID = null;
+                // 高速パース - 現在接続中のネットワークの信号強度のみ
+                var output = result.Output;
+                var ssidStart = output.IndexOf("SSID");
+                var signalStart = output.IndexOf("Signal");
                 
-                foreach (var line in lines)
+                if (ssidStart > -1 && signalStart > ssidStart)
                 {
-                    var trimmed = line.Trim();
-                    if (trimmed.StartsWith("SSID") && trimmed.Contains(":"))
+                    var ssidLine = output.Substring(ssidStart, Math.Min(100, output.Length - ssidStart));
+                    var signalLine = output.Substring(signalStart, Math.Min(50, output.Length - signalStart));
+                    
+                    var colonIndex = ssidLine.IndexOf(':');
+                    if (colonIndex > 0 && colonIndex < ssidLine.Length - 1)
                     {
-                        var colonIndex = trimmed.IndexOf(':');
-                        if (colonIndex > 0 && colonIndex < trimmed.Length - 1)
+                        var lineEnd = ssidLine.IndexOf('\n', colonIndex);
+                        if (lineEnd == -1) lineEnd = ssidLine.Length;
+                        
+                        var ssid = ssidLine.Substring(colonIndex + 1, lineEnd - colonIndex - 1).Trim();
+                        
+                        if (!string.IsNullOrEmpty(ssid))
                         {
-                            currentSSID = trimmed.Substring(colonIndex + 1).Trim();
+                            // 信号強度を高速パース
+                            var percentIndex = signalLine.IndexOf('%');
+                            if (percentIndex > 0)
+                            {
+                                var numberStart = percentIndex - 1;
+                                while (numberStart > 0 && char.IsDigit(signalLine[numberStart - 1]))
+                                    numberStart--;
+                                
+                                if (int.TryParse(signalLine.Substring(numberStart, percentIndex - numberStart), out var signal))
+                                {
+                                    networks[ssid] = signal;
+                                }
+                            }
                         }
-                    }
-                    else if (trimmed.StartsWith("Signal") && !string.IsNullOrEmpty(currentSSID))
-                    {
-                        var signalMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)%");
-                        if (signalMatch.Success && int.TryParse(signalMatch.Groups[1].Value, out var signal))
-                        {
-                            networks[currentSSID] = signal;
-                        }
-                        break; // 現在の接続のみで十分（軽量化）
                     }
                 }
             }
@@ -546,7 +593,7 @@ namespace MurtiWifiConnecter
             _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
         }
         
-        // 軽量速度テスト（セキュア版）
+        // 超軽量速度テスト（最適化版）
         public static async Task<SpeedTestResult> RunQuickSpeedTestAsync(CancellationToken cancellationToken = default)
         {
             var result = new SpeedTestResult
@@ -557,32 +604,24 @@ namespace MurtiWifiConnecter
             
             try
             {
-                // セキュアなテストエンドポイント（HTTPSに変更）
-                var testEndpoints = new[]
-                {
-                    "https://httpbin.org/bytes/2048",   // 2KB
-                    "https://httpbin.org/bytes/8192",   // 8KB
-                };
+                // 単一エンドポイントで軽量テスト（HTTPSで安全性保持）
+                var testUrl = "https://httpbin.org/bytes/4096"; // 4KB固定
                 
-                var downloadTasks = testEndpoints.Select(endpoint => 
-                    TestDownloadSpeedAsync(endpoint, cancellationToken)).ToArray();
+                var testResult = await TestDownloadSpeedAsync(testUrl, cancellationToken);
                 
-                var downloadResults = await Task.WhenAll(downloadTasks);
-                var validResults = downloadResults.Where(r => r.Success && r.SpeedMbps > 0).ToList();
-                
-                if (validResults.Count > 0)
+                if (testResult.Success && testResult.SpeedMbps > 0)
                 {
                     result.Success = true;
-                    result.DownloadSpeedMbps = validResults.Average(r => r.SpeedMbps);
-                    result.MaxSpeedMbps = validResults.Max(r => r.SpeedMbps);
-                    result.MinSpeedMbps = validResults.Min(r => r.SpeedMbps);
-                    result.TestCount = validResults.Count;
-                    result.Message = $"平均: {result.DownloadSpeedMbps:F1} Mbps";
+                    result.DownloadSpeedMbps = testResult.SpeedMbps;
+                    result.MaxSpeedMbps = testResult.SpeedMbps;
+                    result.MinSpeedMbps = testResult.SpeedMbps;
+                    result.TestCount = 1;
+                    result.Message = $"速度: {result.DownloadSpeedMbps:F1} Mbps";
                 }
                 else
                 {
                     result.Success = false;
-                    result.Message = "速度テストに失敗しました";
+                    result.Message = "速度テスト失敗";
                 }
                 
                 result.Duration = DateTime.Now - result.StartTime;
@@ -592,7 +631,7 @@ namespace MurtiWifiConnecter
             {
                 ErrorHandler.LogError("NetworkUtils.RunQuickSpeedTest", ex);
                 result.Success = false;
-                result.Message = $"テストエラー: {ex.Message}";
+                result.Message = "テストエラー";
                 result.Duration = DateTime.Now - result.StartTime;
                 return result;
             }
@@ -645,73 +684,19 @@ namespace MurtiWifiConnecter
             }
         }
         
-        // 接続安定性テスト
-        public static async Task<StabilityTestResult> TestConnectionStabilityAsync(string host = "8.8.8.8", int testCount = 5, CancellationToken cancellationToken = default)
+        // 簡易接続テスト（軽量版）
+        public static async Task<bool> TestConnectionAsync(string host = "8.8.8.8", CancellationToken cancellationToken = default)
         {
-            var result = new StabilityTestResult
-            {
-                Host = host,
-                TestCount = testCount,
-                StartTime = DateTime.Now
-            };
-            
             try
             {
-                var pingTimes = new List<long>();
-                var failedPings = 0;
-                
                 using var ping = new Ping();
-                
-                for (int i = 0; i < testCount && !cancellationToken.IsCancellationRequested; i++)
-                {
-                    try
-                    {
-                        var reply = await ping.SendPingAsync(host, 2000);
-                        
-                        if (reply.Status == IPStatus.Success)
-                        {
-                            pingTimes.Add(reply.RoundtripTime);
-                        }
-                        else
-                        {
-                            failedPings++;
-                        }
-                        
-                        if (i < testCount - 1)
-                            await Task.Delay(300, cancellationToken);
-                    }
-                    catch
-                    {
-                        failedPings++;
-                    }
-                }
-                
-                result.Duration = DateTime.Now - result.StartTime;
-                
-                if (pingTimes.Count > 0)
-                {
-                    result.Success = true;
-                    result.AveragePingMs = (int)pingTimes.Average();
-                    result.MinPingMs = (int)pingTimes.Min();
-                    result.MaxPingMs = (int)pingTimes.Max();
-                    result.PacketLossPercentage = (double)failedPings / testCount * 100;
-                    result.IsStable = result.PacketLossPercentage < 20;
-                    result.Message = $"平均: {result.AveragePingMs}ms, ロス: {result.PacketLossPercentage:F1}%";
-                }
-                else
-                {
-                    result.Success = false;
-                    result.Message = "全てのpingが失敗しました";
-                }
-                
-                return result;
+                var reply = await ping.SendPingAsync(host, 1500);
+                return reply.Status == IPStatus.Success;
             }
             catch (Exception ex)
             {
-                ErrorHandler.LogError("NetworkUtils.TestConnectionStability", ex);
-                result.Success = false;
-                result.Message = $"安定性テストエラー: {ex.Message}";
-                return result;
+                ErrorHandler.LogError("NetworkUtils.TestConnection", ex);
+                return false;
             }
         }
         
@@ -755,25 +740,85 @@ namespace MurtiWifiConnecter
         public string? ErrorMessage { get; set; }
     }
     
-    public class StabilityTestResult
-    {
-        public bool Success { get; set; }
-        public string Host { get; set; } = string.Empty;
-        public int TestCount { get; set; }
-        public int AveragePingMs { get; set; }
-        public int MinPingMs { get; set; }
-        public int MaxPingMs { get; set; }
-        public double PacketLossPercentage { get; set; }
-        public bool IsStable { get; set; }
-        public DateTime StartTime { get; set; }
-        public TimeSpan Duration { get; set; }
-        public string Message { get; set; } = string.Empty;
-    }
+    // StabilityTestResult削除 - 簡易テストのみ使用
     
     public enum SpeedTestType
     {
         Quick,
         Standard,
         Comprehensive
+    }
+    
+    public static class NetworkUtilsExtensions
+    {
+        public static WifiNetwork GetCurrentWifiNetwork()
+        {
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "netsh",
+                        Arguments = "wlan show interfaces",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                
+                process.Start();
+                var output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                
+                var lines = output.Split('\n');
+                string ssid = null;
+                int signalStrength = 0;
+                bool isConnected = false;
+                
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+                    if (trimmedLine.StartsWith("SSID"))
+                    {
+                        var parts = trimmedLine.Split(':');
+                        if (parts.Length > 1)
+                        {
+                            ssid = parts[1].Trim();
+                        }
+                    }
+                    else if (trimmedLine.StartsWith("Signal"))
+                    {
+                        var parts = trimmedLine.Split(':');
+                        if (parts.Length > 1)
+                        {
+                            var signalStr = parts[1].Trim().TrimEnd('%');
+                            int.TryParse(signalStr, out signalStrength);
+                        }
+                    }
+                    else if (trimmedLine.StartsWith("State") && trimmedLine.Contains("connected"))
+                    {
+                        isConnected = true;
+                    }
+                }
+                
+                if (!string.IsNullOrEmpty(ssid) && isConnected)
+                {
+                    return new WifiNetwork
+                    {
+                        SSID = ssid,
+                        SignalStrength = signalStrength,
+                        IsConnected = true
+                    };
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("NetworkUtils.GetCurrentWifiNetwork", ex);
+                return null;
+            }
+        }
     }
 }

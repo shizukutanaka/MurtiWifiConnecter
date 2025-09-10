@@ -50,7 +50,7 @@ namespace MurtiWifiConnecter
             if (!AutoSavePasswords || string.IsNullOrEmpty(ssid))
                 return;
 
-            await _saveLock.WaitAsync();
+            await _saveLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 var encryptedPassword = EncryptPassword(password);
@@ -63,7 +63,7 @@ namespace MurtiWifiConnecter
                         ? _savedProfiles[ssid].ConnectionCount + 1 : 1
                 };
 
-                await SaveProfilesToFileAsync();
+                await SaveProfilesToFileAsync().ConfigureAwait(false);
             }
             finally
             {
@@ -100,7 +100,7 @@ namespace MurtiWifiConnecter
                 _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "AutoConnect", 
                     $"Attempting auto-connect to {ssid}");
 
-                var result = await FastWifiConnector.ConnectAsync(ssid, password, cancellationToken);
+                var result = await FastWifiConnector.ConnectAsync(ssid, password, cancellationToken).ConfigureAwait(false);
                 
                 if (result.Success)
                 {
@@ -108,7 +108,7 @@ namespace MurtiWifiConnecter
                         $"Successfully auto-connected to {ssid}");
                     
                     // 接続成功時にプロファイルを更新
-                    await UpdateProfileLastConnectedAsync(ssid);
+                    await UpdateProfileLastConnectedAsync(ssid).ConfigureAwait(false);
                 }
                 
                 return result.Success;
@@ -148,7 +148,7 @@ namespace MurtiWifiConnecter
                 }
 
                 // 失敗した場合は少し待つ
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
 
             return null;
@@ -159,12 +159,12 @@ namespace MurtiWifiConnecter
         /// </summary>
         public async Task RemoveProfileAsync(string ssid)
         {
-            await _saveLock.WaitAsync();
+            await _saveLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_savedProfiles.Remove(ssid))
                 {
-                    await SaveProfilesToFileAsync();
+                    await SaveProfilesToFileAsync().ConfigureAwait(false);
                 }
             }
             finally
@@ -178,11 +178,11 @@ namespace MurtiWifiConnecter
         /// </summary>
         public async Task ClearAllProfilesAsync()
         {
-            await _saveLock.WaitAsync();
+            await _saveLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 _savedProfiles.Clear();
-                await SaveProfilesToFileAsync();
+                await SaveProfilesToFileAsync().ConfigureAwait(false);
             }
             finally
             {
@@ -192,14 +192,14 @@ namespace MurtiWifiConnecter
 
         private async Task UpdateProfileLastConnectedAsync(string ssid)
         {
-            await _saveLock.WaitAsync();
+            await _saveLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_savedProfiles.TryGetValue(ssid, out var profile))
                 {
                     profile.LastConnected = DateTime.Now;
                     profile.ConnectionCount++;
-                    await SaveProfilesToFileAsync();
+                    await SaveProfilesToFileAsync().ConfigureAwait(false);
                 }
             }
             finally
@@ -235,7 +235,7 @@ namespace MurtiWifiConnecter
                 { 
                     WriteIndented = true 
                 });
-                await File.WriteAllTextAsync(_savedProfilesPath, json);
+                await File.WriteAllTextAsync(_savedProfilesPath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

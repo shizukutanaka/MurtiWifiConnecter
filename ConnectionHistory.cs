@@ -20,10 +20,8 @@ namespace MurtiWifiConnecter
         
         public ConnectionHistory()
         {
-            // QuickSettingsManagerからアプリケーションデータパスを取得
-            var appDataPath = string.IsNullOrEmpty(QuickSettingsManager.AppDataPath) 
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MurtiWifiConnecter")
-                : QuickSettingsManager.AppDataPath;
+            // アプリケーションデータパスを取得
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MurtiWifiConnecter");
             
             Directory.CreateDirectory(appDataPath);
             _historyFilePath = Path.Combine(appDataPath, HistoryFileName);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -327,6 +328,54 @@ namespace MurtiWifiConnecter
             finally
             {
                 fileLock.Release();
+            }
+        }
+        
+        public static async Task ExportLogsAsync(string zipFilePath)
+        {
+            try
+            {
+                var tempDir = Path.Combine(Path.GetTempPath(), "MurtiWifiConnector_Logs");
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, true);
+                    
+                Directory.CreateDirectory(tempDir);
+                
+                // ログファイルをコピー
+                var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MurtiWifiConnector");
+                if (Directory.Exists(appDataDir))
+                {
+                    var files = Directory.GetFiles(appDataDir, "*.log");
+                    foreach (var file in files)
+                    {
+                        var destFile = Path.Combine(tempDir, Path.GetFileName(file));
+                        File.Copy(file, destFile);
+                    }
+                }
+                
+                // システム情報を追加
+                var systemInfoFile = Path.Combine(tempDir, "system_info.txt");
+                var systemInfo = $"エクスポート日時: {DateTime.Now}\n" +
+                               $"OS: {Environment.OSVersion}\n" +
+                               $"マシン名: {Environment.MachineName}\n" +
+                               $"ユーザー名: {Environment.UserName}\n" +
+                               $"メモリ使用量: {GC.GetTotalMemory(false) / 1024 / 1024}MB\n";
+                
+                await File.WriteAllTextAsync(systemInfoFile, systemInfo);
+                
+                // ZIP作成
+                if (File.Exists(zipFilePath))
+                    File.Delete(zipFilePath);
+                    
+                ZipFile.CreateFromDirectory(tempDir, zipFilePath);
+                
+                // 一時ディレクトリを削除
+                Directory.Delete(tempDir, true);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("FileManager.ExportLogs", ex);
+                throw;
             }
         }
     }

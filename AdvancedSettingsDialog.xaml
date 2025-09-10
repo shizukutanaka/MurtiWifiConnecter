@@ -1,0 +1,218 @@
+<Window x:Class="MurtiWifiConnecter.AdvancedSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="詳細設定" Height="600" Width="800" MinHeight="400" MinWidth="600"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <TextBlock Text="詳細設定" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Button x:Name="ResetButton" Content="初期値に戻す" Width="100" Height="30" 
+                    Margin="20,0,0,0" Click="ResetButton_Click" Background="#FFFF9800" Foreground="White"/>
+        </StackPanel>
+        
+        <!-- Settings Tabs -->
+        <TabControl Grid.Row="1" x:Name="SettingsTabControl">
+            
+            <!-- Connection Settings Tab -->
+            <TabItem Header="接続設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="自動接続設定" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="AutoConnectEnabled" Content="起動時に自動接続" Margin="0,5"/>
+                                <CheckBox x:Name="RememberPasswords" Content="パスワードを記憶" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="接続タイムアウト:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="ConnectionTimeout" Width="200" Minimum="10" Maximum="60" 
+                                            Value="30" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=ConnectionTimeout, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="秒" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="ネットワーク優先順位" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="PreferStrongerSignal" Content="電波強度を優先" Margin="0,5"/>
+                                <CheckBox x:Name="PreferSecureNetworks" Content="暗号化ネットワークを優先" Margin="0,5"/>
+                                <CheckBox x:Name="AvoidPublicNetworks" Content="公衆無線LANを避ける" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="最小信号強度:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="MinSignalStrength" Width="200" Minimum="0" Maximum="100" 
+                                            Value="30" TickFrequency="10" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=MinSignalStrength, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="%" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Security Settings Tab -->
+            <TabItem Header="セキュリティ">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="セキュリティ分析" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="EnableSecurityAnalysis" Content="セキュリティ分析を有効にする" Margin="0,5"/>
+                                <CheckBox x:Name="WarnUnsecureNetworks" Content="暗号化されていないネットワークで警告" Margin="0,5"/>
+                                <CheckBox x:Name="DetectHotspots" Content="悪意あるホットスポットを検出" Margin="0,5"/>
+                                <CheckBox x:Name="BlockSuspiciousNetworks" Content="疑わしいネットワークをブロック" Margin="0,5"/>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="パスワード強度" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="EnforceStrongPasswords" Content="強力なパスワードを要求" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="最小パスワード長:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="MinPasswordLength" Width="200" Minimum="8" Maximum="32" 
+                                            Value="12" TickFrequency="2" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=MinPasswordLength, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="文字" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Performance Settings Tab -->
+            <TabItem Header="パフォーマンス">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="スキャン設定" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="スキャン間隔:" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
+                                    <Slider x:Name="ScanInterval" Width="200" Minimum="5" Maximum="60" 
+                                            Value="15" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=ScanInterval, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="秒" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="キャッシュ時間:" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
+                                    <Slider x:Name="CacheTimeout" Width="200" Minimum="30" Maximum="300" 
+                                            Value="60" TickFrequency="30" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=CacheTimeout, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="秒" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="メモリ管理" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="AutoMemoryOptimization" Content="自動メモリ最適化" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="最適化しきい値:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="MemoryThreshold" Width="200" Minimum="50" Maximum="500" 
+                                            Value="100" TickFrequency="50" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=MemoryThreshold, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="MB" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="電力管理" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="PowerOptimization" Content="電力最適化を有効にする" Margin="0,5"/>
+                                <CheckBox x:Name="ReduceBackgroundScanning" Content="バックグラウンドスキャンを削減" Margin="0,5"/>
+                                <ComboBox x:Name="PowerProfile" Margin="0,10,0,0" Width="200" HorizontalAlignment="Left">
+                                    <ComboBoxItem Content="最大パフォーマンス" Tag="performance"/>
+                                    <ComboBoxItem Content="バランス" Tag="balanced" IsSelected="True"/>
+                                    <ComboBoxItem Content="省電力" Tag="powersaver"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Maintenance Settings Tab -->
+            <TabItem Header="メンテナンス">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="自動メンテナンス" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="EnableAutoMaintenance" Content="自動メンテナンスを有効にする" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="実行間隔:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="MaintenanceInterval" Width="200" Minimum="1" Maximum="24" 
+                                            Value="4" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=MaintenanceInterval, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="時間" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="ログ管理" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="EnableLogging" Content="詳細ログを有効にする" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="ログ保持日数:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="LogRetentionDays" Width="200" Minimum="7" Maximum="90" 
+                                            Value="30" TickFrequency="7" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=LogRetentionDays, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="日" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                                    <Button x:Name="ClearLogsButton" Content="ログをクリア" Width="100" Height="30" 
+                                            Click="ClearLogsButton_Click" Background="#FFFF5722" Foreground="White"/>
+                                    <Button x:Name="ExportLogsButton" Content="ログをエクスポート" Width="120" Height="30" 
+                                            Margin="10,0,0,0" Click="ExportLogsButton_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <GroupBox Header="バックアップ管理" Margin="0,0,0,15">
+                            <StackPanel Margin="10">
+                                <CheckBox x:Name="AutoBackupProfiles" Content="プロファイルの自動バックアップ" Margin="0,5"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="バックアップ保持数:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider x:Name="BackupRetentionCount" Width="200" Minimum="5" Maximum="50" 
+                                            Value="10" TickFrequency="5" IsSnapToTickEnabled="True"/>
+                                    <TextBlock Text="{Binding ElementName=BackupRetentionCount, Path=Value}" 
+                                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    <TextBlock Text="個" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+        </TabControl>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button x:Name="SaveButton" Content="保存" Width="80" Height="35" 
+                    Click="SaveButton_Click" IsDefault="True" Background="#FF4CAF50" Foreground="White" Margin="0,0,10,0"/>
+            <Button x:Name="CancelButton" Content="キャンセル" Width="80" Height="35" 
+                    Click="CancelButton_Click" IsCancel="True" Margin="0,0,10,0"/>
+            <Button x:Name="ApplyButton" Content="適用" Width="80" Height="35" 
+                    Click="ApplyButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

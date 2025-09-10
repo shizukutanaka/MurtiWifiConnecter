@@ -6,6 +6,7 @@ using System.Threading;
 using System.Text;
 using System.Collections.Concurrent;
 using System.Linq;
+using MurtiWifiConnecter.Services;
 
 namespace MurtiWifiConnecter
 {
@@ -94,18 +95,24 @@ namespace MurtiWifiConnecter
             {
                 // 最適化されたプロファイル作成
                 var profileXml = CreateOptimizedProfile(safeSsid, password);
-                await File.WriteAllTextAsync(xmlPath, profileXml, Encoding.UTF8, cancellationToken);
+                await File.WriteAllTextAsync(xmlPath, profileXml, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
                 
-                // プロファイル追加
-                var profileResult = await ExecuteNetshCommandAsync($"wlan add profile filename=\"{xmlPath}\" user=current", cancellationToken);
+                // プロファイル追加（最適化タイムアウト使用）
+                var profileResult = await ExecuteNetshCommandOptimizedAsync(
+                    $"wlan add profile filename=\"{xmlPath}\" user=current", 
+                    "profile_add", 
+                    cancellationToken).ConfigureAwait(false);
                 
                 if (!profileResult.Success)
                     return new WifiConnectionResult { Success = false, ErrorMessage = $"プロファイル追加失敗: {profileResult.ErrorMessage}" };
                 
                 // 短い遅延の後に接続実行
-                await Task.Delay(QuickSettingsManager.Constants.ConnectionDelayMs, cancellationToken);
+                await Task.Delay(QuickSettingsManager.Constants.ConnectionDelayMs, cancellationToken).ConfigureAwait(false);
                 
-                var connectResult = await ExecuteNetshCommandAsync($"wlan connect name=\"{safeSsid}\"", cancellationToken);
+                var connectResult = await ExecuteNetshCommandOptimizedAsync(
+                    $"wlan connect name=\"{safeSsid}\"", 
+                    "wifi_connect", 
+                    cancellationToken).ConfigureAwait(false);
                 
                 if (!connectResult.Success)
                     return new WifiConnectionResult { Success = false, ErrorMessage = $"接続失敗: {connectResult.ErrorMessage}" };
@@ -128,11 +135,28 @@ namespace MurtiWifiConnecter
         }
         
         /// <summary>
-        /// netshコマンド実行
+        /// netshコマンド実行（従来版）
         /// </summary>
         private static async Task<WifiConnectionResult> ExecuteNetshCommandAsync(string arguments, CancellationToken cancellationToken)
         {
-            var result = await NetworkUtils.ExecuteNetshCommandAsync(arguments, 10000, cancellationToken);
+            var result = await NetworkUtils.ExecuteNetshCommandAsync(arguments, 10000, cancellationToken).ConfigureAwait(false);
+            return new WifiConnectionResult 
+            { 
+                Success = result.Success, 
+                ErrorMessage = result.ErrorMessage 
+            };
+        }
+        
+        /// <summary>
+        /// netshコマンド実行（最適化版）
+        /// </summary>
+        private static async Task<WifiConnectionResult> ExecuteNetshCommandOptimizedAsync(
+            string arguments, 
+            string operationType, 
+            CancellationToken cancellationToken)
+        {
+            var timeout = ConnectionTimeoutOptimizer.GetOptimalTimeout(operationType);
+            var result = await NetworkUtils.ExecuteNetshCommandAsync(arguments, timeout, cancellationToken).ConfigureAwait(false);
             return new WifiConnectionResult 
             { 
                 Success = result.Success, 
@@ -192,7 +216,7 @@ namespace MurtiWifiConnecter
         /// </summary>
         public static async Task<bool> DisconnectAsync(CancellationToken cancellationToken = default)
         {
-            var result = await ExecuteNetshCommandAsync("wlan disconnect", cancellationToken);
+            var result = await ExecuteNetshCommandOptimizedAsync("wlan disconnect", "disconnect", cancellationToken);
             return result.Success;
         }
         
@@ -204,7 +228,10 @@ namespace MurtiWifiConnecter
             if (string.IsNullOrWhiteSpace(ssid)) return false;
             
             var safeSsid = ssid.Replace("\"", "");
-            var result = await ExecuteNetshCommandAsync($"wlan delete profile name=\"{safeSsid}\"", cancellationToken);
+            var result = await ExecuteNetshCommandOptimizedAsync(
+                $"wlan delete profile name=\"{safeSsid}\"", 
+                "profile_delete", 
+                cancellationToken);
             return result.Success;
         }
         
@@ -213,7 +240,8 @@ namespace MurtiWifiConnecter
         /// </summary>
         public static async Task<string?> GetCurrentConnectedSSIDAsync(CancellationToken cancellationToken = default)
         {
-            var networkResult = await NetworkUtils.ExecuteNetshCommandAsync("wlan show interfaces", 5000, cancellationToken);
+            var timeout = ConnectionTimeoutOptimizer.GetOptimalTimeout("current_ssid");
+            var networkResult = await NetworkUtils.ExecuteNetshCommandAsync("wlan show interfaces", timeout, cancellationToken);
             
             if (!networkResult.Success || string.IsNullOrWhiteSpace(networkResult.Output))
                 return null;

@@ -29,11 +29,11 @@ namespace MurtiWifiConnecter
             try
             {
                 // 1. アダプター状態チェック
-                var adapterResult = await CheckWifiAdapterAsync(cancellationToken);
+                var adapterResult = await CheckWifiAdapterAsync(cancellationToken).ConfigureAwait(false);
                 summary.Results.Add(adapterResult);
                 
                 // 2. 接続状態チェック
-                var connectionResult = await CheckConnectionStatusAsync(cancellationToken);
+                var connectionResult = await CheckConnectionStatusAsync(cancellationToken).ConfigureAwait(false);
                 summary.Results.Add(connectionResult);
                 
                 // 3. 基本的な接続テスト
@@ -123,7 +123,7 @@ namespace MurtiWifiConnecter
         {
             try
             {
-                var currentSSID = await OptimizedWifiScanner.GetCurrentSSIDAsync(typeof(OptimizedWifiScanner), cancellationToken);
+                var currentSSID = await NetworkUtils.GetCurrentConnectedSSIDAsync();
                 
                 return new DiagnosticTestResult
                 {

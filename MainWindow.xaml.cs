@@ -37,12 +37,8 @@ namespace MurtiWifiConnecter
         // Network monitoring is now handled by NetworkUtils
         private readonly ConnectionStatistics _connectionStats = new();
         private readonly ConnectionLogger _connectionLogger = new();
-        private readonly ConnectionRecoveryManager _recoveryManager;
         private readonly SystemTrayManager _systemTrayManager;
-        private readonly SmartConnectionManager _smartConnectionManager;
         private readonly ConnectionMonitor _connectionMonitor;
-        private readonly NetworkPerformanceTracker _performanceTracker;
-        private readonly ConnectionDiagnostics _connectionDiagnostics;
         private readonly AutoConnectManager _autoConnectManager;
         private readonly ConnectionRetryManager _retryManager;
         
@@ -80,29 +76,16 @@ namespace MurtiWifiConnecter
             _systemTrayManager.ExitApplicationRequested += SystemTrayManager_ExitApplicationRequested;
             _systemTrayManager.QuickConnectRequested += SystemTrayManager_QuickConnectRequested;
             
-            _recoveryManager = new ConnectionRecoveryManager(_connectionStats, _connectionLogger);
-            
             // 統合接続監視の初期化
             _connectionMonitor = new ConnectionMonitor(_connectionLogger);
-            _smartConnectionManager = new SmartConnectionManager(_connectionHistory, _connectionStats, _connectionLogger);
-            _performanceTracker = new NetworkPerformanceTracker(_connectionLogger);
-            _connectionDiagnostics = new ConnectionDiagnostics(_connectionLogger);
             
             // 新機能マネージャーの初期化
             _autoConnectManager = new AutoConnectManager(_connectionLogger);
             _retryManager = new ConnectionRetryManager(_connectionLogger);
             
-            _recoveryManager.RecoveryStarted += OnRecoveryStarted;
-            _recoveryManager.RecoveryCompleted += OnRecoveryCompleted;
-            _recoveryManager.RecoveryFailed += OnRecoveryFailed;
-            
             // 統合接続監視イベント
             _connectionMonitor.StatusChanged += OnConnectionStatusChanged;
             _connectionMonitor.ConnectionDegraded += OnConnectionDegraded;
-            _smartConnectionManager.ConnectionSwitchRecommended += OnConnectionSwitchRecommended;
-            _smartConnectionManager.ConnectionSwitched += OnConnectionSwitched;
-            _performanceTracker.PerformanceChanged += OnPerformanceChanged;
-            _connectionDiagnostics.DiagnosticCompleted += OnDiagnosticCompleted;
 
             // 設定から言語復元（統一設定管理に移行）
             string savedLang = QuickSettingsManager.GetSetting("preferred_language", "en");
@@ -123,10 +106,29 @@ namespace MurtiWifiConnecter
         {
             try
             {
+                // クラッシュ復旧チェック
+                var hasRecovery = await _crashRecoveryManager.CheckForCrashRecoveryAsync();
+                if (hasRecovery)
+                {
+                    var recoveryData = await _crashRecoveryManager.PerformRecoveryAsync();
+                    if (recoveryData?.SavedNetworks?.Any() == true)
+                    {
+                        // 復旧されたネットワークデータを使用
+                        foreach (var network in recoveryData.SavedNetworks)
+                        {
+                            WifiNetworks.Add(network);
+                        }
+                        
+                        _systemTrayManager?.ShowBalloonTip("復旧完了", 
+                            $"前回のセッションから {recoveryData.SavedNetworks.Count} 個のネットワークを復旧しました", 
+                            System.Windows.Forms.ToolTipIcon.Info);
+                    }
+                }
+                
                 // 起動最適化の実行
                 _ = Task.Run(async () =>
                 {
-                    await SystemManager.OptimizeStartupAsync();
+                    await SystemManagerExtensions.OptimizeStartupAsync();
                     
                     // 推奨設定の適用
                     if (!QuickSettingsManager.GetSetting("portable_mode_enabled", false))
@@ -189,12 +191,12 @@ namespace MurtiWifiConnecter
                         _ = Task.Run(async () => await SystemManager.RunPeriodicOptimizationAsync(_cancellationTokenSource.Token));
                         
                         // 起動完了を待つ
-                        await Task.Delay(QuickSettingsManager.Constants.StartupDelayMs);
+                        await Task.Delay(QuickSettingsManager.Constants.StartupDelayMs).ConfigureAwait(false);
                         
                         // プロファイルクリーンアップ
                         if (QuickSettingsManager.GetSetting("auto_cleanup_profiles", true))
                         {
-                            await _profileManager.CleanupOldProfilesAsync(QuickSettingsManager.GetSetting("max_profile_history", 30));
+                            await _profileManager.CleanupOldProfilesAsync(QuickSettingsManager.GetSetting("max_profile_history", 30)).ConfigureAwait(false);
                         }
                         
                         // 古い統計データクリーンアップ（30日以上前）
@@ -378,7 +380,7 @@ namespace MurtiWifiConnecter
             try
             {
                 // 最適化されたスキャナーを使用
-                var networks = await OptimizedWifiScanner.ScanNetworksAsync(_connectionHistory, _cancellationTokenSource.Token);
+                var networks = await NetworkUtils.ScanForWifiNetworksAsync().ConfigureAwait(false);
                 
                 // UI更新
                 await UpdateWifiListUIAsync(networks);
@@ -388,7 +390,7 @@ namespace MurtiWifiConnecter
                 SystemManager.RecordNetworkScan(networks.Count, scanDuration);
                 
                 return; // 旧実装をスキップ
-                string connectedSsid = await NetworkUtils.GetCurrentConnectedSSIDAsync(_cancellationTokenSource.Token);
+                string connectedSsid = await NetworkUtils.GetCurrentConnectedSSIDAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
                 var wifiList = new List<WifiNetwork>(50); // 初期容量設定でメモリ効率化
                 
                 await Task.Run(() =>
@@ -613,7 +615,7 @@ namespace MurtiWifiConnecter
             try
             {
                 // 自動再試行機能を使用して接続
-                var result = await _retryManager.ConnectWithRetryAsync(selected.SSID, password, _cancellationTokenSource.Token);
+                var result = await _retryManager.ConnectWithRetryAsync(selected.SSID, password, _cancellationTokenSource.Token).ConfigureAwait(false);
                 
                 if (result.Success)
                 {
@@ -630,7 +632,7 @@ namespace MurtiWifiConnecter
                     _connectionStats.RecordConnectionAttempt(selected.SSID, true, connectionTime);
                     
                     // パフォーマンス追跡開始
-                    _performanceTracker.StartTracking();
+                    // パフォーマンストラッキング機能は削除されました
                     
                     System.Windows.MessageBox.Show($"{selected.SSID}に正常に接続しました。");
                     PasswordBox.Password = ""; // パスワードをクリア
@@ -644,9 +646,8 @@ namespace MurtiWifiConnecter
                     string errorDetail = string.IsNullOrEmpty(result.ErrorMessage) ? 
                         "不明なエラー" : result.ErrorMessage;
                     
-                    // 自動復旧を試行
-                    var shouldAttemptRecovery = _recoveryManager.AutoRecoveryEnabled && 
-                                               !_cancellationTokenSource.Token.IsCancellationRequested;
+                    // 自動復旧機能は削除されました
+                    var shouldAttemptRecovery = false;
                     
                     if (shouldAttemptRecovery)
                     {
@@ -663,8 +664,8 @@ namespace MurtiWifiConnecter
                                 ConnectButton.Content = "復旧中...";
                                 ConnectButton.IsEnabled = false;
                                 
-                                var recoveryResult = await _recoveryManager.AttemptRecoveryAsync(
-                                    selected.SSID, password, _cancellationTokenSource.Token);
+                                // 復旧機能は削除されました
+                                var recoveryResult = new { Success = false, Message = "復旧機能は利用できません" };
                                 
                                 if (recoveryResult.Success)
                                 {
@@ -684,7 +685,8 @@ namespace MurtiWifiConnecter
                                     {
                                         try
                                         {
-                                            var diagnosticResult = await _connectionDiagnostics.DiagnoseConnectionIssueAsync(
+                                            // 診断機能は削除されました
+                                            var diagnosticResult = new { OverallSeverity = 0, PrimaryIssue = (object?)null, RecommendedActions = new string[0] }; //
                                                 new Exception($"復旧失敗: {recoveryResult.Message}"), selected.SSID);
                                             
                                             if (diagnosticResult.OverallSeverity >= DiagnosticSeverity.Medium)
@@ -1151,11 +1153,7 @@ namespace MurtiWifiConnecter
                 _scanSemaphore?.Dispose();
                 _cancellationTokenSource?.Dispose();
                 _connectionLogger?.Dispose();
-                _recoveryManager?.Dispose();
-                _smartConnectionManager?.Dispose();
                 _connectionMonitor?.Dispose();
-                _performanceTracker?.Dispose();
-                _connectionDiagnostics?.Dispose();
                 _autoConnectManager?.Dispose();
                 
                 // WiFiネットワークリストのクリア
@@ -1228,53 +1226,6 @@ namespace MurtiWifiConnecter
             }
         }
         
-        private async void OnConnectionSwitchRecommended(object? sender, ConnectionSwitchEventArgs e)
-        {
-            try
-            {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    var result = System.Windows.MessageBox.Show(
-                        $"{e.Recommendation.GetRecommendationText()}\n\n切り替えを実行しますか？",
-                        "接続切り替え推奨",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        Task.Run(async () =>
-                        {
-                            await _smartConnectionManager.ExecuteSmartSwitchAsync(e.Recommendation.RecommendedSSID);
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("MainWindow.OnConnectionSwitchRecommended", ex, _connectionLogger);
-            }
-        }
-        
-        private async void OnConnectionSwitched(object? sender, ConnectionSwitchEventArgs e)
-        {
-            try
-            {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    _systemTrayManager?.ShowBalloonTip(
-                        "接続切り替え完了",
-                        $"{e.Recommendation.RecommendedSSID}に切り替えました",
-                        System.Windows.Forms.ToolTipIcon.Info);
-                });
-                
-                // WiFiリストの更新
-                await LoadWifiNetworksAsync();
-            }
-            catch (Exception ex)
-            {
-                ErrorHandler.LogError("MainWindow.OnConnectionSwitched", ex, _connectionLogger);
-            }
-        }
         
         private void OnConnectionStatusChanged(object? sender, ConnectionStatusChangedEventArgs e)
         {
@@ -1372,7 +1323,7 @@ namespace MurtiWifiConnecter
                             _ => "非常に遅い"
                         };
                         
-                        var dataRateDesc = _performanceTracker.CurrentPerformance.DataRateKbps switch
+                        var dataRateDesc = 0 switch // パフォーマンストラッカーは削除されました
                         {
                             >= 1000 => "高速転送",
                             >= 100 => "中速転送",
@@ -1488,7 +1439,8 @@ namespace MurtiWifiConnecter
             try
             {
                 var currentSSID = await FastWifiConnector.GetCurrentConnectedSSIDAsync();
-                var result = await _connectionDiagnostics.DiagnoseConnectionIssueAsync(null, currentSSID);
+                // 診断機能は削除されました
+                System.Windows.MessageBox.Show("診断機能は現在利用できません。", "情報");
                 
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -1580,7 +1532,8 @@ namespace MurtiWifiConnecter
                     LoadingText.Text = "接続診断を実行中...";
                 });
                 
-                var result = await _connectionDiagnostics.DiagnoseConnectionIssueAsync(null, currentSSID);
+                // 診断機能は削除されました
+                System.Windows.MessageBox.Show("診断機能は現在利用できません。", "情報");
                 
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -1665,7 +1618,8 @@ namespace MurtiWifiConnecter
         {
             try
             {
-                var recommendation = await _smartConnectionManager.AnalyzeAndRecommendSwitchAsync();
+                // スマート接続機能は削除されました
+                ConnectionRecommendation? recommendation = null;
                 if (recommendation != null)
                 {
                     await Dispatcher.InvokeAsync(() =>
@@ -1680,7 +1634,7 @@ namespace MurtiWifiConnecter
                         {
                             Task.Run(async () =>
                             {
-                                await _smartConnectionManager.ExecuteSmartSwitchAsync(recommendation.RecommendedSSID);
+                                // スマート接続機能は削除されました
                             });
                         }
                     });
@@ -1780,32 +1734,6 @@ namespace MurtiWifiConnecter
                 $"パフォーマンスレポート生成: スコア {e.Report.PerformanceScore}/100, CPU平均 {e.Report.AverageCpuUsage:F1}%, メモリ平均 {e.Report.AverageMemoryUsage:F1}%");
         }
         
-        private void OnRecoveryStarted(object sender, RecoveryEventArgs e)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                _systemTrayManager?.ShowBalloonTip("復旧開始", 
-                    $"{e.SSID} の接続復旧を開始しました (戦略: {e.Strategy})", System.Windows.Forms.ToolTipIcon.Info);
-            });
-        }
-        
-        private void OnRecoveryCompleted(object sender, RecoveryEventArgs e)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                _systemTrayManager?.ShowBalloonTip("復旧成功", 
-                    $"{e.SSID} の接続復旧が成功しました", System.Windows.Forms.ToolTipIcon.Info);
-            });
-        }
-        
-        private void OnRecoveryFailed(object sender, RecoveryEventArgs e)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                _connectionLogger?.Log(ConnectionLogger.LogLevel.Warning, "Recovery", 
-                    $"復旧失敗: {e.SSID} - {e.ErrorMessage}");
-            });
-        }
         
         
         private void OnBatchOperationCompleted(object sender, EventArgs e)
@@ -2043,6 +1971,7 @@ namespace MurtiWifiConnecter
             finally
             {
                 progressTimer.Stop();
+                progressTimer.Dispose();
                 progressTimer = null;
             }
         }
@@ -2060,6 +1989,474 @@ namespace MurtiWifiConnecter
                 >= 20 => "弱い",
                 _ => "非常に弱い"
             };
+        }
+        
+        // 高度な機能のボタンイベントハンドラー
+        private async void DiagnosticsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ShowLoadingPanel("ネットワーク診断中...");
+                
+                var result = await NetworkDiagnostics.RunBasicDiagnosticsAsync(_cancellationTokenSource.Token);
+                
+                var message = $"診断結果: {result.GetStatusDescription()}\n\n" +
+                             $"総合評価: {result.Summary}\n\n" +
+                             string.Join("\n", result.Results.Select(r => $"• {r.TestName}: {(r.IsSuccess ? "✓" : "✗")} {r.Message}"));
+                
+                System.Windows.MessageBox.Show(message, "ネットワーク診断結果", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("DiagnosticsButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"診断中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var settingsDialog = new AdvancedSettingsDialog
+                {
+                    Owner = this
+                };
+
+                var result = settingsDialog.ShowDialog();
+                if (result == true)
+                {
+                    // 設定が変更された場合は、関連コンポーネントに通知
+                    var settings = AdvancedSettings.Load();
+                    ApplySettings(settings);
+                    _systemTrayManager?.ShowBalloonTip("設定更新", "詳細設定が適用されました", System.Windows.Forms.ToolTipIcon.Info);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SettingsButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"設定画面の表示中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ApplySettings(AdvancedSettings settings)
+        {
+            try
+            {
+                // スキャン間隔の更新
+                if (_refreshTimer != null)
+                {
+                    _refreshTimer.Interval = TimeSpan.FromSeconds(settings.Performance.ScanIntervalSeconds);
+                }
+
+                // メモリ管理設定の適用
+                if (settings.Performance.AutoMemoryOptimization)
+                {
+                    SystemManagerExtensions.SetMemoryThreshold(settings.Performance.MemoryThresholdMB);
+                }
+
+                // 電力管理設定の適用
+                if (settings.Performance.PowerOptimization)
+                {
+                    // 電力管理機能は削除されました
+                }
+
+                // メンテナンス間隔の更新
+                if (_maintenanceManager != null && settings.Maintenance.EnableAutoMaintenance)
+                {
+                    _maintenanceManager.SetMaintenanceInterval(TimeSpan.FromHours(settings.Maintenance.IntervalHours));
+                }
+
+                _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "Settings", "詳細設定が適用されました");
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("MainWindow.ApplySettings", ex, _connectionLogger);
+            }
+        }
+        
+        private void MonitorButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // パフォーマンス監視機能は削除されました
+                System.Windows.MessageBox.Show("パフォーマンス監視機能は現在利用できません。", "情報", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "MainWindow", "パフォーマンスモニタを表示");
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("MonitorButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"パフォーマンスモニタの表示中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        private async void SecurityButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ShowLoadingPanel("セキュリティ分析中...");
+                
+                var networks = WifiNetworks?.ToList() ?? new List<WifiNetwork>();
+                // セキュリティ分析機能は削除されました
+                System.Windows.MessageBox.Show("セキュリティ分析機能は現在利用できません。", "情報");
+                
+                var message = $"セキュリティ分析結果\n\n" +
+                             $"分析ネットワーク数: {result.NetworkAnalyses.Count}\n" +
+                             $"安全なネットワーク: {result.SecureNetworks}\n" +
+                             $"脆弱なネットワーク: {result.VulnerableNetworks}\n" +
+                             $"疑わしいネットワーク: {result.SuspiciousNetworks}\n" +
+                             $"総合脅威レベル: {result.OverallThreatLevel}\n\n" +
+                             "推奨事項:\n" + string.Join("\n", result.Recommendations.Take(5).Select(r => $"• {r}"));
+                
+                System.Windows.MessageBox.Show(message, "セキュリティ分析結果", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("SecurityButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"セキュリティ分析中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        private async void BackupButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var choice = System.Windows.MessageBox.Show(
+                    "バックアップを作成しますか？\n\n[はい] バックアップ作成\n[いいえ] バックアップ復元\n[キャンセル] 取り消し",
+                    "プロファイルバックアップ",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+                
+                if (choice == MessageBoxResult.Yes)
+                {
+                    // バックアップ作成
+                    ShowLoadingPanel("バックアップ作成中...");
+                    
+                    var result = await _backupManager.CreateFullBackupAsync();
+                    
+                    if (result.IsSuccess)
+                    {
+                        System.Windows.MessageBox.Show(
+                            $"バックアップが正常に作成されました\n\n" +
+                            $"ファイル名: {result.BackupName}\n" +
+                            $"プロファイル数: {result.ProfileCount}\n" +
+                            $"ファイルサイズ: {result.FileSize / 1024:F1} KB",
+                            "バックアップ完了",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show($"バックアップの作成に失敗しました: {result.ErrorMessage}",
+                            "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else if (choice == MessageBoxResult.No)
+                {
+                    // バックアップ一覧表示
+                    var backups = await _backupManager.GetAvailableBackupsAsync();
+                    
+                    if (!backups.Any())
+                    {
+                        System.Windows.MessageBox.Show("利用可能なバックアップファイルがありません。",
+                            "情報", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    
+                    var backupList = string.Join("\n", backups.Take(10).Select((b, i) => 
+                        $"{i + 1}. {b.BackupName} ({b.CreatedDate:yyyy/MM/dd HH:mm}) - {b.GetFormattedSize()}"));
+                    
+                    System.Windows.MessageBox.Show($"利用可能なバックアップ:\n\n{backupList}\n\n" +
+                        "復元機能は将来のバージョンで実装予定です。",
+                        "バックアップ一覧", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("BackupButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"バックアップ操作中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        private async void PowerButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ShowLoadingPanel("電力設定を最適化中...");
+                
+                // 電力最適化機能は削除されました
+                System.Windows.MessageBox.Show("電力最適化機能は現在利用できません。", "情報");
+                
+                if (result.IsSuccess)
+                {
+                    if (result.SkippedDueToRecentOptimization)
+                    {
+                        System.Windows.MessageBox.Show("電力設定は最近最適化済みです。",
+                            "電力管理", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show(
+                            $"電力設定の最適化が完了しました\n\n{result.Message}\n\n" +
+                            $"適用された最適化: {result.OptimizationsApplied}件",
+                            "電力管理",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"電力最適化に失敗しました: {result.Message}",
+                        "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("PowerButton_Click", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"電力管理中にエラーが発生しました: {ex.Message}", 
+                    "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        // コンテキストメニューイベントハンドラー
+        private void ContextMenu_Connect_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is WifiNetwork network)
+            {
+                PasswordBox.Focus();
+            }
+        }
+        
+        private async void ContextMenu_AutoConnect_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            if (network.IsConnected)
+            {
+                System.Windows.MessageBox.Show($"{network.SSID}は既に接続されています。");
+                return;
+            }
+            
+            try
+            {
+                ShowLoadingPanel($"{network.SSID}に自動接続中...");
+                
+                if (await _autoConnectManager.TryAutoConnectAsync(network.SSID, _cancellationTokenSource.Token))
+                {
+                    System.Windows.MessageBox.Show($"{network.SSID}に自動接続しました。");
+                    await LoadWifiNetworksAsync();
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"{network.SSID}への自動接続に失敗しました。パスワードを入力してください。");
+                    PasswordBox.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("ContextMenu_AutoConnect", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"自動接続中にエラーが発生しました: {ex.Message}");
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        private async void ContextMenu_Analyze_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            try
+            {
+                ShowLoadingPanel($"{network.SSID}を分析中...");
+                
+                var speedResult = await NetworkUtilities.MeasureNetworkSpeedAsync(network.SSID, _cancellationTokenSource.Token);
+                var prediction = await NetworkUtilities.PredictConnectionQualityAsync(network.SSID, network.SignalStrength);
+                
+                var message = $"ネットワーク分析: {network.SSID}\n\n" +
+                             $"信号強度: {network.SignalStrength}% ({network.SignalQuality})\n";
+                
+                if (speedResult.IsSuccess)
+                {
+                    message += $"平均レイテンシ: {speedResult.AverageLatency}ms\n" +
+                              $"パケットロス: {speedResult.PacketLoss}%\n" +
+                              $"品質スコア: {speedResult.QualityScore}/100 ({speedResult.GetQualityDescription()})\n";
+                }
+                
+                message += $"\n品質予測:\n" +
+                          $"予想レイテンシ: {prediction.PredictedLatency}ms\n" +
+                          $"予想品質: {prediction.PredictedQuality}\n" +
+                          $"信頼度: {prediction.GetConfidenceDescription()}";
+                
+                System.Windows.MessageBox.Show(message, "ネットワーク分析結果", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("ContextMenu_Analyze", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"分析中にエラーが発生しました: {ex.Message}");
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        private async void ContextMenu_SpeedTest_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            try
+            {
+                ShowLoadingPanel($"{network.SSID}の速度テスト中...");
+                
+                var result = await NetworkDiagnostics.RunSimpleSpeedTestAsync(_cancellationTokenSource.Token);
+                
+                var message = $"速度テスト結果: {network.SSID}\n\n";
+                
+                if (result.IsSuccess)
+                {
+                    message += $"平均レイテンシ: {result.AverageLatency}ms\n" +
+                              $"接続品質: {result.Quality}";
+                }
+                else
+                {
+                    message += $"速度テストに失敗しました: {result.Quality}";
+                }
+                
+                System.Windows.MessageBox.Show(message, "速度テスト結果", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("ContextMenu_SpeedTest", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"速度テスト中にエラーが発生しました: {ex.Message}");
+            }
+            finally
+            {
+                HideLoadingPanel();
+            }
+        }
+        
+        private void ContextMenu_Security_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            try
+            {
+                // セキュリティ分析機能は削除されました
+                var analysis = new { SecurityLevel = "不明", RiskScore = 0 };
+                
+                var message = $"セキュリティ分析: {network.SSID}\n\n" +
+                             $"セキュリティレベル: {analysis.GetSecurityDescription()}\n" +
+                             $"脅威レベル: {analysis.GetThreatDescription()}\n" +
+                             $"セキュリティ方式: {analysis.SecurityType}\n" +
+                             $"ホットスポット判定: {(analysis.IsLikelyHotspot ? "はい" : "いいえ")}\n";
+                
+                if (analysis.RiskFactors.Any())
+                {
+                    message += $"\nリスク要因:\n" + 
+                              string.Join("\n", analysis.RiskFactors.Select(r => $"• {r}"));
+                }
+                
+                if (analysis.Recommendations.Any())
+                {
+                    message += $"\n\n推奨事項:\n" + 
+                              string.Join("\n", analysis.Recommendations.Take(3).Select(r => $"• {r}"));
+                }
+                
+                System.Windows.MessageBox.Show(message, "セキュリティ分析結果", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.LogError("ContextMenu_Security", ex, _connectionLogger);
+                System.Windows.MessageBox.Show($"セキュリティ分析中にエラーが発生しました: {ex.Message}");
+            }
+        }
+        
+        private async void ContextMenu_ForgetPassword_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            var result = System.Windows.MessageBox.Show(
+                $"{network.SSID}の保存されたパスワードを削除しますか？",
+                "パスワード削除確認",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+                
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    await _autoConnectManager.RemoveProfileAsync(network.SSID);
+                    System.Windows.MessageBox.Show($"{network.SSID}のパスワードを削除しました。");
+                }
+                catch (Exception ex)
+                {
+                    ErrorHandler.LogError("ContextMenu_ForgetPassword", ex, _connectionLogger);
+                    System.Windows.MessageBox.Show($"パスワード削除中にエラーが発生しました: {ex.Message}");
+                }
+            }
+        }
+        
+        private void ContextMenu_DeleteProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (WifiListBox.SelectedItem is not WifiNetwork network)
+                return;
+                
+            var result = System.Windows.MessageBox.Show(
+                $"{network.SSID}のプロファイルを完全に削除しますか？\n\n" +
+                "この操作により、保存されたパスワードと接続履歴が削除されます。",
+                "プロファイル削除確認",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+                
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // プロファイル削除は将来実装
+                    System.Windows.MessageBox.Show(
+                        "プロファイル削除機能は将来のバージョンで実装予定です。\n" +
+                        "現在はパスワード削除機能をご利用ください。",
+                        "機能未実装",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    ErrorHandler.LogError("ContextMenu_DeleteProfile", ex, _connectionLogger);
+                    System.Windows.MessageBox.Show($"プロファイル削除中にエラーが発生しました: {ex.Message}");
+                }
+            }
         }
     }
 
@@ -2086,6 +2483,47 @@ namespace MurtiWifiConnecter
                 obj.IsConnected,
                 obj.HasConnectedBefore
             );
+        }
+        
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                // 緊急時の復旧データ保存
+                var currentSSID = WifiNetworks.FirstOrDefault(n => n.IsConnected)?.SSID;
+                await _crashRecoveryManager.SaveRecoveryStateAsync(
+                    currentSSID, 
+                    WifiNetworks.ToList(), 
+                    new Dictionary<string, object>
+                    {
+                        ["LastRefreshTime"] = _lastUIUpdate,
+                        ["WindowState"] = WindowState.ToString(),
+                        ["IsMinimized"] = WindowState == WindowState.Minimized
+                    });
+                
+                // 緊急バックアップ作成
+                await _crashRecoveryManager.CreateEmergencyBackupAsync();
+                
+                // 通常のクリーンアップ処理
+                _cancellationTokenSource?.Cancel();
+                _refreshTimer?.Stop();
+                NetworkUtils.StopNetworkMonitoring();
+                
+                // コンポーネントの適切な破棄
+                _systemTrayManager?.Dispose();
+                _maintenanceManager?.Dispose();
+                _connectionMonitor?.Dispose();
+                
+                _connectionLogger?.Log(ConnectionLogger.LogLevel.Info, "MainWindow", "アプリケーションが正常終了しました");
+                
+                // 最後に復旧データをクリーンアップ（正常終了時）
+                await _crashRecoveryManager.CleanupRecoveryDataAsync();
+            }
+            catch (Exception ex)
+            {
+                // 終了時のエラーでもアプリは終了させる
+                ErrorHandler.LogError("MainWindow.Window_Closing", ex, _connectionLogger);
+            }
         }
         
         

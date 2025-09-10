@@ -53,8 +53,9 @@ namespace MurtiWifiConnecter
                 var decryptedBytes = ProtectedData.Unprotect(encryptedBytes, _entropyBytes, DataProtectionScope.CurrentUser);
                 return Encoding.UTF8.GetString(decryptedBytes);
             }
-            catch
+            catch (Exception ex)
             {
+                ErrorHandler.LogError("SecurityManager.DecryptPassword", ex);
                 return string.Empty;
             }
         }
