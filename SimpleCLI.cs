@@ -37,7 +37,7 @@ namespace MurtiWifiConnecter
             var connectionService = new ConnectionManagementService(
                 null, // logger removed
                 new ConnectionRetryManager(),
-                new AutoConnectManager(),
+                new UnifiedProfileManager(),
                 null  // monitor removed - will create lightweight version
             );
             var monitoring = new LightweightMonitoringService();

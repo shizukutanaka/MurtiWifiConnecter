@@ -6,12 +6,12 @@ using MurtiWifiConnecter.Interfaces;
 namespace MurtiWifiConnecter.Services
 {
     /// <summary>
-    /// 接続管理サービス実装 - ConnectionRetryManagerとAutoConnectManagerのラッパー
+    /// 接続管理サービス実装 - ConnectionRetryManagerとUnifiedProfileManagerのラッパー
     /// </summary>
     public class ConnectionManagementService : IConnectionManagementService, IDisposable
     {
         private readonly ConnectionRetryManager _retryManager;
-        private readonly AutoConnectManager _autoConnectManager;
+        private readonly UnifiedProfileManager _profileManager;
         private readonly ConnectionMonitor _connectionMonitor;
 
         public event EventHandler<ConnectionStatusChangedEventArgs>? ConnectionStatusChanged;
@@ -19,11 +19,11 @@ namespace MurtiWifiConnecter.Services
         public ConnectionManagementService(
             ConnectionLogger logger,
             ConnectionRetryManager retryManager,
-            AutoConnectManager autoConnectManager,
+            UnifiedProfileManager profileManager,
             ConnectionMonitor connectionMonitor)
         {
             _retryManager = retryManager ?? throw new ArgumentNullException(nameof(retryManager));
-            _autoConnectManager = autoConnectManager ?? throw new ArgumentNullException(nameof(autoConnectManager));
+            _profileManager = profileManager ?? throw new ArgumentNullException(nameof(profileManager));
             _connectionMonitor = connectionMonitor ?? throw new ArgumentNullException(nameof(connectionMonitor));
             
             // イベント統合
@@ -47,7 +47,7 @@ namespace MurtiWifiConnecter.Services
         {
             try
             {
-                return await _autoConnectManager.TryAutoConnectAsync(ssid, cancellationToken).ConfigureAwait(false);
+                return await _profileManager.TryAutoConnectAsync(ssid, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

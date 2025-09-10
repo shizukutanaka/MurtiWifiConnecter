@@ -24,37 +24,7 @@ namespace MurtiWifiConnecter
         public static bool IsPortableMode { get; private set; }
         public static string AppDataPath { get; private set; } = string.Empty;
         
-        // 設定定数（ConfigurationConstants統合）
-        public static class Constants
-        {
-            // WiFi接続設定
-            public static int QuickTimeoutMs => GetSetting("quick_timeout_ms", 2500);
-            public static int NormalTimeoutMs => GetSetting("normal_timeout_ms", 8000);
-            public static int ExtendedTimeoutMs => GetSetting("extended_timeout_ms", 12000);
-            public static int ConnectionDelayMs => GetSetting("connection_delay_ms", 400);
-            public static int MaxRetryAttempts => GetSetting("max_retry_attempts", 3);
-            
-            // パフォーマンス設定
-            public static int MemoryOptIntervalMinutes => GetSetting("memory_opt_interval", 1);
-            public static int SystemMonitoringIntervalMs => GetSetting("system_monitoring_interval", 60000);
-            
-            // キャッシュ設定
-            public static int ProfileCacheValidityMinutes => GetSetting("cache_validity_minutes", 3);
-            public static int MaxProfileCacheSize => GetSetting("max_cache_size", 20);
-            
-            // ログ設定
-            public static int MaxLogFileSizeMB => GetSetting("max_log_file_mb", 5);
-            public static int MaxLogFiles => GetSetting("max_log_files", 5);
-            public static int LogFlushIntervalMs => GetSetting("log_flush_interval", 5000);
-            
-            // 復旧設定
-            public static int BaseRetryDelayMs => GetSetting("base_retry_delay", 1000);
-            public static int MaxRetryDelayMs => GetSetting("max_retry_delay", 15000);
-            public static int NetworkResetDelayMs => GetSetting("network_reset_delay", 800);
-            
-            // 起動設定
-            public static int StartupDelayMs => GetSetting("startup_delay", 500); // 短縮した起動遅延
-        }
+        // 定数はConstants/AppConstants.csに統合済み
         
         static QuickSettingsManager()
         {

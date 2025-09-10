@@ -7,6 +7,7 @@ using System.Text;
 using System.Collections.Concurrent;
 using System.Linq;
 using MurtiWifiConnecter.Services;
+using MurtiWifiConnecter.Constants;
 
 namespace MurtiWifiConnecter
 {
@@ -59,9 +60,9 @@ namespace MurtiWifiConnecter
                     async (ct) => await ConnectInternalAsync(ssid, password, ct),
                     customPolicy: new RetryPolicy
                     {
-                        MaxAttempts = QuickSettingsManager.Constants.MaxRetryAttempts,
-                        InitialDelay = TimeSpan.FromMilliseconds(QuickSettingsManager.Constants.BaseRetryDelayMs),
-                        MaxDelay = TimeSpan.FromMilliseconds(QuickSettingsManager.Constants.MaxRetryDelayMs),
+                        MaxAttempts = AppConstants.Wifi.MaxRetryAttempts,
+                        InitialDelay = TimeSpan.FromMilliseconds(AppConstants.Wifi.BaseRetryDelayMs),
+                        MaxDelay = TimeSpan.FromMilliseconds(AppConstants.Wifi.MaxRetryDelayMs),
                         ShouldRetry = ex => !(ex is ArgumentException || ex is UnauthorizedAccessException)
                     },
                     cancellationToken: cancellationToken);
@@ -107,7 +108,7 @@ namespace MurtiWifiConnecter
                     return new WifiConnectionResult { Success = false, ErrorMessage = $"プロファイル追加失敗: {profileResult.ErrorMessage}" };
                 
                 // 短い遅延の後に接続実行
-                await Task.Delay(QuickSettingsManager.Constants.ConnectionDelayMs, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(AppConstants.Wifi.ConnectionDelayMs, cancellationToken).ConfigureAwait(false);
                 
                 var connectResult = await ExecuteNetshCommandOptimizedAsync(
                     $"wlan connect name=\"{safeSsid}\"", 

@@ -126,7 +126,7 @@ namespace MurtiWifiConnecter.Infrastructure
                 return new ConnectionManagementService(
                     logger,
                     new ConnectionRetryManager(logger),
-                    new AutoConnectManager(logger),
+                    new UnifiedProfileManager(logger),
                     new ConnectionMonitor(logger));
             });
 

@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using MurtiWifiConnecter.Properties;
+using MurtiWifiConnecter.Services;
+using MurtiWifiConnecter.Constants;
 
 namespace MurtiWifiConnecter
 {
@@ -31,7 +33,7 @@ namespace MurtiWifiConnecter
         private readonly SemaphoreSlim _scanSemaphore = new(1, 1);
         private readonly SemaphoreSlim _uiUpdateSemaphore = new(1, 1);
         private readonly ConnectionHistory _connectionHistory = new();
-        private readonly WifiProfileManager _profileManager = new();
+        private readonly UnifiedProfileManager _profileManager;
         private DateTime _lastUIUpdate = DateTime.MinValue;
         private const int UIUpdateThrottleMs = 500; // UI更新の制限間隔
         // Network monitoring is now handled by NetworkUtils
@@ -39,7 +41,6 @@ namespace MurtiWifiConnecter
         private readonly ConnectionLogger _connectionLogger = new();
         private readonly SystemTrayManager _systemTrayManager;
         private readonly ConnectionMonitor _connectionMonitor;
-        private readonly AutoConnectManager _autoConnectManager;
         private readonly ConnectionRetryManager _retryManager;
         
         private bool _isInitialized = false;
@@ -79,8 +80,8 @@ namespace MurtiWifiConnecter
             // 統合接続監視の初期化
             _connectionMonitor = new ConnectionMonitor(_connectionLogger);
             
-            // 新機能マネージャーの初期化
-            _autoConnectManager = new AutoConnectManager(_connectionLogger);
+            // 統合プロファイルマネージャーの初期化
+            _profileManager = new UnifiedProfileManager(_connectionLogger);
             _retryManager = new ConnectionRetryManager(_connectionLogger);
             
             // 統合接続監視イベント
@@ -191,7 +192,7 @@ namespace MurtiWifiConnecter
                         _ = Task.Run(async () => await SystemManager.RunPeriodicOptimizationAsync(_cancellationTokenSource.Token));
                         
                         // 起動完了を待つ
-                        await Task.Delay(QuickSettingsManager.Constants.StartupDelayMs).ConfigureAwait(false);
+                        await Task.Delay(AppConstants.Wifi.StartupDelayMs).ConfigureAwait(false);
                         
                         // プロファイルクリーンアップ
                         if (QuickSettingsManager.GetSetting("auto_cleanup_profiles", true))
