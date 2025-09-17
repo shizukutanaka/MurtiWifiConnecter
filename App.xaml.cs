@@ -77,7 +77,7 @@ namespace MurtiWifiConnecter
             }
         }
 
-        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             Logger.Error("Unobserved Task Exception", e.Exception);
             e.SetObserved();
