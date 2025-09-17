@@ -62,7 +62,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="🏠 個人・家庭向けWiFi設定" FontSize="24" FontWeight="Bold" 
+                    <TextBlock Text="個人・家庭向けWiFi設定" FontSize="24" FontWeight="Bold" 
                                Foreground="{StaticResource TextPrimaryBrush}"/>
                     <TextBlock Text="簡単3ステップで使い始められます" FontSize="14" 
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
@@ -85,7 +85,7 @@
                 <Grid>
                     <!-- ステップ1: ユーザー情報 -->
                     <StackPanel x:Name="Step1Panel">
-                    <TextBlock Text="📝 ユーザー情報" FontSize="20" FontWeight="SemiBold" 
+                    <TextBlock Text="ユーザー情報" FontSize="20" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24"/>
                     
                     <StackPanel Margin="0,0,0,24">
@@ -111,7 +111,7 @@
 
                 <!-- ステップ2: ネットワーク設定 -->
                 <StackPanel x:Name="Step2Panel" Visibility="Collapsed">
-                    <TextBlock Text="🏠 家庭内ネットワーク設定" FontSize="20" FontWeight="SemiBold" 
+                    <TextBlock Text="家庭内ネットワーク設定" FontSize="20" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24"/>
                     
                     <TextBlock Text="よく使用する家庭内のWiFiネットワークを登録してください（オプション）" 
@@ -137,7 +137,7 @@
 
                 <!-- ステップ3: 完了確認 -->
                 <StackPanel x:Name="Step3Panel" Visibility="Collapsed">
-                    <TextBlock Text="✅ 設定完了" FontSize="20" FontWeight="SemiBold" 
+                    <TextBlock Text="設定完了" FontSize="20" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,24"/>
                     
                     <Border Background="#F8F9FA" BorderBrush="{StaticResource BorderBrush}" 

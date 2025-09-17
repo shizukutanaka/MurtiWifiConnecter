@@ -13,6 +13,9 @@ namespace MurtiWifiConnecter
     {
         private readonly WifiOperations _wifiOps;
         private readonly ProcessExecutor _processExecutor;
+        private readonly OptimizedWifiScanner _scanner;
+        private readonly ConnectionManager _connectionManager;
+        private readonly ProfileManager _profileManager;
         private readonly SemaphoreSlim _operationLock;
         private CancellationTokenSource? _autoReconnectCts;
         private string? _lastConnectedSSID;
@@ -24,6 +27,9 @@ namespace MurtiWifiConnecter
         {
             _processExecutor = new ProcessExecutor();
             _wifiOps = new WifiOperations(_processExecutor);
+            _scanner = new OptimizedWifiScanner();
+            _connectionManager = new ConnectionManager(this);
+            _profileManager = new ProfileManager();
             _operationLock = new SemaphoreSlim(1, 1);
             _lastConnectionTime = DateTime.MinValue;
         }
@@ -106,28 +112,15 @@ namespace MurtiWifiConnecter
         /// </summary>
         public async Task<List<WifiNetwork>> ScanNetworksAsync(CancellationToken ct = default)
         {
-            var networks = new List<WifiNetwork>();
-
             try
             {
-                // Trigger scan
-                await _processExecutor.RunAsync("netsh", "wlan refresh", 2000);
-                await Task.Delay(1000, ct);
-
-                // Get networks
-                var result = await _processExecutor.RunAsync("netsh", "wlan show networks mode=bssid", 5000);
-
-                if (result.Success && !string.IsNullOrEmpty(result.Output))
-                {
-                    networks = ParseNetworkList(result.Output);
-                }
+                return await _scanner.ScanNetworksAsync(false, ct);
             }
             catch (Exception ex)
             {
                 OnStatusChanged($"Scan failed: {ex.Message}");
+                return new List<WifiNetwork>();
             }
-
-            return networks;
         }
 
         /// <summary>
@@ -290,74 +283,6 @@ namespace MurtiWifiConnecter
             return profiles;
         }
 
-        private List<WifiNetwork> ParseNetworkList(string output)
-        {
-            var networks = new List<WifiNetwork>();
-            var lines = output.Split('\n');
-
-            WifiNetwork? currentNetwork = null;
-
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-
-                if (trimmed.StartsWith("SSID", StringComparison.OrdinalIgnoreCase) &&
-                    !trimmed.StartsWith("BSSID", StringComparison.OrdinalIgnoreCase))
-                {
-                    var colonIndex = trimmed.IndexOf(':');
-                    if (colonIndex > 0 && colonIndex < trimmed.Length - 1)
-                    {
-                        var ssid = trimmed.Substring(colonIndex + 1).Trim();
-                        if (!string.IsNullOrWhiteSpace(ssid))
-                        {
-                            currentNetwork = new WifiNetwork { SSID = ssid };
-                        }
-                    }
-                }
-                else if (currentNetwork != null)
-                {
-                    if (trimmed.StartsWith("Signal", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var percentIndex = trimmed.IndexOf('%');
-                        if (percentIndex > 0)
-                        {
-                            var signalPart = trimmed.Substring(0, percentIndex);
-                            var parts = signalPart.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                            if (parts.Length > 0 && int.TryParse(parts[^1], out var signal))
-                            {
-                                currentNetwork.SignalStrength = signal;
-                            }
-                        }
-                    }
-                    else if (trimmed.StartsWith("Authentication", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var colonIndex = trimmed.IndexOf(':');
-                        if (colonIndex > 0 && colonIndex < trimmed.Length - 1)
-                        {
-                            currentNetwork.Authentication = trimmed.Substring(colonIndex + 1).Trim();
-                        }
-                    }
-                    else if (trimmed.StartsWith("Encryption", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var colonIndex = trimmed.IndexOf(':');
-                        if (colonIndex > 0 && colonIndex < trimmed.Length - 1)
-                        {
-                            currentNetwork.Encryption = trimmed.Substring(colonIndex + 1).Trim();
-                        }
-
-                        // Add network when we have all info
-                        if (!networks.Any(n => n.SSID == currentNetwork.SSID))
-                        {
-                            networks.Add(currentNetwork);
-                        }
-                        currentNetwork = null;
-                    }
-                }
-            }
-
-            return networks.OrderByDescending(n => n.SignalStrength).ToList();
-        }
-
         private void OnStatusChanged(string message)
         {
             StatusChanged?.Invoke(this, message);
@@ -366,6 +291,8 @@ namespace MurtiWifiConnecter
         public void Dispose()
         {
             StopAutoReconnect();
+            _scanner?.Dispose();
+            _connectionManager?.Dispose();
             _operationLock?.Dispose();
             _wifiOps?.Dispose();
         }
