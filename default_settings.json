@@ -1,0 +1,119 @@
+{
+  "version": "2.0.0",
+  "created": "2025-09-14",
+  "description": "MurtiWiFiConnecter 個人向けデフォルト設定",
+  
+  "general": {
+    "language": "ja-JP",
+    "autoStart": true,
+    "minimizeToTray": true,
+    "showNotifications": true,
+    "firstLaunch": true,
+    "environment": "Personal"
+  },
+  
+  "wifi": {
+    "autoConnect": true,
+    "connectionTimeout": 30,
+    "maxRetries": 3,
+    "signalUpdateInterval": 5000,
+    "preferStrongerSignal": true,
+    "avoid5GHzOnBattery": true,
+    "enableSecurityCheck": true
+  },
+  
+  "battery": {
+    "mode": "Normal",
+    "enableOptimization": true,
+    "lowPowerThreshold": 20,
+    "criticalPowerThreshold": 10,
+    "adaptiveScanning": true,
+    "reducedUpdateInterval": 10000
+  },
+  
+  "security": {
+    "enableFirewallCheck": true,
+    "warnOnOpenNetworks": true,
+    "blockSuspiciousNetworks": true,
+    "enableWPA3Preference": true,
+    "passwordMinLength": 8
+  },
+  
+  "family": {
+    "enabled": false,
+    "safeMode": false,
+    "timeRestrictions": {
+      "enabled": false,
+      "startTime": "07:00",
+      "endTime": "21:00",
+      "weekdaysOnly": false
+    },
+    "contentFilter": {
+      "enabled": false,
+      "blockAdultContent": true,
+      "enableSafeSearch": true
+    }
+  },
+  
+  "ui": {
+    "theme": "Light",
+    "showAdvancedOptions": false,
+    "animationsEnabled": true,
+    "compactView": false,
+    "showSystemTrayTooltips": true
+  },
+  
+  "logging": {
+    "level": "Info",
+    "maxLogFiles": 7,
+    "maxLogSizeMB": 10,
+    "enableFileLogging": true,
+    "logDirectory": "%APPDATA%\\MurtiWiFiConnecter\\Logs"
+  },
+  
+  "performance": {
+    "memoryOptimization": true,
+    "cpuThrottling": "Adaptive",
+    "networkCacheTTL": 120,
+    "backgroundTaskPriority": "Normal"
+  },
+  
+  "advanced": {
+    "diagnosticMode": false,
+    "verboseLogging": false,
+    "experimentalFeatures": false,
+    "telemetryEnabled": false,
+    "autoUpdateCheck": true
+  },
+  
+  "trustedNetworks": [],
+  
+  "profiles": {
+    "default": {
+      "name": "個人利用",
+      "description": "個人・家庭での標準的な利用設定",
+      "settings": {
+        "prioritizeKnownNetworks": true,
+        "enableQuickConnect": true,
+        "showConnectionHistory": true
+      }
+    }
+  },
+  
+  "hotkeys": {
+    "enabled": false,
+    "toggleConnection": "Ctrl+Shift+W",
+    "openDashboard": "Ctrl+Shift+D",
+    "quickScan": "Ctrl+Shift+S"
+  },
+  
+  "notifications": {
+    "connectionSuccess": true,
+    "connectionFailed": true,
+    "signalLow": true,
+    "securityWarnings": true,
+    "batteryOptimization": true,
+    "duration": 5000,
+    "position": "BottomRight"
+  }
+}

@@ -1,297 +1,251 @@
-﻿using System;
-using System.Configuration;
-using System.Data;
-using System.Linq;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
-namespace MurtiWifiConnecter;
-
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
+namespace MurtiWifiConnecter
 {
-    protected override void OnStartup(StartupEventArgs e)
+    public partial class App : Application
     {
-        try
+        private static readonly string AppName = "MurtiWifiConnecter";
+        private static readonly string LogFileName = $"{AppName}.log";
+        private SimplifiedWifiManager? _wifiManager;
+
+        protected override void OnStartup(StartupEventArgs e)
         {
-            // コマンドライン引数処理
+            // Setup exception handling
+            SetupExceptionHandling();
+
+            // Initialize logging
+            InitializeLogging();
+
+            Logger.Info("Application starting...");
+
+            // Check for command line arguments
             if (e.Args.Length > 0)
             {
-                var processed = ProcessCommandLineArgs(e.Args);
-                if (processed)
-                {
-                    // コマンドライン処理のみで終了
-                    Shutdown(0);
-                    return;
-                }
+                HandleCommandLineArgs(e.Args);
+                return;
             }
+
+            // Check administrator privileges
+            Task.Run(async () =>
+            {
+                await CheckPrivilegesAsync();
+            });
 
             base.OnStartup(e);
         }
-        catch (Exception ex)
+
+        private void SetupExceptionHandling()
         {
-            MessageBox.Show($"起動エラー: {ex.Message}", "Murti WiFi コネクター", MessageBoxButton.OK, MessageBoxImage.Error);
-            Shutdown(1);
+            Current.DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         }
-    }
 
-    private static bool ProcessCommandLineArgs(string[] args)
-    {
-        var command = args[0].ToLowerInvariant();
-
-        switch (command)
+        private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            case "--help":
-            case "-h":
-                ShowHelp();
-                return true;
+            Logger.Error("UI Thread Exception", e.Exception);
 
-            case "--version":
-            case "-v":
-                ShowVersion();
-                return true;
+            var result = MessageBox.Show(
+                $"An unexpected error occurred:\n\n{e.Exception.Message}\n\nContinue running?",
+                "Error",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Error);
 
-            case "--scan":
-            case "-s":
-                _ = ScanNetworksAsync();
-                return true;
-
-            case "--connect":
-            case "-c":
-                if (args.Length > 1)
-                {
-                    var ssid = args[1];
-                    var password = args.Length > 2 ? args[2] : "";
-                    _ = ConnectToNetworkAsync(ssid, password);
-                }
-                else
-                {
-                    Console.WriteLine("使用法: --connect <SSID> [password]");
-                }
-                return true;
-
-            case "--status":
-                _ = ShowNetworkStatusAsync();
-                return true;
-                
-            case "--diagnose":
-            case "-d":
-                _ = RunNetworkDiagnosticsAsync();
-                return true;
-                
-            case "--fix":
-            case "-f":
-                _ = RunQuickFixAsync();
-                return true;
-                
-            case "--portable":
-                // ポータブルモード（簡易版）
-                return true;
-
-            default:
-                return false; // 通常のGUI起動
-        }
-    }
-
-    private static void ShowHelp()
-    {
-        Console.WriteLine("Murti WiFi コネクター - コマンドライン使用法:");
-        Console.WriteLine();
-        Console.WriteLine("  --help, -h          このヘルプを表示");
-        Console.WriteLine("  --version, -v       バージョン情報を表示");
-        Console.WriteLine("  --scan, -s          利用可能なWiFiネットワークをスキャン");
-        Console.WriteLine("  --connect, -c <SSID> [password]  指定したネットワークに接続");
-        Console.WriteLine("  --status            現在の接続状態を表示");
-        Console.WriteLine("  --diagnose, -d      ネットワーク診断を実行");
-        Console.WriteLine("  --fix, -f           ネットワーク問題の自動修復");
-        Console.WriteLine();
-        Console.WriteLine("例:");
-        Console.WriteLine("  MurtiWifiConnecter --scan");
-        Console.WriteLine("  MurtiWifiConnecter --connect \"MyNetwork\" \"password123\"");
-        Console.WriteLine("  MurtiWifiConnecter --status");
-        Console.WriteLine("  MurtiWifiConnecter --diagnose");
-        Console.WriteLine("  MurtiWifiConnecter --fix");
-        Console.WriteLine("  MurtiWifiConnecter --portable");
-    }
-
-    private static void ShowVersion()
-    {
-        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        Console.WriteLine($"Murti WiFi コネクター v{version}");
-        Console.WriteLine("軽量で実用的なWiFi接続管理ツール");
-    }
-
-    private static async System.Threading.Tasks.Task ScanNetworksAsync()
-    {
-        try
-        {
-            Console.WriteLine("WiFiネットワークをスキャンしています...");
-            
-            var output = await NetworkUtils.ExecuteNetshCommandAsync("wlan show profiles", 5000);
-            if (string.IsNullOrEmpty(output))
+            if (result == MessageBoxResult.Yes)
             {
-                Console.WriteLine("スキャンに失敗しました。");
-                return;
+                e.Handled = true;
             }
+        }
 
-            Console.WriteLine("利用可能なネットワーク:");
-            var lines = output.Split('\n');
-            foreach (var line in lines)
+        private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            if (e.ExceptionObject is Exception ex)
             {
-                if (line.Contains("All User Profile") || line.Contains("User Profile"))
+                Logger.Error("Unhandled Exception", ex);
+
+                MessageBox.Show(
+                    $"Fatal error occurred:\n\n{ex.Message}\n\nApplication will exit.",
+                    "Fatal Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Logger.Error("Unobserved Task Exception", e.Exception);
+            e.SetObserved();
+        }
+
+        private void InitializeLogging()
+        {
+            try
+            {
+                var logPath = Path.Combine(GetApplicationDataPath(), LogFileName);
+                var logDir = Path.GetDirectoryName(logPath);
+
+                if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
+                    Directory.CreateDirectory(logDir);
+
+                // Rotate log file if too large
+                RotateLogFile(logPath);
+
+                // Log startup
+                File.AppendAllText(logPath,
+                    $"\n=== {AppName} Started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===\n");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to initialize logging: {ex.Message}");
+            }
+        }
+
+        private async Task CheckPrivilegesAsync()
+        {
+            var isAdmin = CheckAdministratorPrivileges();
+
+            if (!isAdmin)
+            {
+                await Current.Dispatcher.InvokeAsync(() =>
                 {
-                    var parts = line.Split(':');
-                    if (parts.Length > 1)
+                    var result = MessageBox.Show(
+                        "This application works best with administrator privileges.\n" +
+                        "Some features may be limited.\n\n" +
+                        "Continue anyway?",
+                        "Administrator Privileges",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.No)
                     {
-                        Console.WriteLine($"  - {parts[1].Trim()}");
+                        Shutdown();
                     }
-                }
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"スキャンエラー: {ex.Message}");
-        }
-    }
 
-    private static async System.Threading.Tasks.Task ConnectToNetworkAsync(string ssid, string password)
-    {
-        try
+        private void HandleCommandLineArgs(string[] args)
         {
-            Console.WriteLine($"'{ssid}' に接続しています...");
-            
-            var success = await NetworkUtils.ExecuteNetshCommandWithResultAsync($"wlan connect name=\"{ssid}\"", 15000);
-            
-            if (success)
+            // Simple CLI mode
+            if (args.Length > 0 && args[0] == "--help")
             {
-                Console.WriteLine($"'{ssid}' に正常に接続しました。");
+                Console.WriteLine("MurtiWifiConnecter - WiFi Connection Manager");
+                Console.WriteLine("Usage: MurtiWifiConnecter.exe [options]");
+                Console.WriteLine("Options:");
+                Console.WriteLine("  --help    Show this help message");
+                Console.WriteLine("  --scan    Scan for available networks");
+                Console.WriteLine("  --connect <SSID> <Password>    Connect to network");
+            }
+            else if (args.Length > 0 && args[0] == "--scan")
+            {
+                Task.Run(async () =>
+                {
+                    _wifiManager = new SimplifiedWifiManager();
+                    var networks = await _wifiManager.ScanNetworksAsync();
+                    Console.WriteLine("Available Networks:");
+                    foreach (var network in networks)
+                    {
+                        Console.WriteLine($"  {network.SSID} - Signal: {network.SignalStrength}% - {network.Authentication}");
+                    }
+                    Shutdown();
+                });
+            }
+            else if (args.Length >= 3 && args[0] == "--connect")
+            {
+                var ssid = args[1];
+                var password = args[2];
+                Task.Run(async () =>
+                {
+                    _wifiManager = new SimplifiedWifiManager();
+                    var success = await _wifiManager.ConnectAsync(ssid, password);
+                    Console.WriteLine(success ? $"Connected to {ssid}" : $"Failed to connect to {ssid}");
+                    Shutdown();
+                });
             }
             else
             {
-                Console.WriteLine($"'{ssid}' への接続に失敗しました。");
+                Console.WriteLine("Invalid arguments. Use --help for usage information.");
+                Shutdown();
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"接続エラー: {ex.Message}");
-        }
-    }
 
-    private static async System.Threading.Tasks.Task ShowNetworkStatusAsync()
-    {
-        try
+        private bool CheckAdministratorPrivileges()
         {
-            var output = await NetworkUtils.ExecuteNetshCommandAsync("wlan show interfaces", 5000);
-            if (string.IsNullOrEmpty(output))
+            try
             {
-                Console.WriteLine("ネットワーク状態の取得に失敗しました。");
-                return;
+                using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+                var principal = new System.Security.Principal.WindowsPrincipal(identity);
+                return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
             }
-
-            Console.WriteLine("現在のWiFi接続状態:");
-            var lines = output.Split('\n');
-            foreach (var line in lines)
+            catch
             {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("Name") || trimmed.StartsWith("Description") || 
-                    trimmed.StartsWith("State") || trimmed.StartsWith("SSID"))
+                return false;
+            }
+        }
+
+        private string GetVersion()
+        {
+            try
+            {
+                return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.0.0";
+            }
+            catch
+            {
+                return "2.0.0";
+            }
+        }
+
+        private string GetApplicationDataPath()
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(appDataPath, AppName);
+        }
+
+        private void RotateLogFile(string logPath)
+        {
+            try
+            {
+                if (File.Exists(logPath))
                 {
-                    Console.WriteLine($"  {trimmed}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"状態取得エラー: {ex.Message}");
-        }
-    }
-
-    private static async System.Threading.Tasks.Task RunNetworkDiagnosticsAsync()
-    {
-        try
-        {
-            Console.WriteLine("ネットワーク診断を実行しています...");
-            
-            // 簡易診断
-            var connectedSsid = await NetworkUtils.GetCurrentConnectedSSIDAsync();
-            if (!string.IsNullOrEmpty(connectedSsid))
-            {
-                Console.WriteLine($"✅ 現在接続中: {connectedSsid}");
-            }
-            else
-            {
-                Console.WriteLine("⚠️ 現在WiFiに接続されていません。");
-                Console.WriteLine("利用可能なネットワークをスキャンしています...");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"診断エラー: {ex.Message}");
-        }
-    }
-
-    private static async System.Threading.Tasks.Task RunQuickFixAsync()
-    {
-        try
-        {
-            Console.WriteLine("クイック修復を実行しています...");
-            
-            // 基本的な修復手順を順次実行
-            var steps = new[]
-            {
-                ("DNSキャッシュクリア", "ipconfig", "/flushdns"),
-                ("ARP キャッシュクリア", "arp", "-d *"),
-                ("ネットワーク設定リフレッシュ", "ipconfig", "/release"),
-                ("IPアドレス再取得", "ipconfig", "/renew")
-            };
-            
-            var successCount = 0;
-            
-            foreach (var (description, command, args) in steps)
-            {
-                Console.Write($"  {description}... ");
-                
-                try
-                {
-                    var success = await NetworkUtils.ExecuteCommandWithResultAsync(command, args, 10000);
-                    if (success)
+                    var info = new FileInfo(logPath);
+                    // Rotate if larger than 1MB
+                    if (info.Length > 1024 * 1024)
                     {
-                        Console.WriteLine("✅");
-                        successCount++;
-                    }
-                    else
-                    {
-                        Console.WriteLine("❌");
+                        var backupPath = Path.ChangeExtension(logPath, ".old.log");
+                        if (File.Exists(backupPath))
+                            File.Delete(backupPath);
+                        File.Move(logPath, backupPath);
                     }
                 }
-                catch
-                {
-                    Console.WriteLine("❌");
-                }
-                
-                await System.Threading.Tasks.Task.Delay(1000);
             }
-            
-            Console.WriteLine($"\n修復完了: {successCount}/{steps.Length} の手順が成功しました。");
-            
-            // 接続テスト（簡易版）
-            Console.WriteLine("\n接続テストを実行しています...");
-            var connectedSsid = await NetworkUtils.GetCurrentConnectedSSIDAsync();
-            
-            if (!string.IsNullOrEmpty(connectedSsid))
+            catch (Exception ex)
             {
-                Console.WriteLine($"✅ {connectedSsid} に接続されています");
-            }
-            else
-            {
-                Console.WriteLine("❌ WiFi接続に問題があります");
+                Debug.WriteLine($"Log rotation failed: {ex.Message}");
             }
         }
-        catch (Exception ex)
+
+        protected override void OnExit(ExitEventArgs e)
         {
-            Console.WriteLine($"修復エラー: {ex.Message}");
+            try
+            {
+                Logger.Info($"Application shutting down (Exit code: {e.ApplicationExitCode})");
+
+                // Cleanup
+                _wifiManager?.Dispose();
+                Logger.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Shutdown cleanup failed: {ex.Message}");
+            }
+
+            base.OnExit(e);
         }
     }
 }
-

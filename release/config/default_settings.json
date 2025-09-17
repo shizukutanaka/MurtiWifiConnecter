@@ -1,0 +1,46 @@
+{
+  "PersonalSettings": {
+    "UserName": "",
+    "Language": "ja-JP",
+    "AutoStartupEnabled": true,
+    "MinimizeToTray": true,
+    "ShowNotifications": true,
+    "LightweightMode": false
+  },
+  "BatterySettings": {
+    "AutoPowerModeEnabled": true,
+    "UltraLightweightThreshold": 10,
+    "PowerSaverThreshold": 20,
+    "BalancedThreshold": 50,
+    "MonitoringIntervalMinutes": 2
+  },
+  "HomeNetworkSettings": {
+    "TrustedNetworks": [],
+    "AutoConnectEnabled": true,
+    "PreferStrongerSignal": true,
+    "ConnectTimeoutSeconds": 30
+  },
+  "FamilySettings": {
+    "FamilyModeEnabled": false,
+    "DefaultChildMode": false,
+    "Profiles": []
+  },
+  "DiagnosticsSettings": {
+    "AutoDiagnosticsEnabled": true,
+    "AutoRepairEnabled": false,
+    "PingTestEnabled": true,
+    "PingTargets": ["8.8.8.8", "1.1.1.1"]
+  },
+  "LoggingSettings": {
+    "LogLevel": "Info",
+    "MaxLogFileSizeMB": 10,
+    "KeepLogDays": 7,
+    "LogToFile": true
+  },
+  "UISettings": {
+    "Theme": "Auto",
+    "ShowAdvancedOptions": false,
+    "RefreshIntervalSeconds": 30,
+    "ShowSignalStrengthBars": true
+  }
+}
