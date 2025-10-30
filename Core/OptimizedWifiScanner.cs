@@ -25,7 +25,7 @@ namespace MurtiWifiConnecter
         private const int CacheExpirationSeconds = 30;
         private const int BackgroundScanIntervalSeconds = 60;
         private const int MinScanIntervalMilliseconds = 5000;
-        private const int MaxConcurrentScans = 1;
+        private const int MaxConcurrentScans = 3; // Increased for better performance
         private const int ScanTimeoutMilliseconds = 10000;
 
         public event EventHandler<ScanCompletedEventArgs>? ScanCompleted;
@@ -66,9 +66,9 @@ namespace MurtiWifiConnecter
         }
 
         /// <summary>
-        /// Scan for networks with optimization
+        /// Scan for networks with parallel processing for improved performance
         /// </summary>
-        public async Task<List<WifiNetwork>> ScanNetworksAsync(bool forceRefresh = false, CancellationToken ct = default)
+        public async Task<List<WifiNetwork>> ScanNetworksParallelAsync(bool forceRefresh = false, CancellationToken ct = default)
         {
             // Return cached results if available and fresh
             if (!forceRefresh && !IsCacheExpired())
@@ -83,8 +83,87 @@ namespace MurtiWifiConnecter
                 return GetCachedNetworks();
             }
 
-            // Perform scan
-            return await PerformScanAsync(ct);
+            // Perform parallel scan
+            return await PerformParallelScanAsync(ct);
+        }
+
+        private async Task<List<WifiNetwork>> PerformParallelScanAsync(CancellationToken ct)
+        {
+            if (_isScanning)
+            {
+                await WaitForScanCompletionAsync(ct);
+                return GetCachedNetworks();
+            }
+
+            await _scanLock.WaitAsync(ct);
+            try
+            {
+                _isScanning = true;
+                _lastScanTime = DateTime.UtcNow;
+
+                // Parallel execution of netsh commands
+                var scanTask = _processExecutor.RunAsync("netsh", "wlan show networks mode=bssid", ScanTimeoutMilliseconds);
+                var refreshTask = _processExecutor.RunAsync("netsh", "wlan refresh", 2000);
+                var interfaceTask = _processExecutor.RunAsync("netsh", "wlan show interfaces", 3000);
+
+                // Wait for all tasks to complete
+                await Task.WhenAll(scanTask, refreshTask, interfaceTask);
+
+                var scanResult = await scanTask;
+                var refreshResult = await refreshTask;
+                var interfaceResult = await interfaceTask;
+
+                if (scanResult.Success && !string.IsNullOrEmpty(scanResult.Output))
+                {
+                    var networks = ParseNetworkList(scanResult.Output);
+
+                    // Process interface information in parallel with network parsing
+                    if (interfaceResult.Success && !string.IsNullOrEmpty(interfaceResult.Output))
+                    {
+                        _ = Task.Run(() => ProcessInterfaceInformation(interfaceResult.Output), ct);
+                    }
+
+                    UpdateCache(networks);
+                    OnScanCompleted(networks.Count, true);
+                    return networks;
+                }
+
+                OnScanCompleted(0, false);
+                return GetCachedNetworks();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Parallel scan failed: {ex.Message}", ex);
+                OnScanCompleted(0, false);
+                return GetCachedNetworks();
+            }
+            finally
+            {
+                _isScanning = false;
+                _scanLock.Release();
+            }
+        }
+
+        private void ProcessInterfaceInformation(string output)
+        {
+            try
+            {
+                // Process interface information for additional context
+                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("State", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Process interface state information
+                        Logger.Debug($"Interface state: {trimmed}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Interface processing failed: {ex.Message}", ex);
+            }
         }
 
         /// <summary>

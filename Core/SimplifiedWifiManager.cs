@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace MurtiWifiConnecter
 {
     /// <summary>
-    /// Simplified WiFi Manager - Core functionality only
+    /// Simplified WiFi Manager - Core functionality only (Legacy - use WifiManagerFactory instead)
     /// </summary>
-    public sealed class SimplifiedWifiManager : IDisposable
+    [Obsolete("Use WifiManagerFactory.CreateWifiManager() instead")]
+    public sealed class SimplifiedWifiManager : IWifiManager, IDisposable
     {
         private readonly WifiOperations _wifiOps;
         private readonly ProcessExecutor _processExecutor;
@@ -99,15 +100,6 @@ namespace MurtiWifiConnecter
         }
 
         /// <summary>
-        /// Get current connected SSID
-        /// </summary>
-        public async Task<string?> GetCurrentSSIDAsync(CancellationToken ct = default)
-        {
-            var result = await _wifiOps.GetCurrentSSIDAsync(ct);
-            return result.IsSuccess ? result.Value : null;
-        }
-
-        /// <summary>
         /// Scan for available networks
         /// </summary>
         public async Task<List<WifiNetwork>> ScanNetworksAsync(CancellationToken ct = default)
@@ -124,94 +116,51 @@ namespace MurtiWifiConnecter
         }
 
         /// <summary>
-        /// Enable auto-reconnect
+        /// Get current connected SSID
         /// </summary>
-        public void EnableAutoReconnect(string ssid, string password, int intervalSeconds = 30)
+        public async Task<string?> GetCurrentSSIDAsync(CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(ssid) || string.IsNullOrWhiteSpace(password))
-                return;
-
-            StopAutoReconnect();
-
-            _autoReconnectCts = new CancellationTokenSource();
-            var ct = _autoReconnectCts.Token;
-
-            _ = Task.Run(async () =>
-            {
-                while (!ct.IsCancellationRequested)
-                {
-                    try
-                    {
-                        var current = await GetCurrentSSIDAsync(ct);
-                        if (string.IsNullOrEmpty(current) || !current.Equals(ssid, StringComparison.OrdinalIgnoreCase))
-                        {
-                            OnStatusChanged($"Auto-reconnecting to {ssid}...");
-                            await ConnectAsync(ssid, password, ct);
-                        }
-
-                        await Task.Delay(intervalSeconds * 1000, ct);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        OnStatusChanged($"Auto-reconnect error: {ex.Message}");
-                        await Task.Delay(intervalSeconds * 1000, ct);
-                    }
-                }
-            }, ct);
+            var result = await _wifiOps.GetCurrentSSIDAsync(ct);
+            return result.IsSuccess ? result.Value : null;
         }
 
         /// <summary>
-        /// Stop auto-reconnect
+        /// Get saved profiles
         /// </summary>
-        public void StopAutoReconnect()
+        public async Task<List<string>> GetSavedProfilesAsync(CancellationToken ct = default)
         {
-            _autoReconnectCts?.Cancel();
-            _autoReconnectCts?.Dispose();
-            _autoReconnectCts = null;
-        }
-
-        /// <summary>
-        /// Quick connect to saved network
-        /// </summary>
-        public async Task<bool> QuickConnectAsync(CancellationToken ct = default)
-        {
-            if (string.IsNullOrEmpty(_lastConnectedSSID))
-            {
-                OnStatusChanged("No saved network");
-                return false;
-            }
+            var profiles = new List<string>();
 
             try
             {
-                OnStatusChanged($"Quick connecting to {_lastConnectedSSID}...");
+                var result = await _processExecutor.RunAsync("netsh", "wlan show profiles", 3000);
 
-                var connectCmd = $"wlan connect name=\"{_lastConnectedSSID}\"";
-                var result = await _processExecutor.RunAsync("netsh", connectCmd, 5000);
-
-                if (result.Success)
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
                 {
-                    await Task.Delay(1000, ct);
-                    var current = await GetCurrentSSIDAsync(ct);
-
-                    if (current?.Equals(_lastConnectedSSID, StringComparison.OrdinalIgnoreCase) == true)
+                    var lines = result.Output.Split('\n');
+                    foreach (var line in lines)
                     {
-                        OnStatusChanged($"Connected to {_lastConnectedSSID}");
-                        return true;
+                        if (line.Contains("All User Profile") || line.Contains("Current User Profile"))
+                        {
+                            var colonIndex = line.IndexOf(':');
+                            if (colonIndex > 0 && colonIndex < line.Length - 1)
+                            {
+                                var profileName = line.Substring(colonIndex + 1).Trim();
+                                if (!string.IsNullOrWhiteSpace(profileName))
+                                {
+                                    profiles.Add(profileName);
+                                }
+                            }
+                        }
                     }
                 }
-
-                OnStatusChanged("Quick connect failed");
-                return false;
             }
             catch (Exception ex)
             {
-                OnStatusChanged($"Quick connect error: {ex.Message}");
-                return false;
+                OnStatusChanged($"Failed to get profiles: {ex.Message}");
             }
+
+            return profiles;
         }
 
         /// <summary>

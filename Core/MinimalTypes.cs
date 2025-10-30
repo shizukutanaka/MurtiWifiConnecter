@@ -51,6 +51,15 @@ namespace MurtiWifiConnecter
         public override string ToString() => $"{SSID} ({SignalStrength}%)";
     }
 
+    public class WifiAdapterInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public bool IsUp { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
     // Connection result
     public class WifiConnectionResult
     {

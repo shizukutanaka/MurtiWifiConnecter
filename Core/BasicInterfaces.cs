@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,9 @@ namespace MurtiWifiConnecter
         Task<Result<string>> GetCurrentSSIDAsync(CancellationToken ct = default);
         Task<Result<NetworkInfo>> GetCurrentNetworkInfoAsync(CancellationToken ct = default);
         Task<Result<bool>> ValidateConnectionAsync(string ssid, CancellationToken ct = default);
+        Task<Result<IReadOnlyList<WifiAdapterInfo>>> GetAvailableAdaptersAsync(CancellationToken ct = default);
+        void SetPreferredAdapter(string? adapterName);
+        string? GetPreferredAdapter();
 
         event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
         event EventHandler<WifiErrorEventArgs>? ErrorOccurred;

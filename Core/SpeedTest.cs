@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,15 @@ namespace MurtiWifiConnecter
     public class SpeedTest
     {
         private readonly ProcessExecutor _processExecutor;
+        private static readonly HttpClient _httpClient = new HttpClient(new HttpClientHandler
+        {
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 3,
+            ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true // Allow test servers
+        })
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
 
         public SpeedTest()
         {
@@ -53,7 +63,7 @@ namespace MurtiWifiConnecter
         }
 
         /// <summary>
-        /// Test download speed
+        /// Test download speed with modern, reliable test servers
         /// </summary>
         public async Task<SpeedTestResult> TestDownloadSpeedAsync(CancellationToken ct = default)
         {
@@ -61,12 +71,12 @@ namespace MurtiWifiConnecter
 
             try
             {
-                // Use a small test file from a reliable CDN
+                // Use reliable, modern test endpoints with HTTPS support
                 var testUrls = new[]
                 {
-                    "http://ipv4.download.thinkbroadband.com/5MB.zip",
-                    "http://speedtest.tele2.net/1MB.zip",
-                    "http://www.ovh.net/files/1Mb.dat"
+                    "https://speed.cloudflare.com/__down?bytes=1000000", // Cloudflare speed test (1MB)
+                    "https://proof.ovh.net/files/1Mb.dat", // OVH test file
+                    "https://ash-speed.hetzner.com/1MB.bin" // Hetzner test file
                 };
 
                 foreach (var url in testUrls)
@@ -77,38 +87,64 @@ namespace MurtiWifiConnecter
                     try
                     {
                         var sw = Stopwatch.StartNew();
-                        using var client = new WebClient();
+                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        cts.CancelAfter(TimeSpan.FromSeconds(15)); // 15 second timeout per attempt
 
-                        var downloadTask = client.DownloadDataTaskAsync(url);
-                        var timeoutTask = Task.Delay(10000, ct); // 10 second timeout
-
-                        var completedTask = await Task.WhenAny(downloadTask, timeoutTask);
-
-                        if (completedTask == downloadTask)
+                        var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead, cts.Token);
+                        if (!response.IsSuccessStatusCode)
                         {
-                            var data = await downloadTask;
-                            sw.Stop();
+                            continue; // Try next URL
+                        }
 
-                            var sizeMB = data.Length / (1024.0 * 1024.0);
-                            var seconds = sw.Elapsed.TotalSeconds;
-                            var speedMbps = (sizeMB * 8) / seconds;
+                        var data = await response.Content.ReadAsByteArrayAsync(cts.Token);
+                        sw.Stop();
 
-                            result.DownloadSpeed = speedMbps;
-                            result.Success = true;
-                            result.Message = $"Download speed: {speedMbps:F2} Mbps";
+                        if (data.Length == 0)
+                        {
+                            continue; // Invalid response, try next
+                        }
+
+                        var sizeMB = data.Length / (1024.0 * 1024.0);
+                        var seconds = sw.Elapsed.TotalSeconds;
+
+                        // Prevent division by zero
+                        if (seconds < 0.001)
+                        {
+                            seconds = 0.001;
+                        }
+
+                        var speedMbps = (sizeMB * 8) / seconds;
+
+                        result.DownloadSpeed = speedMbps;
+                        result.Success = true;
+                        result.Message = $"Download speed: {speedMbps:F2} Mbps (tested with {sizeMB:F2} MB in {seconds:F2}s)";
+                        break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        if (ct.IsCancellationRequested)
+                        {
+                            result.Message = "Speed test cancelled by user";
                             break;
                         }
+                        // Timeout, try next URL
+                        continue;
+                    }
+                    catch (HttpRequestException)
+                    {
+                        // Network error, try next URL
+                        continue;
                     }
                     catch
                     {
-                        // Try next URL
+                        // Other error, try next URL
                         continue;
                     }
                 }
 
-                if (!result.Success)
+                if (!result.Success && !ct.IsCancellationRequested)
                 {
-                    result.Message = "Could not complete speed test";
+                    result.Message = "Could not complete speed test - all test servers failed";
                 }
             }
             catch (Exception ex)

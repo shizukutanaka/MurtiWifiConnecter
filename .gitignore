@@ -25,3 +25,27 @@ Desktop.ini
 
 # Application specific
 *.log
+*.bak
+*.tmp
+build_errors.txt
+murticonnect.log
+ComplianceReports/
+monitoring/data/
+monitoring/logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.dockerignore

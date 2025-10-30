@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 using System.Security;
 using System.Text.RegularExpressions;
 using System.Linq;
+using MurtiWifiConnecter.Core;
 
 namespace MurtiWifiConnecter
 {
@@ -15,11 +17,13 @@ namespace MurtiWifiConnecter
     {
         private readonly IProcessExecutor _processExecutor;
         private readonly SemaphoreSlim _operationLock;
+        private static string? _preferredAdapterName;
+        private static readonly object _adapterPreferenceLock = new();
         
         public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
         public event EventHandler<WifiErrorEventArgs>? ErrorOccurred;
 
-        public WifiOperations(IProcessExecutor processExecutor = null)
+        public WifiOperations(IProcessExecutor? processExecutor = null)
         {
             _processExecutor = processExecutor ?? new ProcessExecutor();
             _operationLock = new SemaphoreSlim(1, 1);
@@ -42,13 +46,17 @@ namespace MurtiWifiConnecter
 
             try
             {
+                var adapterArguments = await BuildAdapterArgumentAsync(ct).ConfigureAwait(false);
+
                 // Create and add profile
                 var profileResult = await AddProfileAsync(ssid, password, ct).ConfigureAwait(false);
                 if (!profileResult.IsSuccess)
                     return Result<WifiConnectionResult>.Failure(profileResult.Error);
 
                 // Optimized connection with adaptive timeout
-                var connectCmd = $"wlan connect name=\"{EscapeSSID(ssid)}\"";
+                var connectCmd = adapterArguments.Length == 0
+                    ? $"wlan connect name=\"{EscapeSSID(ssid)}\""
+                    : $"wlan connect name=\"{EscapeSSID(ssid)}\" {adapterArguments}";
                 const int maxConnectRetries = 2;
                 ProcessResult connectResult = null;
 
@@ -139,7 +147,13 @@ namespace MurtiWifiConnecter
                 // Clear connection cache on disconnect attempt
                 PerformanceOptimizations.UpdateConnectionCache("");
 
-                var result = await _processExecutor.RunAsync("netsh", "wlan disconnect", 3000);
+                var adapterArguments = await BuildAdapterArgumentAsync(ct).ConfigureAwait(false);
+
+                var disconnectCommand = string.IsNullOrEmpty(adapterArguments)
+                    ? "wlan disconnect"
+                    : $"wlan disconnect {adapterArguments}";
+
+                var result = await _processExecutor.RunAsync("netsh", disconnectCommand, 3000);
 
                 if (result.Success)
                 {
@@ -467,6 +481,143 @@ namespace MurtiWifiConnecter
         private void OnErrorOccurred(string errorMessage, Exception? exception = null, string? ssid = null, ErrorSeverity severity = ErrorSeverity.Warning, string? context = null)
         {
             ErrorOccurred?.Invoke(this, new WifiErrorEventArgs(errorMessage, exception, ssid, severity, context));
+        }
+
+        public async Task<Result<IReadOnlyList<WifiAdapterInfo>>> GetAvailableAdaptersAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                var result = await _processExecutor.RunAsync("netsh", "wlan show interfaces", 5000);
+                if (!result.Success || string.IsNullOrEmpty(result.Output))
+                    return Result<IReadOnlyList<WifiAdapterInfo>>.Failure(result.Error ?? "No adapter information available");
+
+                var adapters = ParseAdapters(result.Output);
+                return Result<IReadOnlyList<WifiAdapterInfo>>.Success(adapters);
+            }
+            catch (Exception ex)
+            {
+                return Result<IReadOnlyList<WifiAdapterInfo>>.Failure(ex.Message);
+            }
+        }
+
+        public void SetPreferredAdapter(string? adapterName)
+        {
+            lock (_adapterPreferenceLock)
+            {
+                _preferredAdapterName = string.IsNullOrWhiteSpace(adapterName) ? null : adapterName.Trim();
+            }
+        }
+
+        public string? GetPreferredAdapter()
+        {
+            lock (_adapterPreferenceLock)
+            {
+                return _preferredAdapterName;
+            }
+        }
+
+        private async Task<string> BuildAdapterArgumentAsync(CancellationToken ct)
+        {
+            string? preferred;
+            lock (_adapterPreferenceLock)
+            {
+                preferred = _preferredAdapterName;
+            }
+
+            if (string.IsNullOrWhiteSpace(preferred))
+                return string.Empty;
+
+            var adaptersResult = await GetAvailableAdaptersAsync(ct).ConfigureAwait(false);
+            if (!adaptersResult.IsSuccess)
+                return string.Empty;
+
+            var adapters = adaptersResult.Value;
+            var adapter = adapters
+                .FirstOrDefault(a => a.Name.Equals(preferred, StringComparison.OrdinalIgnoreCase) ||
+                                     a.Description.Equals(preferred, StringComparison.OrdinalIgnoreCase));
+
+            if (adapter == null)
+            {
+                lock (_adapterPreferenceLock)
+                {
+                    if (string.Equals(_preferredAdapterName, preferred, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _preferredAdapterName = null;
+                    }
+                }
+                return string.Empty;
+            }
+
+            return $"interface={InputValidator.QuoteForNetsh(adapter.Name)}";
+        }
+
+        private static IReadOnlyList<WifiAdapterInfo> ParseAdapters(string interfacesOutput)
+        {
+            var adapters = new List<WifiAdapterInfo>();
+            if (string.IsNullOrWhiteSpace(interfacesOutput))
+                return adapters;
+
+            var lines = interfacesOutput.Split('\n');
+            WifiAdapterInfo current = null;
+
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (string.IsNullOrEmpty(line))
+                {
+                    if (current != null && !string.IsNullOrEmpty(current.Name))
+                    {
+                        adapters.Add(current);
+                        current = null;
+                    }
+                    continue;
+                }
+
+                if (line.StartsWith("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (current != null && !string.IsNullOrEmpty(current.Name))
+                    {
+                        adapters.Add(current);
+                    }
+
+                    var parts = line.Split(':');
+                    if (parts.Length >= 2)
+                    {
+                        current = new WifiAdapterInfo
+                        {
+                            Name = string.Join(":", parts.Skip(1)).Trim()
+                        };
+                    }
+                    else
+                    {
+                        current = new WifiAdapterInfo();
+                    }
+                }
+                else if (current != null)
+                {
+                    if (line.StartsWith("Description", StringComparison.OrdinalIgnoreCase))
+                    {
+                        current.Description = line.Split(':').LastOrDefault()?.Trim() ?? string.Empty;
+                    }
+                    else if (line.StartsWith("GUID", StringComparison.OrdinalIgnoreCase))
+                    {
+                        current.Id = line.Split(':').LastOrDefault()?.Trim() ?? string.Empty;
+                    }
+                    else if (line.StartsWith("State", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var state = line.Split(':').LastOrDefault()?.Trim() ?? string.Empty;
+                        current.Status = state;
+                        current.IsUp = state.IndexOf("connected", StringComparison.OrdinalIgnoreCase) >= 0;
+                    }
+                }
+            }
+
+            if (current != null && !string.IsNullOrEmpty(current.Name))
+            {
+                adapters.Add(current);
+            }
+
+            return adapters;
         }
 
         public void Dispose()
