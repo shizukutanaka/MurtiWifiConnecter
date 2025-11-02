@@ -1,0 +1,43 @@
+{
+  // 基本設定
+  "AutoConnect": true,              // 起動時に自動接続するか
+  "ScanInterval": 30,               // ネットワークスキャン間隔（秒）
+  "ConnectionTimeout": 30,          // 接続タイムアウト（秒）
+  "RetryAttempts": 3,               // 接続リトライ回数
+
+  // UI設定
+  "EnableNotifications": true,      // 通知を表示するか
+  "ShowSignalBars": true,           // 信号強度バーを表示するか
+  "VerboseOutput": false,           // 詳細出力を有効にするか
+
+  // パフォーマンス設定
+  "CacheDuration": 30,              // キャッシュ有効期間（秒）
+  "AutoCleanupInterval": 60,        // 自動クリーンアップ間隔（分）
+
+  // セキュリティ設定
+  "DefaultSecurityType": "WPA2PSK", // デフォルトセキュリティタイプ
+  "RequireAdminPrivileges": true,   // 管理者権限を要求するか
+
+  // ログ設定
+  "LogLevel": "Info",               // ログレベル (Debug, Info, Warning, Error)
+  "MaxHistoryEntries": 10,          // 履歴の最大エントリ数
+
+  // ネットワーク設定
+  "PreferredNetworks": [],          // 優先ネットワークリスト
+
+  // 監視設定
+  "EnableTelemetry": true,          // テレメトリを有効にするか
+  "PerformanceMonitoring": true,    // パフォーマンス監視を有効にするか
+
+  // コンプライアンス設定
+  "ComplianceMode": "Standard",     // コンプライアンスモード (Standard, Strict, Audit)
+  "AuditLogRetention": 90,          // 監査ログ保持期間（日）
+
+  // 国際化設定
+  "DefaultLanguage": "en",          // デフォルト言語
+  "AutoDetectLanguage": true,       // 言語を自動検出するか
+
+  // デバッグ設定
+  "DebugMode": false,               // デバッグモードを有効にするか
+  "DeveloperOptions": false         // 開発者オプションを表示するか
+}

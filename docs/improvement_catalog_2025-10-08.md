@@ -1,0 +1,521 @@
+# MurtiWiFi Connecter Improvement Catalog / 改善カタログ (2025-10-08)
+
+## Security Hardening / セキュリティ強化
+- **[Security-001 零トラスト態勢/Zero Trust Posture]** `Core/SecurityManager.cs`でゼロトラスト評価フレームを導入し、ポリシーをリアルタイム適応します。Implement real-time zero-trust policy evaluation in `Core/SecurityManager.cs`.
+- **[Security-002 権限境界監査/Privilege Boundary Audit]** `Core/CommandExecution.cs`の権限昇格検知を強化し、不正なプロセス委譲を遮断します。Extend privilege escalation detection in `Core/CommandExecution.cs` to block unauthorized delegation.
+- **[Security-003 DPAPI鍵ローテーション/DPAPI Key Rotation]** `Core/CredentialManager.cs`にDPAPIマスターキーの定期ローテーション手順を追加します。Add scheduled DPAPI master key rotation support in `Core/CredentialManager.cs`.
+- **[Security-004 セッション封鎖/Session Containment]** `Core/SecurityManager.cs`でCLIセッションごとのコンテキスト隔離を実装し、漏洩リスクを最小化します。Implement per-session context isolation in `Core/SecurityManager.cs`.
+- **[Security-005 サンドボックス実行/Sandbox Execution]** `Core/CommandProcessor.cs`で危険コマンドをAppContainerサンドボックスへ委譲します。Route hazardous commands into Windows AppContainer sandbox via `Core/CommandProcessor.cs`.
+- **[Security-006 証跡完全性/Audit Integrity Sealing]** `Core/AuditTrail.cs`出力にハッシュチェーンを導入し、改ざんを検知します。Add hash-chain sealing to `Core/AuditTrail.cs` outputs to detect tampering.
+- **[Security-007 TLS証明書ピンニング/Certificate Pinning]** `Core/UpdateChecker.cs`でTLSピンニングを実装し、MITM攻撃を阻止します。Implement TLS certificate pinning in `Core/UpdateChecker.cs`.
+- **[Security-008 コマンド署名/Command Signing]** `Core/CommandDefinitionRegistry.cs`に署名検証を追加し、拡張モジュールを検証します。Add signature verification for extension modules in `Core/CommandDefinitionRegistry.cs`.
+- **[Security-009 セキュアログ/Protected Logging]** `Core/Logger.cs`で暗号化ログ出力をサポートし、重大情報を保護します。Enable encrypted log emission in `Core/Logger.cs` for sensitive events.
+- **[Security-010 メモリスクラビング/Memory Scrubbing]** `Core/CredentialManager.cs`で秘密情報のメモリ零化を徹底します。Enforce secure zeroization of secrets in `Core/CredentialManager.cs`.
+- **[Security-011 スレッド分離/Thread Isolation]** `Core/SecurityManager.cs`計算を分離スレッドで実行し、タイミング攻撃を緩和します。Run security-critical computations on isolated threads in `Core/SecurityManager.cs`.
+- **[Security-012 IPCアクセス制御/IPC Access Control]** `Core/AutomationEngine.cs`のIPCチャネルにACLを適用します。Apply ACL governance to IPC channels in `Core/AutomationEngine.cs`.
+- **[Security-013 キーストレージ監査/Key Storage Audit]** `Core/ConfigManager.cs`で暗号キー利用履歴を監査ログ化します。Log encryption key usage history within `Core/ConfigManager.cs`.
+- **[Security-014 モジュール検疫/Module Quarantine]** 不正DLL検出時に`Core/ModuleLoader.cs`が自動隔離します。Add automatic quarantine for suspicious DLLs in `Core/ModuleLoader.cs`.
+- **[Security-015 依存更新警告/Dependency Alerting]** `Core/SecurityManager.cs`でCVE情報を連携し、脆弱依存を通知します。Integrate CVE feeds into `Core/SecurityManager.cs` for vulnerable dependency alerts.
+- **[Security-016 二要素トークン/Two-Factor Tokens]** `Core/AuthManager.cs`にTOTP認証を追加し管理者操作を保護します。Add TOTP-based two-factor verification to `Core/AuthManager.cs`.
+- **[Security-017 エクスプロイト緩和/Exploit Mitigation]** `Core/NativeInterop.cs`にControl Flow Guard検証を追記します。Document Control Flow Guard requirements in `Core/NativeInterop.cs`.
+- **[Security-018 レート制限高度化/Advanced Rate Limits]** `Core/SecurityManager.cs`で動的レート制限を導入し攻撃を抑制します。Introduce adaptive rate limiting in `Core/SecurityManager.cs`.
+- **[Security-019 セキュリティプロファイル差分/Security Profile Diff]** `Core/SecurityScanner.cs`で構成差異を比較し逸脱を通知します。Add diff reporting for security profiles in `Core/SecurityScanner.cs`.
+- **[Security-020 秘密管理UI/Secret Management UI]** `SimpleCLI.cs`に秘密一覧コマンドを追加し安全に閲覧します。Add secure secret listing command to `SimpleCLI.cs`.
+- **[Security-021 インタラクティブ警告/Interactive Alerts]** `Core/UIHelper.cs`に警告優先度の可変フラグを追加します。Enable priority-based security alerts via `Core/UIHelper.cs`.
+- **[Security-022 OTPバックアップ/OTP Backup Codes]** `Core/AuthManager.cs`で一時コード生成を提供します。Provide OTP backup codes in `Core/AuthManager.cs`.
+- **[Security-023 アダプティブアラート/Adaptive Alerting]** `Core/AlertEngine.cs`に重み付けモデルを導入します。Add weighted adaptive alerting to `Core/AlertEngine.cs`.
+- **[Security-024 マシン承認/Device Attestation]** `Core/SecurityManager.cs`でWindowsデバイスガード署名を確認します。Validate Device Guard attestation in `Core/SecurityManager.cs`.
+- **[Security-025 監査マクロ/Script Integrity Guard]** `Core/AutomationEngine.cs`でスクリプトのハッシュ検証を必須化します。Enforce script hash validation in `Core/AutomationEngine.cs`.
+- **[Security-026 認証ログ分類/Auth Log Classification]** `Core/Logger.cs`で認証イベント分類タグを付与します。Tag authentication events in `Core/Logger.cs`.
+- **[Security-027 エンドポイント遮断/Endpoint Isolation]** `Core/NetworkOperations.cs`で疑わしいアクセス先を遮断します。Block suspicious endpoints via `Core/NetworkOperations.cs`.
+- **[Security-028 メール通知暗号化/Encrypted Notifications]** `Core/NotificationDispatcher.cs`でPGP暗号化をサポートします。Support PGP encrypted notifications in `Core/NotificationDispatcher.cs`.
+- **[Security-029 ハイブリッド鍵管理/Hybrid Key Management]** `Core/SecurityManager.cs`でハイブリッド暗号を提供します。Provide hybrid key lifecycle management in `Core/SecurityManager.cs`.
+- **[Security-030 スクリプト検疫/Script Quarantine]** `Core/AutomationEngine.cs`で外部スクリプトを実行前チェックします。Quarantine and scan external scripts via `Core/AutomationEngine.cs`.
+- **[Security-031 プロセス整合性/Process Integrity Monitor]** `Core/SystemHealthMonitor.cs`でプロセス整合性監視を追加します。Add process integrity monitoring in `Core/SystemHealthMonitor.cs`.
+- **[Security-032 パスワード方針/Password Policy Enforcement]** `Core/CredentialManager.cs`で強制的な長さ・複雑度を導入します。Enforce password policy in `Core/CredentialManager.cs`.
+- **[Security-033 機械学習防御/ML Threat Detection]** `Core/SecurityAnalytics.cs`にML検出器を導入します。Integrate ML-based threat detection in `Core/SecurityAnalytics.cs`.
+- **[Security-034 ハニーポットSSID/Honeypot SSID Detection]** `Core/AdvancedScanner.cs`で偽AP検知ロジックを強化します. Improve rogue AP detection in `Core/AdvancedScanner.cs`.
+- **[Security-035 認証失敗連携/Failed Login Correlation]** `Core/AuditTrail.cs`で失敗イベントを相関分析します。Correlate failed authentications in `Core/AuditTrail.cs`.
+- **[Security-036 プロファイル暗号/Encrypted Profiles]** `Core/ProfileManager.cs`でWiFiプロファイルをAES暗号化します。Encrypt WiFi profiles using AES in `Core/ProfileManager.cs`.
+- **[Security-037 強制ログイン制御/Forced Login Control]** `Core/CommandProcessor.cs`で認証必須コマンドを管理します。Require authentication for critical commands within `Core/CommandProcessor.cs`.
+- **[Security-038 セッションタイムアウト/Session Timeout]** `Core/SessionManager.cs`を追加し、非活動セッションを終了します。Add `Core/SessionManager.cs` to expire inactive sessions.
+- **[Security-039 コンフィグ暗号鍵/Config Encryption Key]** `Core/ConfigManager.cs`で設定暗号化を標準化します。Standardize config encryption in `Core/ConfigManager.cs`.
+- **[Security-040 機微データ分類/Sensitive Data Classification]** `Core/SensitiveDataHelper.cs`に分類タグを追加します。Add classification tags to `Core/SensitiveDataHelper.cs`.
+- **[Security-041 Webhook検証/Webhook Validation]** `Core/Billing/StripeWebhookHandler.cs`に署名検証を強化します。Strengthen signature verification in `Core/Billing/StripeWebhookHandler.cs`.
+- **[Security-042 USB制御/USB Control Hooks]** `Core/SecurityManager.cs`でUSB接続制御を提供します。Add hooks to control USB connections in `Core/SecurityManager.cs`.
+- **[Security-043 プロファイル改ざん検知/Profile Tamper Detection]** `Core/ProfileIntegrityMonitor.cs`を追加し改ざんを検知します。Add `Core/ProfileIntegrityMonitor.cs` to detect tampering.
+- **[Security-044 Firewall整合性/Firewall Alignment]** `Core/NetworkOperations.cs`でWindows Firewallポリシーを同期します。Synchronize firewall policy via `Core/NetworkOperations.cs`.
+- **[Security-045 Netsh出力サニタイズ/Netsh Output Sanitization]** `Core/NetworkParser.cs`で危険出力を除去します。Sanitize netsh outputs in `Core/NetworkParser.cs`.
+- **[Security-046 PowerShell抑止/PowerShell Constrained Mode]** `Core/AutomationEngine.cs`でPowerShell実行を制限します。Enforce constrained PowerShell sessions via `Core/AutomationEngine.cs`.
+- **[Security-047 TLSバージョン固定/TLS Version Pinning]** `Core/HttpClientFactory.cs`でTLS1.2+を強制します。Force TLS 1.2+ via `Core/HttpClientFactory.cs`.
+- **[Security-048 ドライバ監査/Driver Certificate Audit]** ネットワークドライバ署名を`Core/SystemHealthMonitor.cs`で監査します。Audit driver signatures using `Core/SystemHealthMonitor.cs`.
+- **[Security-049 Credential Guard統合/Credential Guard Integration]** Windows Credential Guardと連携し`Core/CredentialManager.cs`を保護します。Integrate with Credential Guard to protect `Core/CredentialManager.cs`.
+- **[Security-050 ロールベースポリシー/Role-Based Policies]** `Core/SecurityManager.cs`でロール別許可セットを提供します。Provide role-based policy sets in `Core/SecurityManager.cs`.
+
+## Compliance & Audit / コンプライアンス・監査
+- **[Compliance-051 SOC2証跡深化/SOC2 Evidence Depth]** `docs/compliance/soc2.md`に証跡テンプレートを追加し、監査対応を効率化します。Add SOC 2 evidence templates to `docs/compliance/soc2.md`.
+- **[Compliance-052 GDPRデータ地図/GDPR Data Mapping]** `docs/compliance/gdpr.md`でデータライフサイクル地図を提供します。Provide GDPR data lifecycle mapping in `docs/compliance/gdpr.md`.
+- **[Compliance-053 HIPAA監査項目/HIPAA Checklist]** `docs/compliance/hipaa.md`に監査ポイントを列挙します。Enumerate HIPAA audit checkpoints in `docs/compliance/hipaa.md`.
+- **[Compliance-054 ISO27001 ISMS統合/ISMS Integration]** `Core/ComplianceFramework.cs`でISMSメトリクスを追跡します。Track ISMS metrics via `Core/ComplianceFramework.cs`.
+- **[Compliance-055 PCI証跡/PCI Evidence Packaging]** `Core/AuditTrail.cs`でPCI向けラベル付けを実装します。Label PCI-specific evidence in `Core/AuditTrail.cs`.
+- **[Compliance-056 NIST CSFギャップ/NIST CSF Gap Analysis]** `docs/compliance/nist_csf.md`でギャップ分析テンプレートを追加します。Add NIST CSF gap analysis templates to `docs/compliance/nist_csf.md`.
+- **[Compliance-057 ログ保存方針/Log Retention Policy]** `docs/policies/log_retention.md`を作成し、保存期間を明示します。Create explicit log retention policy in `docs/policies/log_retention.md`.
+- **[Compliance-058 データ削除証跡/Data Deletion Evidence]** `Core/DataLifecycleManager.cs`で削除プロセスを記録します。Record deletion workflows via `Core/DataLifecycleManager.cs`.
+- **[Compliance-059 監査API/Audit API Exposure]** `Core/AuditTrail.cs`にRESTエクスポート機能を追加します。Expose audit exports through REST in `Core/AuditTrail.cs`.
+- **[Compliance-060 権限証跡/Privilege Grant Tracking]** `Core/SecurityManager.cs`で権限付与履歴を保存します。Persist privilege grant history in `Core/SecurityManager.cs`.
+- **[Compliance-061 バックアップ監査/Backup Auditability]** `Core/BackupManager.cs`に監査メタデータを付与します。Attach audit metadata to backups via `Core/BackupManager.cs`.
+- **[Compliance-062 プロセス文書化/Process Documentation]** `docs/runbooks/`配下に準拠作業手順を蓄積します。Document compliance runbooks under `docs/runbooks/`.
+- **[Compliance-063 リスク登録/Risk Register Alignment]** `docs/risk_register.md`でリスク評価を更新します。Update risk register in `docs/risk_register.md`.
+- **[Compliance-064 証跡改ざん検知/Evidence Tamper Detection]** `Core/AuditTrail.cs`で証跡の署名検証を実施します。Implement evidence signature validation in `Core/AuditTrail.cs`.
+- **[Compliance-065 データ主体要求/DSR Handling]** `Core/PrivacyManager.cs`でデータ主体要求管理を提供します。Add DSR management to `Core/PrivacyManager.cs`.
+- **[Compliance-066 プライバシー影響評価/PIA Templates]** `docs/privacy/pia_template.md`を用意します。Provide PIA templates in `docs/privacy/pia_template.md`.
+- **[Compliance-067 監査ウェブフック/Audit Webhooks]** `Core/AuditTrail.cs`でSIEM連携Webhookを追加します。Add SIEM webhook integration to `Core/AuditTrail.cs`.
+- **[Compliance-068 タグ分類/Classified Logging Tags]** `Core/Logger.cs`に監査カテゴリタグを設定します。Set audit category tags in `Core/Logger.cs`.
+- **[Compliance-069 多拠点監査/Multi-site Evidence Sync]** `Core/AuditTrailReplicator.cs`で多拠点同期を実装します。Implement multi-site evidence replication via `Core/AuditTrailReplicator.cs`.
+- **[Compliance-070 プロセス可視化/Compliance Workflow Visualization]** `docs/compliance/workflow.mmd`にMermaid図を掲載します。Publish compliance workflows in `docs/compliance/workflow.mmd`.
+- **[Compliance-071 監査アクセス制御/Audit Access Control]** `Core/AuditTrail.cs`にRBACを導入します。Introduce RBAC to `Core/AuditTrail.cs`.
+- **[Compliance-072 クライアント開示報告/Client Disclosure Report]** `docs/compliance/disclosure_template.md`を提供します。Add disclosure report template in `docs/compliance/disclosure_template.md`.
+- **[Compliance-073 内部監査計画/Internal Audit Planner]** `docs/compliance/internal_audit_plan.md`を整備します。Create internal audit plan document.
+- **[Compliance-074 自動証跡収集/Automated Evidence Collection]** `Core/ComplianceFramework.cs`で証跡収集ジョブを動かします。Automate evidence gathering via `Core/ComplianceFramework.cs`.
+- **[Compliance-075 顧客監査支援/Customer Audit Support]** `docs/compliance/customer_audit_faq.md`を作成します。Create customer audit FAQ document.
+- **[Compliance-076 地理的制限/Geo Restrictions]** `Core/DataLifecycleManager.cs`で地域別データ配置を制御します。Control geo data placement in `Core/DataLifecycleManager.cs`.
+- **[Compliance-077 メタデータ追跡/Metadata Tracking]** `Core/ConfigManager.cs`で設定変更の規制メタデータを保持します。Keep regulatory metadata on config changes via `Core/ConfigManager.cs`.
+- **[Compliance-078 サンプル診断報告/Sample Compliance Reports]** `docs/compliance/report_samples/`に雛形を追加します。Provide sample compliance reports under `docs/compliance/report_samples/`.
+- **[Compliance-079 証跡保持SLA/Evidence SLA]** `docs/policies/evidence_sla.md`で保持SLAを明文化します。Define evidence retention SLA.
+- **[Compliance-080 エクスポート追跡/Data Export Tracking]** `Core/DataExportManager.cs`でエクスポート監査を実装します。Audit data exports in `Core/DataExportManager.cs`.
+- **[Compliance-081 GDPR同意管理/Consent Management]** `Core/PrivacyManager.cs`で同意変更履歴を保持します。Track consent changes via `Core/PrivacyManager.cs`.
+- **[Compliance-082 監査用CLI/Audit CLI Tools]** `SimpleCLI.cs`に監査操作ショートカットを追加します。Add audit CLI shortcuts in `SimpleCLI.cs`.
+- **[Compliance-083 DLP統合/DLP Integration]** `Core/SecurityManager.cs`でDLPイベントを取り込みます。Integrate DLP signals in `Core/SecurityManager.cs`.
+- **[Compliance-084 監査証明API/Evidence Verification API]** `Core/AuditTrail.cs`に署名検証APIを追加します。Add evidence verification API to `Core/AuditTrail.cs`.
+- **[Compliance-085 エシック指針/Ethics Charter]** `docs/policies/ethics.md`で倫理方針を公開します。Publish ethics charter.
+- **[Compliance-086 監査カレンダー/Audit Calendar Automation]** `Core/ComplianceScheduler.cs`で監査イベントを自動化します。Automate audit calendar via `Core/ComplianceScheduler.cs`.
+- **[Compliance-087 高頻度証跡/High-frequency Evidence Capture]** `Core/AuditTrail.cs`で秒単位イベント取得を最適化します。Optimize high-frequency evidence capture.
+- **[Compliance-088 顧客共有ポータル/Customer Evidence Portal]** `docs/portal/customer_evidence.md`で共有プロセスを定義します。Define customer evidence sharing portal.
+- **[Compliance-089 コンプライアンスBI/Compliance BI Dashboard]** `docs/compliance/dashboard_spec.md`にBI仕様をまとめます。Document compliance BI dashboard specs.
+- **[Compliance-090 定期レビュー提案/Periodic Review Automation]** `Core/ComplianceFramework.cs`でレビューリマインダを送付します。Send periodic review reminders.
+- **[Compliance-091 証跡翻訳/Multilingual Evidence]** `docs/compliance/translations/`で主要証跡を多言語化します。Localize evidence documentation.
+- **[Compliance-092 リークシミュレーション/Breach Simulation Drills]** `docs/runbooks/breach_simulation.md`で訓練手順を追加します。Add breach drill procedures.
+- **[Compliance-093 契約遵守チェック/Contract Compliance Checks]** `Core/ComplianceFramework.cs`で契約条項を念押しします。Check contractual obligations via `Core/ComplianceFramework.cs`.
+- **[Compliance-094 監査メトリクス/KPI Dashboard]** `Core/AuditMetricsCollector.cs`を追加し KPI を集計します。Add `Core/AuditMetricsCollector.cs` for KPI aggregation.
+- **[Compliance-095 証跡匿名化/Anonymized Evidence Sets]** `Core/AuditTrail.cs`で匿名化エクスポートを提供します。Offer anonymized evidence exports.
+- **[Compliance-096 コンプライアンス教育/Compliance Training Tracker]** `docs/compliance/training_tracker.md`を用意します。Provide compliance training tracker.
+- **[Compliance-097 第三者監査連携/Third-party Audit Integration]** `Core/ComplianceFramework.cs`で外部監査APIを連携します。Integrate third-party audit APIs.
+- **[Compliance-098 監査差分レポート/Diff Reports]** `docs/compliance/diff_reports.md`で監査差分出力手順を文書化します。Document audit diff reporting.
+- **[Compliance-099 監査証跡インデックス/Indexed Evidence Storage]** `Core/AuditTrail.cs`でメタデータインデックスを構築します。Build metadata index for evidence.
+- **[Compliance-100 リテンション自動失効/Retention Auto Expiry]** `Core/AuditTrail.cs`で期限到来証跡を自動削除します。Auto-expire evidence past retention.
+
+## Performance & Scalability / 性能と拡張性
+- **[Performance-101 スレッドプール最適化/Thread Pool Optimization]** `Core/NetworkOperations.cs`で非同期タスク分配を調整します。Tune async task distribution in `Core/NetworkOperations.cs`.
+- **[Performance-102 キャッシュ粒度最適化/Cache Granularity]** `Core/CacheManager.cs`で細粒度キャッシュを導入します。Introduce fine-grained caching via `Core/CacheManager.cs`.
+- **[Performance-103 起動プレフライト削減/Startup Prefetch Reduction]** `Program.cs`で遅延初期化を強化します।Enhance lazy initialization in `Program.cs`.
+- **[Performance-104 ネットワークスキャン分散/Distributed Scan Scheduling]** `Core/OptimizedWifiScanner.cs`に分散ポーリングを追加します。Add distributed polling to `Core/OptimizedWifiScanner.cs`.
+- **[Performance-105 CLIレスポンス高速化/CLI Response Fast Path]** `SimpleCLI.cs`で頻出コマンドのショートパスを定義します。Define fast path for CLI commands in `SimpleCLI.cs`.
+- **[Performance-106 メモリプール/Memory Pooling]** `Core/BufferPool.cs`を導入し割当コストを削減します。Introduce `Core/BufferPool.cs` for memory pooling.
+- **[Performance-107 I/Oパイプライン最適化/I/O Pipeline Optimization]** `Core/LogWriter.cs`で非同期I/Oを改善します。Improve async IO in `Core/LogWriter.cs`.
+- **[Performance-108 プロファイルロード圧縮/Profile Load Compression]** `Core/ProfileManager.cs`で圧縮読み込みを実装します。Implement compressed profile loads.
+- **[Performance-109 監視タスク合流/Monitor Task Coalescing]** `Core/SystemHealthMonitor.cs`でタスク合流を追加します。Coalesce monitoring tasks.
+- **[Performance-110 バッチ更新/Batch Updates]** `Core/AutomationEngine.cs`で大量更新をバッチ化します。Batch large updates in `Core/AutomationEngine.cs`.
+- **[Performance-111 CPUピン留め/CPU Affinity Guidance]** `docs/performance/cpu_affinity.md`にチューニング手順を記載します。Document CPU affinity tuning.
+- **[Performance-112 ネットワークレスポンスキャッシュ/Network Response Cache]** `Core/NetworkOperations.cs`でレスポンスキャッシュを導入します。Cache network responses in `Core/NetworkOperations.cs`.
+- **[Performance-113 低遅延タイマー/Low Latency Timers]** `Core/Scheduler.cs`に高精度タイマーサポートを追加します。Add high-resolution timers to `Core/Scheduler.cs`.
+- **[Performance-114 逐次統計更新/Streaming Stats]** `Core/StatisticsManager.cs`でストリーム集計を行います。Implement streaming stats in `Core/StatisticsManager.cs`.
+- **[Performance-115 エネルギープロファイル/Power Profile Optimization]** `Core/PowerManager.cs`を導入し省電力動作を支援します。Add `Core/PowerManager.cs` for energy optimization.
+- **[Performance-116 プロセス優先度制御/Process Priority Control]** `Core/CommandExecution.cs`で優先度制御を提供します。Expose process priority controls.
+- **[Performance-117 高速JSONパーサ/Fast JSON Parsing]** `Core/JsonHelper.cs`で`System.Text.Json`Source Generationを利用します。Use source-generated JSON parsing in `Core/JsonHelper.cs`.
+- **[Performance-118 遅延ロガー/Deferred Logging]** `Core/Logger.cs`にバッファロギングを追加します。Add buffered logging support.
+- **[Performance-119 メトリクス圧縮/Metrics Compression]** `Core/TelemetryExporter.cs`でメトリクス圧縮を実装します。Compress telemetry metrics.
+- **[Performance-120 セッション再利用/Session Reuse]** `Core/AutomationEngine.cs`でセッション再利用プールを導入します。Introduce session reuse pool.
+- **[Performance-121 ガベージ圧力監視/GC Pressure Watch]** `Core/SystemHealthMonitor.cs`でGC指標を監視します。Monitor GC pressure metrics.
+- **[Performance-122 非同期証跡書込/Async Audit Writes]** `Core/AuditTrail.cs`で非同期書き込みを実装します。Implement async audit writes.
+- **[Performance-123 プロファイル差分適用/Profile Diff Application]** `Core/ProfileManager.cs`で差分適用を行います。Apply profile diffs.
+- **[Performance-124 スレッド診断/Thread Diagnostics]** `Core/DiagnosticsEngine.cs`を追加しスレッド状態を追跡します。Add `Core/DiagnosticsEngine.cs` for thread tracking.
+- **[Performance-125 遅延CLI描画/Deferred CLI Rendering]** `SimpleCLI.cs`で仮想レンダリングを実施します。Implement deferred CLI rendering.
+- **[Performance-126 マルチアダプタ処理/Multi Adapter Handling]** `Core/NetworkOperations.cs`で複数WiFiアダプタを並列制御します。Parallelize multi-adapter operations.
+- **[Performance-127 自動バッファ調整/Auto Buffer Tuning]** `Core/BufferPool.cs`で動的サイズ調整を実装します。Implement dynamic buffer tuning.
+- **[Performance-128 接続再試行ベクトル/Retry Vector Optimization]** `Core/ConnectionManager.cs`で動的バックオフを調整します。Tune adaptive backoff.
+- **[Performance-129 プロセス監視ウィンドウ/Process Observation Window]** `Core/SystemHealthMonitor.cs`で高速監視ウィンドウを導入します。Introduce fast observation windows.
+- **[Performance-130 CLIキャッシュ/CLI Output Cache]** `SimpleCLI.cs`で再利用可能な出力キャッシュを追加します。Add reusable CLI output cache.
+- **[Performance-131 プロファイル同期並列化/Profile Sync Parallelism]** `Core/ProfileManager.cs`で並列同期をサポートします。Support parallel profile sync.
+- **[Performance-132 ヒートマップ生成/Performance Heatmap]** `docs/performance/heatmap.md`で可視化します。Visualize performance heatmaps.
+- **[Performance-133 ネットワーク経路最適化/Route Optimization]** `Core/NetworkOptimizer.cs`で最適経路を推奨します。Recommend optimal routes.
+- **[Performance-134 スロットリング制御/Throttling Control]** `Core/SecurityManager.cs`でスロットリングを細分化します。Refine throttling controls.
+- **[Performance-135 大容量ログ処理/Large Log Processing]** `Core/LogWriter.cs`で分割書き込みを導入します。Implement segmented logging.
+- **[Performance-136 CLIヒストリ最適化/History Storage Optimization]** `Core/CommandExecution.cs`で圧縮保存を行います。Compress command history.
+- **[Performance-137 オフライン同期モード/Offline Sync Mode]** `Core/NetworkOperations.cs`でオフライン同期モードを提供します。Provide offline sync mode.
+- **[Performance-138 監視間隔自動調整/Auto Monitor Interval]** `Core/SystemHealthMonitor.cs`でAIによる間隔調整を実装します。Auto-adjust monitoring interval with AI.
+- **[Performance-139 ネットワークQoS調整/QoS Tuning]** `Core/NetworkOperations.cs`でQoSを制御します。Control QoS parameters.
+- **[Performance-140 キャッシュ整合性/Cache Coherency Checks]** `Core/CacheManager.cs`で整合性検証を追加します。Add cache coherency validation.
+- **[Performance-141 CLIマクロ執行/CLI Macro Execution]** `Core/CommandProcessor.cs`でマクロを一括処理します。Batch CLI macros.
+- **[Performance-142 フォールバックラダー/Fallback Ladder Optimization]** `Core/ConnectionManager.cs`でフォールバック順序を最適化します。Optimize fallback ladder.
+- **[Performance-143 アナリティクスGPU支援/GPU Acceleration]** `Core/NetworkAnalytics.cs`でGPU支援分析を検討します。Explore GPU acceleration.
+- **[Performance-144 パフォーマンステストシナリオ/Perf Test Suites]** `tests/performance/`にシナリオを追加します。Add performance test suites.
+- **[Performance-145 プロファイル事前検証/Profile Preflight Validation]** `Core/ProfileManager.cs`で事前検証を行います。Preflight validate profiles.
+- **[Performance-146 設定読み込み高速化/Fast Config Load]** `Core/ConfigManager.cs`でプリキャッシュします。Pre-cache configuration.
+- **[Performance-147 CLIヘルプ生成高速化/Help Generation Speedup]** `SimpleCLI.cs`でヘルプ生成をキャッシュします。Cache help generation.
+- **[Performance-148 複数監視拠点サポート/Multi-probe Support]** `Core/RealtimeMonitor.cs`で複数拠点を統合します。Integrate multi-probe monitoring.
+- **[Performance-149 リングバッファログ/Ring Buffer Logs]** `Core/Logger.cs`でリングバッファを導入します。Introduce ring buffer logging.
+- **[Performance-150 バックグラウンド同期/Background Sync Prioritization]** `Core/AutomationEngine.cs`で低優先同期を調整します。Prioritize background sync tasks.
+
+## Automation & Orchestration / 自動化・オーケストレーション
+- **[Automation-151 ルール依存解析/Rule Dependency Analyzer]** `Core/AutomationEngine.cs`でルール依存関係を解析します。Analyze rule dependencies.
+- **[Automation-152 シナリオテンプレート/Scenario Templates]** `docs/automation/scenarios.md`でテンプレートを提供します。Provide automation scenario templates.
+- **[Automation-153 オーケストレータAPI/Orchestrator API]** `Core/AutomationGateway.cs`でAPI連携を提供します。Expose automation API.
+- **[Automation-154 条件チェーン/Conditional Chain Execution]** `Core/AutomationEngine.cs`で条件チェーンを支援します。Support conditional chains.
+- **[Automation-155 リアルタイム調整/Real-time Orchestration]** `Core/AutomationEngine.cs`でリアルタイム調整を可能にします。Enable real-time orchestration tuning.
+- **[Automation-156 オーケストレーションビュー/Automation Dashboard]** `docs/automation/dashboard_spec.md`を作成します。Document automation dashboard.
+- **[Automation-157 再利用ワークフロー/Reusable Workflows]** `Core/WorkflowLibrary.cs`を導入します。Introduce `Core/WorkflowLibrary.cs`.
+- **[Automation-158 テンプレート化CLI/Automation CLI Wizards]** `SimpleCLI.cs`にウィザードを実装します。Add automation wizards.
+- **[Automation-159 自己修復標準化/Self-healing Standards]** `Core/AutomationEngine.cs`で自己修復パターンを標準化します。Standardize self-healing patterns.
+- **[Automation-160 連携タスクスケジューラ/Task Scheduler Integration]** Windows Task Schedulerを`Core/AutomationScheduler.cs`で連携します。Integrate with Task Scheduler.
+- **[Automation-161 異常検知ルール/Anomaly Response Rules]** `Core/AutomationEngine.cs`に異常検知対応ルールを実装します。Implement anomaly response rules.
+- **[Automation-162 ルールテストハーネス/Rule Test Harness]** `tests/automation/RuleTests.cs`でルールテストを提供します。Add automation rule tests.
+- **[Automation-163 並列実行制御/Parallel Execution Control]** `Core/AutomationEngine.cs`で並列度を制御します。Control automation parallelism.
+- **[Automation-164 ルールバージョン管理/Rule Versioning]** `Core/AutomationEngine.cs`でバージョン管理を実装します。Version automation rules.
+- **[Automation-165 オーケストレーション監査/Automation Audit Logging]** `Core/AutomationEngine.cs`内で詳細監査を残します。Log automation actions.
+- **[Automation-166 スケジュール視覚化/Schedule Visualization]** `docs/automation/schedule_view.md`に視覚化します。Visualize schedules.
+- **[Automation-167 失敗復旧ガイド/Failure Recovery Guide]** `docs/automation/recovery_runbook.md`を作成します。Document recovery runbook.
+- **[Automation-168 ダイナミック入力/Dynamic Input Binding]** `Core/AutomationEngine.cs`で動的入力マップを導入します。Introduce dynamic input binding.
+- **[Automation-169 モジュール追加フック/Module Hooking]** `Core/AutomationEngine.cs`で外部モジュールフックを提供します。Provide external module hooks.
+- **[Automation-170 オートメーションCI/CD統合/Automation CI Hooks]** `docs/automation/ci_pipeline.md`でCI統合を設計します。Design automation CI integration.
+- **[Automation-171 SLA対応ルール/SLA-aware Rules]** `Core/AutomationEngine.cs`でSLAトリガを実装します。Implement SLA-aware triggers.
+- **[Automation-172 実行依頼API/Execution Request API]** `Core/AutomationGateway.cs`に実行依頼APIを追加します。Expose execution request API.
+- **[Automation-173 ルール統計/Rule Statistics]** `Core/AutomationEngine.cs`で成功率統計を集計します。Collect rule statistics.
+- **[Automation-174 バリデーションDSL/Validation DSL]** ルール検証DSLを`Core/AutomationEngine.cs`に導入します。Add validation DSL.
+- **[Automation-175 ブループリント管理/Blueprint Management]** `docs/automation/blueprints/`でブループリントを整理します。Maintain blueprint library.
+- **[Automation-176 ルールチューナ/Tuning Assistant]** `Core/AutomationTuner.cs`を導入します。Add `Core/AutomationTuner.cs`.
+- **[Automation-177 戦術ログ/Tactical Automation Logs]** `Core/AutomationEngine.cs`で戦術的ログチャンネルを追加します。Add tactical log channel.
+- **[Automation-178 自動ロールバック/Automated Rollback]** `Core/AutomationEngine.cs`でロールバック姿勢を構築します。Enable automation rollback.
+- **[Automation-179 セーフガード/Automation Safeguards]** `Core/AutomationEngine.cs`でフェイルセーフを追加します。Implement fail-safes.
+- **[Automation-180 成功パターン推薦/Success Pattern Recommendation]** `Core/AutomationEngine.cs`で推奨ルールを表示します。Recommend success patterns.
+- **[Automation-181 ドリフト補正/Drift Correction Rules]** `Core/AutomationEngine.cs`で構成ドリフト補正を行います。Correct drift automatically.
+- **[Automation-182 エスカレーション連携/Escalation Integration]** `Core/AutomationEngine.cs`でエスカレ通報を行います。Integrate escalation workflows.
+- **[Automation-183 ルールコレクションAPI/Rule Collection API]** `Core/AutomationGateway.cs`でルールコレクションを公開します。Publish rule collections API.
+- **[Automation-184 自動優先度付け/Automated Prioritization]** `Core/AutomationEngine.cs`で優先度算出を行います。Compute automation priorities.
+- **[Automation-185 フィードバックループ/Feedback Loop Integration]** `Core/AutomationEngine.cs`でフィードバックLOOPを実装します。Implement feedback loops.
+- **[Automation-186 連携ジョブ管理/Job Coordination]** `Core/AutomationScheduler.cs`でジョブ依存を管理します。Manage job dependencies.
+- **[Automation-187 アクションライブラリ/Action Library Expansion]** `Core/AutomationActions.cs`を拡張します。Expand automation actions.
+- **[Automation-188 ルール実行シミュレータ/Rule Execution Simulator]** `tests/automation/RuleSimulator.cs`を追加します。Add rule simulator tests.
+- **[Automation-189 CLIバッチ適用/CLI Batch Apply]** `SimpleCLI.cs`でバッチ適用コマンドを提供します。Provide batch apply command.
+- **[Automation-190 ワークフロータグ/Workflow Tagging]** `Core/AutomationEngine.cs`にタグベース分類を追加します。Add tag-based classification.
+- **[Automation-191 ガバナンスレポート/Governance Report]** `docs/automation/governance_report.md`を作成します。Create governance report.
+- **[Automation-192 ランブック生成/Runbook Generation]** `Core/AutomationEngine.cs`で自動ランブック生成を行います。Auto-generate runbooks.
+- **[Automation-193 ルールサンドボックス/Rule Sandbox]** `Core/AutomationEngine.cs`でテスト実行環境を提供します。Provide rule sandbox.
+- **[Automation-194 フロー制約検出/Flow Constraint Detection]** `Core/AutomationEngine.cs`で制約検知を実装します。Detect flow constraints.
+- **[Automation-195 APIレートシェイパ/API Rate Shaper]** `Core/AutomationEngine.cs`でAPI呼出負荷を調整します。Shape API load.
+- **[Automation-196 ルール自動アーカイブ/Rule Auto-Archive]** `Core/AutomationEngine.cs`で休眠ルールをアーカイブします。Auto-archive dormant rules.
+- **[Automation-197 プロビジョニング統合/Provisioning Integration]** `Core/AutomationEngine.cs`でCMDBと連携します。Integrate with CMDB.
+- **[Automation-198 コマンドステップ検証/Command Step Validation]** `Core/AutomationEngine.cs`で各ステップを事前検査します。Prevalidate command steps.
+- **[Automation-199 影響範囲分析/Blast Radius Estimator]** `Core/AutomationEngine.cs`で影響範囲を推定します。Estimate automation blast radius.
+- **[Automation-200 ドキュメント連携/Documentation Sync]** `docs/automation/`と自動同期を構築します。Sync automation docs.
+
+## Monitoring & Observability / 監視と可観測性
+- **[Monitoring-201 メトリクス階層/Hierarchical Metrics]** `Core/TelemetryCollector.cs`で階層メトリクスを導入します。Introduce hierarchical metrics.
+- **[Monitoring-202 リアルタイムUI/Real-time UI Overlay]** `SimpleCLI.cs`でリアルタイムUIを描画します。Render real-time UI.
+- **[Monitoring-203 SLOトラッキング/SLO Tracking]** `Core/TelemetryCollector.cs`でSLOを追跡します。Track SLO metrics.
+- **[Monitoring-204 エンドツーエンド遅延/E2E Latency Tracking]** `Core/TelemetryCollector.cs`で遅延測定を実装します。Measure end-to-end latency.
+- **[Monitoring-205 可観測性SDK/Observability SDK]** `Core/TelemetrySDK.cs`を提供します。Provide observability SDK.
+- **[Monitoring-206 分散トレーシング/Distributed Tracing]** `Core/TracingManager.cs`を導入します。Introduce distributed tracing manager.
+- **[Monitoring-207 アラートテンプレート/Alert Templates]** `docs/monitoring/alert_templates.md`を整備します。Document alert templates.
+- **[Monitoring-208 ノイズ抑制/Alert Noise Suppression]** `Core/AlertEngine.cs`でノイズ抑制を追加します。Add alert noise suppression.
+- **[Monitoring-209 ダッシュボードJSON/Dashboard JSON Export]** `Core/TelemetryCollector.cs`でダッシュボードJSONを生成します。Generate dashboard JSON.
+- **[Monitoring-210 モバイル通知/Mobile Notification Support]** `Core/NotificationDispatcher.cs`でモバイル通知を送信します。Send mobile notifications.
+- **[Monitoring-211 SLA違反予測/SLA Breach Prediction]** `Core/TelemetryCollector.cs`で予測モデルを導入します。Predict SLA breaches.
+- **[Monitoring-212 監視拡張ポイント/Monitoring Extensibility Hooks]** `Core/TelemetryCollector.cs`に拡張フックを追加します。Add extensibility hooks.
+- **[Monitoring-213 オペレーション状態概観/Operations Overview Panel]** `docs/monitoring/overview_dashboard.md`を作成します。Document monitoring overview dashboard.
+- **[Monitoring-214 監視メトリクス定義/Metrics Dictionary]** `docs/monitoring/metrics_dictionary.md`を整備します。Create metrics dictionary.
+- **[Monitoring-215 コールドチェーン検知/Cold Chain Detection]** `Core/SystemHealthMonitor.cs`で低頻度イベントを識別します。Detect cold chain events.
+- **[Monitoring-216 指標正規化/Metric Normalization]** `Core/TelemetryCollector.cs`で正規化します。Normalize metrics.
+- **[Monitoring-217 時系列ウインドウ/Time Window Analysis]** `Core/TelemetryCollector.cs`で時系列分析を追加します。Add time-window analytics.
+- **[Monitoring-218 監視プラグイン/Monitoring Plugin System]** `Core/TelemetryCollector.cs`にプラグイン基盤を追加します。Add plugin system.
+- **[Monitoring-219 可観測性Runbook/Observability Runbook]** `docs/monitoring/runbook.md`を作成します。Create observability runbook.
+- **[Monitoring-220 ログ相関ビュー/Log Correlation View]** `Core/TelemetryCollector.cs`でログ相関を提供します。Provide log correlation view.
+- **[Monitoring-221 KPIアラート/KPI Alert Bundles]** `Core/AlertEngine.cs`でKPIバンドルを導入します。Introduce KPI alert bundles.
+- **[Monitoring-222 カナリア監視/Canary Monitoring]** `Core/SystemHealthMonitor.cs`でカナリアチェックを運用します。Operate canary monitoring.
+- **[Monitoring-223 長期トレンド/Long-term Trends]** `Core/TelemetryCollector.cs`で長期トレンドを計算します。Compute long-term trends.
+- **[Monitoring-224 バースト抑制/Burst Control]** `Core/AlertEngine.cs`でバースト抑制を追加します。Add burst suppression.
+- **[Monitoring-225 アラートサマリ/Alert Summaries]** `Core/AlertEngine.cs`で要約レポートを生成します。Generate alert summaries.
+- **[Monitoring-226 ハートビート検出/Heartbeat Detection]** `Core/SystemHealthMonitor.cs`でハートビート監視を導入します。Implement heartbeat detection.
+- **[Monitoring-227 ユーザー定義メトリクス/User Metrics]** `Core/TelemetryCollector.cs`でユーザー定義メトリクスをサポートします。Support user-defined metrics.
+- **[Monitoring-228 監視CLI拡張/Monitoring CLI Extensions]** `SimpleCLI.cs`に監視コマンドを追加します。Add monitoring CLI commands.
+- **[Monitoring-229 監視実行計画/Observation Execution Plan]** `docs/monitoring/execution_plan.md`を準備します。Document observation execution plan.
+- **[Monitoring-230 イベント洪水抑止/Event Flood Guard]** `Core/AlertEngine.cs`でイベント洪水を抑制します。Guard against event floods.
+- **[Monitoring-231 指標タグ付け/Metric Tagging]** `Core/TelemetryCollector.cs`でタグ管理を提供します。Offer metric tagging.
+- **[Monitoring-232 ダイジェスト通知/Digest Notifications]** `Core/NotificationDispatcher.cs`でダイジェスト送付を追加します。Add digest notifications.
+- **[Monitoring-233 可観測性SDKドキュメント/SDK Docs]** `docs/monitoring/sdk_guide.md`を整備します。Document observability SDK.
+- **[Monitoring-234 KPIベース削除/KPI-based Cleanup]** `Core/TelemetryCollector.cs`で不要メトリクスを削除します。Prune stale metrics.
+- **[Monitoring-235 視覚化テーマ/Visualization Themes]** `docs/monitoring/themes.md`でテーマを定義します。Define visualization themes.
+- **[Monitoring-236 SLAコミットレポート/SLA Commitment Report]** `docs/monitoring/sla_report_template.md`を作成します。Generate SLA report template.
+- **[Monitoring-237 バックプレッシャー制御/Telemetry Backpressure]** `Core/TelemetryCollector.cs`でバックプレッシャーを実装します。Implement telemetry backpressure.
+- **[Monitoring-238 アラート遅延計測/Alert Latency Metrics]** `Core/AlertEngine.cs`で遅延を測定します。Measure alert latency.
+- **[Monitoring-239 モニタリング品質指標/Monitoring Quality Score]** `Core/TelemetryCollector.cs`で品質スコアを算出します。Compute monitoring quality scores.
+- **[Monitoring-240 遠隔プローブ/Remote Probe Integration]** `Core/TelemetryCollector.cs`で遠隔プローブを統合します。Integrate remote probes.
+- **[Monitoring-241 アラート翻訳/Alert Localization]** `docs/monitoring/localization.md`でアラート翻訳テーブルを整備します。Maintain alert localization tables.
+- **[Monitoring-242 監視バージョン履歴/Monitoring Versioning]** `Core/TelemetryCollector.cs`でバージョンを保持します。Version monitoring configs.
+- **[Monitoring-243 大規模可視化/Scaling Dashboards]** `docs/monitoring/scaling_guidance.md`でガイダンスを提供します。Provide scaling guidance.
+- **[Monitoring-244 メトリクス推定/Metrics Estimation]** `Core/TelemetryCollector.cs`で統計推定を導入します。Introduce statistical estimation.
+- **[Monitoring-245 監視テスト/Monitoring Test Suite]** `tests/monitoring/`にテストを追加します。Add monitoring test suite.
+- **[Monitoring-246 ウェブダッシュボード/Web Dashboard]** `Core/MonitoringWebHost.cs`を追加します。Add web-based monitoring host.
+- **[Monitoring-247 ワーニングポリシー/Warning Policy Matrix]** `docs/monitoring/warning_policy.md`を用意します。Define warning policy matrix.
+- **[Monitoring-248 オンボード監視チェックリスト/Monitoring Onboarding]** `docs/monitoring/onboarding_checklist.md`を作成します。Create monitoring onboarding checklist.
+- **[Monitoring-249 地理的可視化/Geospatial Monitoring]** `docs/monitoring/geospatial_dashboard.md`で地理的ビューを設計します。Design geospatial monitoring view.
+- **[Monitoring-250 デバッグ可視化/Debug Visualization]** `Core/TelemetryCollector.cs`でデバッグモード表示を提供します。Provide debug visualization mode.
+
+## Configuration & UX / 設定とユーザー体験
+- **[Config-251 設定ウィザード/Config Wizard]** `SimpleCLI.cs`に初期設定ウィザードを導入します。Add onboarding config wizard.
+- **[Config-252 設定差分表示/Config Diff Viewer]** `Core/ConfigManager.cs`で差分表示を実装します。Implement config diff display.
+- **[Config-253 設定履歴/Config History Timeline]** `Core/ConfigManager.cs`で履歴管理を追加します。Add config history timeline.
+- **[Config-254 設定エクスポートテンプレート/Export Templates]** `docs/config/export_templates.md`を作成します。Document config export templates.
+- **[Config-255 UXヒント/Inline UX Hints]** `SimpleCLI.cs`でヒントメッセージを表示します。Display inline UX hints.
+- **[Config-256 設定バリデーションUI/Validation UI Feedback]** `SimpleCLI.cs`でバリデーションを視覚化します。Visualize config validation.
+- **[Config-257 設定ロールバック/Rollback Slots]** `Core/ConfigManager.cs`で複数ロールバックスロットを提供します。Provide config rollback slots.
+- **[Config-258 設定プロファイル/Config Profiles Library]** `docs/config/profiles.md`を整備します。Maintain config profile library.
+- **[Config-259 設定依存チェック/Dependency Checks]** `Core/ConfigManager.cs`で依存性検証を追加します。Add config dependency checks.
+- **[Config-260 設定権限管理/Config Access Control]** `Core/ConfigManager.cs`で権限管理を実装します。Implement config access control.
+- **[Config-261 設定同期/Config Sync Service]** `Core/ConfigSyncService.cs`を追加します。Add config sync service.
+- **[Config-262 UIテーマ/CLI Theme Support]** `SimpleCLI.cs`でテーマ切替を提供します。Provide CLI theme switching.
+- **[Config-263 設定テストモード/Config Test Mode]** `Core/ConfigManager.cs`でテストモードを導入します。Add config test mode.
+- **[Config-264 設定推奨/Recommended Settings Engine]** `Core/ConfigAdvisor.cs`を追加します。Add `Core/ConfigAdvisor.cs`.
+- **[Config-265 設定テンプレート分類/Template Categorization]** `docs/config/templates_index.md`を整備します。Categorize config templates.
+- **[Config-266 設定国際化/I18n Preferences]** `Core/ConfigManager.cs`で地域設定を管理します。Manage locale preferences.
+- **[Config-267 UXユーザーテスト/UX Testing Plan]** `docs/ux/testing_plan.md`を作成します。Document UX testing plan.
+- **[Config-268 入力補完/Input Autocomplete]** `SimpleCLI.cs`でコマンド補完を強化します。Enhance command autocomplete.
+- **[Config-269 設定バックアップ通知/Backup Notifications]** `Core/ConfigManager.cs`でバックアップ成功を通知します。Notify config backups.
+- **[Config-270 設定検証CLI/Config Validation CLI]** `SimpleCLI.cs`で検証CLIを提供します。Provide config validation CLI.
+- **[Config-271 設定検索/Config Search Engine]** `Core/ConfigSearch.cs`を追加します。Add config search engine.
+- **[Config-272 設定カテゴリ表示/Category Visualization]** `SimpleCLI.cs`でカテゴリ別に表示します。Display config by category.
+- **[Config-273 設定ラベル/Labeling System]** `Core/ConfigManager.cs`で設定ラベル機能を追加します。Add config labeling.
+- **[Config-274 設定ヒューマンリード/Human-readable Summaries]** `docs/config/summaries/`に要約を追加します。Add config summaries.
+- **[Config-275 設定テレメトリ/Config Telemetry]** `Core/ConfigManager.cs`で設定利用状況を測定します。Measure config usage.
+- **[Config-276 設定依存ガイド/Dependency Docs]** `docs/config/dependency_matrix.md`を整備します。Document dependency matrix.
+- **[Config-277 UXストリームライン/Streamlined Flows]** `SimpleCLI.cs`で分岐フローを簡略化します。Streamline CLI flows.
+- **[Config-278 設定ツールチップ/Tooltip Catalog]** `docs/ux/tooltips.md`でツールチップ辞書を提供します。Provide tooltip catalog.
+- **[Config-279 設定通知API/Config Notification API]** `Core/ConfigManager.cs`でイベントAPIを追加します。Add config notification API.
+- **[Config-280 設定エラー回復/Config Error Recovery]** `Core/ConfigManager.cs`で自己修復パスを実装します。Implement config self-repair.
+- **[Config-281 ユーザーストーリー/User Journey Documentation]** `docs/ux/user_journeys.md`を作成します。Document user journeys.
+- **[Config-282 設定ガバナンス/Governance Controls]** `Core/ConfigManager.cs`でガバナンスポリシーを適用します。Apply governance controls.
+- **[Config-283 設定メトリクス/Config Metrics]** `Core/ConfigManager.cs`で品質指標を記録します。Record config metrics.
+- **[Config-284 設定ダッシュボード/Dashboard Layout]** `docs/ux/dashboard_layout.md`を整備します。Design config dashboard layout.
+- **[Config-285 CLIアクセシビリティ/Accessibility Improvements]** `SimpleCLI.cs`でアクセシビリティを強化します。Improve CLI accessibility.
+- **[Config-286 設定輸出検証/Export Validation]** `Core/ConfigManager.cs`で輸出検証を実施します。Validate config exports.
+- **[Config-287 設定脆弱性チェック/Vulnerability Checks]** `Core/ConfigManager.cs`で脆弱性を検知します。Detect config vulnerabilities.
+- **[Config-288 設定テンプレートジェネレーター/Template Generator]** `Core/ConfigTemplateGenerator.cs`を追加します。Add template generator.
+- **[Config-289 設定整列/Config Alignment Rules]** `Core/ConfigManager.cs`で整列ルールを実装します。Implement alignment rules.
+- **[Config-290 設定依存シミュレーション/Dependency Simulation]** `Core/ConfigSimulator.cs`を導入します。Introduce config simulator.
+- **[Config-291 UXパフォーマンス/UX Performance Tracking]** `docs/ux/performance.md`でUXパフォーマンスを追跡します。Track UX performance.
+- **[Config-292 設定マルチテナント/Multitenant Config Support]** `Core/ConfigManager.cs`でテナント分離を行います。Support multi-tenant configs.
+- **[Config-293 設定翻訳/Config Localization]** `docs/config/localizations/`で翻訳ファイルを提供します。Provide config localization files.
+- **[Config-294 設定自動提案/Intelligent Suggestions]** `Core/ConfigAdvisor.cs`でAI提案を導入します。Add AI-powered suggestions.
+- **[Config-295 設定エクスポート署名/Signed Exports]** `Core/ConfigManager.cs`で署名付きエクスポートを提供します。Provide signed exports.
+- **[Config-296 設定フィードバックチャンネル/Feedback Channel]** `docs/ux/feedback_process.md`でフィードバック手順を定義します。Define feedback process.
+- **[Config-297 設定テストケース/Test Case Library]** `tests/config/`にテストライブラリを追加します。Add config test library.
+- **[Config-298 設定互換判定/Compatibility Checker]** `Core/ConfigManager.cs`で互換性チェックを行います。Check compatibility.
+- **[Config-299 設定プレイブック/Config Playbooks]** `docs/config/playbooks/`にプレイブックを作成します。Create config playbooks.
+- **[Config-300 設定UXシナリオ/UX Simulation]** `docs/ux/scenario_simulation.md`でUXシナリオを作成します。Document UX simulation scenarios.
+
+## Networking Features / ネットワーク機能
+- **[Network-301 帯域幅予測/Bandwidth Prediction]** `Core/NetworkAnalytics.cs`で帯域幅予測モデルを導入します。Add bandwidth prediction model.
+- **[Network-302 5GHz優先/5GHz Preference Logic]** `Core/ConnectionManager.cs`でバンド優先ロジックを実装します。Implement band preference logic.
+- **[Network-303 QoEメトリクス/QoE Metrics]** `Core/NetworkAnalytics.cs`でQoE指標を計算します。Compute QoE metrics.
+- **[Network-304 802.1X改善/802.1X Enhancements]** `Core/SecurityManager.cs`で802.1Xフローを改善します。Enhance 802.1X flows.
+- **[Network-305 ARP監視/ARP Monitoring]** `Core/NetworkWatcher.cs`を導入します。Introduce `Core/NetworkWatcher.cs`.
+- **[Network-306 DHCP分析/DHCP Analysis]** `Core/NetworkAnalytics.cs`でDHCP指標を収集します。Collect DHCP metrics.
+- **[Network-307 DNSフェイルオーバー/DNS Failover]** `Core/NetworkOperations.cs`でDNSフェイルオーバーを実装します。Implement DNS failover.
+- **[Network-308 ローミング最適化/Roaming Optimization]** `Core/ConnectionManager.cs`でローミングアルゴリズムを最適化します。Optimize roaming algorithms.
+- **[Network-309 無線干渉検知/Interference Detection]** `Core/AdvancedScanner.cs`で干渉を検知します。Detect wireless interference.
+- **[Network-310 マルチSSID管理/Multi-SSID Management]** `Core/ProfileManager.cs`で複数SSIDを管理します。Manage multi-SSID configurations.
+- **[Network-311 帯域幅割当/Bandwidth Allocation]** `Core/NetworkPolicyManager.cs`で割当を制御します。Control bandwidth allocation.
+- **[Network-312 チャネルヒートマップ/Channel Heatmap]** `docs/network/channel_heatmap.md`で可視化します。Visualize channel heatmap.
+- **[Network-313 スペクトラム分析/Spectrum Analysis]** `Core/SpectrumAnalyzer.cs`を追加します。Add `Core/SpectrumAnalyzer.cs`.
+- **[Network-314 干渉回避案/Interference Mitigation]** `Core/NetworkOperations.cs`で干渉回避を提案します。Propose interference mitigation.
+- **[Network-315 フェイルバック戦略/Failback Strategies]** `Core/ConnectionManager.cs`でフェイルバックを最適化します。Optimize failback strategies.
+- **[Network-316 ネットワーク健全性Score/Health Score]** `Core/NetworkAnalytics.cs`で健全性スコアを算出します。Compute health score.
+- **[Network-317 IPv6最適化/IPv6 Enhancement]** `Core/NetworkOperations.cs`でIPv6対応を強化します。Enhance IPv6 support.
+- **[Network-318 VPN検知/VPN Detection]** `Core/NetworkWatcher.cs`でVPNトンネルを検知します。Detect VPN tunnels.
+- **[Network-319 ローカルポリシー同期/Local Policy Sync]** `Core/NetworkPolicyManager.cs`でポリシー同期を行います。Sync local policies.
+- **[Network-320 QoSマッピング/QoS Mapping]** `Core/NetworkPolicyManager.cs`でQoSマッピングを実装します。Implement QoS mapping.
+- **[Network-321 Wi-Fi6特性活用/Wi-Fi 6 Optimization]** `Core/AdvancedScanner.cs`でWi-Fi 6特性を活用します。Leverage Wi-Fi 6 features.
+- **[Network-322 無線電力制御/Tx Power Control]** `Core/NetworkOperations.cs`で送信出力を制御します。Control transmit power.
+- **[Network-323 Beacon解析/Beacon Analysis]** `Core/AdvancedScanner.cs`でビーコン解析を追加します。Analyze beacons.
+- **[Network-324 マルチリンクサポート/Multi-link Support]** `Core/ConnectionManager.cs`でマルチリンクを扱います。Handle multi-link connections.
+- **[Network-325 ネットワーク状態マシン/Network State Machine]** `Core/NetworkOperations.cs`で状態マシンを導入します。Introduce state machine.
+- **[Network-326 コンジェスション通知/Congestion Notifications]** `Core/NetworkAnalytics.cs`で混雑通知を行います。Notify network congestion.
+- **[Network-327 シームレスハンドオフ/Seamless Handoff]** `Core/ConnectionManager.cs`でハンドオフを滑らかにします。Enable seamless handoff.
+- **[Network-328 マルチサイト制御/Multi-site Coordination]** `Core/NetworkOperations.cs`で複数拠点を協調制御します。Coordinate multi-site operations.
+- **[Network-329 ネットワークトポロジー表示/Topology Visualization]** `docs/network/topology.md`でトポロジーを表示します。Visualize network topology.
+- **[Network-330 QoSアダプタ実装/QoS Adapter]** `Core/NetworkPolicyManager.cs`でQoSアダプタを実装します。Implement QoS adapter.
+- **[Network-331 無線適応Rate/Adaptive Rate Control]** `Core/ConnectionManager.cs`でレート制御を適応化します。Add adaptive rate control.
+- **[Network-332 屋外最適化/Outdoor Optimization]** `docs/network/outdoor_guidance.md`で屋外ネットワーク手法を整理します。Document outdoor optimization.
+- **[Network-333 LTEバックアップ/LTE Backup Integration]** `Core/NetworkOperations.cs`でLTEバックアップ接続を統合します。Integrate LTE backup.
+- **[Network-334 セルフテスト/Network Self-test Suite]** `tests/network/SelfTest.cs`を追加します。Add network self-test suite.
+- **[Network-335 帯域幅アラート/Bandwidth Alerts]** `Core/AlertEngine.cs`で帯域幅警告を送ります。Alert bandwidth thresholds.
+- **[Network-336 ネットワーク用語集/Glossary]** `docs/network/glossary.md`を整備します。Maintain network glossary.
+- **[Network-337 Wi-Fi 7対応準備/Wi-Fi 7 Preparation]** `docs/network/wi-fi7_readiness.md`を作成します。Prepare for Wi-Fi 7.
+- **[Network-338 802.11k活用/802.11k Optimizations]** `Core/ConnectionManager.cs`で802.11kを活用します。Leverage 802.11k.
+- **[Network-339 802.11r高速ローミング/Fast Roaming]** `Core/ConnectionManager.cs`で802.11rを実装します。Implement 802.11r.
+- **[Network-340 802.11vネットワーク補助/Network Assisted Roaming]** `Core/ConnectionManager.cs`で802.11vを利用します。Use 802.11v features.
+- **[Network-341 ワイヤレス解析CLI/Wireless Analysis CLI]** `SimpleCLI.cs`で解析コマンドを追加します。Add wireless analysis CLI.
+- **[Network-342 ネットワークリスク評価/Network Risk Scoring]** `Core/NetworkAnalytics.cs`でリスクスコアを計算します。Compute network risk.
+- **[Network-343 無線干渉報告/Interference Reports]** `docs/network/interference_reports.md`を整備します。Document interference reports.
+- **[Network-344 マルチベンダ適合/Multivendor Compatibility]** `Core/NetworkOperations.cs`でマルチベンダ最適化を行います。Optimize for multivendor devices.
+- **[Network-345 Bluetooth共存/BT Coexistence Guidance]** `docs/network/bt_coexistence.md`で共存策をまとめます。Document Bluetooth coexistence.
+- **[Network-346 無線制御ポリシー/Radio Policy Engine]** `Core/NetworkPolicyManager.cs`で無線制御ポリシーを提供します。Provide radio policy engine.
+- **[Network-347 IoTデバイス管理/IoT Device Profiles]** `Core/NetworkOperations.cs`でIoTプロファイルを管理します。Manage IoT device profiles.
+- **[Network-348 AP配置最適化/AP Placement Guidance]** `docs/network/ap_placement.md`で配置ガイドを提供します。Provide AP placement guidance.
+- **[Network-349 無線健全性ワークフロー/Wireless Health Runbook]** `docs/network/health_runbook.md`を作成します。Create wireless health runbook.
+- **[Network-350 ネットワークAI洞察/AI Insights]** `Core/NetworkAnalytics.cs`でAI洞察を提示します。Surface AI insights.
+
+## Billing & Licensing / 課金・ライセンス
+- **[Billing-351 Stripe APIクライアント/Stripe API Client]** `Core/Billing/StripeGateway.cs`でStripe SDK連携を実装します。Implement Stripe SDK gateway.
+- **[Billing-352 サブスクリプション同期/Subscription Sync Loop]** `Core/Billing/BillingCoordinator.cs`で定期同期を実装します。Implement subscription sync loop.
+- **[Billing-353 Webhookリスナー/Webhook Listener Service]** `Core/Billing/StripeWebhookHost.cs`を追加します。Add webhook listener.
+- **[Billing-354 課金キャッシュ/Billing Cache Enhancements]** `Core/Billing/BillingStateCache.cs`で状態保持を強化します。Enhance billing state cache.
+- **[Billing-355 CLI課金コマンド/Billing CLI Commands]** `SimpleCLI.cs`で課金管理コマンドを追加します。Add billing CLI commands.
+- **[Billing-356 エディション制御/Edition Policy Enforcement]** `Core/Billing/BillingPolicyEnforcer.cs`で機能制限を適用します。Enforce edition policies.
+- **[Billing-357 課金診断/Billing Diagnostics Report]** `Core/Billing/BillingDiagnosticsService.cs`を実装します。Implement billing diagnostics.
+- **[Billing-358 課金ダッシュボード/Billing Dashboard Spec]** `docs/billing/dashboard_spec.md`を作成します。Document billing dashboard.
+- **[Billing-359 グレース期間管理/Grace Period Manager]** `Core/Billing/BillingCoordinator.cs`でグレース期間管理を強化します。Manage grace periods.
+- **[Billing-360 課金通知/Billing Notifications]** `Core/NotificationDispatcher.cs`で課金通知を送信します。Send billing notifications.
+- **[Billing-361 APIキー保護/API Key Protection]** `Core/SecurityManager.cs`でStripeキー保存を保護します。Protect Stripe API keys.
+- **[Billing-362 課金レポート/Billing Reports]** `docs/billing/report_templates.md`を整備します。Provide billing report templates.
+- **[Billing-363 エディションマトリクス/Edition Matrix]** `docs/billing/edition_matrix.md`で機能差を可視化します。Document edition matrix.
+- **[Billing-364 価格設定ガイド/Pricing Guidance]** `docs/billing/pricing_guide.md`を作成します。Create pricing guidance.
+- **[Billing-365 課金UI/CLI Billing UI Improvements]** `SimpleCLI.cs`で課金UIを改善します。Improve billing CLI UX.
+- **[Billing-366 Webhook署名検証/Webhook Signature Validation]** `Core/Billing/StripeWebhookHandler.cs`で検証を強化します。Enhance webhook signature validation.
+- **[Billing-367 課金例外処理/Billing Exception Handling]** `Core/Billing/BillingCoordinator.cs`で例外処理を統一します。Unify billing exception handling.
+- **[Billing-368 請求書ダウンロード/Invoice Downloads]** `Core/Billing/StripeGateway.cs`で請求書取得を実装します。Implement invoice downloads.
+- **[Billing-369 課金APIメトリクス/Billing API Metrics]** `Core/TelemetryCollector.cs`でAPIメトリクスを収集します。Collect billing API metrics.
+- **[Billing-370 課金テストモード/Billing Test Mode]** `Core/Billing/BillingCoordinator.cs`でテストモードを提供します。Provide billing test mode.
+- **[Billing-371 課金失敗再試行/Retry Strategy]** `Core/Billing/BillingCoordinator.cs`で再試行戦略を実装します。Implement retry strategy.
+- **[Billing-372 課金通知テンプレート/Notification Templates]** `docs/billing/notification_templates.md`を整備します。Document billing notifications.
+- **[Billing-373 ライセンス検証/License Validation]** `Core/Billing/BillingPolicyEnforcer.cs`でライセンス検証を行います。Validate license state.
+- **[Billing-374 課金監査/Billing Audit Logging]** `Core/AuditTrail.cs`で課金監査を拡張します。Extend billing audit logging.
+- **[Billing-375 ライセンス解除プロセス/License Revocation Process]** `docs/billing/license_revocation.md`を作成します。Document license revocation.
+- **[Billing-376 課金メタデータ/Billing Metadata Capture]** `Core/Billing/BillingCoordinator.cs`でメタデータを取得します。Capture billing metadata.
+- **[Billing-377 サブスクリプション移行/Plan Migration Workflow]** `docs/billing/plan_migration.md`で移行手順を記載します。Document plan migration.
+- **[Billing-378 請求税計算/Tax Handling]** `Core/Billing/StripeGateway.cs`で税計算を処理します。Handle tax calculation.
+- **[Billing-379 エディション推奨/Edition Recommendation Engine]** `Core/Billing/BillingAdvisor.cs`を追加します。Add `Core/Billing/BillingAdvisor.cs`.
+- **[Billing-380 課金Webhook再送/Replay Handling]** `Core/Billing/StripeWebhookHandler.cs`で再送制御を実装します。Handle webhook retries.
+- **[Billing-381 サンドボックス検証/Sandbox Validation]** `docs/billing/sandbox_validation.md`で検証手順を定義します。Define sandbox validation.
+- **[Billing-382 Stripe Connect準備/Stripe Connect Prep]** `docs/billing/stripe_connect.md`で接続手順を整理します。Document Stripe Connect preparation.
+- **[Billing-383 課金KPI/Billing KPIs]** `docs/billing/kpi_dashboard.md`でKPIを定義します。Define billing KPIs.
+- **[Billing-384 請求データエクスポート/Data Export Tools]** `Core/Billing/BillingExporter.cs`を追加します。Add billing data exporter.
+- **[Billing-385 課金APIレート制御/API Throttling]** `Core/Billing/BillingCoordinator.cs`でAPIレートを制御します。Control billing API rate.
+- **[Billing-386 エディション境界テスト/Boundary Tests]** `tests/billing/EditionBoundaryTests.cs`を追加します。Add edition boundary tests.
+- **[Billing-387 課金ノウハウ集/Best Practices]** `docs/billing/best_practices.md`を作成します。Document billing best practices.
+- **[Billing-388 ライセンス証明書/License Certificates]** `Core/Billing/BillingCoordinator.cs`で証明書生成をサポートします。Support license certificates.
+- **[Billing-389 価格実験/Price Experimentation]** `docs/billing/price_experiments.md`で実験プロセスを整理します。Document price experiments.
+- **[Billing-390 課金ダウンタイム対策/Downtime Handling]** `Core/Billing/BillingCoordinator.cs`でダウンタイムフォールバックを実装します。Implement downtime fallback.
+- **[Billing-391 サブスクリプション履歴/Subscription History]** `Core/Billing/BillingStateCache.cs`で履歴を保持します。Maintain subscription history.
+- **[Billing-392 ライセンスエクスポート/License Export CLI]** `SimpleCLI.cs`でライセンスエクスポートを提供します。Provide license export CLI.
+- **[Billing-393 オンボードガイド/Billing Onboarding Guide]** `docs/billing/onboarding_guide.md`を作成します。Create onboarding guide.
+- **[Billing-394 課金問い合わせワークフロー/Support Workflow]** `docs/billing/support_runbook.md`でワークフローを定義します。Define billing support workflow.
+- **[Billing-395 KPI可視化/Visualization Spec]** `docs/billing/visualization_spec.md`を整備します。Specify billing visualization.
+- **[Billing-396 サブスクリプション一括操作/Bulk Operations]** `Core/Billing/BillingCoordinator.cs`で一括操作を提供します。Provide bulk subscription operations.
+- **[Billing-397 課金通知翻訳/Notification Localization]** `docs/billing/localization.md`で翻訳表を提供します。Provide localization tables.
+- **[Billing-398 エディション比較レポート/Comparison Report]** `docs/billing/comparison_report.md`を作成します。Create comparison report.
+- **[Billing-399 ライセンス漏洩検出/License Leakage Detection]** `Core/Billing/BillingCoordinator.cs`で漏洩検出を行います。Detect license leakage.
+- **[Billing-400 顧客ポータル連携/Customer Portal Integration]** `docs/billing/customer_portal.md`で連携手順を記載します。Document customer portal integration.
+
+## Documentation & Localization / ドキュメントと多言語対応
+- **[Docs-401 使用者目線ガイド/User-centric Guide]** `docs/user_guide/ja_en.md`で二言語ガイドを提供します。Provide bilingual user guide.
+- **[Docs-402 開発者ガイド/Developer Handbook]** `docs/developer_handbook.md`を作成します。Create developer handbook.
+- **[Docs-403 APIリファレンス/API Reference Portal]** `docs/api/reference_index.md`を整備します。Maintain API reference portal.
+- **[Docs-404 CLIコマンド索引/CLI Command Index]** `docs/cli/index.md`でコマンド索引を提供します。Provide CLI index.
+- **[Docs-405 チュートリアル連載/Tutorial Series]** `docs/tutorials/`に連載形式で記事を追加します。Add tutorial series.
+- **[Docs-406 FAQ再構成/FAQ Restructure]** `docs/faq/`をカテゴリ別に再構成します。Restructure FAQ.
+- **[Docs-407 デザイン原則/Design Principles]** `docs/architecture/design_principles.md`を刷新します。Refresh design principles.
+- **[Docs-408 事例集/Case Studies]** `docs/case_studies/`に事例を蓄積します。Collect case studies.
+- **[Docs-409 ローカリゼーション戦略/Localization Strategy]** `docs/localization/strategy.md`を策定します。Define localization strategy.
+- **[Docs-410 翻訳メモリ/Translation Memory]** `docs/localization/glossary.md`で用語集を管理します。Maintain translation glossary.
+- **[Docs-411 多言語構造/Multilingual Structure]** `docs/localization/structure.md`で50言語展開方針を提示します。Outline multilingual structure.
+- **[Docs-412 開発プロセス/Development Process Guide]** `docs/process/development.md`を整備します。Document development process.
+- **[Docs-413 品質保証ガイド/QA Guide]** `docs/qa/guide.md`を作成します。Create QA guide.
+- **[Docs-414 セキュリティホワイトペーパー/Security Whitepaper]** `docs/security/whitepaper.md`を用意します。Provide security whitepaper.
+- **[Docs-415 アーキテクチャ図/Architecture Diagrams]** `docs/architecture/diagrams/`に図を追加します。Add architecture diagrams.
+- **[Docs-416 操作動画/Video Tutorials]** `docs/tutorials/videos.md`で動画計画を整理します。Plan tutorial videos.
+- **[Docs-417 変更履歴整理/Changelog Governance]** `docs/changelog/`で詳細記録を整備します。Maintain changelog governance.
+- **[Docs-418 リリースノート強化/Release Notes Format]** `docs/release_notes/template.md`を刷新します。Refresh release notes template.
+- **[Docs-419 API例コード/API Code Samples]** `docs/api/samples/`で例コードを提供します。Provide API code samples.
+- **[Docs-420 CLI翻訳/CLI Localization]** `docs/localization/cli_strings.md`でCLIテキストを管理します。Manage CLI localization strings.
+- **[Docs-421 管理者ガイド/Admin Guide]** `docs/admin_guide/`を充実させます。Expand admin guide.
+- **[Docs-422 トラブルシューティング/Troubleshooting Handbook]** `docs/troubleshooting/handbook.md`を作成します。Create troubleshooting handbook.
+- **[Docs-423 SLA文書/SLA Documentation]** `docs/policies/sla.md`を整備します。Document SLA agreements.
+- **[Docs-424 ネットワーク設計書/Network Design Guide]** `docs/network/design_guide.md`を作成します。Create network design guide.
+- **[Docs-425 課金導入ガイド/Billing Implementation Guide]** `docs/billing/implementation_guide.md`を記載します。Document billing implementation.
+- **[Docs-426 テクニカルブログ/Technical Blog]** `docs/blog/`で技術ブログを運営します。Run technical blog.
+- **[Docs-427 ローカリゼーションQA/Localization QA Checklist]** `docs/localization/qa_checklist.md`を用意します。Provide localization QA checklist.
+- **[Docs-428 アクセシビリティガイド/Accessibility Guide]** `docs/ux/accessibility.md`を整備します。Document accessibility guidelines.
+- **[Docs-429 監視マニュアル/Monitoring Manual]** `docs/monitoring/manual.md`を作成します。Create monitoring manual.
+- **[Docs-430 自動化マニュアル/Automation Manual]** `docs/automation/manual.md`で操作手順を網羅します。Document automation manual.
+- **[Docs-431 セキュリティFAQ/Security FAQ]** `docs/security/faq.md`を追加します。Add security FAQ.
+- **[Docs-432 法的遵守ガイド/Legal Compliance Guide]** `docs/legal/compliance_guide.md`を整備します。Document legal compliance.
+- **[Docs-433 APIバージョン方針/API Version Policy]** `docs/api/version_policy.md`を定義します。Define API version policy.
+- **[Docs-434 運用Runbook/Operations Runbook]** `docs/runbooks/operations.md`を更新します。Update operations runbook.
+- **[Docs-435 テスト戦略/Test Strategy]** `docs/qa/test_strategy.md`を整備します。Maintain test strategy.
+- **[Docs-436 セールス資料/Sales Collateral]** `docs/sales/`に資料を追加します。Add sales collateral.
+- **[Docs-437 共同開発ガイド/Partner Integration Guide]** `docs/partners/integration_guide.md`を準備します。Prepare partner integration guide.
+- **[Docs-438 UIスタイルガイド/UI Style Guide]** `docs/ux/style_guide.md`を整備します。Document UI style guide.
+- **[Docs-439 API利用手順/API Usage Walkthrough]** `docs/api/walkthrough.md`を作成します。Create API walkthrough.
+- **[Docs-440 ナレッジベース構築/Knowledge Base Build]** `docs/kb/`でナレッジベースを構築します。Build knowledge base.
+- **[Docs-441 セキュリティ対応手順/Security Incident Guide]** `docs/security/incident_response.md`を整備します。Document incident response.
+- **[Docs-442 監査支援ガイド/Audit Support Guide]** `docs/compliance/audit_support.md`を作成します。Create audit support guide.
+- **[Docs-443 翻訳プロセス自動化/Localization Automation]** `docs/localization/automation.md`を記載します。Document localization automation.
+- **[Docs-444 CLIマニュアル更新/CLI Manual Update Process]** `docs/cli/update_process.md`を整備します。Document CLI manual updates.
+- **[Docs-445 モジュールガイド/Module Guide]** `docs/modules/`に各モジュールガイドを追加します。Add module guides.
+- **[Docs-446 ビジュアルアセット管理/Visual Asset Library]** `docs/assets/`で画像資産を管理します。Manage visual assets.
+- **[Docs-447 QAリファレンス/QA Reference Sheets]** `docs/qa/reference/`を充実させます。Expand QA references.
+- **[Docs-448 ローカライズ優先度表/Localization Priority Matrix]** `docs/localization/priority_matrix.md`を作成します。Create localization priority matrix.
+- **[Docs-449 スタイルガイド翻訳/Style Guide Translation]** `docs/localization/style_guide_translation.md`を整備します。Translate style guide.
+- **[Docs-450 チームハンドブック/Team Handbook]** `docs/team/handbook.md`を刷新します。Refresh team handbook.
+
+## Tooling & DevOps / ツールとDevOps
+- **[DevOps-451 CI高速化/CI Pipeline Acceleration]** `.github/workflows/build.yml`でキャッシュを活用します。Leverage caching in CI pipeline.
+- **[DevOps-452 自動依存更新/Dependency Auto-update]** `tools/dependency_updater.ps1`を整備します。Create dependency auto-updater.
+- **[DevOps-453 ビルドメトリクス/Build Metrics Reporting]** `tools/build_metrics_collector.cs`を追加します。Add build metrics collector.
+- **[DevOps-454 リリース自動化/Release Automation]** `tools/release_pipeline.md`でリリース手順を自動化します。Automate release process.
+- **[DevOps-455 バージョン管理規約/Versioning Policy]** `docs/process/versioning.md`を整備します。Document versioning policy.
+- **[DevOps-456 セキュリティCIゲート/Security Gate Integration]** `.github/workflows/security.yml`でセキュリティゲートを追加します。Add security gates in CI.
+- **[DevOps-457 QA自動テスト拡張/QA Automation Expansion]** `tests/automation/`で自動テストを拡充します。Expand automated QA tests.
+- **[DevOps-458 ローカル開発環境/Local Dev Containers]** `.devcontainer/`構成を整備します。Provide dev container setup.
+- **[DevOps-459 監査証跡CI/Audit Trail in CI]** CIログに監査メタデータを追加します。Include audit metadata in CI logs.
+- **[DevOps-460 ビルド健全性ダッシュボード/Build Health Dashboard]** `docs/devops/build_health.md`で健全性を追跡します。Track build health.
+- **[DevOps-461 デプロイ自動化/Deployment Orchestrator]** `tools/deploy_orchestrator.ps1`を追加します。Add deployment orchestrator.
+- **[DevOps-462 ロールバック手順/Rollback Automation]** `docs/devops/rollback_playbook.md`を作成します。Document rollback automation.
+- **[DevOps-463 シークレット管理/Secret Scanning]** `.github/workflows/secret_scan.yml`を導入します。Introduce secret scanning workflow.
+- **[DevOps-464 監視CI統合/Monitoring CI Integration]** CIで監視設定を検証します。Validate monitoring configs in CI.
+- **[DevOps-465 テストデータ管理/Test Data Management]** `docs/qa/test_data_policy.md`を整備します。Document test data policy.
+- **[DevOps-466 Infrastructure as Code/IaC Templates]** `infra/`配下にテンプレートを作成します。Create IaC templates.
+- **[DevOps-467 アーティファクト署名/Artifact Signing]** `tools/artifact_signer.cs`を追加します。Add artifact signing.
+- **[DevOps-468 デプロイ検証/Deployment Verification Script]** `tools/deploy_verifier.cs`を作成します。Create deployment verifier.
+- **[DevOps-469 ブルーグリーン戦略/Blue-Green Strategy]** `docs/devops/blue_green.md`を文書化します。Document blue-green deployments.
+- **[DevOps-470 コスト最適化/Cost Optimization Reports]** `docs/devops/cost_reports.md`を整備します。Maintain cost reports.
+- **[DevOps-471 オブザーバビリティCI/Observability Checks in CI]** CIで可観測性設定を検証します。Check observability configs in CI.
+- **[DevOps-472 デリバリーメトリクス/Delivery Metrics Tracking]** `docs/devops/delivery_metrics.md`を整えます。Track delivery metrics.
+- **[DevOps-473 インシデント演習/Incident Drills]** `docs/devops/incident_drills.md`を作成します。Document incident drills.
+- **[DevOps-474 セキュリティパイプライン統合/Security Pipeline Integration]** `tools/security_pipeline.ps1`を追加します。Add security pipeline scripts.
+- **[DevOps-475 自動化ログ収集/Automation Logs in CI]** CI実行で自動化ログを収集します。Collect automation logs in CI.
+- **[DevOps-476 コード所有権/Code Ownership Mapping]** `docs/devops/code_ownership.md`を整備します。Map code ownership.
+- **[DevOps-477 プルリクテンプレート/PR Template Refinement]** `.github/pull_request_template.md`を刷新します。Refine PR template.
+- **[DevOps-478 ブランチ戦略文書/Branch Strategy Doc]** `docs/devops/branch_strategy.md`を整えます。Document branch strategy.
+- **[DevOps-479 自動チョンキングログ/Chunked Log Uploads]** CIログをチャンク化します。Chunk CI log uploads.
+- **[DevOps-480 セマンティックバージョニング/Semver Enforcement]** `tools/semver_checker.cs`を追加します。Add semver checker.
+- **[DevOps-481 デバッグパッケージ/Debug Package Build]** `docs/devops/debug_build.md`でデバッグパッケージ手順を定義します。Define debug package process.
+- **[DevOps-482 テストフレームワーク統合/Test Framework Integration]** `tests/`で共通テストフレームワークを調整します。Align test frameworks.
+- **[DevOps-483 パイプライン通知/CI Notifications]** CI通知を`Core/NotificationDispatcher.cs`経由で統合します。Integrate CI notifications.
+- **[DevOps-484 ログ保持ポリシー/CI Log Retention]** `docs/devops/log_retention.md`を整備します。Document CI log retention.
+- **[DevOps-485 依存監視レポート/Dependency Monitoring Reports]** `docs/devops/dependency_reports.md`を作成します。Create dependency reports.
+- **[DevOps-486 自動構成検証/Auto Config Validation in CI]** CIで`Core/ConfigManager.cs`テストを必須化します。Mandate config tests in CI.
+- **[DevOps-487 パッケージレジストリ統合/Package Registry Integration]** `docs/devops/package_registry.md`を整備します。Document package registry integration.
+- **[DevOps-488 開発者ポータル/Developer Portal]** `docs/devops/developer_portal.md`を作成します。Create developer portal plan.
+- **[DevOps-489 静的解析拡張/Static Analysis Expansion]** `.github/workflows/static_analysis.yml`を拡張します。Expand static analysis workflow.
+- **[DevOps-490 インフラ監査/Infrastructure Auditing]** `infra/audit/`でインフラ監査手順を整備します。Set up infrastructure auditing.
+- **[DevOps-491 ナイトリービルド/Nightly Builds]** `.github/workflows/nightly_build.yml`を追加します。Add nightly build workflow.
+- **[DevOps-492 QA門番/QA Gate Automation]** QAゲートをCIに組み込みます。Embed QA gates in CI.
+- **[DevOps-493 エラーバジェット可視化/Error Budget Visibility]** `docs/devops/error_budget.md`を整備します。Document error budget tracking.
+- **[DevOps-494 監査可能なデプロイ/Deploy Audit Log]** デプロイログを`Core/AuditTrail.cs`に記録します。Record deployments in audit trail.
+- **[DevOps-495 フィードバックループ/Dev Feedback Loop]** `docs/devops/feedback_loop.md`で改善サイクルを記述します。Document feedback loop.
+- **[DevOps-496 ビルド再現性/Reproducible Builds]** `tools/reproducible_build.ps1`を追加します。Add reproducible build script.
+- **[DevOps-497 パフォーマンステスト自動化/Automated Perf Tests]** `tests/performance/`をCIで実行します。Run performance tests in CI.
+- **[DevOps-498 カナリアデプロイ/Canary Releases]** `docs/devops/canary_release.md`を作成します。Document canary releases.
+- **[DevOps-499 オブザーバビリティ改善チケット/Observability Ticket Workflow]** `docs/devops/observability_tickets.md`を整備します。Track observability improvements.
+- **[DevOps-500 コンフィグドリフト検知CI/Config Drift Detection]** CIで`Core/ConfigManager.cs`差分検知を自動化します。Automate config drift detection in CI.

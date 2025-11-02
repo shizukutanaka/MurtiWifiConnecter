@@ -1,0 +1,95 @@
+{
+  "Application": {
+    "Name": "MurtiWifi Connecter",
+    "Version": "3.0.0",
+    "Description": "Enterprise-Grade WiFi Management Tool",
+    "Tagline": "Secure, Automated, Cross-Platform WiFi Management"
+  },
+  "Commands": {
+    "Scan": {
+      "Description": "Scan for available WiFi networks",
+      "Usage": "scan [--force-refresh]",
+      "Scanning": "Scanning for networks...",
+      "NoNetworksFound": "No networks found",
+      "NetworkFound": "Found {0} networks"
+    },
+    "Connect": {
+      "Description": "Connect to a WiFi network",
+      "Usage": "connect <ssid> <password>",
+      "Connecting": "Connecting to {0}...",
+      "Connected": "Successfully connected to {0}",
+      "Failed": "Failed to connect to {0}",
+      "InvalidCredentials": "Invalid SSID or password"
+    },
+    "Disconnect": {
+      "Description": "Disconnect from current network",
+      "Usage": "disconnect",
+      "Disconnecting": "Disconnecting...",
+      "Disconnected": "Disconnected from network",
+      "Failed": "Failed to disconnect"
+    },
+    "Status": {
+      "Description": "Show current connection status",
+      "Usage": "status",
+      "ConnectedTo": "Connected to: {0}",
+      "SignalStrength": "Signal Strength: {0}%",
+      "SecurityMode": "Security: {0}",
+      "NotConnected": "Not connected to any network"
+    },
+    "History": {
+      "Description": "Show operation history",
+      "Usage": "history [count]",
+      "NoHistory": "No history available",
+      "Entry": "{0}: {1}"
+    }
+  },
+  "Errors": {
+    "PermissionDenied": "Permission denied. Administrator privileges required.",
+    "NetworkError": "Network configuration error occurred.",
+    "SecurityError": "Security error occurred.",
+    "UnexpectedError": "An unexpected error occurred.",
+    "RateLimitExceeded": "Rate limit exceeded. Please wait before trying again.",
+    "PlatformNotSupported": "Unsupported platform: {0}",
+    "NoWifiAdapter": "No WiFi adapter detected."
+  },
+  "UI": {
+    "Modal": {
+      "Info": "Information",
+      "Warning": "Warning",
+      "Error": "Error",
+      "Success": "Success",
+      "Close": "Close",
+      "Ok": "OK",
+      "Cancel": "Cancel"
+    },
+    "Status": {
+      "Connected": "Connected",
+      "Disconnected": "Disconnected",
+      "Connecting": "Connecting...",
+      "Scanning": "Scanning...",
+      "Error": "Error"
+    }
+  },
+  "Security": {
+    "Notice": "Security Notice",
+    "BannerMessage": "Welcome to MurtiWifi Connecter - Enterprise WiFi Manager",
+    "SecurityFeatures": [
+      "All operations are logged for security audit",
+      "Credentials encrypted with system DPAPI",
+      "Rate limiting active to prevent abuse",
+      "Type 'help' for available commands"
+    ]
+  },
+  "Platform": {
+    "Windows": "Windows",
+    "MacOS": "macOS",
+    "Linux": "Linux",
+    "Unknown": "Unknown"
+  },
+  "System": {
+    "Requirements": "System Requirements",
+    "PlatformCheck": "Platform: {0}",
+    "ExperimentalNote": "Note: {0} support is experimental.",
+    "RequiresNetworkManager": "Note: Linux support requires NetworkManager."
+  }
+}

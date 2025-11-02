@@ -1,0 +1,95 @@
+{
+  "Application": {
+    "Name": "MurtiWifi Connecter",
+    "Version": "3.0.0",
+    "Description": "エンタープライズグレードWiFi管理ツール",
+    "Tagline": "セキュアで自動化されたクロスプラットフォームWiFi管理"
+  },
+  "Commands": {
+    "Scan": {
+      "Description": "利用可能なWiFiネットワークをスキャンする",
+      "Usage": "scan [--force-refresh]",
+      "Scanning": "ネットワークをスキャン中...",
+      "NoNetworksFound": "ネットワークが見つかりません",
+      "NetworkFound": "{0}個のネットワークが見つかりました"
+    },
+    "Connect": {
+      "Description": "WiFiネットワークに接続する",
+      "Usage": "connect <ssid> <password>",
+      "Connecting": "{0}に接続中...",
+      "Connected": "{0}に正常に接続されました",
+      "Failed": "{0}への接続に失敗しました",
+      "InvalidCredentials": "無効なSSIDまたはパスワードです"
+    },
+    "Disconnect": {
+      "Description": "現在のネットワークから切断する",
+      "Usage": "disconnect",
+      "Disconnecting": "切断中...",
+      "Disconnected": "ネットワークから切断されました",
+      "Failed": "切断に失敗しました"
+    },
+    "Status": {
+      "Description": "現在の接続状態を表示する",
+      "Usage": "status",
+      "ConnectedTo": "接続先: {0}",
+      "SignalStrength": "信号強度: {0}%",
+      "SecurityMode": "セキュリティ: {0}",
+      "NotConnected": "どのネットワークにも接続されていません"
+    },
+    "History": {
+      "Description": "操作履歴を表示する",
+      "Usage": "history [count]",
+      "NoHistory": "履歴はありません",
+      "Entry": "{0}: {1}"
+    }
+  },
+  "Errors": {
+    "PermissionDenied": "権限が拒否されました。管理者権限が必要です。",
+    "NetworkError": "ネットワーク設定エラーが発生しました。",
+    "SecurityError": "セキュリティエラーが発生しました。",
+    "UnexpectedError": "予期しないエラーが発生しました。",
+    "RateLimitExceeded": "レート制限を超えました。しばらく待ってから再試行してください。",
+    "PlatformNotSupported": "サポートされていないプラットフォームです: {0}",
+    "NoWifiAdapter": "WiFiアダプタが検出されません。"
+  },
+  "UI": {
+    "Modal": {
+      "Info": "情報",
+      "Warning": "警告",
+      "Error": "エラー",
+      "Success": "成功",
+      "Close": "閉じる",
+      "Ok": "OK",
+      "Cancel": "キャンセル"
+    },
+    "Status": {
+      "Connected": "接続済み",
+      "Disconnected": "切断済み",
+      "Connecting": "接続中...",
+      "Scanning": "スキャン中...",
+      "Error": "エラー"
+    }
+  },
+  "Security": {
+    "Notice": "セキュリティ通知",
+    "BannerMessage": "MurtiWifi Connecter - エンタープライズWiFiマネージャーへようこそ",
+    "SecurityFeatures": [
+      "すべての操作はセキュリティ監査のためにログに記録されます",
+      "認証情報はシステムDPAPIで暗号化されます",
+      "レート制限が有効で悪用を防ぎます",
+      "使用可能なコマンドを確認するには「help」と入力してください"
+    ]
+  },
+  "Platform": {
+    "Windows": "Windows",
+    "MacOS": "macOS",
+    "Linux": "Linux",
+    "Unknown": "不明"
+  },
+  "System": {
+    "Requirements": "システム要件",
+    "PlatformCheck": "プラットフォーム: {0}",
+    "ExperimentalNote": "注意: {0}のサポートは実験的です。",
+    "RequiresNetworkManager": "注意: LinuxサポートにはNetworkManagerが必要です。"
+  }
+}
