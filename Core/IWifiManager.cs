@@ -1,137 +1,47 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+namespace MurtiWifiConnecter.Core;
 
-namespace MurtiWifiConnecter.Core
+public interface IWifiManager
 {
     /// <summary>
-    /// WiFi操作の抽象インターフェース - クロスプラットフォーム対応
+    /// Get list of available WiFi networks
     /// </summary>
-    public interface IWifiManager
-    {
-        /// <summary>
-        /// ネットワークに接続する
-        /// </summary>
-        Task<bool> ConnectAsync(string ssid, string password, CancellationToken ct = default);
-
-        /// <summary>
-        /// 現在のネットワークから切断する
-        /// </summary>
-        Task<bool> DisconnectAsync(CancellationToken ct = default);
-
-        /// <summary>
-        /// 利用可能なネットワークをスキャンする
-        /// </summary>
-        Task<List<WifiNetwork>> ScanNetworksAsync(CancellationToken ct = default);
-
-        /// <summary>
-        /// 現在の接続先SSIDを取得する
-        /// </summary>
-        Task<string?> GetCurrentSSIDAsync(CancellationToken ct = default);
-
-        /// <summary>
-        /// 保存済みプロファイルを取得する
-        /// </summary>
-        Task<List<string>> GetSavedProfilesAsync(CancellationToken ct = default);
-
-        /// <summary>
-        /// プロファイルを削除する
-        /// </summary>
-        Task<bool> DeleteProfileAsync(string ssid, CancellationToken ct = default);
-
-        /// <summary>
-        /// 利用可能なアダプタ情報を取得する
-        /// </summary>
-        Task<Result<IReadOnlyList<WifiAdapterInfo>>> GetAvailableAdaptersAsync(CancellationToken ct = default);
-
-        /// <summary>
-        /// 優先アダプタを設定する
-        /// </summary>
-        void SetPreferredAdapter(string? adapterName);
-
-        /// <summary>
-        /// 優先アダプタを取得する
-        /// </summary>
-        string? GetPreferredAdapter();
-    }
+    Task<List<WiFiNetwork>> GetAvailableNetworks();
 
     /// <summary>
-    /// WiFiネットワーク情報を表すクラス
+    /// Get currently connected network
     /// </summary>
-    public class WifiNetwork
-    {
-        public string Ssid { get; set; } = "";
-        public string Bssid { get; set; } = "";
-        public int SignalStrength { get; set; }
-        public WifiSecurityMode SecurityMode { get; set; }
-        public WifiFrequencyBand FrequencyBand { get; set; }
-        public bool IsConnected { get; set; }
-        public string? AuthenticationAlgorithm { get; set; }
-        public string? EncryptionAlgorithm { get; set; }
-    }
+    Task<WiFiNetwork?> GetConnectedNetwork();
 
     /// <summary>
-    /// WiFiセキュリティモード
+    /// Connect to a WiFi network
     /// </summary>
-    public enum WifiSecurityMode
-    {
-        Open,
-        Wep,
-        Wpa,
-        Wpa2,
-        Wpa3,
-        Wpa2Enterprise,
-        Wpa3Enterprise
-    }
+    Task<bool> ConnectAsync(string ssid, string password);
 
     /// <summary>
-    /// WiFi周波数帯
+    /// Disconnect from current network
     /// </summary>
-    public enum WifiFrequencyBand
-    {
-        Unknown,
-        Band2_4GHz,
-        Band5GHz,
-        Band6GHz
-    }
+    Task<bool> DisconnectAsync();
 
     /// <summary>
-    /// WiFiアダプタ情報を表すクラス
+    /// Get signal strength (0-100)
     /// </summary>
-    public class WifiAdapterInfo
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public bool IsConnected { get; set; }
-        public NetworkInterfaceType InterfaceType { get; set; }
-        public string? PhysicalAddress { get; set; }
-        public long Speed { get; set; }
-    }
+    Task<int> GetSignalStrength();
 
     /// <summary>
-    /// ネットワークインターフェイスタイプ
+    /// Check if connection is active
     /// </summary>
-    public enum NetworkInterfaceType
-    {
-        Unknown,
-        Ethernet,
-        Wireless80211,
-        TokenRing,
-        Fddi,
-        BasicIsdn,
-        PrimaryIsdn,
-        Ppp,
-        Loopback,
-        Slip,
-        Atm,
-        GenericModem,
-        FastEthernetFx,
-        Isdn,
-        FastEthernetT,
-        Tunnel,
-        Ieee80211,
-        Ieee1394
-    }
+    Task<bool> IsConnected();
+}
+
+public class WiFiNetwork
+{
+    public required string SSID { get; set; }
+    public required string BSSID { get; set; }
+    public int SignalStrength { get; set; }
+    public string? SecurityType { get; set; }
+    public required string Band { get; set; }
+    public int Channel { get; set; }
+    public required DateTime Discovered { get; set; }
+
+    public override string ToString() => $"{SSID} ({SignalStrength}%) - {Band}";
 }
