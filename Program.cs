@@ -95,6 +95,7 @@ namespace MurtiWifiConnecter
                 "info" => await ShowSystemInfo(),
                 "diag" => await RunDiagnostics(),
                 "security" => await AnalyzeSecurity(manager),
+                "optimize" => await OptimizeChannels(manager),
                 _ => ShowHelp(),
             };
         }
@@ -348,6 +349,42 @@ namespace MurtiWifiConnecter
             }
         }
 
+        private static async Task<int> OptimizeChannels(IWifiManager manager)
+        {
+            try
+            {
+                Console.WriteLine("\nAnalyzing WiFi channels for optimization...\n");
+                var networks = await manager.GetAvailableNetworks();
+
+                if (networks.Count == 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("No networks detected");
+                    Console.ResetColor();
+                    return 0;
+                }
+
+                var analysis = ChannelOptimizer.AnalyzeChannelQuality(networks);
+                Console.WriteLine(analysis);
+
+                var recommendations = ChannelOptimizer.GetOptimizationRecommendations(analysis);
+                Console.WriteLine("Optimization Recommendations:");
+                foreach (var rec in recommendations)
+                {
+                    Console.WriteLine($"  {rec}");
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Optimization analysis error: {ex.Message}");
+                Console.ResetColor();
+                return 1;
+            }
+        }
+
         private static int ShowHelp()
         {
             Console.WriteLine("\n=== MurtiWiFi Connector Commands ===\n");
@@ -358,10 +395,11 @@ namespace MurtiWifiConnecter
             Console.WriteLine("  status             Show current connection status");
             Console.WriteLine("  connect SSID [PW]  Connect to network (interactive if no args)");
             Console.WriteLine("  disconnect         Disconnect from current network");
-            Console.WriteLine("  profiles           Show saved profiles");
+            Console.WriteLine("  profiles           Show saved profiles (coming soon)");
             Console.WriteLine("  info               Show system information");
             Console.WriteLine("  diag               Run network diagnostics");
             Console.WriteLine("  security           Analyze security of connected network");
+            Console.WriteLine("  optimize           Analyze and optimize WiFi channels");
             Console.WriteLine();
             return 0;
         }
