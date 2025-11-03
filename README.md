@@ -10,6 +10,8 @@ A lightweight, cross-platform WiFi management CLI application for Windows, macOS
 - **Signal Strength Monitoring**: 0-100% signal quality indication
 - **Interactive & CLI Modes**: Both interactive menu and command-line interfaces
 - **Fast Connection Switching**: Sub-second network switching
+- **Network Diagnostics**: Ping, DNS, interface, and gateway testing with quality score
+- **Security Analysis**: WPA3/WPA2/WPA detection with security recommendations
 - **Minimal Dependencies**: Lean binary with no external frameworks
 - **Security Info**: SSID, BSSID, security type detection
 
@@ -74,23 +76,23 @@ Download the latest release from [GitHub Releases](https://github.com/MurtiSoft/
 ### Advanced Commands
 
 ```bash
-# Quick connect to saved network
-./MurtiWifiConnecter quick
+# Network diagnostics (ping, DNS, interfaces, gateway)
+./MurtiWifiConnecter diag
 
-# Full system backup
-./MurtiWifiConnecter fullbackup backup.json
-
-# Restore from backup
-./MurtiWifiConnecter restore backup.json
-
-# Configure preferences
-./MurtiWifiConnecter config
-
-# View network analytics
-./MurtiWifiConnecter analytics
+# Analyze connected network security (WPA3/WPA2 detection)
+./MurtiWifiConnecter security
 
 # Check system information
 ./MurtiWifiConnecter info
+
+# Quick connect to saved network (coming v4)
+./MurtiWifiConnecter quick
+
+# Full system backup (coming v4)
+./MurtiWifiConnecter fullbackup backup.json
+
+# Restore from backup (coming v4)
+./MurtiWifiConnecter restore backup.json
 ```
 
 ## Project Structure
