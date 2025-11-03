@@ -1,4 +1,7 @@
-using System.IO;
+using System;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using MurtiWifiConnecter.Core;
 
 namespace MurtiWifiConnecter
 {
@@ -6,447 +9,311 @@ namespace MurtiWifiConnecter
     {
         public static async Task<int> Main(string[] args)
         {
-            // APIモードのチェック
-            if (args.Length > 0 && args[0] == "--api")
+            try
             {
-                return await RunWebApi(args.Skip(1).ToArray());
-            }
+                ShowBanner();
 
-            // 通常のCLIモード
-            return await RunConsoleApp(args);
+                // Validate platform support
+                if (!IsPlatformSupported())
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: Unsupported platform");
+                    Console.WriteLine("Supported: Windows, macOS, Linux");
+                    Console.ResetColor();
+                    return 1;
+                }
+
+                // Get the appropriate WiFi manager
+                var wifiManager = GetWifiManager();
+                if (wifiManager == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: Failed to initialize WiFi manager");
+                    Console.ResetColor();
+                    return 1;
+                }
+
+                // Process command
+                if (args.Length == 0)
+                {
+                    return await ShowInteractiveMenu(wifiManager);
+                }
+
+                return await ProcessCommand(wifiManager, args);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Error: {ex.Message}");
+                if (ex.InnerException != null)
+                    Console.WriteLine($"Details: {ex.InnerException.Message}");
+                Console.ResetColor();
+                return 1;
+            }
         }
 
-        private static async Task<int> RunWebApi(string[] args)
+        private static void ShowBanner()
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("╔════════════════════════════════════════╗");
+            Console.WriteLine("║   MurtiWiFi Connector v3.2.0          ║");
+            Console.WriteLine("║   Cross-Platform WiFi Manager         ║");
+            Console.WriteLine("╚════════════════════════════════════════╝");
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        private static bool IsPlatformSupported()
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+                   RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                   RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        }
+
+        private static IWifiManager? GetWifiManager()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return new WindowsWifiManager();
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return new LinuxWifiManager();
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return new MacOSWifiManager();
+
+            return null;
+        }
+
+        private static async Task<int> ProcessCommand(IWifiManager manager, string[] args)
+        {
+            return args[0].ToLower() switch
+            {
+                "help" => ShowHelp(),
+                "scan" => await ScanNetworks(manager),
+                "status" => await ShowStatus(manager),
+                "connect" => await Connect(manager, args),
+                "disconnect" => await Disconnect(manager),
+                "profiles" => await ShowProfiles(manager),
+                "info" => await ShowSystemInfo(),
+                _ => ShowHelp(),
+            };
+        }
+
+        private static async Task<int> ShowInteractiveMenu(IWifiManager manager)
+        {
+            while (true)
+            {
+                Console.WriteLine("\nOptions:");
+                Console.WriteLine("1. Scan networks");
+                Console.WriteLine("2. Show status");
+                Console.WriteLine("3. Connect");
+                Console.WriteLine("4. Disconnect");
+                Console.WriteLine("5. Exit");
+                Console.Write("\nSelect option (1-5): ");
+
+                string? input = Console.ReadLine();
+                Console.WriteLine();
+
+                int result = input switch
+                {
+                    "1" => await ScanNetworks(manager),
+                    "2" => await ShowStatus(manager),
+                    "3" => await Connect(manager, Array.Empty<string>()),
+                    "4" => await Disconnect(manager),
+                    "5" => 0,
+                    _ => -1,
+                };
+
+                if (result >= 0) return result;
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Invalid option");
+                Console.ResetColor();
+            }
+        }
+
+        private static async Task<int> ScanNetworks(IWifiManager manager)
         {
             try
             {
-                var builder = WebApplication.CreateBuilder(args);
+                Console.WriteLine("Scanning networks...");
+                var networks = await manager.GetAvailableNetworks();
 
-                // Add services to the container.
-                // 入力バリデーション
-                builder.Services.AddFluentValidationAutoValidation();
-                builder.Services.AddFluentValidationClientsideAdapters();
-
-                // Swagger/OpenAPI設定
-                builder.Services.AddSwaggerGen(options =>
+                if (networks.Count == 0)
                 {
-                    options.SwaggerDoc("v1", new OpenApiInfo
-                    {
-                        Title = "MurtiWifi Connecter API",
-                        Version = "v3.0.0",
-                        Description = "Enterprise Wi-Fi Management API",
-                        Contact = new OpenApiContact
-                        {
-                            Name = "MurtiWifi Support",
-                            Email = "support@example.com"
-                        },
-                        License = new OpenApiLicense
-                        {
-                            Name = "Proprietary",
-                            Url = new Uri("https://example.com/license")
-                        }
-                    });
-
-                    // XMLドキュメントの有効化
-                    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                    if (File.Exists(xmlPath))
-                    {
-                        options.IncludeXmlComments(xmlPath);
-                    }
-
-                    // セキュリティ定義
-                    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                    {
-                        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                        Name = "Authorization",
-                        In = ParameterLocation.Header,
-                        Type = SecuritySchemeType.ApiKey,
-                        Scheme = "Bearer"
-                    });
-
-                    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-                    {
-                        {
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = "Bearer"
-                                }
-                            },
-                            Array.Empty<string>()
-                        }
-                    });
-                });
-
-                // OpenTelemetry設定
-                builder.Services.AddOpenTelemetryTracing(tracerProviderBuilder =>
-                {
-                    tracerProviderBuilder
-                        .AddSource("MurtiWifiConnecter")
-                        .SetResourceBuilder(
-                            ResourceBuilder.CreateDefault()
-                                .AddService(serviceName: "murtiwifi-connecter", serviceVersion: "3.0.0"))
-                        .AddAspNetCoreInstrumentation()
-                        .AddJaegerExporter(options =>
-                        {
-                            options.AgentHost = Environment.GetEnvironmentVariable("JAEGER_HOST") ?? "localhost";
-                            options.AgentPort = int.Parse(Environment.GetEnvironmentVariable("JAEGER_PORT") ?? "14268");
-                        });
-                });
-
-                // CORS設定 - セキュリティを強化
-                builder.Services.AddCors(options =>
-                {
-                    options.AddPolicy("AllowSpecificOrigins", builder =>
-                    {
-                        builder.WithOrigins(
-                                "https://localhost:3000",
-                                "https://127.0.0.1:3000",
-                                "http://localhost:3000",
-                                "http://127.0.0.1:3000")
-                               .AllowAnyMethod()
-                               .AllowAnyHeader()
-                               .AllowCredentials();
-                    });
-
-                    // 開発環境でのみ許可
-                    options.AddPolicy("AllowAll", builder =>
-                    {
-                        builder.AllowAnyOrigin()
-                               .AllowAnyMethod()
-                               .AllowAnyHeader();
-                    });
-                });
-
-                // ヘルスチェックの強化
-                builder.Services.AddHealthChecks()
-                    .AddCheck("memory", () =>
-                    {
-                        var memoryInfo = GC.GetGCMemoryInfo();
-                        return memoryInfo.HeapSizeBytes < 1024 * 1024 * 100 // 100MB以下
-                            ? HealthCheckResult.Healthy("Memory usage is normal")
-                            : HealthCheckResult.Degraded("High memory usage detected");
-                    })
-                    .AddCheck("disk", () =>
-                    {
-                        var drive = new DriveInfo(Directory.GetCurrentDirectory());
-                        var availableSpace = drive.AvailableFreeSpace;
-                        var totalSpace = drive.TotalSize;
-                        var usagePercentage = (totalSpace - availableSpace) / (double)totalSpace * 100;
-
-                        return usagePercentage < 90 // 90%未満
-                            ? HealthCheckResult.Healthy($"Disk usage: {usagePercentage:F1}%")
-                            : HealthCheckResult.Degraded($"High disk usage: {usagePercentage:F1}%");
-                    });
-
-                // ログ設定の強化
-                builder.Services.AddLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    logging.AddConsole(options =>
-                    {
-                        options.FormatterName = "custom";
-                    });
-                    logging.AddConsoleFormatter<CustomConsoleFormatter, ConsoleFormatterOptions>();
-                    logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-                    logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
-                });
-
-                var app = builder.Build();
-
-                // Configure the HTTP request pipeline.
-                if (app.Environment.IsDevelopment())
-                {
-                    app.UseSwagger();
-                    app.UseSwaggerUI(options =>
-                    {
-                        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MurtiWifi Connecter API v3.0.0");
-                        options.RoutePrefix = string.Empty; // Swagger UIをルートに設定
-                    });
+                    Console.WriteLine("No networks found");
+                    return 1;
                 }
 
-                app.UseHttpsRedirection();
-                app.UseCors(app.Environment.IsDevelopment() ? "AllowAll" : "AllowSpecificOrigins");
-                app.UseIpRateLimiting();
-                app.UseResponseCompression();
-
-                // グローバル例外処理
-                app.UseExceptionHandler(errorApp =>
+                Console.WriteLine($"\nFound {networks.Count} network(s):\n");
+                foreach (var network in networks)
                 {
-                    errorApp.Run(async context =>
-                    {
-                        context.Response.StatusCode = 500;
-                        context.Response.ContentType = "application/json";
-
-                        var error = context.Features.Get<IExceptionHandlerFeature>();
-                        if (error != null)
-                        {
-                            var errorResponse = new
-                            {
-                                error = "Internal Server Error",
-                                message = "An unexpected error occurred. Please try again later.",
-                                timestamp = DateTime.UtcNow
-                            };
-
-                            await context.Response.WriteAsJsonAsync(errorResponse);
-                        }
-                    });
-                });
-
-                app.UseAuthorization();
-                app.MapControllers();
-                app.MapHealthChecks("/health");
-
-                // コアコンポーネントの初期化
-                await InitializeCoreComponents();
-
-                await app.RunAsync();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Write($"SSID: {network.SSID}");
+                    Console.ResetColor();
+                    Console.WriteLine($" | Signal: {network.SignalStrength}% | Band: {network.Band}");
+                    if (!string.IsNullOrEmpty(network.SecurityType))
+                        Console.WriteLine($"     Security: {network.SecurityType}");
+                }
                 return 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Web API startup failed: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Scan failed: {ex.Message}");
+                Console.ResetColor();
                 return 1;
             }
         }
 
-        private static async Task<int> RunConsoleApp(string[] args)
+        private static async Task<int> ShowStatus(IWifiManager manager)
         {
             try
             {
-                // Validate system requirements
-                if (!await ValidateSystemRequirements())
+                var connected = await manager.GetConnectedNetwork();
+
+                if (connected == null)
                 {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Not connected to any network");
+                    Console.ResetColor();
+                    return 0;
+                }
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Connected Network:");
+                Console.ResetColor();
+                Console.WriteLine($"SSID: {connected.SSID}");
+                Console.WriteLine($"Signal Strength: {connected.SignalStrength}%");
+                Console.WriteLine($"Band: {connected.Band}");
+                Console.WriteLine($"Channel: {connected.Channel}");
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Status check failed: {ex.Message}");
+                Console.ResetColor();
+                return 1;
+            }
+        }
+
+        private static async Task<int> Connect(IWifiManager manager, string[] args)
+        {
+            try
+            {
+                string ssid;
+                string password;
+
+                if (args.Length >= 2)
+                {
+                    ssid = args[1];
+                    password = args[2];
+                }
+                else
+                {
+                    Console.Write("Enter SSID: ");
+                    ssid = Console.ReadLine() ?? string.Empty;
+
+                    Console.Write("Enter password: ");
+                    password = Console.ReadLine() ?? string.Empty;
+                }
+
+                if (string.IsNullOrEmpty(ssid))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("SSID is required");
+                    Console.ResetColor();
                     return 1;
                 }
 
-                // Display security banner on first run
-                await DisplaySecurityBanner();
+                Console.WriteLine($"Connecting to {ssid}...");
+                bool success = await manager.ConnectAsync(ssid, password);
 
-                // Show improved logo
-                UIHelper.ShowLogo();
-                await InitializeCoreComponents();
-
-                // Process command
-                return await CommandProcessor.ProcessCommand(args);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                UIHelper.ShowModal("Permission Denied",
-                    "Administrator privileges are required for WiFi operations.\n\nTo fix this:\n1. Close this window\n2. Right-click on MurtiWifiConnecter.exe\n3. Select 'Run as administrator'",
-                    UIHelper.ModalType.Error);
-                await ErrorHandler.LogError(ex, "Insufficient privileges");
-                return 1;
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
-            {
-                UIHelper.ShowModal("Rate Limit Exceeded",
-                    "Too many operations in a short time.\nPlease wait a moment before trying again.",
-                    UIHelper.ModalType.Warning);
-                await ErrorHandler.LogError(ex, "Rate limit violation");
-                return 1;
-            }
-            catch (System.Net.NetworkInformation.NetworkInformationException ex)
-            {
-                UIHelper.ShowModal("Network Configuration Error",
-                    "A network configuration error occurred.\n\nPlease check:\n• WiFi adapter is enabled and working\n• Network drivers are up to date\n• Windows network settings are correct",
-                    UIHelper.ModalType.Error);
-                await ErrorHandler.LogError(ex, "Network configuration error");
-                return 1;
-            }
-            catch (System.Security.SecurityException ex)
-            {
-                UIHelper.ShowModal("Security Error",
-                    "A security error occurred.\n\nPlease check:\n• User has appropriate permissions\n• Antivirus is not blocking the application\n• Windows security policies allow execution",
-                    UIHelper.ModalType.Error);
-                await ErrorHandler.LogError(ex, "Security error");
-                return 1;
-            }
-            catch (Exception ex)
-            {
-                UIHelper.ShowModal("Unexpected Error",
-                    "An unexpected error occurred.\n\nPlease try:\n• Restart the application\n• Check network adapter is enabled\n• Run as administrator\n• Check error logs for details",
-                    UIHelper.ModalType.Error);
-                await ErrorHandler.LogError(ex, "Application fatal error");
-                return 1;
-            }
-        }
-
-        private static async Task<bool> ValidateSystemRequirements()
-        {
-            try
-            {
-                // Check if platform is supported
-                if (!WifiManagerFactory.IsPlatformSupported())
+                if (success)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"Successfully connected to {ssid}");
+                    Console.ResetColor();
+                    return 0;
+                }
+                else
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Error: Unsupported platform: {RuntimeInformation.OSDescription}");
-                    Console.WriteLine("Supported platforms: Windows, macOS, Linux");
+                    Console.WriteLine("Connection failed");
                     Console.ResetColor();
-                    return false;
+                    return 1;
                 }
-
-                // Display platform information
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"Platform: {WifiManagerFactory.GetPlatformName()}");
-                Console.ResetColor();
-
-                // Platform-specific checks
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // Check for WiFi adapter on Windows
-                    var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
-                    var hasWifi = interfaces.Any(ni => ni.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211);
-
-                    if (!hasWifi)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine("Warning: No WiFi adapter detected.");
-                        Console.WriteLine("Some features may not work correctly.");
-                        Console.ResetColor();
-                        Console.WriteLine();
-                    }
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    // Check for WiFi availability on macOS
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Note: macOS support is experimental.");
-                    Console.ResetColor();
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    // Check for NetworkManager on Linux
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("Note: Linux support requires NetworkManager.");
-                    Console.ResetColor();
-                }
-
-                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Could not validate system requirements: {ex.Message}");
-                return true; // Continue anyway
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Connection error: {ex.Message}");
+                Console.ResetColor();
+                return 1;
             }
         }
 
-        private static async Task InitializeCoreComponents()
+        private static async Task<int> Disconnect(IWifiManager manager)
         {
             try
             {
-                // Initialize in proper order with error handling
-                await Logger.InitializeAsync();
-                await SecurityManager.InitializeAsync();
-                await AuditTrail.InitializeAsync();
-                await PolicyEngine.InitializeAsync();
-                await NetworkIsolationManager.InitializeAsync();
-                await BandwidthMonitor.InitializeAsync();
-                await HardwareMonitor.InitializeAsync();
-                await FirmwareManager.InitializeAsync();
-                await NetworkOptimizerAI.InitializeAsync();
+                Console.WriteLine("Disconnecting...");
+                bool success = await manager.DisconnectAsync();
 
-                // Initialize 2025 enhancements based on research
-                await WiFi6EOptimizer.Instance.InitializeAsync();
-                await FastRoamingManager.Instance.InitializeAsync();
-                await WPA3SecurityEnhancer.Instance.InitializeAsync();
-
-                // Initialize WiFi 7 and advanced features
-                await WiFi7MLOManager.Instance.InitializeAsync();
-                await AINetworkPredictor.Instance.InitializeAsync();
-                await ObservabilityManager.Instance.InitializeAsync();
-                await MeshNetworkOptimizer.Instance.InitializeAsync();
-
-                // Initialize enhanced error handling
-                ErrorHandler.InitializeErrorContexts();
-
-                await Logger.LogInfo("Core components initialized", "Program", new Dictionary<string, object>
+                if (success)
                 {
-                    ["version"] = "3.2.0",
-                    ["environment"] = Environment.OSVersion.ToString(),
-                    ["platform"] = WifiManagerFactory.GetPlatformName(),
-                    ["wifi6_support"] = true,
-                    ["wifi7_support"] = true,
-                    ["fast_roaming_support"] = true,
-                    ["wpa3_support"] = true,
-                    ["ai_prediction"] = true,
-                    ["observability"] = "OpenTelemetry",
-                    ["mesh_optimization"] = true,
-                    ["startup_time"] = DateTime.UtcNow,
-                    ["features"] = "7 new modules, 3,280 lines"
-                });
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Disconnected successfully");
+                    Console.ResetColor();
+                    return 0;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Disconnection failed");
+                    Console.ResetColor();
+                    return 1;
+                }
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"Warning: Some components failed to initialize: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Disconnect error: {ex.Message}");
                 Console.ResetColor();
-                await ErrorHandler.LogError(ex, "Component initialization warning");
-                // Continue anyway - non-critical
+                return 1;
             }
         }
 
-        private static async Task DisplaySecurityBanner()
+        private static Task<int> ShowProfiles(IWifiManager manager)
         {
-            var bannerFile = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "MurtiWifiConnecter", ".banner_shown");
+            Console.WriteLine("Saved profiles feature coming soon");
+            return Task.FromResult(0);
+        }
 
-            if (!System.IO.File.Exists(bannerFile))
-            {
-                UIHelper.ShowModal("MurtiWiFi Connecter - Security Notice",
-                    "Welcome to MurtiWiFi Connecter v3.2.0 - Enterprise-Grade WiFi Manager\n\n" +
-                    "2025 COMPLETE IMPLEMENTATION:\n" +
-                    "• WiFi 7 (802.11be) MLO - 47% throughput boost\n" +
-                    "• WiFi 6/6E (802.11ax) - 4x efficiency, 75% latency reduction\n" +
-                    "• Fast roaming (802.11r/k/v/u) - seamless handoff\n" +
-                    "• WPA3 Personal/Enterprise - 192-bit encryption\n" +
-                    "• AI/ML prediction - network optimization & anomaly detection\n" +
-                    "• OpenTelemetry observability - distributed tracing\n" +
-                    "• Mesh optimization - 10,000+ devices, <5ms latency\n\n" +
-                    "BASED ON: YouTube tutorials, academic papers, industry best practices\n" +
-                    "NEW CODE: 7 modules, 3,280 lines, 15+ research references\n\n" +
-                    "SECURITY NOTICE:\n" +
-                    "• All operations logged with audit trail\n" +
-                    "• Credentials encrypted (DPAPI/WPA3)\n" +
-                    "• Rate limiting & anomaly detection active\n" +
-                    "• Type 'help' for commands\n\n" +
-                    "Research-backed performance: 4x throughput, 75% latency reduction",
-                    UIHelper.ModalType.Info);
+        private static Task<int> ShowSystemInfo()
+        {
+            Console.WriteLine("\n=== System Information ===");
+            Console.WriteLine($"OS: {RuntimeInformation.OSDescription}");
+            Console.WriteLine($"Architecture: {RuntimeInformation.ProcessArchitecture}");
+            Console.WriteLine($".NET Runtime: {RuntimeInformation.FrameworkDescription}");
+            Console.WriteLine($"Processors: {Environment.ProcessorCount}");
+            Console.WriteLine();
+            return Task.FromResult(0);
+        }
 
-                try
-                {
-                    System.IO.Directory.CreateDirectory(
-                        System.IO.Path.GetDirectoryName(bannerFile)!);
-                    await System.IO.File.WriteAllTextAsync(bannerFile, DateTime.Now.ToString());
-                }
-                catch
-                {
-                    // Ignore banner file creation errors
-                }
-            }
+        private static int ShowHelp()
+        {
+            Console.WriteLine("\n=== MurtiWiFi Connector Commands ===\n");
+            Console.WriteLine("Usage: MurtiWifiConnecter [command] [options]\n");
+            Console.WriteLine("Commands:");
+            Console.WriteLine("  help               Show this help message");
+            Console.WriteLine("  scan               Scan available WiFi networks");
+            Console.WriteLine("  status             Show current connection status");
+            Console.WriteLine("  connect SSID [PW]  Connect to network (interactive if no args)");
+            Console.WriteLine("  disconnect         Disconnect from current network");
+            Console.WriteLine("  profiles           Show saved profiles");
+            Console.WriteLine("  info               Show system information");
+            Console.WriteLine();
+            return 0;
         }
     }
-
-    public class CustomConsoleFormatter : ConsoleFormatter
-    {
-        public CustomConsoleFormatter() : base("custom") { }
-
-        public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
-        {
-            var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-            var logLevel = logEntry.LogLevel.ToString().PadRight(12);
-            var category = logEntry.Category?.PadRight(30) ?? "".PadRight(30);
-
-            textWriter.WriteLine($"[{timestamp}] [{logLevel}] [{category}] {logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception)}");
-
-            if (logEntry.Exception != null)
-            {
-                textWriter.WriteLine($"Exception: {logEntry.Exception.Message}");
-                textWriter.WriteLine($"StackTrace: {logEntry.Exception.StackTrace}");
-            }
-        }
-    }
+}
