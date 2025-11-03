@@ -4,7 +4,9 @@
       "Bash(dotnet build:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(dotnet publish:*)"
+      "Bash(dotnet publish:*)",
+      "Bash(/dev/null -exec wc -l {} +)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

@@ -93,6 +93,8 @@ namespace MurtiWifiConnecter
                 "disconnect" => await Disconnect(manager),
                 "profiles" => await ShowProfiles(manager),
                 "info" => await ShowSystemInfo(),
+                "diag" => await RunDiagnostics(),
+                "security" => await AnalyzeSecurity(manager),
                 _ => ShowHelp(),
             };
         }
@@ -300,6 +302,52 @@ namespace MurtiWifiConnecter
             return Task.FromResult(0);
         }
 
+        private static async Task<int> RunDiagnostics()
+        {
+            try
+            {
+                Console.WriteLine("\nRunning network diagnostics...\n");
+                var report = await NetworkDiagnostics.RunFullDiagnosticsAsync();
+                Console.WriteLine(report);
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Diagnostics error: {ex.Message}");
+                Console.ResetColor();
+                return 1;
+            }
+        }
+
+        private static async Task<int> AnalyzeSecurity(IWifiManager manager)
+        {
+            try
+            {
+                Console.WriteLine("\nAnalyzing network security...\n");
+                var network = await manager.GetConnectedNetwork();
+
+                if (network == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Not connected to any network");
+                    Console.ResetColor();
+                    return 0;
+                }
+
+                var analysis = WiFiSecurityAnalyzer.AnalyzeSecurity(network);
+                Console.WriteLine(analysis);
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Security analysis error: {ex.Message}");
+                Console.ResetColor();
+                return 1;
+            }
+        }
+
         private static int ShowHelp()
         {
             Console.WriteLine("\n=== MurtiWiFi Connector Commands ===\n");
@@ -312,6 +360,8 @@ namespace MurtiWifiConnecter
             Console.WriteLine("  disconnect         Disconnect from current network");
             Console.WriteLine("  profiles           Show saved profiles");
             Console.WriteLine("  info               Show system information");
+            Console.WriteLine("  diag               Run network diagnostics");
+            Console.WriteLine("  security           Analyze security of connected network");
             Console.WriteLine();
             return 0;
         }
