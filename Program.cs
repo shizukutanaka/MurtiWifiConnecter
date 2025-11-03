@@ -96,6 +96,7 @@ namespace MurtiWifiConnecter
                 "diag" => await RunDiagnostics(),
                 "security" => await AnalyzeSecurity(manager),
                 "optimize" => await OptimizeChannels(manager),
+                "speed" => await MeasureSpeed(manager),
                 _ => ShowHelp(),
             };
         }
@@ -385,6 +386,55 @@ namespace MurtiWifiConnecter
             }
         }
 
+        private static async Task<int> MeasureSpeed(IWifiManager manager)
+        {
+            try
+            {
+                var network = await manager.GetConnectedNetwork();
+                if (network == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Not connected to any network");
+                    Console.ResetColor();
+                    return 0;
+                }
+
+                Console.WriteLine($"\n=== WiFi Speed Test ===");
+                Console.WriteLine($"Testing on: {network.SSID}\n");
+
+                // Show speed estimate based on signal
+                var estimate = SpeedTest.EstimateWiFiSpeed(network);
+                Console.WriteLine(estimate.ToString());
+                Console.WriteLine();
+
+                // Perform actual speed test
+                Console.WriteLine("Running download speed test...");
+                var result = await SpeedTest.TestDownloadSpeed();
+
+                if (result.Success)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(SpeedTest.FormatSpeedResult(result));
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Speed test failed: {result.Error}");
+                    Console.ResetColor();
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Speed test error: {ex.Message}");
+                Console.ResetColor();
+                return 1;
+            }
+        }
+
         private static int ShowHelp()
         {
             Console.WriteLine("\n=== MurtiWiFi Connector Commands ===\n");
@@ -400,6 +450,7 @@ namespace MurtiWifiConnecter
             Console.WriteLine("  diag               Run network diagnostics");
             Console.WriteLine("  security           Analyze security of connected network");
             Console.WriteLine("  optimize           Analyze and optimize WiFi channels");
+            Console.WriteLine("  speed              Test WiFi download speed");
             Console.WriteLine();
             return 0;
         }
