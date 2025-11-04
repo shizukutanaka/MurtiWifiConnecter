@@ -156,6 +156,12 @@ namespace MurtiWifiConnecter
                     if (!string.IsNullOrEmpty(network.SecurityType))
                         Console.WriteLine($"     Security: {network.SecurityType}");
                 }
+
+                // Include interference analysis
+                Console.WriteLine("\n--- Interference Analysis ---");
+                var interference = InterferenceAnalyzer.AnalyzeInterference(networks);
+                Console.WriteLine(interference.ToString());
+
                 return 0;
             }
             catch (Exception ex)
