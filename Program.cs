@@ -162,6 +162,19 @@ namespace MurtiWifiConnecter
                 var interference = InterferenceAnalyzer.AnalyzeInterference(networks);
                 Console.WriteLine(interference.ToString());
 
+                // Include roaming optimization analysis
+                Console.WriteLine("\n--- Roaming Optimization ---");
+                var roaming = RoamingOptimization.AnalyzeRoamingCapability(networks);
+                Console.WriteLine(roaming.ToString());
+
+                var roamingRecommendations = RoamingOptimization.GetRoamingRecommendations(roaming);
+                if (roamingRecommendations.Count > 0)
+                {
+                    Console.WriteLine("Recommendations:");
+                    foreach (var rec in roamingRecommendations)
+                        Console.WriteLine($"  • {rec}");
+                }
+
                 return 0;
             }
             catch (Exception ex)
