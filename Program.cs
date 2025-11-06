@@ -317,6 +317,17 @@ namespace MurtiWifiConnecter
                 Console.WriteLine("\nRunning network diagnostics...\n");
                 var report = await NetworkDiagnostics.RunFullDiagnosticsAsync();
                 Console.WriteLine(report);
+
+                // Add quality metrics
+                Console.WriteLine("\n--- Network Quality Metrics ---");
+                Console.WriteLine("Measuring latency, jitter, and packet loss...");
+                var qualityReport = await NetworkQualityMetrics.MeasureNetworkQuality();
+                Console.WriteLine(qualityReport);
+
+                var rating = NetworkQualityMetrics.EvaluateQuality(qualityReport);
+                Console.WriteLine(rating);
+                Console.WriteLine($"\n{NetworkQualityMetrics.GetUseCaseRecommendation(rating)}");
+
                 return 0;
             }
             catch (Exception ex)
