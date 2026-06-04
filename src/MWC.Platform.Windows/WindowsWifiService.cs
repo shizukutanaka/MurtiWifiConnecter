@@ -325,11 +325,20 @@ public sealed class WindowsWifiService : IWifiService
         mhz >= 2400 ? WifiBand.Band2_4GHz :
         WifiBand.Unknown;
 
+    /// <summary>
+    /// チャンネル番号から中心周波数(MHz)を推定する **フォールバック**。
+    /// ドライバーが実周波数を報告した場合は常にそちらを優先する(呼び出し側参照)。
+    /// 注意: 6GHz(802.11ax 6E)はチャンネル番号 1〜233 を再利用するため、
+    /// 2.4GHz(1〜14)/5GHz(32〜177)と数値が重複し、チャンネル番号のみでは
+    /// バンドを一意に判別できない。ここでは普及度の高い 2.4GHz / 5GHz を優先し、
+    /// 既存帯域に該当しないチャンネルのみ 6GHz として扱う。
+    /// </summary>
     private static int ChannelToFreq(int ch)
     {
-        if (ch >= 1  && ch <= 13)  return 2412 + (ch - 1) * 5;
-        if (ch >= 36 && ch <= 177) return 5000 + ch * 5;
-        if (ch >= 1  && ch <= 233) return 5950 + ch * 5; // 6GHz
+        if (ch == 14)              return 2484;                 // 2.4GHz ch14 (日本)
+        if (ch >= 1  && ch <= 13)  return 2412 + (ch - 1) * 5;  // 2.4GHz
+        if (ch >= 32 && ch <= 177) return 5000 + ch * 5;        // 5GHz UNII
+        if (ch >= 1  && ch <= 233) return 5950 + ch * 5;        // 6GHz 6E
         return 0;
     }
 

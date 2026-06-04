@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,7 +24,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly SignalHistoryService _history;
     private readonly OuiLookupService    _oui;
     private readonly System.Timers.Timer _timer;
-    private CancellationTokenSource?     _cts;
 
     public ObservableCollection<AdapterViewModel> Adapters { get; } = new();
 
@@ -90,15 +88,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task RefreshAsync() => await SafeRefresh();
 
-    /// <summary>全アダプターを並列でスキャン(マルチアダプター運用)</summary>
+    /// <summary>全アダプターを並列でスキャン(マルチアダプター運用、Apple "Concurrent")</summary>
     [RelayCommand]
     public async Task RefreshAllAsync()
     {
         IsScanning = true;
         try
         {
-            var tasks = Adapters.Select(a => a.RefreshAsync()).ToArray();
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
+            if (SelectedAdapter is not null)
+                Filter.SetSource(SelectedAdapter.Networks.ToList());
             int connected = Adapters.Count(a => a.ConnectedSsid is not null);
             StatusMessage = $"{connected} / {Adapters.Count} アダプターが接続中";
         }
@@ -117,23 +116,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public AdapterViewModel? FindAdapterConnectedTo(string ssid)
         => Adapters.FirstOrDefault(a =>
             a != SelectedAdapter && a.ConnectedSsid == ssid);
-
-    /// <summary>全アダプター並列スキャン (Apple "Concurrent" )</summary>
-    [RelayCommand]
-    public async Task RefreshAllAsync()
-    {
-        IsScanning = true;
-        try
-        {
-            // 全アダプターを並列スキャン
-            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
-            if (SelectedAdapter is not null)
-                Filter.SetSource(SelectedAdapter.Networks.ToList());
-            StatusMessage = $"{Adapters.Count} 個のアダプターを更新";
-        }
-        catch (Exception ex) { _log.LogWarning(ex, "refresh all"); }
-        finally { IsScanning = false; }
-    }
 
     [RelayCommand]
     public void Export(string fmt)
@@ -210,7 +192,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _timer.Stop(); _timer.Dispose();
-        _cts?.Cancel(); _cts?.Dispose();
     }
 }
 

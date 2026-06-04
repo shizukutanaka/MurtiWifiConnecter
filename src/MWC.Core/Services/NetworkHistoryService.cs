@@ -11,7 +11,7 @@ namespace MWC.Core.Services;
 /// Apple iOS の "最近接続したネットワーク" に相当。
 ///
 /// 保存: %LocalAppData%/MWC/history.json
-/// 最大: 50件
+/// 最大: 500件 (90日分を収容)
 /// 用途: JumpList、最近使ったネットワーク表示、接続優先度
 /// </summary>
 public sealed class NetworkHistoryService
@@ -80,18 +80,23 @@ public sealed class NetworkHistoryService
 
     /// <summary>直近 n 件の SSID 一覧を返す (JumpList 等に利用)。</summary>
     public IReadOnlyList<string> GetRecentSsids(int n = 10)
-        => _entries.Take(n).Select(e => e.Ssid).ToList();
+    {
+        lock (_lock) { return _entries.Take(n).Select(e => e.Ssid).ToList(); }
+    }
 
     /// <summary>指定 SSID の履歴エントリを取得する。存在しなければ null。</summary>
     public ConnectionHistoryEntry? GetEntry(string ssid)
-        => _entries.FirstOrDefault(e => e.Ssid == ssid);
+    {
+        lock (_lock) { return _entries.FirstOrDefault(e => e.Ssid == ssid); }
+    }
 
 
     /// <summary>指定日数分の接続統計を返す</summary>
     public NetworkStatsSummary GetStats(int days = 30)
     {
         var since = DateTimeOffset.UtcNow.AddDays(-days);
-        var recent = _entries.Where(e => e.LastConnected >= since).ToList();
+        List<ConnectionHistoryEntry> recent;
+        lock (_lock) { recent = _entries.Where(e => e.LastConnected >= since).ToList(); }
         return new NetworkStatsSummary(
             Period:        TimeSpan.FromDays(days),
             TotalConnects: recent.Sum(e => e.ConnectCount),
@@ -102,11 +107,16 @@ public sealed class NetworkHistoryService
 
     /// <summary>最も頻繁に接続するSSID上位N件</summary>
     public IReadOnlyList<string> GetFrequentSsids(int n = 5)
-        => _entries
-            .OrderByDescending(e => e.ConnectCount)
-            .Take(n)
-            .Select(e => e.Ssid)
-            .ToList();
+    {
+        lock (_lock)
+        {
+            return _entries
+                .OrderByDescending(e => e.ConnectCount)
+                .Take(n)
+                .Select(e => e.Ssid)
+                .ToList();
+        }
+    }
 
     /// <summary>履歴全件(フィルタなし)</summary>
     public IReadOnlyList<ConnectionHistoryEntry> GetAll()
@@ -115,10 +125,10 @@ public sealed class NetworkHistoryService
     }
 
     /// <summary>保存済みエントリ数</summary>
-    public int Count => _entries.Count;
+    public int Count { get { lock (_lock) { return _entries.Count; } } }
 
-    public void Forget(string ssid) { _entries.RemoveAll(e => e.Ssid == ssid); Save(); }
-    public void ClearAll()          { _entries.Clear(); Save(); }
+    public void Forget(string ssid) { lock (_lock) { _entries.RemoveAll(e => e.Ssid == ssid); Save(); } }
+    public void ClearAll()          { lock (_lock) { _entries.Clear(); Save(); } }
 
     private List<ConnectionHistoryEntry> Load()
     {

@@ -21,7 +21,6 @@ namespace MWC.App;
 public partial class MainWindow : Window
 {
     private MainWindowCommands?       _cmd;
-    private SystemTrayService?        _tray;
     private AppUpdateService?         _updater;
     private JumpListService?          _jumpList;
     private NetworkHistoryService?    _history;
@@ -41,12 +40,12 @@ public partial class MainWindow : Window
         {
             var svc = App.Host.Services;
             _cmd      = svc.GetRequiredService<MainWindowCommands>();
-            _tray     = svc.GetService<SystemTrayService>();
             _updater  = svc.GetService<AppUpdateService>();
             _jumpList = svc.GetService<JumpListService>();
             _history  = svc.GetService<NetworkHistoryService>();
 
-            if (_tray is not null) _tray.RequestOpenMainWindow += BringToFront;
+            // トレイの「メインウィンドウを開く」要求は App 側で一元購読する
+            // (ここで二重購読すると前面化処理が 2 回走るため購読しない)
 
             if (DataContext is not MainViewModel vm) return;
             await vm.LoadCommand.ExecuteAsync(null);
@@ -64,9 +63,6 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm) vm.Dispose();
     }
-
-    private void BringToFront()
-        => Dispatcher.Invoke(() => { Show(); WindowState = WindowState.Normal; Activate(); });
 
     private async Task CheckForUpdatesAsync(MainViewModel vm)
     {
