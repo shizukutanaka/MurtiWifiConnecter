@@ -1,0 +1,49 @@
+{
+  "name": "MWC Development",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/powershell:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" }
+  },
+
+  "postCreateCommand": "dotnet tool restore && dotnet restore MWC.sln",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.dotnet-interactive-vscode",
+        "EditorConfig.EditorConfig",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "GitHub.copilot",
+        "ms-vscode.test-adapter-converter",
+        "formulahendry.dotnet-test-explorer"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.rulers": [120],
+        "dotnet.defaultSolution": "MWC.sln",
+        "csharp.referencesCodeLens.enabled": true,
+        "csharp.implementationsCodeLens.enabled": true,
+        "[csharp]": {
+          "editor.defaultFormatter": "ms-dotnettools.csharp"
+        }
+      }
+    }
+  },
+
+  "remoteEnv": {
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "NUGET_PACKAGES": "/home/vscode/.nuget/packages"
+  },
+
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.nuget,target=/home/vscode/.nuget,type=bind,consistency=cached"
+  ],
+
+  "remoteUser": "vscode"
+}

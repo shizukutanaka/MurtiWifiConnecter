@@ -1,0 +1,41 @@
+{
+  "version": "2.0.1",
+  "description": "MWC — Multi WiFi Connector. Manage multiple Wi-Fi adapters from a single window.",
+  "homepage": "https://github.com/shizukutanaka/MurtiWifiConnecter",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-x64.zip",
+      "hash": "PLACEHOLDER_SHA256_x64"
+    },
+    "arm64": {
+      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-arm64.zip",
+      "hash": "PLACEHOLDER_SHA256_arm64"
+    }
+  },
+  "bin": [
+    ["MWC.exe", "mwc-gui"],
+    ["mwc.exe", "mwc"]
+  ],
+  "shortcuts": [
+    ["MWC.exe", "MWC — Multi WiFi Connector"]
+  ],
+  "post_install": [
+    "Write-Host 'MWC installed. Run `mwc` (CLI) or `mwc-gui` (WPF).' -ForegroundColor Green",
+    "Write-Host 'Docs: https://github.com/shizukutanaka/MurtiWifiConnecter#readme' -ForegroundColor Gray"
+  ],
+  "checkver": {
+    "github": "https://github.com/shizukutanaka/MurtiWifiConnecter",
+    "regex": "v([\\d.]+)"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v$version/mwc-$version-win-x64.zip"
+      },
+      "arm64": {
+        "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v$version/mwc-$version-win-arm64.zip"
+      }
+    }
+  }
+}

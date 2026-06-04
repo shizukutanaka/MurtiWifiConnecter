@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- マルチターゲット: net8.0 + netstandard2.0 -->
+    <TargetFrameworks>net9.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>MWC.SDK</RootNamespace>
+    <AssemblyName>MWC.SDK</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NuGet パッケージ設定 -->
+    <IsPackable>true</IsPackable>
+    <PackageId>MWC.SDK</PackageId>
+    <Version>2.5.0</Version>
+    <Authors>ShizukuTanaka</Authors>
+    <Company>ShizukuTanaka</Company>
+    <Description>
+      MWC SDK — Lightweight Wi-Fi management library for .NET.
+      Zero external dependencies. Includes WifiUri, ProfileXmlBuilder,
+      CatImportService, RegulatoryDomainService, OweSelectionService,
+      Hotspot20Service, and more.
+    </Description>
+    <PackageTags>wifi;wireless;wpa3;enterprise;eap;hotspot2;eduroam;passpoint;wifiuri;802.11</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes>See CHANGELOG.md for release notes. v2.5.0: Wi-Fi 7 EHT, WPA3-OWE, eduroam CAT, Passpoint, regulatory domains.</PackageReleaseNotes>
+
+    <!-- シンボルパッケージ -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- 決定論的ビルド -->
+    <Deterministic>true</Deterministic>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- netstandard2.0 互換のため nullable を条件付き有効化 -->
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+  </PropertyGroup>
+
+  <!-- netstandard2.0 では Span/Index 等を polyfill -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- README -->
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!-- Core のソースを直接参照 -->
+  <ItemGroup>
+    <Compile Include="../src/MWC.Core/**/*.cs" Exclude="../src/MWC.Core/obj/**" />
+  </ItemGroup>
+</Project>

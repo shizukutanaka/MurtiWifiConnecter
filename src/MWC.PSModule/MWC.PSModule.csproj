@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>MWC.PSModule</RootNamespace>
+    <AssemblyName>MWC.PSModule</AssemblyName>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="MWC.psd1" />
+    <None Include="MWC.psm1" />
+  </ItemGroup>
+</Project>

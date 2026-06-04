@@ -1,0 +1,38 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core -->
+    <PackageVersion Include="CommunityToolkit.Mvvm"          Version="8.4.0" />
+
+    <!-- Hosting / Logging -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting"   Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging"   Version="9.0.0" />
+    <PackageVersion Include="Serilog"                        Version="4.2.0" />
+    <PackageVersion Include="Serilog.Extensions.Hosting"     Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File"             Version="6.0.0" />
+
+    <!-- Platform -->
+    <PackageVersion Include="ManagedNativeWifi"              Version="3.0.2" />
+
+    <!-- QR コード -->
+    <PackageVersion Include="QRCoder"                        Version="1.6.0" />
+
+    <!-- CLI -->
+    <PackageVersion Include="System.CommandLine"             Version="2.0.0-beta4.22272.1" />
+
+    <!-- Test -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk"         Version="17.12.0" />
+    <PackageVersion Include="xunit"                          Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio"      Version="2.8.2" />
+    <PackageVersion Include="FluentAssertions"               Version="7.0.0" />
+    <PackageVersion Include="NSubstitute"                    Version="5.3.0" />
+    <PackageVersion Include="coverlet.collector"             Version="6.0.2" />
+      <PackageVersion Include="FsCheck.Xunit" Version="3.1.0" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+  </ItemGroup>
+</Project>

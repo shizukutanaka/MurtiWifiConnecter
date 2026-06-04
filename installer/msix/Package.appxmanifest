@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="mp uap3 uap5 desktop desktop6 rescap">
+
+  <Identity
+    Name="ShizukuTanaka.MWC"
+    Publisher="CN=ShizukuTanaka"
+    Version="2.0.1.0"
+    ProcessorArchitecture="neutral" />
+
+  <mp:PhoneIdentity
+    PhoneProductId="c8d5e9d3-f2b1-4a3c-8e6f-1d2b3c4a5e6f"
+    PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+
+  <Properties>
+    <DisplayName>MWC — Multi WiFi Connector</DisplayName>
+    <PublisherDisplayName>ShizukuTanaka</PublisherDisplayName>
+    <Description>
+      Manage multiple Wi-Fi adapters from a single window.
+      WPA3, Enterprise auth, QR codes, and scan analysis — all free.
+    </Description>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap3:AppInstallerUri>https://github.com/shizukutanaka/MurtiWifiConnecter/releases/latest/download/MWC.appinstaller</uap3:AppInstallerUri>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="ja" />
+    <Resource Language="en" />
+    <Resource Language="zh-Hans" />
+    <Resource Language="zh-Hant" />
+    <Resource Language="ko" />
+    <Resource Language="es" />
+    <Resource Language="fr" />
+    <Resource Language="de" />
+    <Resource Language="ru" />
+    <Resource Language="ar" />
+    <Resource Language="pt-BR" />
+  </Resources>
+
+  <Applications>
+    <Application Id="MWC"
+                 Executable="MWC.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+
+      <uap:VisualElements
+        DisplayName="MWC"
+        Description="Multi WiFi Connector"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+
+        <uap:DefaultTile
+          Square71x71Logo="Assets\Square71x71Logo.png"
+          Square310x310Logo="Assets\Square310x310Logo.png"
+          Wide310x150Logo="Assets\Wide310x150Logo.png"
+          ShortName="MWC">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+
+        <uap:LockScreen Notification="badge" BadgeLogo="Assets\BadgeLogo.png" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!-- システムトレイ常駐 -->
+        <desktop:Extension Category="windows.startupTask" Executable="MWC.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="MWCStartup" Enabled="false" DisplayName="MWC Multi WiFi Connector" />
+        </desktop:Extension>
+
+        <!-- ファイル関連付け: .wifiprofile -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wifiprofile">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.wifiprofile</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:DisplayName>MWC Wi-Fi Profile</uap:DisplayName>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+
+        <!-- URI スキーム: mwc:// -->
+        <uap3:Extension Category="windows.protocol">
+          <uap3:Protocol Name="mwc">
+            <uap3:DisplayName>MWC Protocol</uap3:DisplayName>
+          </uap3:Protocol>
+        </uap3:Extension>
+
+        <!-- toast 通知アクティベーション -->
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <Capability Name="wiFiControl" />
+    <rescap:Capability Name="wifiData" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
