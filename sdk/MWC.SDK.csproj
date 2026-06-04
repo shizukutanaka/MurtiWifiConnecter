@@ -9,7 +9,7 @@
     <!-- NuGet パッケージ設定 -->
     <IsPackable>true</IsPackable>
     <PackageId>MWC.SDK</PackageId>
-    <Version>2.5.0</Version>
+    <Version>3.11.0</Version>
     <Authors>ShizukuTanaka</Authors>
     <Company>ShizukuTanaka</Company>
     <Description>
@@ -24,7 +24,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>See CHANGELOG.md for release notes. v2.5.0: Wi-Fi 7 EHT, WPA3-OWE, eduroam CAT, Passpoint, regulatory domains.</PackageReleaseNotes>
+    <PackageReleaseNotes>See CHANGELOG.md for release notes. v3.11.0: power-save (TWT/rTWT) advisory, OUI vendor matching for evil-twin detection, structured logging, health checks.</PackageReleaseNotes>
 
     <!-- シンボルパッケージ -->
     <IncludeSymbols>true</IncludeSymbols>

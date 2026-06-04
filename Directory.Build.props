@@ -20,17 +20,19 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>2.5.0</Version>
-    <AssemblyVersion>2.5.0.0</AssemblyVersion>
-    <FileVersion>2.5.0.0</FileVersion>
+    <Version>3.11.0</Version>
+    <AssemblyVersion>3.11.0.0</AssemblyVersion>
+    <FileVersion>3.11.0.0</FileVersion>
 
     <!-- 出力統一 -->
     <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/bin/$(MSBuildProjectName)/</BaseOutputPath>
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
       <!-- 依存関係ロック: CI での再現性保証 -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <!-- CIでのみ locked mode (ローカルでは lock file を更新可能) -->
-    <RestoreLockedMode Condition="'$(GITHUB_ACTIONS)' == 'true'">true</RestoreLockedMode>
+    <!-- locked mode はオプトイン (MWC_LOCKED_RESTORE=true)。
+         packages.lock.json をコミットしていない状態で GITHUB_ACTIONS に
+         強制すると restore が失敗するため、明示フラグでのみ有効化する。 -->
+    <RestoreLockedMode Condition="'$(MWC_LOCKED_RESTORE)' == 'true'">true</RestoreLockedMode>
     <!-- SBOM (Software Bill of Materials) 生成 -->
     <GenerateSBOM>true</GenerateSBOM>
   </PropertyGroup>
