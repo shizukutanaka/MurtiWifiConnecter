@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-macos</TargetFramework>
+    <RuntimeIdentifiers>osx-x64;osx-arm64</RuntimeIdentifiers>
+    <RootNamespace>MWC.Platform.MacOS</RootNamespace>
+    <AssemblyName>MWC.Platform.MacOS</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+    <!-- macOS Ventura 13.0+ (CoreWLAN 全機能) -->
+    <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MWC.Core\MWC.Core.csproj" />
+  </ItemGroup>
+</Project>

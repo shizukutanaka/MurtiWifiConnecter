@@ -1,0 +1,80 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{md,yml,yaml,json,xml,xaml,csproj,props,wxs,wixproj,sln}]
+indent_size = 2
+
+[*.{cs,cshtml,vb}]
+indent_size = 4
+charset = utf-8-bom
+
+# ────── C# style ──────
+[*.cs]
+# var
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:silent
+
+# expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_properties = true:suggestion
+
+# braces / new line
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_prefer_braces = true:suggestion
+
+# 'using' directive placement
+csharp_using_directive_placement = outside_namespace:warning
+
+# file-scoped namespace
+csharp_style_namespace_declarations = file_scoped:warning
+
+# nullability
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+
+# pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+
+# unused
+dotnet_diagnostic.IDE0051.severity = warning  # unused private members
+dotnet_diagnostic.IDE0052.severity = warning  # unused private fields
+dotnet_diagnostic.CA1822.severity  = warning  # mark as static
+
+# ────── Naming rules ──────
+dotnet_naming_rule.private_fields_with_underscore.symbols   = private_fields
+dotnet_naming_rule.private_fields_with_underscore.style     = camel_case_underscore_style
+dotnet_naming_rule.private_fields_with_underscore.severity  = warning
+
+dotnet_naming_symbols.private_fields.applicable_kinds            = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities  = private
+
+dotnet_naming_style.camel_case_underscore_style.required_prefix = _
+dotnet_naming_style.camel_case_underscore_style.capitalization  = camel_case
+
+# ────── Severity escalations ──────
+# Security
+dotnet_diagnostic.CA2100.severity = error  # SQL injection (defense-in-depth)
+dotnet_diagnostic.CA3075.severity = error  # XML insecure DTD
+dotnet_diagnostic.CA5350.severity = error  # weak crypto
+dotnet_diagnostic.CA5351.severity = error  # broken crypto
+dotnet_diagnostic.CA5359.severity = error  # cert validation disabled
+dotnet_diagnostic.CA5394.severity = error  # insecure RNG
+
+# Common quality
+dotnet_diagnostic.CA1031.severity = warning # do not catch general exception
+dotnet_diagnostic.CA2007.severity = none    # ConfigureAwait — UI app
+dotnet_diagnostic.CA1303.severity = none    # localize literals — i18n via .resx

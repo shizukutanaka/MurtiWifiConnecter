@@ -1,0 +1,43 @@
+{
+  "stryker-config": {
+    "project": "MWC.Core.csproj",
+    "test-projects": [
+      "tests/MWC.Core.Tests/MWC.Core.Tests.csproj"
+    ],
+    "mutation-level": "Standard",
+    "reporters": [
+      "html",
+      "json",
+      "progress",
+      "dashboard"
+    ],
+    "output-path": "artifacts/mutation",
+    "threshold": {
+      "high": 80,
+      "low": 60,
+      "break": 50
+    },
+    "mutate": [
+      "src/MWC.Core/Services/*.cs",
+      "src/MWC.Core/Profile/*.cs",
+      "src/MWC.Core/Models/*.cs"
+    ],
+    "ignore-mutations": [
+      "equality",
+      "string"
+    ],
+    "ignore-methods": [
+      "ToString",
+      "GetHashCode",
+      "Equals",
+      "Log*",
+      "Debug*"
+    ],
+    "since": {
+      "enabled": true,
+      "target": "master"
+    },
+    "coverage-analysis": "perTest",
+    "language-version": "CSharp12"
+  }
+}

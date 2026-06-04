@@ -1,0 +1,43 @@
+<Window x:Class="MWC.App.Views.FirstRunWizard"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MWC へようこそ" Width="480" Height="400"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
+        ShowInTaskbar="False"
+        AutomationProperties.Name="初回起動ウィザード">
+    <Grid>
+        <!-- ページコンテナ -->
+        <Grid x:Name="PageContainer"/>
+
+        <!-- 下部ナビゲーション -->
+        <Grid VerticalAlignment="Bottom" Margin="28,0,28,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ステップドット -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Ellipse x:Name="Dot1" Width="8" Height="8"
+                         Fill="#00C4CC" Margin="0,0,6,0"/>
+                <Ellipse x:Name="Dot2" Width="8" Height="8"
+                         Fill="#2B313A" Margin="0,0,6,0"/>
+                <Ellipse x:Name="Dot3" Width="8" Height="8"
+                         Fill="#2B313A"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" x:Name="BackBtn" AutomationProperties.Name="戻る" Content="戻る"
+                    Click="OnBack" Visibility="Collapsed"
+                    Padding="16,9" Margin="0,0,8,0"
+                    Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}" BorderThickness="0"/>
+            <Button Grid.Column="2" x:Name="NextBtn" AutomationProperties.Name="次へ →" Content="次へ →"
+                    Click="OnNext" IsDefault="True"
+                    Padding="20,9"
+                    Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}"
+                    FontWeight="SemiBold" BorderThickness="0"/>
+        </Grid>
+    </Grid>
+</Window>

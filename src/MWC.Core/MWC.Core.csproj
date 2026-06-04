@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- netstandard2.0: Android/iOS/Unity/Xamarin 互換 -->
+    <!-- net9.0:         Windows/Linux/macOS フル機能版 -->
+    <TargetFrameworks>net9.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>MWC.Core</RootNamespace>
+    <AssemblyName>MWC.Core</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+
+    <!-- NuGet メタ (MWC.SDK と共通) -->
+    <PackageId>MWC.Core</PackageId>
+    <Version>3.11.0</Version>
+    <Authors>ShizukuTanaka</Authors>
+    <Description>MWC Core — Wi-Fi management models and services. Zero external dependencies. netstandard2.0 compatible.</Description>
+    <PackageTags>wifi;wpa3;eap;netstandard</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- LoggerMessage source generation 用 (高性能構造化ログ)。バージョンは Directory.Packages.props で集中管理 -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <!-- netstandard2.0 には System.Text.Json が必要 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <!-- RegistryKey は Windows のみ → Linux/macOS では Conditional compile -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <Compile Remove="Services/GroupPolicyProvider.cs" />
+    <Compile Remove="Services/CertificateStoreService.cs" />
+    <Compile Remove="Services/PluginHost.cs" />
+    <Compile Remove="Services/MwcLog.cs" />
+  </ItemGroup>
+</Project>

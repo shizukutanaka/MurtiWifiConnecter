@@ -1,0 +1,169 @@
+<Window x:Class="MWC.App.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:svc="clr-namespace:MWC.App.Services"
+        Title="MWC — 設定" Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
+        AutomationProperties.Name="設定ダイアログ">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E6E8EB"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#22262E"/>
+            <Setter Property="Foreground" Value="#E6E8EB"/>
+            <Setter Property="BorderBrush" Value="#2B313A"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="#1A1D23"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="20">
+        <TextBlock Text="設定" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <!-- ────── 表示 ────── -->
+        <TextBlock Text="表示" Style="{StaticResource SectionLabel}"/>
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <!-- 表示モード -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="表示モード"/>
+                        <TextBlock Text="シンプル: 接続に集中 / 詳細: 技術情報も表示"
+                                   FontSize="11" Foreground="{DynamicResource FgMutedBrush}"/>
+                    </StackPanel>
+                    <!-- DisplayMode バインド: enum 直接比較 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <RadioButton Content="シンプル" Margin="0,0,12,0"
+                                     IsChecked="{Binding IsSimpleMode}"
+                                     AutomationProperties.Name="シンプルモード"/>
+                        <RadioButton Content="詳細"
+                                     IsChecked="{Binding IsExpertMode}"
+                                     AutomationProperties.Name="詳細モード"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+
+                <!-- テーマ -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="テーマ" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1"
+                              SelectedIndex="{Binding ThemeIndex}"
+                              AutomationProperties.Name="テーマ選択">
+                        <ComboBoxItem Content="ダーク"/>
+                        <ComboBoxItem Content="ライト"/>
+                        <ComboBoxItem Content="システムに合わせる"/>
+                    </ComboBox>
+                </Grid>
+
+                <!-- 言語 -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="言語" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding Language}"
+                              ItemsSource="{Binding Languages}"
+                              AutomationProperties.Name="言語選択"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ────── スキャン ────── -->
+        <TextBlock Text="スキャン" Style="{StaticResource SectionLabel}"/>
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="160"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="自動スキャン間隔"/>
+                        <TextBlock Text="バッテリー消費に影響します"
+                                   FontSize="11" Foreground="{DynamicResource FgMutedBrush}"/>
+                    </StackPanel>
+                    <ComboBox Grid.Column="1"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Secs"
+                              SelectedValue="{Binding AutoScanInterval}"
+                              ItemsSource="{Binding ScanIntervals}"
+                              AutomationProperties.Name="スキャン間隔"/>
+                </Grid>
+                <Separator Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="起動時に自動スキャン" VerticalAlignment="Center"/>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding ScanOnStartup}"
+                              AutomationProperties.Name="起動時自動スキャン"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ────── 通知 ────── -->
+        <TextBlock Text="通知" Style="{StaticResource SectionLabel}"/>
+        <Border Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="接続・切断の通知を表示"/>
+                    <TextBlock Text="アクションセンターにトースト表示"
+                               FontSize="11" Foreground="{DynamicResource FgMutedBrush}"/>
+                </StackPanel>
+                <CheckBox Grid.Column="1" IsChecked="{Binding ShowNotifications}"
+                          AutomationProperties.Name="通知を表示"/>
+            </Grid>
+        </Border>
+
+        <!-- ボタン -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" AutomationProperties.Name="デフォルトに戻す" Content="デフォルトに戻す"
+                    Command="{Binding ResetCommand}" HorizontalAlignment="Left"
+                    Padding="12,8" Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}"
+                    BorderThickness="0"/>
+            <Button Grid.Column="1" AutomationProperties.Name="キャンセル" Content="キャンセル" Click="OnCancel"
+                    Padding="14,8" Margin="0,0,8,0"
+                    Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgBrush}" BorderThickness="0"/>
+            <Button Grid.Column="2" AutomationProperties.Name="保存" Content="保存" Click="OnSave"
+                    Padding="14,8" IsDefault="True"
+                    Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}"
+                    FontWeight="SemiBold" BorderThickness="0"/>
+        </Grid>
+    </StackPanel>
+</Window>

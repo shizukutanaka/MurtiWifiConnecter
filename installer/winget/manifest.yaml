@@ -1,0 +1,44 @@
+PackageIdentifier: ShizukuTanaka.MWC
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: Shizuku Tanaka
+PublisherUrl: https://github.com/shizukutanaka
+PublisherSupportUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/issues
+PackageName: MWC
+PackageUrl: https://github.com/shizukutanaka/MurtiWifiConnecter
+License: MIT
+LicenseUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/blob/master/LICENSE
+ShortDescription: Multi-adapter Wi-Fi management tool for Windows
+Description: |-
+  MWC is a Windows-native Wi-Fi management tool supporting multiple wireless adapters.
+  Features: WPA3-SAE, WPA2-Enterprise (PEAP/EAP-TLS), OWE, multi-adapter parallel scan,
+  Wi-Fi QR code generation, captive portal detection, full keyboard accessibility.
+Tags:
+  - wifi
+  - wireless
+  - networking
+  - utility
+  - wpa3
+ReleaseNotes: See CHANGELOG.md
+ReleaseNotesUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/blob/master/CHANGELOG.md
+ManifestType: singleton
+ManifestVersion: 1.6.0
+Installers:
+  - Architecture: x64
+    InstallerType: wix
+    Scope: machine
+    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v1.0.0/MWC-1.0.0-win-x64.msi
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE
+    ProductCode: '{A6D8F4E2-7C1B-4F9D-8E3A-2B5F6C7D8E9F}'
+    UpgradeBehavior: install
+    Commands:
+      - mwc
+  - Architecture: arm64
+    InstallerType: wix
+    Scope: machine
+    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v1.0.0/MWC-1.0.0-win-arm64.msi
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE
+    ProductCode: '{A6D8F4E2-7C1B-4F9D-8E3A-2B5F6C7D8E9F}'
+    UpgradeBehavior: install
+    Commands:
+      - mwc

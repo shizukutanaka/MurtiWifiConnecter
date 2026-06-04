@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>mwc</id>
+    <version>2.0.1</version>
+    <title>MWC — Multi WiFi Connector</title>
+    <authors>ShizukuTanaka</authors>
+    <owners>ShizukuTanaka</owners>
+    <projectUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</projectUrl>
+    <licenseUrl>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>wifi wireless network scanner wpa3 enterprise</tags>
+    <summary>Manage multiple Wi-Fi adapters from a single window.</summary>
+    <description><![CDATA[
+# MWC — Multi WiFi Connector
+
+Manage multiple Wi-Fi adapters from a single window.
+
+## Features
+
+- WPA3-SAE, WPA3 Enterprise 192-bit, WPA2, OWE
+- Multi-adapter parallel scan + tabbed UI
+- Per-adapter preferences (label, band, pin, auto-reconnect)
+- QR code generation + parsing
+- Network quality measurement (ping RTT + packet loss)
+- Signal history graph + channel band graph
+- System tray + Win11 jump list
+- 12 languages (ja/en/zh-Hans/zh-Hant/ko/es/fr/de/ru/ar/pt-BR)
+- CLI: `mwc list/scan/connect/disconnect/qr/export`
+- DPAPI password protection, Sigstore + SLSA
+
+## Quick Start
+
+```powershell
+choco install mwc
+mwc scan        # scan current adapter
+mwc list        # list adapters
+mwc connect -s "MySSID" -p "password"
+```
+    ]]></description>
+    <releaseNotes>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/main/CHANGELOG.md</releaseNotes>
+    <dependencies>
+      <dependency id="dotnet-8.0-runtime" version="8.0.0" />
+    </dependencies>
+  </metadata>
+</package>

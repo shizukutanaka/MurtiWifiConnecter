@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <?define ProductName="MWC" ?>
+  <?define Manufacturer="Shizuku Tanaka" ?>
+  <?define UpgradeCode="A6D8F4E2-7C1B-4F9D-8E3A-2B5F6C7D8E9F" ?>
+
+  <Package Name="$(ProductName)"
+           Manufacturer="$(Manufacturer)"
+           Version="$(Version)"
+           UpgradeCode="$(UpgradeCode)"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <SummaryInformation Description="MWC - Multi-adapter Wi-Fi tool" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  Schedule="afterInstallInitialize" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Launch conditions -->
+    <Launch Condition="Installed OR (VersionNT &gt;= 603)"
+            Message="Windows 10 (1809) or later required." />
+    <Launch Condition="Installed OR Privileged"
+            Message="Administrator rights required." />
+
+    <!-- Properties -->
+    <Property Id="ARPPRODUCTICON" Value="WifixIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/shizukutanaka/MurtiWifiConnecter" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/shizukutanaka/MurtiWifiConnecter" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <Icon Id="WifixIcon" SourceFile="$(AppPath)\MWC.exe" />
+
+    <!-- Directory layout -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="$(ProductName)" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="$(ProductName)" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- Components -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <!-- Harvest all files from the published output -->
+      <Files Include="$(AppPath)\**" />
+    </ComponentGroup>
+
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut Id="StartMenuMWC"
+                Name="MWC"
+                Description="Multi-adapter Wi-Fi tool"
+                Target="[INSTALLFOLDER]MWC.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="WifixIcon" />
+      <RemoveFolder Id="CleanupShortcutFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\$(Manufacturer)\$(ProductName)"
+                     Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="*">
+      <Shortcut Id="DesktopMWC"
+                Name="MWC"
+                Target="[INSTALLFOLDER]MWC.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="WifixIcon" />
+      <RegistryValue Root="HKCU" Key="Software\$(Manufacturer)\$(ProductName)"
+                     Name="desktop_shortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- PATH 追加(CLI 用) -->
+    <Component Id="PathEnv" Directory="INSTALLFOLDER" Guid="*">
+      <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no"
+                   Part="last" Action="set" System="yes" />
+      <RegistryValue Root="HKLM" Key="Software\$(Manufacturer)\$(ProductName)"
+                     Name="path_added" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="MainFeature" Title="MWC" Level="1" Display="expand">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="PathEnv" />
+      <Feature Id="DesktopShortcutFeature" Title="Desktop shortcut" Level="1">
+        <ComponentRef Id="DesktopShortcut" />
+      </Feature>
+    </Feature>
+
+    <!-- UI -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+
+    <!-- Custom action: 起動オプション -->
+    <Property Id="LAUNCHWIFIX" Value="1" />
+    <CustomAction Id="LaunchApp"
+                  FileRef="MWC.exe"
+                  ExeCommand=""
+                  Execute="immediate"
+                  Return="asyncNoWait"
+                  Impersonate="yes" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApp" After="InstallFinalize"
+              Condition="NOT Installed AND LAUNCHWIFIX=1" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>
