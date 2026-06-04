@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/tests-354%20passing-22C55E)](#)
-[![i18n](https://img.shields.io/badge/i18n-15%20langs%20%C2%B7%20178%20keys-00C4CC)](#)
+[![Tests](https://img.shields.io/badge/tests-514%20passing-22C55E)](#)
+[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20179%20keys-00C4CC)](#)
 
 **MWC**は複数の無線アダプターをひとつの画面で管理する Windows 用 Wi-Fi ツール。
 
@@ -34,7 +34,7 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 | Light/Dark/System テーマ | △ | ❌ | ❌ | ❌ | **✅** |
 | Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **✅** |
 | ARM64 ネイティブ | ❌ | ❌ | ❌ | ❌ | **✅** |
-| 11言語 UI | △ | ✅ | ❌ | ❌ | **✅** |
+| 14言語 UI | △ | ✅ | ❌ | ❌ | **✅** |
 | WCAG AAA アクセシビリティ | ❌ | ❌ | ❌ | ❌ | **✅** |
 | 無料 + MIT | ✅ | ✅ | ❌ | ❌ | **✅** |
 
@@ -88,7 +88,7 @@ mwc profile delete "OldNet"       # プロファイル削除
 - キーボードのみで完全操作可能 (Ctrl+R / Ctrl+F / Tab / Enter)
 
 ### 国際化
-**対応11言語** (UI 100% 翻訳済み): ja / en / zh-Hans / zh-Hant / ko / es / fr / de / ru / ar (RTL) / pt-BR
+**対応14言語** (UI 100% 翻訳済み): ja / en / zh-Hans / zh-Hant / ko / es / fr / de / ru / ar (RTL) / pt-BR / hi / bn / ta
 
 ---
 
@@ -118,7 +118,7 @@ git clone https://github.com/shizukutanaka/MurtiWifiConnecter.git
 cd MurtiWifiConnecter
 dotnet restore MWC.sln
 dotnet build   MWC.sln -c Release
-dotnet test    MWC.sln                    # 120 tests
+dotnet test    MWC.sln                    # 514 tests
 ```
 
 ---
@@ -165,7 +165,7 @@ dotnet test    MWC.sln                    # 120 tests
 
 新言語サポート: [`docs/i18n-guide.md`](docs/i18n-guide.md) を参照して PR をどうぞ。
 
-すべて Strings.resx ベース。1ファイル46キー × 11言語 = 506エントリ完備。
+すべて Strings.resx ベース。1ファイル179キー × 14言語 = 2506エントリ完備。
 
 ---
 
@@ -177,7 +177,7 @@ dotnet test    MWC.sln                    # 120 tests
 - [トラブルシューティング](docs/troubleshooting.md) — エラー別の対処
 - [アーキテクチャ](docs/architecture.md) — 設計概要
 - [ベンチマーク](docs/benchmarks.md) — 性能ベースライン
-- [ADR](docs/adr/) — アーキテクチャ決定記録 (14件)
+- [ADR](docs/adr/) — アーキテクチャ決定記録 (24件)
 
 ## ライセンス
 

@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **ビルド阻害**: `MainViewModel` に `RefreshAllAsync` が二重定義され、`[RelayCommand]`
+  ソース生成が重複して MWC.App がコンパイルできなかった問題を修正(2つの実装を統合)。
+- **スレッド安全性**: `NetworkHistoryService` の `GetRecentSsids` / `GetEntry` /
+  `GetStats` / `GetFrequentSsids` / `Count` / `Forget` / `ClearAll` が
+  ロック外で `_entries` を読み書きしていたデータ競合を修正。
+- **6GHz フォールバック**: `WindowsWifiService.ChannelToFreq` のチャンネル→周波数
+  推定境界を是正(ch14=2484、5GHz は ch32 から)。6GHz はチャンネル番号が
+  2.4/5GHz と重複するため、ドライバー報告周波数を優先する旨を明記。
+- トレイの `RequestOpenMainWindow` を App と MainWindow が二重購読し、前面化が
+  2回走っていた(かつ解除されない)問題を解消。
+
+### Changed
+- バージョンを `Directory.Build.props` / `MWC.Core` / `MWC.SDK` で **3.11.0** に統一
+  (CHANGELOG 先頭と乖離していた 2.5.0 を是正)。
+- インライン指定だったパッケージ版(`Microsoft.Extensions.Logging.Abstractions` /
+  `System.Text.Json` / `BenchmarkDotNet`)を `Directory.Packages.props` に集約。
+- `RestoreLockedMode` を `MWC_LOCKED_RESTORE` オプトインに変更(lock ファイル未コミット
+  下での CI restore 失敗を回避)。
+- README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
+
+### Added
+- `.github/workflows/ci.yml`(Windows ビルド+テスト、Linux でコア検証)と
+  `codeql.yml` を追加。README のバッジ参照先(従来 404)を実体化。
+- `MWC.ci.slnf`: windows-latest でビルド不能な `MWC.Platform.MacOS`(net9.0-macos)
+  を除外した CI 用ソリューションフィルター。
+
 ## [3.11.0] - 2026-05-13
 
 ### 省電力分析・OUI ベンダー照合 (ADR-0024)
