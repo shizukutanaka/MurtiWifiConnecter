@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- `docs/improvement-analysis-2026.md`: 競合ソフト & arXiv (2024–2026) を参照した
+  ギャップ分析(既存 arxiv-improvement-analysis.md / ROADMAP の差分)。MAC ランダム化
+  プライバシー助言、負荷時遅延(bufferbloat/RPM)グレード、WPS 警告、Wi-Fi 8(802.11bn)
+  能力バッジ、802.11bf センシング表示、metered 接続考慮 等の新規改善点を抽出。
 - `.github/workflows/ci.yml`(Windows ビルド+テスト、Linux でコア検証)と
   `codeql.yml` を追加。README のバッジ参照先(従来 404)を実体化。
 - `MWC.ci.slnf`: windows-latest でビルド不能な `MWC.Platform.MacOS`(net9.0-macos)
