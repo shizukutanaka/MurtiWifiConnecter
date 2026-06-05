@@ -11,13 +11,13 @@
 - [x] C1 接続コア & WLAN API 抽象化
 - [x] C2 セキュリティ & 脆弱性検出
 - [x] C3 スキャン & スペクトラム分析
-- [ ] C4 品質計測 & bufferbloat/responsiveness  ← 次イテレーション(出典収集済み)
-- [ ] C5 ローミング & モビリティ (11r/k/v, MLO)
-- [ ] C6 プライバシー (MAC ランダム化, probe)
-- [ ] C7 プロビジョニング & プロファイル (DPP/eduroam/QR/Passpoint)
-- [ ] C8 クロスプラットフォーム実装 (Linux/macOS/Android/iOS)
-- [ ] C9 UX・可視化・アクセシビリティ
-- [ ] C10 配布・サプライチェーン・CI/CD
+- [x] C4 品質計測 & bufferbloat/responsiveness
+- [x] C5 ローミング & モビリティ (11r/k/v, MLO)
+- [x] C6 プライバシー (MAC ランダム化, probe)
+- [x] C7 プロビジョニング & プロファイル (DPP/eduroam/QR/Passpoint)
+- [x] C8 クロスプラットフォーム実装 (Linux/macOS/Android/iOS)
+- [x] C9 UX・可視化・アクセシビリティ
+- [x] C10 配布・サプライチェーン・CI/CD
 
 ---
 
@@ -60,10 +60,101 @@
 9. [P1] **隠し SSID の検出表示** — プローブ応答/アソシエーションから名称復元。(gh: ghostop14/sparrow-wifi 参照)
 10. [P2] **外部ツール出力の取り込み(CSV)** — SDR 連携は範囲外、結果のインポートで妥協。
 
+## C4. 品質計測 & bufferbloat / responsiveness
+
+1. [P0] **working-latency(RPM)計測を `NetworkQualityService` に追加** — 並列 TCP 負荷下の RTT。(gh: network-quality/goresponsiveness)
+2. [P0] **IETF responsiveness 準拠の指標 + A–F グレード**。(gh: network-quality/draft-ietf-ippm-responsiveness)
+3. [P1] **再現可能な計測プロファイル(CLI)** — Flent の思想。(gh: tohojo/flent)
+4. [P1] **RTT/loss/marking 同時サンプリング** — crusader 参照。(gh: Zoxc/crusader)
+5. [P1] **Apple `networkQuality` 互換の RPM 出力** で相互運用。
+6. [P2] **L4S/ECN マーキング観測**。(RFC 9330 系)
+7. [P2] **AQM が計測へ与える影響の注記**。(arXiv: 2511.19213)
+8. [P1] **アップ/ダウン別 working latency 分離表示**。
+9. [P1] **計測の自己テスト(ループバック)** で回帰検出。
+10. [P2] **計測サーバの地理近接選択 + フォールバック**。
+
+## C5. ローミング & モビリティ (11r/k/v, MLO)
+
+1. [P1] **FT(802.11r)over-the-air / over-the-DS の判別表示**。(gh: milangroshev/hostpad-802.11r)
+2. [P1] **Mobility Domain(MD-ID)表示**。(gh: walidmadkour/OpenWRT-UCI-helper-802.11r)
+3. [P1] **既知の落とし穴を助言**(reassociation deadline 既定値問題など)。(gh: openwrt/openwrt issues)
+4. [P1] **802.11k Neighbor Report のパース・可視化**。
+5. [P1] **802.11v BSS Transition Management 受信時の挙動表示**。
+6. [P1] **スティッキークライアント検出**(遠方 AP 固執)。
+7. [P1] **ローミングフラッピング検出**(連続再接続)。
+8. [P1] **MLO アノマリー助言**(単一リンクより悪化する条件)。(arXiv: 2210.07695)
+9. [P2] **PMK キャッシング状態の表示**。
+10. [P2] **ローミング閾値のユーザー設定**。
+
+## C6. プライバシー (MAC ランダム化・probe)
+
+1. [P0] **per-network ランダム MAC 設定状態の表示**。(arXiv: 2206.10927)
+2. [P0] **固定 MAC で公共 SSID 接続時の追跡リスク警告**。(arXiv: 2412.10548)
+3. [P1] **プローブ要求指紋追跡の解説 UI**。(arXiv: 2408.01578)
+4. [P1] **ランダム化の限界(IE 指紋)の周知**。(arXiv: 1703.02874)
+5. [P1] **metered 接続時のバックグラウンド抑制**(プライバシー+省電力)。
+6. [P2] **SSID 履歴のローカル暗号化保存**(既存 DPAPI と整合)。
+7. [P2] **接続履歴の最小化・自動失効**(既存 90 日)。
+8. [P1] **PII 非含有の自動検証**(既存 HealthCheck と連携)。
+9. [P2] **BSSID→位置の収集を行わない設計の明示**。
+10. [P2] **エクスポート時の PII マスキング**。
+
+## C7. プロビジョニング & プロファイル (DPP/eduroam/QR/Passpoint)
+
+1. [P1] **DPP/Easy Connect 段階対応**(QR ブートストラップ)。(gh: 上流 hostapd README-DPP)
+2. [P1] **DPP のセキュリティ注記**(2025 解析)。(improvement-analysis-2026 G8)
+3. [済/強化] **eduroam CAT XML インポートの検証強化**(既存 `CatImportService`)。
+4. [済/強化] **Passpoint / Hotspot 2.0 プロファイルの可視化**(既存 `Hotspot20Service`)。
+5. [P1] **プロファイル XML のスキーマ検証・スナップショットテスト**。
+6. [P1] **`WIFI:` URI ⇔ DPP URI 相互変換 UX**。
+7. [P2] **EAP-TLS 証明書チェーン検証の UI**(既存 `CertificateStoreService`)。
+8. [P2] **他ツールからのプロファイル移行インポート**。
+9. [P1] **プロファイル削除・棚卸し UX**(既存 `ProfileManager`)。
+10. [P2] **グループポリシー配布の検証**(既存 `GroupPolicyProvider`)。
+
+## C8. クロスプラットフォーム実装 (Linux/macOS/Android/iOS)
+
+1. [P1] **macOS CoreWLAN の能力照会拡充**。(gh: chbrown/macos-wifi)
+2. [P1] **CoreWLAN Wireless Manager の機能網羅を参照**。(gh: andyvand/CoreWLANWirelessManager)
+3. [P1] **Linux nmcli/iw 併用での詳細取得**。(gh: keithrbennett/wifiwand)
+4. [P2] **クロスプラットフォーム scan の正規化**。(gh: BaseMax/wifi-scanner)
+5. [P2] **CoreLocation/netsh/nmcli の差異吸収**。(gh: scivision/scan-wifi-python)
+6. [P1] **nmcli GUI の UX を参考にした Linux 版**。(gh: sweelinq/WifiManager)
+7. [P1] **Android WifiManager Suggestion API 対応確認**(既存 `AndroidWifiService`)。
+8. [P1] **iOS NEHotspotConfiguration の制約の明文化**(既存 `IosWifiService`)。
+9. [P2] **共通 Core(netstandard2.0)の契約テスト**。
+10. [P2] **プラットフォーム能力マトリクスの文書化**。
+
+## C9. UX・可視化・アクセシビリティ
+
+1. [P1] **信号/チャネルグラフ描画の再利用を LiveCharts2 で評価**。(gh: Live-Charts/LiveCharts2)
+2. [P2] **OxyPlot を代替候補に評価**。(gh: oxyplot/oxyplot)
+3. [P1] **グラフへ AutomationPeer 付与**でスクリーンリーダー対応。
+4. [P0] **非色覚依存の信号表現**(形状で冗長符号化)。(既存 a11y 方針)
+5. [P1] **reduced-motion 設定対応**。
+6. [P1] **フォントスケーリング / ハイコントラスト**。
+7. [P1] **Empty State の充実**。(gh: Carlos487/awesome-wpf 参照)
+8. [P1] **エラー ID 表示**(サポート性向上)。
+9. [P2] **キーボードのみ操作の網羅テスト**。
+10. [P2] **音声・テキスト併記の推奨グレード**。
+
+## C10. 配布・サプライチェーン・CI/CD
+
+1. [済/強化] **Sigstore keyless 署名(cosign)**。(gh: sigstore/cosign)
+2. [P1] **SBOM(CycloneDX/SPDX)生成と添付**。(gh: anchore/syft)
+3. [P1] **SLSA provenance(L3)生成**。(gh: slsa-framework/slsa-github-generator)
+4. [P0] **CI/CodeQL を `.github/workflows` へ設置**(本ブランチで `ci/github-workflows/` に用意済み)。
+5. [P1] **再現可能ビルド(Deterministic + SourceLink, 既存)の検証**。
+6. [P1] **`packages.lock.json` コミットで locked restore 復活**。
+7. [P1] **winget/scoop/choco/msix マニフェストの自動更新**(既存 tools/)。
+8. [P2] **GitHub Artifact Attestations の検証手順を文書化**。
+9. [P1] **依存脆弱性スキャン(dependabot / `dotnet list package --vulnerable`)**。
+10. [P2] **配布バイナリの SmartScreen 評価準備**。
+
 ---
 
-## 次イテレーション用メモ(出典収集済み)
-- **C4 品質/bufferbloat**: (gh: network-quality/goresponsiveness) IETF responsiveness(RPM)クライアント、
-  (gh: network-quality/draft-ietf-ippm-responsiveness) 仕様、Flent、crusader、Apple `networkQuality`、
-  (arXiv: 2511.19213) AQM の速度計測影響、L4S(RFC 9330系)。`NetworkQualityService` 拡張に直結。
-- 以降 C5–C10 を順次、arXiv + GitHub から出典収集して埋める。
+## まとめ
+全 10 カテゴリー × 10 = **100 改善点**を arXiv + GitHub 出典付きで列挙した。
+即効性の高い P0/P1 横断テーマ: **品質の体感化**(C4 RPM)、**プライバシー**(C6 MAC)、
+**セキュリティ助言の拡充**(C2 FragAttacks/WPS)、**CI 設置**(C10-4)。
+詳細な実装計画は `improvement-analysis-2026.md`(G1–G11)と本書を統合して起こす。
