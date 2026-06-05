@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **MAC プライバシー助言 `PrivacyAdvisoryService` (MWC-PRIV-001〜004/100)**: MAC ランダム化
+  状態 (`MacAddressMode`) と接続先から追跡リスクを診断。固定 MAC + 公共ネットワークを警告、
+  ランダム化未使用に推奨、日次ローテーションを良好評価し、IE 指紋による再識別の限界も注記
+  (arXiv 2206.10927 / 2412.10548 / 1703.02874)。リサーチ C6/G1 の実装。テスト5件追加。
 - **FragAttacks セキュリティ勧告 (MWC-SEC-006)**: `SecurityAdvisoryService` に
   集約/フラグメンテーション欠陥 (CVE-2020-24586/24587/24588, Vanhoef USENIX 2021) の
   情報提供を追加。暗号化ありかつ MFP 未必須のネットワークで更新・HTTPS・MFP を助言。
