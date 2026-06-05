@@ -23,6 +23,9 @@ namespace MWC.Core.Services;
 ///     フレーム集約/フラグメンテーションの設計・実装欠陥 (CVE-2020-24586/24587/24588) が
 ///     ほぼ全 Wi-Fi 機器に影響。更新・HTTPS・MFP 必須が緩和策
 ///
+///   - **WPS PIN brute-force / Pixie-Dust**:
+///     WPS 外部レジストラの PIN 方式は 8 桁 PIN の構造的弱点で破られうる
+///
 /// 本サービスは攻撃を実行せず、防御側の情報提供のみを行う。
 /// </summary>
 public sealed class SecurityAdvisoryService
@@ -110,7 +113,20 @@ public sealed class SecurityAdvisoryService
                 Reference:  "Vanhoef, FragAttacks CVE-2020-24586/87/88 (USENIX Security 2021)"));
         }
 
-        // 6. 堅牢ネットワーク → 肯定的フィードバック
+        // 6. WPS 有効 → 外部レジストラ PIN 方式のブルートフォース/Pixie-Dust
+        if (network.WpsEnabled)
+        {
+            advisories.Add(new SecurityAdvisory(
+                Severity:   AdvisorySeverity.Warning,
+                Code:       "MWC-SEC-007",
+                Title:      "WPS (Wi-Fi Protected Setup) 有効",
+                Detail:     "この AP は WPS が有効。外部レジストラの PIN 方式は 8 桁 PIN の構造的弱点により" +
+                            "総当たり(数時間)や Pixie-Dust 攻撃で破られうる。" +
+                            "ルーター設定で WPS(特に PIN 方式)を無効化することを推奨。",
+                Reference:  "WSC PIN external registrar brute-force / Pixie-Dust"));
+        }
+
+        // 7. 堅牢ネットワーク → 肯定的フィードバック
         if (network.Hardening == SecurityHardening.Hardened)
         {
             advisories.Add(new SecurityAdvisory(

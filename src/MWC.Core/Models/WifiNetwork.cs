@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MWC.Core.Models;
 
@@ -48,6 +49,9 @@ public sealed record WifiNetwork
 
     /// <summary>WPA3 transition mode (WPA2/WPA3 混在) — Dragonblood ダウングレード攻撃に脆弱</summary>
     public bool IsWpa3TransitionMode { get; init; }
+
+    /// <summary>WPS (Wi-Fi Protected Setup) 有効 — 外部レジストラ PIN 方式は総当たり/Pixie-Dust に脆弱</summary>
+    public bool WpsEnabled { get; init; }
 
     public bool IsMlo { get; init; }
     /// <summary>MLO リンク一覧(Wi-Fi 7 のみ有効)</summary>

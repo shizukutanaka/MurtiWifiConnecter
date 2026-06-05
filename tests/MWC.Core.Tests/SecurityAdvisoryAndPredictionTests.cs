@@ -85,6 +85,22 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
+    public void Analyze_WpsEnabled_WarnsPinBruteForce()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required) with { WpsEnabled = true });
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-007" && a.Severity == AdvisorySeverity.Warning);
+        advisories.First(a => a.Code == "MWC-SEC-007").Detail.Should().Contain("WPS");
+    }
+
+    [Fact]
+    public void Analyze_WpsDisabled_NoWpsAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required));
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-007");
+    }
+
+    [Fact]
     public void Analyze_MfpRequiredOrOpen_NoFragAttacksAdvisory()
     {
         // MFP 必須 (緩和済み) では FragAttacks 情報を出さない

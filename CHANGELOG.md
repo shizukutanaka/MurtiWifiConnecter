@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **ビルド阻害(取込みソース)**: `Models/WifiNetwork.cs` が `System.Linq` を import せず
+  `.Any()` を使用しており(ImplicitUsings 無効・global usings 無し)、MWC.Core が
+  コンパイル不能だった問題を修正(`using System.Linq;` を追加)。
 - **ビルド阻害**: `MainViewModel` に `RefreshAllAsync` が二重定義され、`[RelayCommand]`
   ソース生成が重複して MWC.App がコンパイルできなかった問題を修正(2つの実装を統合)。
 - **スレッド安全性**: `NetworkHistoryService` の `GetRecentSsids` / `GetEntry` /
@@ -31,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **WPS 有効 AP 警告 (MWC-SEC-007)**: `SecurityAdvisoryService` に WPS 有効 AP の警告を追加
+  (`WifiNetwork.WpsEnabled`)。外部レジストラ PIN 方式の総当たり/Pixie-Dust 脆弱性を注意喚起。
+  リサーチ C2/G3 の実装。テスト2件追加。
 - **負荷時遅延(bufferbloat / responsiveness)計測**: `NetworkQualityService` に
   `MeasureResponsivenessAsync` を追加。アイドル時 RTT と負荷時 RTT を比較し、
   IETF responsiveness の RPM(round-trips/分)と A–F の bufferbloat グレードを算出
