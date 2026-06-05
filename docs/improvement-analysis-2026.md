@@ -101,12 +101,72 @@
 
 ---
 
+## 2bis. 追加改善点 — 第2ラウンド(IoT オンボーディング・既知脆弱性・MLO・測位)
+
+### G8. [P1] DPP / Wi-Fi Easy Connect オンボーディング(+セキュリティ注記)  〔オンボーディング〕
+- **背景**: MWC は `WIFI:` URI の QR を持つが、これは旧 WPS の流儀。**DPP(Device Provisioning
+  Protocol)= Wi-Fi Easy Connect** が WPS の標準後継(QR/NFC/BLE でブートストラップ)。
+  ただし 2025 年の解析で DPP 3.0 は WPS より攻撃面が広がりうる設計上の問題が報告された。
+- **提案**: DPP ブートストラップ QR の生成/読み取り対応を検討しつつ、UI で
+  「DPP は WPS 後継だが構成次第で攻撃面が増える」旨の注意を併記(usability/security トレードオフ)。
+- **出典**: Springer IJIS 2025「Security analysis of the Wi-Fi Easy Connect」
+  ([DOI 10.1007/s10207-025-00988-3](https://link.springer.com/article/10.1007/s10207-025-00988-3))、
+  DEF CON 33「Breaking Wi-Fi Easy Connect: A Security Analysis of DPP」。
+- **実装フック**: `WifiUri`(Profile)に DPP URI スキーム、`QrCodeDialog`、`SecurityAdvisoryService`。
+- **適合性**: ✅ Wi-Fi 専用。能動攻撃なし。実装は段階的(まず注意喚起、次に生成対応)。
+
+### G9. [P1] FragAttacks 助言(集約/フラグメンテーション脆弱性)  〔セキュリティ〕
+- **背景**: `SecurityAdvisoryService` は Dragonblood / MFP-deauth / SAE-PK を扱うが、
+  **FragAttacks(CVE-2020-24586/24587/24588:フラグメントキャッシュ/混在鍵/集約フラグ)**は未対応。
+  ほぼ全 Wi-Fi 機器が影響を受けた設計+実装欠陥で、パッチ状況の確認が重要。
+- **提案**: 既存助言体系に FragAttacks の項目を追加(ドライバー/ファーム更新の促し、
+  MFP 併用の推奨)。検出は限定的でも、教育的助言として価値が高い。
+- **出典**: Vanhoef「Fragment and Forge」(USENIX Security 2021,
+  [papers.mathyvanhoef.com](https://papers.mathyvanhoef.com/usenix2021.pdf))、
+  CVE-2020-24586/24587/24588、[fragattacks.com](https://www.fragattacks.com/)。
+- **実装フック**: `SecurityAdvisoryService` に項目追加(既存パターンの踏襲)。
+- **適合性**: ✅ 既存セキュリティ助言の自然な拡張。
+
+### G10. [P1] MLO アノマリー助言(リンク飢餓・失敗時の堅牢性)  〔Wi-Fi 7〕
+- **背景**: 既存 `MloAnalyzerService` はリンク集約/レイテンシ削減推定を持つが、
+  **MLO 特有のアノマリー**(条件次第で単一リンクより遅延が悪化・リンク間飢餓)や
+  MLO 接続失敗時のスタック堅牢性(例: mac80211 の MLO use-after-free, CVE-2026-46125)は未考慮。
+- **提案**: `MloAnalysis` に「MLO がかえって不利になりうる条件」の助言を追加し、
+  リンク非対称が大きい場合は単一リンク運用を提案。失敗時挙動の注意も。
+- **出典**: arXiv [2210.07695](https://arxiv.org/abs/2210.07695)
+  (Understanding MLO in Wi-Fi 7: Performance, Anomalies, Solutions)、CVE-2026-46125。
+- **実装フック**: `MloAnalyzerService.Analyze` の判定にアノマリー条件を追加。
+- **適合性**: ✅ 既存 MLO 分析の深化。
+
+### G11. [P2] 802.11az/bk セキュア FTM 測位能力の表示(表示専用)  〔次世代対応〕
+- **背景**: 旧 802.11mc の FTM(Fine Timing Measurement)測距は非セキュアで、
+  **802.11az/bk(2023 確定)が測距にセキュリティ強化**を導入。ただし commodity 機器の
+  セキュア測距対応はまだ限定的。MWC は FT(802.11r)時間は扱うが FTM 測位能力は未表示。
+- **提案**: AP/アダプターが FTM(11mc)/セキュア測距(11az/bk)能力を広告しているかを
+  **表示するのみ**。非セキュア FTM は位置詐称リスクがある旨の注記。
+- **出典**: arXiv [2603.18687](https://arxiv.org/abs/2603.18687)(Secure Wi-Fi Ranging 11az/bk)、
+  [2509.03901](https://arxiv.org/abs/2509.03901)(FTM サーベイ 180 本)、
+  [2511.17935](https://arxiv.org/html/2511.17935v1)(11mc vs 11az 性能)。
+- **実装フック**: `WifiNetwork` に FTM/secure-ranging フラグ、バッジ表示のみ。
+- **適合性**: ✅ 表示専用に限定すれば CLAUDE.md 方針に合致。
+
+### 範囲外メモ(調査したが CLAUDE.md 方針により非採用)
+- **連合学習 / オンデバイス LLM ローミング**(arXiv [2405.11504](https://arxiv.org/html/2405.11504v1)
+  「AI/ML-native 802.11」、[2505.04174](https://arxiv.org/html/2505.04174)「On-Device LLM for
+  Wi-Fi Roaming」)は有望だが、CLAUDE.md「❌ 量子・AI 等の派手な機能」に抵触。
+  既存の軽量統計予測(`HandoverPredictor` / `SignalQualityPredictor`)の範囲に留めるのが妥当。
+
+---
+
 ## 3. 今サイクル推奨(P0)
 
 1. **G1 MAC ランダム化 & プローブ追跡プライバシー助言** — 競合に無く、研究的裏付けも強い差別化。
 2. **G2 bufferbloat / responsiveness グレード** — 既存品質計測の自然な深化、体感品質を可視化。
 
 いずれも Core 中心・≤200 行で自前実装可能。次点で G3(WPS 警告)/ G6(metered)。
+
+**低コストの即効改善**: G9(FragAttacks 助言)は `SecurityAdvisoryService` に項目を
+1 つ足すだけで、既存パターンを踏襲して数十行で実装可能。教育的価値が高くおすすめ。
 
 ---
 
