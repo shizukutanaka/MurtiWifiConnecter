@@ -23,9 +23,12 @@ public sealed class NetworkHistoryService
         "MWC", "history.json");
 
     private readonly List<ConnectionHistoryEntry> _entries;
-    // .NET 9 C#13: System.Threading.Lock (旧 object lock より高効率)
-    // Save() が同期のため async SemaphoreSlim 不要 → Lock で十分
-    private readonly Lock _lock = new();
+    // _entries 保護用。net9.0 / netstandard2.0 双方でビルドできるよう object lock を使用
+    // (System.Threading.Lock は net9.0 専用のため netstandard2.0 でビルド不能)。
+    private readonly object _lock = new();
+    // ファイル書き込みの直列化用。_lock とは分離し、ディスク I/O 中に
+    // 読み取り(_lock)をブロックしないようにする。
+    private readonly object _saveLock = new();
 
     /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。</summary>
     public NetworkHistoryService()
@@ -36,37 +39,39 @@ public sealed class NetworkHistoryService
     /// <summary>接続試行を履歴に記録する。成功 / 失敗どちらも保存。</summary>
     public void RecordConnection(string ssid, bool success)
     {
+        List<ConnectionHistoryEntry> snapshot;
         lock (_lock)
         {
-        var existing = _entries.FirstOrDefault(e => e.Ssid == ssid);
-        if (existing is not null)
-        {
-            _entries.Remove(existing);
-            _entries.Insert(0, existing with
+            var existing = _entries.FirstOrDefault(e => e.Ssid == ssid);
+            if (existing is not null)
             {
-                LastConnected = DateTimeOffset.UtcNow,
-                ConnectCount  = existing.ConnectCount + (success ? 1 : 0),
-                FailCount     = existing.FailCount    + (success ? 0 : 1)
-            });
-        }
-        else
-        {
-            _entries.Insert(0, new ConnectionHistoryEntry(
-                Ssid:          ssid,
-                LastConnected: DateTimeOffset.UtcNow,
-                ConnectCount:  success ? 1 : 0,
-                FailCount:     success ? 0 : 1));
-        }
+                _entries.Remove(existing);
+                _entries.Insert(0, existing with
+                {
+                    LastConnected = DateTimeOffset.UtcNow,
+                    ConnectCount  = existing.ConnectCount + (success ? 1 : 0),
+                    FailCount     = existing.FailCount    + (success ? 0 : 1)
+                });
+            }
+            else
+            {
+                _entries.Insert(0, new ConnectionHistoryEntry(
+                    Ssid:          ssid,
+                    LastConnected: DateTimeOffset.UtcNow,
+                    ConnectCount:  success ? 1 : 0,
+                    FailCount:     success ? 0 : 1));
+            }
 
-        // 90日超のエントリを自動削除
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-RetentionDays);
-        _entries.RemoveAll(e => e.LastConnected < cutoff);
+            // 90日超のエントリを自動削除
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-RetentionDays);
+            _entries.RemoveAll(e => e.LastConnected < cutoff);
 
-        if (_entries.Count > MaxEntries)
-            _entries.RemoveRange(MaxEntries, _entries.Count - MaxEntries);
+            if (_entries.Count > MaxEntries)
+                _entries.RemoveRange(MaxEntries, _entries.Count - MaxEntries);
 
-        Save();
+            snapshot = new List<ConnectionHistoryEntry>(_entries);
         }
+        Save(snapshot);
     }
 
     /// <summary>直近 n 件の接続履歴を返す。</summary>
@@ -127,8 +132,19 @@ public sealed class NetworkHistoryService
     /// <summary>保存済みエントリ数</summary>
     public int Count { get { lock (_lock) { return _entries.Count; } } }
 
-    public void Forget(string ssid) { lock (_lock) { _entries.RemoveAll(e => e.Ssid == ssid); Save(); } }
-    public void ClearAll()          { lock (_lock) { _entries.Clear(); Save(); } }
+    public void Forget(string ssid)
+    {
+        List<ConnectionHistoryEntry> snapshot;
+        lock (_lock) { _entries.RemoveAll(e => e.Ssid == ssid); snapshot = new List<ConnectionHistoryEntry>(_entries); }
+        Save(snapshot);
+    }
+
+    public void ClearAll()
+    {
+        List<ConnectionHistoryEntry> snapshot;
+        lock (_lock) { _entries.Clear(); snapshot = new List<ConnectionHistoryEntry>(_entries); }
+        Save(snapshot);
+    }
 
     private List<ConnectionHistoryEntry> Load()
     {
@@ -144,16 +160,21 @@ public sealed class NetworkHistoryService
         return new();
     }
 
-    private void Save()
+    // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
+    // 読み取りをブロックしない。_saveLock で書き込み同士のみ直列化する。
+    private void Save(List<ConnectionHistoryEntry> snapshot)
     {
-        try
+        lock (_saveLock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(HistoryPath)!);
-            File.WriteAllText(HistoryPath,
-                JsonSerializer.Serialize(_entries,
-                    new JsonSerializerOptions { WriteIndented = false }));
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(HistoryPath)!);
+                File.WriteAllText(HistoryPath,
+                    JsonSerializer.Serialize(snapshot,
+                        new JsonSerializerOptions { WriteIndented = false }));
+            }
+            catch { }
         }
-        catch { }
     }
 }
 
