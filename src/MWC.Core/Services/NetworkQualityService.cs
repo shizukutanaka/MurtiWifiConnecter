@@ -72,6 +72,75 @@ public sealed class NetworkQualityService
     public NetworkQualityResult? GetCached(string host = "8.8.8.8")
         => _cache.TryGetValue(host, out var r) ? r : null;
 
+    /// <summary>
+    /// 負荷時遅延(responsiveness / bufferbloat)を計測する。
+    /// アイドル時 RTT と、<paramref name="loadGenerator"/> で輻輳を作った状態の RTT を比較し、
+    /// IETF responsiveness の RPM(round-trips/分)と bufferbloat グレードを算出する。
+    /// 負荷生成は呼び出し側が供給(例: 並列 HTTP ダウンロード)。null の場合は
+    /// アイドルのみ計測しグレードは Unknown。
+    /// 参考: IETF draft-ietf-ippm-responsiveness, Apple RPM。
+    /// </summary>
+    public async Task<ResponsivenessResult> MeasureResponsivenessAsync(
+        string host = "8.8.8.8",
+        Func<CancellationToken, Task>? loadGenerator = null,
+        int samples = 5,
+        CancellationToken ct = default)
+    {
+        // 1. アイドル時 RTT
+        var idle = await MeasureAsync(host, samples, ct).ConfigureAwait(false);
+
+        if (loadGenerator is null)
+        {
+            return new ResponsivenessResult(
+                IdleLatencyMs:    idle.LatencyAvgMs,
+                WorkingLatencyMs: idle.LatencyAvgMs,
+                Rpm:              ComputeRpm(idle.LatencyAvgMs),
+                Grade:            BufferbloatGrade.Unknown,
+                MeasuredAt:       DateTimeOffset.UtcNow);
+        }
+
+        // 2. 負荷をかけながら RTT
+        using var loadCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var loadTask = Task.Run(() => loadGenerator(loadCts.Token), loadCts.Token);
+        NetworkQualityResult working;
+        try
+        {
+            await Task.Delay(300, ct).ConfigureAwait(false); // 負荷の立ち上がりを待つ
+            working = await MeasureAsync(host, samples, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            loadCts.Cancel();
+            try { await loadTask.ConfigureAwait(false); } catch { /* 負荷タスクのキャンセル/失敗は無視 */ }
+        }
+
+        return new ResponsivenessResult(
+            IdleLatencyMs:    idle.LatencyAvgMs,
+            WorkingLatencyMs: working.LatencyAvgMs,
+            Rpm:              ComputeRpm(working.LatencyAvgMs),
+            Grade:            GradeBufferbloat(idle.LatencyAvgMs, working.LatencyAvgMs),
+            MeasuredAt:       DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>working RTT(ms)から RPM(round-trips/分)を算出。</summary>
+    public static int ComputeRpm(int workingLatencyMs)
+        => workingLatencyMs <= 0 ? 0 : (int)Math.Round(60000.0 / workingLatencyMs);
+
+    /// <summary>アイドル時と負荷時 RTT の増分から bufferbloat グレードを算出。</summary>
+    public static BufferbloatGrade GradeBufferbloat(int idleLatencyMs, int workingLatencyMs)
+    {
+        if (workingLatencyMs >= 999 || workingLatencyMs <= 0) return BufferbloatGrade.Unknown;
+        int increase = Math.Max(0, workingLatencyMs - idleLatencyMs);
+        return increase switch
+        {
+            < 30  => BufferbloatGrade.A,
+            < 60  => BufferbloatGrade.B,
+            < 100 => BufferbloatGrade.C,
+            < 200 => BufferbloatGrade.D,
+            _     => BufferbloatGrade.F
+        };
+    }
+
     private static QualityGrade GradeFrom(int latencyMs, double lossPct)
     {
         if (lossPct >= 20 || latencyMs >= 999) return QualityGrade.Poor;
@@ -107,5 +176,32 @@ public readonly record struct NetworkQualityResult(
 }
 
 public enum QualityGrade { Unknown, Excellent, Good, Fair, Poor }
+
+/// <summary>負荷時遅延(responsiveness / bufferbloat)計測結果。</summary>
+public readonly record struct ResponsivenessResult(
+    int              IdleLatencyMs,
+    int              WorkingLatencyMs,
+    int              Rpm,
+    BufferbloatGrade Grade,
+    DateTimeOffset   MeasuredAt)
+{
+    /// <summary>負荷時のレイテンシ増分(= bufferbloat)。</summary>
+    public int LatencyIncreaseMs => Math.Max(0, WorkingLatencyMs - IdleLatencyMs);
+
+    public string RpmLabel => Rpm <= 0 ? "—" : $"{Rpm} RPM";
+
+    public string GradeLabel => Grade switch
+    {
+        BufferbloatGrade.A => "A (優秀)",
+        BufferbloatGrade.B => "B (良好)",
+        BufferbloatGrade.C => "C (普通)",
+        BufferbloatGrade.D => "D (要改善)",
+        BufferbloatGrade.F => "F (深刻)",
+        _                  => "—"
+    };
+}
+
+/// <summary>bufferbloat(負荷時遅延)グレード。増分が小さいほど良い。</summary>
+public enum BufferbloatGrade { Unknown, A, B, C, D, F }
 
 

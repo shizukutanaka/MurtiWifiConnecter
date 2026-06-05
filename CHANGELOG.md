@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **負荷時遅延(bufferbloat / responsiveness)計測**: `NetworkQualityService` に
+  `MeasureResponsivenessAsync` を追加。アイドル時 RTT と負荷時 RTT を比較し、
+  IETF responsiveness の RPM(round-trips/分)と A–F の bufferbloat グレードを算出
+  (負荷生成は呼び出し側が供給)。純粋関数 `ComputeRpm` / `GradeBufferbloat` として
+  分離し単体検証。リサーチ C4/G2 の実装。テスト9件追加。
 - **MAC プライバシー助言 `PrivacyAdvisoryService` (MWC-PRIV-001〜004/100)**: MAC ランダム化
   状態 (`MacAddressMode`) と接続先から追跡リスクを診断。固定 MAC + 公共ネットワークを警告、
   ランダム化未使用に推奨、日次ローテーションを良好評価し、IE 指紋による再識別の限界も注記
