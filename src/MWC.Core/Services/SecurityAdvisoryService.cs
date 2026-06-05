@@ -19,6 +19,10 @@ namespace MWC.Core.Services;
 ///   - **SAE-PK time-memory trade-off** (Seddigh &amp; Soleimany):
 ///     SSID の再利用が攻撃の償却コストを下げる
 ///
+///   - **FragAttacks** (Vanhoef, USENIX Security 2021):
+///     フレーム集約/フラグメンテーションの設計・実装欠陥 (CVE-2020-24586/24587/24588) が
+///     ほぼ全 Wi-Fi 機器に影響。更新・HTTPS・MFP 必須が緩和策
+///
 /// 本サービスは攻撃を実行せず、防御側の情報提供のみを行う。
 /// </summary>
 public sealed class SecurityAdvisoryService
@@ -89,7 +93,24 @@ public sealed class SecurityAdvisoryService
                 Reference:  "RFC 8110 (OWE)"));
         }
 
-        // 5. 堅牢ネットワーク → 肯定的フィードバック
+        // 5. FragAttacks → 集約/フラグメンテーションの設計・実装欠陥 (ほぼ全機器が影響)
+        //    暗号化ありかつ MFP 未必須の場合に情報提供 (MFP 必須は平文注入リスクを軽減)。
+        //    WEP/Open は別途より強い勧告があるため対象外。
+        bool isEncrypted = network.Auth is not (AuthMethod.Open or AuthMethod.WEP);
+        if (isEncrypted && network.Pmf != PmfStatus.Required)
+        {
+            advisories.Add(new SecurityAdvisory(
+                Severity:   AdvisorySeverity.Info,
+                Code:       "MWC-SEC-006",
+                Title:      "FragAttacks 緩和の確認",
+                Detail:     "フレームの集約・フラグメンテーションに関する設計/実装上の欠陥 " +
+                            "(FragAttacks, CVE-2020-24586/24587/24588) はほぼ全ての Wi-Fi 機器に影響する。" +
+                            "OS・ドライバー・ファームウェアを最新に保ち、通信は HTTPS を優先すること。" +
+                            "MFP (802.11w) 必須の AP は平文注入リスクを軽減できる。",
+                Reference:  "Vanhoef, FragAttacks CVE-2020-24586/87/88 (USENIX Security 2021)"));
+        }
+
+        // 6. 堅牢ネットワーク → 肯定的フィードバック
         if (network.Hardening == SecurityHardening.Hardened)
         {
             advisories.Add(new SecurityAdvisory(

@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **FragAttacks セキュリティ勧告 (MWC-SEC-006)**: `SecurityAdvisoryService` に
+  集約/フラグメンテーション欠陥 (CVE-2020-24586/24587/24588, Vanhoef USENIX 2021) の
+  情報提供を追加。暗号化ありかつ MFP 未必須のネットワークで更新・HTTPS・MFP を助言。
+  リサーチ(improvement-research-100 C2)で抽出した改善点の最初の実装。テスト2件追加。
+- `docs/improvement-research-100.md` / `-part2.md`: arXiv + GitHub 出典付きの
+  改善点リサーチ(10カテゴリー×10 を2部、計200項目)。
 - `docs/improvement-analysis-2026.md`: 競合ソフト & arXiv (2024–2026) を参照した
   ギャップ分析(既存 arxiv-improvement-analysis.md / ROADMAP の差分)。MAC ランダム化
   プライバシー助言、負荷時遅延(bufferbloat/RPM)グレード、WPS 警告、Wi-Fi 8(802.11bn)

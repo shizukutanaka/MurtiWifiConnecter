@@ -73,6 +73,28 @@ public class SecurityAdvisoryServiceTests
         advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Info);
     }
 
+    [Fact]
+    public void Analyze_EncryptedWithoutMfpRequired_InfoFragAttacks()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Capable));
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-006" && a.Severity == AdvisorySeverity.Info);
+        var frag = advisories.First(a => a.Code == "MWC-SEC-006");
+        frag.Reference.Should().Contain("FragAttacks");
+        frag.Detail.Should().Contain("CVE-2020-24586");
+    }
+
+    [Fact]
+    public void Analyze_MfpRequiredOrOpen_NoFragAttacksAdvisory()
+    {
+        // MFP 必須 (緩和済み) では FragAttacks 情報を出さない
+        _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required))
+            .Should().NotContain(a => a.Code == "MWC-SEC-006");
+        // 非暗号化 (別のより強い勧告あり) では出さない
+        _svc.Analyze(Net(AuthMethod.Open))
+            .Should().NotContain(a => a.Code == "MWC-SEC-006");
+    }
+
     [Theory]
     [InlineData(AuthMethod.WPA3Enterprise192, PmfStatus.Required, false, 100)]
     [InlineData(AuthMethod.WPA3SAE,           PmfStatus.Required, false, 100)]
