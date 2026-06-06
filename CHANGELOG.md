@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **ビルド阻害(取込みソース・体系的)**: MWC.Core / MWC.SDK の `netstandard2.0`
+  ターゲットを撤廃し **net9.0 単一ターゲット**に統一。コードベースは `Math.Clamp` /
+  `ArgumentNullException.ThrowIfNull` / `Random.Shared` / `.ToHashSet()` 等の net6+ API を
+  約10ファイルで使用しており、これらは ns2.0 に存在せずポリフィル不可。ns2.0 ビルドは
+  元から成立しておらず、実消費者(各 Platform プロジェクト)も net9.0 のため誤った
+  ns2.0 互換主張を取り下げた。詳細は `docs/build-blockers-2026.md`。
+- **ビルド阻害**: `MWC.Core` が `GroupPolicyProvider`(`Microsoft.Win32.Registry` 使用)を
+  含むが、plain net9.0 では Registry が in-box でないため `Microsoft.Win32.Registry` を
+  明示参照(Core/SDK)。
 - **ビルド阻害(取込みソース)**: `Models/WifiNetwork.cs` が `System.Linq` を import せず
   `.Any()` を使用しており(ImplicitUsings 無効・global usings 無し)、MWC.Core が
   コンパイル不能だった問題を修正(`using System.Linq;` を追加)。
