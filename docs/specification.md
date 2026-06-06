@@ -53,7 +53,7 @@
 | ID | 要件 | 実装 | テスト |
 |---|---|---|---|
 | FR-30 | RTT/パケットロス/グレード計測 | NetworkQualityService.MeasureAsync | ServicesTests |
-| FR-31 | **負荷時遅延(bufferbloat/RPM)** | `MeasureResponsivenessAsync` / `ComputeRpm` / `GradeBufferbloat` | ResponsivenessTests |
+| FR-31 | **負荷時遅延(bufferbloat/RPM)** | `MeasureResponsivenessAsync` / `ComputeRpm` / `GradeBufferbloat`、CLI `mwc quality --bufferbloat` | ResponsivenessTests |
 
 ## 6. セキュリティ助言 (SecurityAdvisoryService)
 | ID | 要件 | コード |
@@ -108,5 +108,4 @@
 |---|---|---|
 | **EAP-AKA (SIM 認証)** | 宣言のみ・非サポート | SIM ハードウェア前提・Windows 実機での XML 検証が必要。`EapType` に残すが Build/Validate で明示的に拒否。需要があれば実装。 |
 | CI 実走検証 | 未 | 取込みソースに複数のビルド阻害があったため(build-blockers-2026)、`.github/workflows/` 設置で net9.0 ビルド+テストの緑化が最優先。 |
-| **CLI bufferbloat (FR-31)** | Core 実装済・CLI 未surface | `mwc quality --bufferbloat` で `MeasureResponsivenessAsync` を呼ぶ wiring が未。HTTP 負荷生成の追加が必要。 |
 | docs/improvement-* の P1/P2 | 計画 | DPP/CAPPORT/MLO アノマリー/FTM 等(improvement-analysis-2026, improvement-research-100/part2)。 |

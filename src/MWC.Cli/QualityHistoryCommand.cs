@@ -1,4 +1,9 @@
+using System;
 using System.CommandLine;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using MWC.Core.Services;
 
@@ -13,12 +18,43 @@ public static partial class Program
         var host    = new Option<string>("--host", () => "8.8.8.8", "Ping target");
         var samples = new Option<int>("--samples", () => 5, "Ping count");
         var json    = new Option<bool>("--json");
+        var bloat   = new Option<bool>("--bufferbloat", "Also measure working latency (RPM + bufferbloat grade) under download load");
+        var loadUrl = new Option<string>("--load-url",
+            () => "https://speed.cloudflare.com/__down?bytes=104857600",
+            "Download URL used to generate load for --bufferbloat");
         var cmd     = new Command("quality", "Measure network quality (latency + packet loss)");
         cmd.AddOption(host); cmd.AddOption(samples); cmd.AddOption(json);
+        cmd.AddOption(bloat); cmd.AddOption(loadUrl);
 
-        cmd.SetHandler(async (string h, int s, bool j) =>
+        cmd.SetHandler(async (string h, int s, bool j, bool bb, string url) =>
         {
             var svc = sp.GetRequiredService<NetworkQualityService>();
+
+            if (bb)
+            {
+                Console.Error.Write($"Measuring responsiveness to {h} under load…");
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                var rr = await svc.MeasureResponsivenessAsync(
+                    h, ct => GenerateLoadAsync(url, ct), s, cts.Token);
+                Console.Error.WriteLine();
+                if (j)
+                {
+                    Print(new {
+                        idle_latency_ms     = rr.IdleLatencyMs,
+                        working_latency_ms  = rr.WorkingLatencyMs,
+                        latency_increase_ms = rr.LatencyIncreaseMs,
+                        rpm                 = rr.Rpm,
+                        bufferbloat_grade   = rr.Grade.ToString()
+                    });
+                    return;
+                }
+                Console.WriteLine($"Idle RTT:        {rr.IdleLatencyMs} ms");
+                Console.WriteLine($"Working RTT:     {rr.WorkingLatencyMs} ms (+{rr.LatencyIncreaseMs} ms under load)");
+                Console.WriteLine($"Responsiveness:  {rr.RpmLabel}");
+                Console.WriteLine($"Bufferbloat:     {rr.GradeLabel}");
+                return;
+            }
+
             Console.Error.Write($"Measuring quality to {h} ({s} pings)…");
             var r = await svc.MeasureAsync(h, s);
             Console.Error.WriteLine();
@@ -37,8 +73,32 @@ public static partial class Program
             Console.WriteLine($"RTT (avg):    {r.LatencyLabel}");
             Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
             Console.WriteLine($"Packet loss:  {r.LossLabel}");
-        }, host, samples, json);
+        }, host, samples, json, bloat, loadUrl);
         return cmd;
+    }
+
+    /// <summary>--bufferbloat 用の負荷生成: 指定 URL を並列ダウンロードし続け、ct で停止。</summary>
+    private static async Task GenerateLoadAsync(string url, CancellationToken ct)
+    {
+        using var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        var workers = Enumerable.Range(0, 4).Select(async _ =>
+        {
+            var buf = new byte[65536];
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    using var resp = await http.GetAsync(
+                        url, HttpCompletionOption.ResponseHeadersRead, ct);
+                    using var stream = await resp.Content.ReadAsStreamAsync(ct);
+                    while (!ct.IsCancellationRequested && await stream.ReadAsync(buf, ct) > 0) { }
+                }
+                catch (OperationCanceledException) { break; }
+                catch { /* 一時的失敗はキャンセルまで再試行 */ }
+            }
+        });
+        try { await Task.WhenAll(workers); }
+        catch (OperationCanceledException) { /* 正常停止 */ }
     }
 
 // ── history ──────────────────────────────────────────

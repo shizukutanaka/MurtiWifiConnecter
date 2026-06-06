@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **CLI bufferbloat 計測 (`mwc quality --bufferbloat`)**: 直近実装した `MeasureResponsivenessAsync`
+  を CLI に wiring。並列 HTTP ダウンロードで負荷を作り、アイドル/負荷時 RTT・RPM・bufferbloat
+  グレード(A–F)を表示(`--load-url` で負荷 URL 変更可、既定は Cloudflare speed)。仕様 §12 の
+  未wiring を解消。
 - **CLI でセキュリティ助言を表示 (`mwc scan --advise`)**: Core の `SecurityAdvisoryService`
   は実装済みだが CLI から到達不能だった欠落を解消。Warning/Critical 助言をネットワーク別に表示。
 - **総合スコアに WPS ペナルティ**: `SecurityAdvisoryService.ComputeScore` が WPS 有効 AP を
