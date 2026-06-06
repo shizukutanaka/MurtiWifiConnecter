@@ -49,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **MLO アノマリー助言 `MloAnalyzerService.DetectAnomaly`**: Wi-Fi 7 MLO が単一(最良)
+  リンクに劣りうる条件を検出(リンク非対称・全リンク弱・同一バンドのみ)。arXiv 2210.07695。
+  リサーチ G10/C5-8 の実装。テスト5件追加。非破壊(既存 `MloAnalysis` は不変)。
 - **CLI bufferbloat 計測 (`mwc quality --bufferbloat`)**: 直近実装した `MeasureResponsivenessAsync`
   を CLI に wiring。並列 HTTP ダウンロードで負荷を作り、アイドル/負荷時 RTT・RPM・bufferbloat
   グレード(A–F)を表示(`--load-url` で負荷 URL 変更可、既定は Cloudflare speed)。仕様 §12 の

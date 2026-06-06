@@ -127,7 +127,7 @@
 - **実装フック**: `SecurityAdvisoryService` に項目追加(既存パターンの踏襲)。
 - **適合性**: ✅ 既存セキュリティ助言の自然な拡張。
 
-### G10. [P1] MLO アノマリー助言(リンク飢餓・失敗時の堅牢性)  〔Wi-Fi 7〕
+### G10. [P1] MLO アノマリー助言(リンク飢餓・失敗時の堅牢性)  〔Wi-Fi 7〕 ✅実装済(`MloAnalyzerService.DetectAnomaly`)
 - **背景**: 既存 `MloAnalyzerService` はリンク集約/レイテンシ削減推定を持つが、
   **MLO 特有のアノマリー**(条件次第で単一リンクより遅延が悪化・リンク間飢餓)や
   MLO 接続失敗時のスタック堅牢性(例: mac80211 の MLO use-after-free, CVE-2026-46125)は未考慮。

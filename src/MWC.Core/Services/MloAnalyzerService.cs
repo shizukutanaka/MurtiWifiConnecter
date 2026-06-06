@@ -99,6 +99,43 @@ public sealed class MloAnalyzerService
             ? null
             : network.MloLinks.OrderByDescending(l => l.Rssi).First();
 
+    // MLO が不利になりうる閾値
+    private const int WeakRssiDbm    = -78;  // これ以下は弱リンク
+    private const int AsymmetricGapDb = 25;  // リンク間 RSSI 差がこれ以上で非対称
+
+    /// <summary>
+    /// MLO アノマリーを検出する (arXiv 2210.07695: Performance, Anomalies, and Solutions)。
+    /// MLO は条件次第で単一(最良)リンクより遅延・スループットが悪化しうる:
+    ///   - リンク非対称が大きいと弱リンクがヘッドオブライン遅延を招く
+    ///   - 全リンクが弱い場合は集約の利点が乏しい
+    ///   - 同一バンドのみの MLO は障害時の冗長効果が小さい
+    /// </summary>
+    public MloAnomaly DetectAnomaly(WifiNetwork network)
+    {
+        if (!network.IsMlo || network.MloLinks.Count < 2)
+            return new MloAnomaly(MloAnomalyKind.None, null);
+
+        var links = network.MloLinks;
+        int best  = links.Max(l => l.Rssi);   // RSSI は負値、best は 0 に近い
+        int worst = links.Min(l => l.Rssi);
+        int gap   = best - worst;
+
+        if (best <= WeakRssiDbm)
+            return new MloAnomaly(MloAnomalyKind.AllLinksWeak,
+                "全リンクが弱い。MLO 集約の利点が乏しく、最良リンクへの固定や設置改善を推奨。");
+
+        if (gap >= AsymmetricGapDb)
+            return new MloAnomaly(MloAnomalyKind.AsymmetricLinks,
+                $"リンク間 RSSI 差が大きい (約{gap}dB)。遅延重視の通信では MLO が最良単一リンクに" +
+                "劣る場合がある (arXiv 2210.07695)。強リンクへの固定を検討。");
+
+        if (links.Select(l => l.Band).Distinct().Count() < 2)
+            return new MloAnomaly(MloAnomalyKind.SameBandRedundancy,
+                "同一バンドのみの MLO。障害時の冗長性が限定的。クロスバンド構成が望ましい。");
+
+        return new MloAnomaly(MloAnomalyKind.None, null);
+    }
+
     private static string BandLabel(WifiBand b) => b switch
     {
         WifiBand.Band2_4GHz => "2.4G",
@@ -125,4 +162,22 @@ public sealed record MloAnalysis(
 public enum MloReliability
 {
     SingleLink, DualLink, TripleLink
+}
+
+/// <summary>MLO アノマリー検出結果 (arXiv 2210.07695)。</summary>
+public sealed record MloAnomaly(MloAnomalyKind Kind, string? Advice)
+{
+    public bool HasAnomaly => Kind != MloAnomalyKind.None;
+}
+
+/// <summary>MLO が不利になりうる種別。</summary>
+public enum MloAnomalyKind
+{
+    None,
+    /// <summary>リンク間 RSSI 差が大きい(弱リンクが遅延を悪化)</summary>
+    AsymmetricLinks,
+    /// <summary>全リンクが弱い(集約利点が乏しい)</summary>
+    AllLinksWeak,
+    /// <summary>同一バンドのみ(冗長効果が小さい)</summary>
+    SameBandRedundancy
 }
