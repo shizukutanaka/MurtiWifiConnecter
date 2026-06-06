@@ -49,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **ローミング安定性診断 `RoamingAdvisoryService.AnalyzeStability`**: スティッキークライアント
+  (弱信号で居座り)と フラッピング(短時間の過剰ローミング)を、直近のローミング履歴と
+  現在 RSSI から検出。リサーチ C5-6/7 の実装。純粋関数・テスト5件追加。
 - **MLO アノマリー助言 `MloAnalyzerService.DetectAnomaly`**: Wi-Fi 7 MLO が単一(最良)
   リンクに劣りうる条件を検出(リンク非対称・全リンク弱・同一バンドのみ)。arXiv 2210.07695。
   リサーチ G10/C5-8 の実装。テスト5件追加。非破壊(既存 `MloAnalysis` は不変)。

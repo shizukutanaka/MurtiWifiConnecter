@@ -80,8 +80,8 @@
 3. [P1] **既知の落とし穴を助言**(reassociation deadline 既定値問題など)。(gh: openwrt/openwrt issues)
 4. [P1] **802.11k Neighbor Report のパース・可視化**。
 5. [P1] **802.11v BSS Transition Management 受信時の挙動表示**。
-6. [P1] **スティッキークライアント検出**(遠方 AP 固執)。
-7. [P1] **ローミングフラッピング検出**(連続再接続)。
+6. [P1] **スティッキークライアント検出**(遠方 AP 固執)。✅実装済(`RoamingAdvisoryService.AnalyzeStability`)
+7. [P1] **ローミングフラッピング検出**(連続再接続)。✅実装済(同上)
 8. [P1] **MLO アノマリー助言**(単一リンクより悪化する条件)。(arXiv: 2210.07695)
 9. [P2] **PMK キャッシング状態の表示**。
 10. [P2] **ローミング閾値のユーザー設定**。
