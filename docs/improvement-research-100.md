@@ -78,7 +78,7 @@
 1. [P1] **FT(802.11r)over-the-air / over-the-DS の判別表示**。(gh: milangroshev/hostpad-802.11r)
 2. [P1] **Mobility Domain(MD-ID)表示**。(gh: walidmadkour/OpenWRT-UCI-helper-802.11r)
 3. [P1] **既知の落とし穴を助言**(reassociation deadline 既定値問題など)。(gh: openwrt/openwrt issues)
-4. [P1] **802.11k Neighbor Report のパース・可視化**。
+4. [P1] **802.11k Neighbor Report のパース・可視化**。✅パース実装済(`NeighborReportParser`)
 5. [P1] **802.11v BSS Transition Management 受信時の挙動表示**。
 6. [P1] **スティッキークライアント検出**(遠方 AP 固執)。✅実装済(`RoamingAdvisoryService.AnalyzeStability`)
 7. [P1] **ローミングフラッピング検出**(連続再接続)。✅実装済(同上)
