@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **ビルド阻害(取込みソース・App 層)**: `MainWindow.xaml` が `Click="OnAllAdaptersClick"`
+  を 2 箇所で参照していたが、`MainWindow.xaml.cs` にハンドラが無く WPF コンパイル(MC3074)で
+  失敗していた。ハンドラ `OnAllAdaptersClick` と `MainWindowCommands.ShowAllAdapters`
+  (DI から `AllAdaptersOverviewViewModel` を解決し俯瞰ウィンドウ表示)を追加、
+  Ctrl+Shift+A ショートカットも配線。全 App XAML のイベントハンドラ存在を静的走査し、
+  他に欠落が無いことを確認。
 - **ビルド阻害(取込みソース・体系的)**: MWC.Core / MWC.SDK の `netstandard2.0`
   ターゲットを撤廃し **net9.0 単一ターゲット**に統一。コードベースは `Math.Clamp` /
   `ArgumentNullException.ThrowIfNull` / `Random.Shared` / `.ToHashSet()` 等の net6+ API を

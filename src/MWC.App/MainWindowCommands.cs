@@ -185,6 +185,14 @@ public sealed class MainWindowCommands
     public void ShowAbout(Window owner)
         => new AboutDialog { Owner = owner }.ShowDialog();
 
+    /// <summary>全無線子機を俯瞰するウィンドウを表示する。</summary>
+    public void ShowAllAdapters(Window owner)
+    {
+        if (_services.GetService(typeof(AllAdaptersOverviewViewModel)) is not AllAdaptersOverviewViewModel vm)
+            return;
+        new AllAdaptersOverviewView(vm) { Owner = owner }.ShowDialog();
+    }
+
     public void ShowShortcutHelp(Window owner)
         => new ShortcutHelpDialog(_shortcuts) { Owner = owner }.ShowDialog();
 

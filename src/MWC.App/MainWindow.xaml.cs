@@ -104,6 +104,8 @@ public partial class MainWindow : Window
                     _cmd.ShowSettings(this, vm); e.Handled = true; break;
                 case (Key.M,      ModifierKeys.Control):
                     vm.Filter.ToggleExpertModeCommand.Execute(null); e.Handled = true; break;
+                case (Key.A,      ModifierKeys.Control | ModifierKeys.Shift):
+                    _cmd.ShowAllAdapters(this); e.Handled = true; break;
                 case (Key.F1,     ModifierKeys.None):
                     _cmd.ShowShortcutHelp(this); e.Handled = true; break;
                 case (Key.Escape, ModifierKeys.None) when !string.IsNullOrEmpty(vm.Filter.SearchText):
@@ -190,6 +192,9 @@ public partial class MainWindow : Window
 
     private void OnAboutClick(object sender, RoutedEventArgs e)
         => _cmd?.ShowAbout(this);
+
+    private void OnAllAdaptersClick(object sender, RoutedEventArgs e)
+        => _cmd?.ShowAllAdapters(this);
 
     // ── 子機(アダプター)固有メニュー ────────────────
     private static AdapterViewModel? GetAdapterFromMenu(object sender)
