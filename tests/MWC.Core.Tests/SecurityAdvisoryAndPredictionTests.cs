@@ -101,6 +101,14 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
+    public void ComputeScore_WpsEnabled_LowersScore()
+    {
+        var baseNet = Net(AuthMethod.WPA2PSK, PmfStatus.Required);
+        var withWps = baseNet with { WpsEnabled = true };
+        _svc.ComputeScore(withWps).Should().BeLessThan(_svc.ComputeScore(baseNet));
+    }
+
+    [Fact]
     public void Analyze_MfpRequiredOrOpen_NoFragAttacksAdvisory()
     {
         // MFP 必須 (緩和済み) では FragAttacks 情報を出さない

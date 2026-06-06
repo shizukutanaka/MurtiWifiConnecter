@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **CLI でセキュリティ助言を表示 (`mwc scan --advise`)**: Core の `SecurityAdvisoryService`
+  は実装済みだが CLI から到達不能だった欠落を解消。Warning/Critical 助言をネットワーク別に表示。
+- **総合スコアに WPS ペナルティ**: `SecurityAdvisoryService.ComputeScore` が WPS 有効 AP を
+  減点していなかった(FR-44 と不整合)のを修正(-10)。テスト追加。
 - **機能仕様書 `docs/specification.md`**: 要件 ID(FR-xx)付きの機能仕様。これを基準に
   ギャップを洗い出し、`ProfileXmlBuilder` の EAP サポートマトリクスの欠落を発見・実装。
 - **EAP-TTLS (Type 21) プロファイル生成**: `ProfileXmlBuilder` が宣言済み `EapType.EAP_TTLS`

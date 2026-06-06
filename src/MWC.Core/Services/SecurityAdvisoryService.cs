@@ -183,6 +183,9 @@ public sealed class SecurityAdvisoryService
         // transition mode ペナルティ (Dragonblood)
         if (network.IsWpa3TransitionMode) score -= 15;
 
+        // WPS 有効ペナルティ (外部レジストラ PIN ブルートフォース / Pixie-Dust)
+        if (network.WpsEnabled) score -= 10;
+
         return Math.Clamp(score, 0, 100);
     }
 }

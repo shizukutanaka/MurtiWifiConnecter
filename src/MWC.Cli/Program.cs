@@ -146,9 +146,10 @@ public static partial class Program
     {
         var adapter = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
         var json    = new Option<bool>("--json");
+        var advise  = new Option<bool>("--advise", "Show security advisories (warnings) per network");
         var cmd     = new Command("scan", "Scan available networks");
-        cmd.AddOption(adapter); cmd.AddOption(json);
-        cmd.SetHandler(async (string? af, bool j) =>
+        cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise);
+        cmd.SetHandler(async (string? af, bool j, bool adv) =>
         {
             var svc  = sp.GetRequiredService<IWifiService>();
             var oui  = sp.GetRequiredService<OuiLookupService>();
@@ -172,7 +173,23 @@ public static partial class Program
             foreach (var n in enriched)
                 Console.WriteLine($"{Trunc(n.Ssid,32),-32} {n.Auth,-14} {BandLabel(n.Band),4} " +
                     $"{n.Phy.ToShortLabel(),-8} {n.SignalQuality,5}%  {n.VendorName}");
-        }, adapter, json);
+
+            if (adv)
+            {
+                var sec = new SecurityAdvisoryService();
+                foreach (var n in enriched)
+                {
+                    var warns = sec.Analyze(n)
+                        .Where(a => a.Severity is AdvisorySeverity.Warning or AdvisorySeverity.Critical)
+                        .ToList();
+                    if (warns.Count == 0) continue;
+                    Console.WriteLine();
+                    Console.WriteLine($"! {n.Ssid}");
+                    foreach (var a in warns)
+                        Console.WriteLine($"    [{a.Severity}] {a.Code}: {a.Title}");
+                }
+            }
+        }, adapter, json, advise);
         return cmd;
     }
 
