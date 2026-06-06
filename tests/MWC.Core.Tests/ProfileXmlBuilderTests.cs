@@ -116,6 +116,45 @@ public class ProfileXmlBuilderTests
         doc.Descendants(ns + "encryption").Single().Value.Should().Be("GCMP256");
     }
 
+    [Fact]
+    public void Enterprise_TTLS_BuildsEapTtlsConfig()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "Campus",
+            Auth = AuthMethod.WPA2Enterprise,
+            EapType = EapType.EAP_TTLS,
+            Username = "student",
+            Password = "p@ss",
+            ServerNames = new[] { "radius.uni.example" },
+            TrustedRootCaThumbprints = new[] { "ABCDEF1234567890" }
+        });
+        var doc = XDocument.Parse(xml);
+        var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+        var ttlsNs = (XNamespace)"http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
+
+        doc.Descendants(ns + "useOneX").Single().Value.Should().Be("true");
+        // EapMethod Type は 21 (EAP-TTLS)
+        var ecNs = (XNamespace)"http://www.microsoft.com/provisioning/EapCommon";
+        doc.Descendants(ecNs + "Type").First().Value.Should().Be("21");
+        // TTLS 固有要素が生成される
+        doc.Descendants(ttlsNs + "EapTtls").Should().ContainSingle();
+        doc.Descendants(ttlsNs + "MSCHAPv2Authentication").Should().ContainSingle();
+        doc.Descendants(ttlsNs + "TrustedRootCAHash").Single().Value.Should().Be("ABCDEF1234567890");
+    }
+
+    [Fact]
+    public void Enterprise_AKA_IsRejected()
+    {
+        var act = () => ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "Carrier",
+            Auth = AuthMethod.WPA2Enterprise,
+            EapType = EapType.EAP_AKA
+        });
+        act.Should().Throw<System.ArgumentException>();
+    }
+
     [Theory]
     [InlineData("Has\"Quote", "")]
     [InlineData("",           "")]

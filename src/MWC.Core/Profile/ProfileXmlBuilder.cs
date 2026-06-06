@@ -29,6 +29,7 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
     private static readonly XNamespace McNs     = "http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1";
     private static readonly XNamespace EtNs     = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+    private static readonly XNamespace EttNs    = "http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
 
     /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
     /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
@@ -195,7 +196,10 @@ public static class ProfileXmlBuilder
         {
             EapType.PEAP_MSCHAPv2 => BuildPeapConfig(spec),
             EapType.EAP_TLS       => BuildEapTlsConfig(spec),
-            _ => throw new NotSupportedException($"EAP type {eapType} not implemented yet")
+            EapType.EAP_TTLS      => BuildEapTtlsConfig(spec),
+            EapType.EAP_AKA       => throw new NotSupportedException(
+                "EAP-AKA (SIM ベース認証) は未サポート。SIM ハードウェアと実機検証が必要なため将来対応 (docs/specification.md 参照)。"),
+            _ => throw new NotSupportedException($"EAP type {eapType} not implemented")
         });
         eapHost.Add(config);
         return eapHost;
@@ -248,5 +252,29 @@ public static class ProfileXmlBuilder
                 new XElement(EtNs + "AcceptServerName",
                     XNamespace.Get("http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2") + "AcceptServerName",
                     "true")));
+    }
+
+    // ───── EAP-TTLS (Type 21) ─────
+    // Windows EAP-TTLS スキーマ (EapTtlsConnectionPropertiesV1)。
+    // Config 直下に <EapTtls> を置く (PEAP/TLS のような BaseEap ラップは無い)。
+    // 内側認証 (Phase2) は MSCHAPv2 を既定とし、Username/Password を使用する。
+    private static XElement BuildEapTtlsConfig(WifiProfileSpec spec)
+    {
+        var serverValidation = new XElement(EttNs + "ServerValidation",
+            new XElement(EttNs + "ServerNames",
+                spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
+        foreach (var thumb in spec.TrustedRootCaThumbprints)
+            serverValidation.Add(new XElement(EttNs + "TrustedRootCAHash", thumb));
+        serverValidation.Add(new XElement(EttNs + "DisablePrompt", "false"));
+
+        return new XElement(EttNs + "EapTtls",
+            serverValidation,
+            new XElement(EttNs + "Phase1Identity",
+                new XElement(EttNs + "IdentityPrivacy", "true"),
+                new XElement(EttNs + "AnonymousIdentity",
+                    string.IsNullOrEmpty(spec.Domain) ? "anonymous" : spec.Domain)),
+            new XElement(EttNs + "Phase2Authentication",
+                new XElement(EttNs + "MSCHAPv2Authentication",
+                    new XElement(EttNs + "UseWinlogonCredentials", "false"))));
     }
 }

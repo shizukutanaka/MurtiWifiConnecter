@@ -81,6 +81,13 @@ public sealed record WifiProfileSpec
             if (string.IsNullOrEmpty(ClientCertThumbprint))
                 return ProfileValidation.Fail("EAP-TLS needs client cert");
         }
+        if (EapType == Models.EapType.EAP_TTLS)
+        {
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+                return ProfileValidation.Fail("EAP-TTLS needs username+password");
+        }
+        if (EapType == Models.EapType.EAP_AKA)
+            return ProfileValidation.Fail("EAP-AKA (SIM-based) is not supported");
         return ProfileValidation.Ok;
     }
 }

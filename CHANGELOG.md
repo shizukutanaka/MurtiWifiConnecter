@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README のバッジ/本文を実態に同期(テスト 354→514、言語 11→14、ADR 14→24件)。
 
 ### Added
+- **機能仕様書 `docs/specification.md`**: 要件 ID(FR-xx)付きの機能仕様。これを基準に
+  ギャップを洗い出し、`ProfileXmlBuilder` の EAP サポートマトリクスの欠落を発見・実装。
+- **EAP-TTLS (Type 21) プロファイル生成**: `ProfileXmlBuilder` が宣言済み `EapType.EAP_TTLS`
+  を「未実装」例外にしていた欠落を実装(Windows EapTtlsConnectionPropertiesV1 スキーマ、
+  Phase2=MSCHAPv2)。`spec.Validate()` に username+password 検証を追加。ゴールデンテスト追加。
+  併せて `EapType.EAP_AKA`(SIM 認証)を「明示的に非サポート」として Validate/Build で拒否
+  (従来は曖昧な NotSupported)。
 - **WPS 有効 AP 警告 (MWC-SEC-007)**: `SecurityAdvisoryService` に WPS 有効 AP の警告を追加
   (`WifiNetwork.WpsEnabled`)。外部レジストラ PIN 方式の総当たり/Pixie-Dust 脆弱性を注意喚起。
   リサーチ C2/G3 の実装。テスト2件追加。
