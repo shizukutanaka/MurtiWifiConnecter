@@ -125,6 +125,38 @@ public sealed class ChannelAdvisorService
     }
 
     /// <summary>
+    /// AP ビーコンの BSS Load データを使って実測チャネル混雑度を返す。
+    /// BssLoad がない場合は AP カウントによる推定にフォールバックする。
+    /// </summary>
+    public CongestionAdvisory AdviseCongestion(
+        WifiNetwork network, IEnumerable<WifiNetwork> allVisible)
+    {
+        // 最大負荷の BSS Load を選ぶ (BssInfo に BssLoad がある BSS が対象)
+        var bssLoad = network.BssEntries
+            .Select(b => b.BssLoad)
+            .OfType<BssLoad>()
+            .OrderByDescending(bl => bl.ChannelUtilization)
+            .FirstOrDefault();
+
+        if (bssLoad is not null)
+        {
+            return new CongestionAdvisory(
+                UtilizationPercent: bssLoad.UtilizationPercent,
+                StationCount:       bssLoad.StationCount,
+                IsOverloaded:       bssLoad.IsOverloaded,
+                Source:             CongestionSource.BssLoad);
+        }
+
+        // フォールバック: AP 数による推定
+        var estimated = EstimateCongestion(allVisible, network.Channel);
+        return new CongestionAdvisory(
+            UtilizationPercent: estimated,
+            StationCount:       null,
+            IsOverloaded:       estimated >= 75,
+            Source:             CongestionSource.ApCount);
+    }
+
+    /// <summary>
     /// 人間語のバンド助言。
     /// </summary>
     public string DescribeBandChoice(WifiNetwork network)
@@ -153,3 +185,19 @@ public sealed record ChannelWidthAdvice(
     int    Recommended,
     string Reason,
     bool   IsOptimal);
+
+/// <summary>チャネル混雑度の助言。</summary>
+public sealed record CongestionAdvisory(
+    int     UtilizationPercent,
+    ushort? StationCount,
+    bool    IsOverloaded,
+    CongestionSource Source);
+
+/// <summary>混雑度データの由来。</summary>
+public enum CongestionSource
+{
+    /// <summary>AP ビーコンの BSS Load 要素 (信頼度: 高)</summary>
+    BssLoad,
+    /// <summary>可視 AP 数による推定 (信頼度: 低)</summary>
+    ApCount
+}

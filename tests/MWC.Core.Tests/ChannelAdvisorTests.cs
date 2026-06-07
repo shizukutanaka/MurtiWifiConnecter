@@ -163,4 +163,54 @@ public class ChannelAdvisorServiceTests
 
         score6.Should().BeGreaterThan(score24, "強信号では6GHzが2.4GHzより高スコア");
     }
+
+    // ── AdviseCongestion (BSS Load ベース) ───────────────────────────────
+
+    [Fact]
+    public void AdviseCongestion_BssLoadPresent_UsesBssLoad()
+    {
+        var network = new WifiNetwork
+        {
+            Ssid = "Test",
+            Band = WifiBand.Band5GHz,
+            SignalQuality = 80,
+            Channel = 36,
+            BssEntries = new[]
+            {
+                new BssInfo
+                {
+                    Bssid = "aa:bb:cc:dd:ee:ff",
+                    Rssi = -60, Channel = 36, FrequencyMhz = 5180,
+                    BssLoad = new BssLoad(StationCount: 15, ChannelUtilization: 200,
+                                         AvailableAdmissionCapacity: 0)
+                }
+            }
+        };
+
+        var advice = _svc.AdviseCongestion(network, Array.Empty<WifiNetwork>());
+
+        advice.Source.Should().Be(CongestionSource.BssLoad);
+        advice.StationCount.Should().Be(15);
+        advice.IsOverloaded.Should().BeTrue();
+        advice.UtilizationPercent.Should().BeGreaterThan(75);
+    }
+
+    [Fact]
+    public void AdviseCongestion_NoBssLoad_FallsBackToApCount()
+    {
+        var network = Net(WifiBand.Band5GHz, 70, channel: 36);
+        // 3 APs on same channel → 30% estimated
+        var visible = new[]
+        {
+            Net(WifiBand.Band5GHz, 70, channel: 36),
+            Net(WifiBand.Band5GHz, 70, channel: 36),
+            Net(WifiBand.Band5GHz, 70, channel: 36),
+        };
+
+        var advice = _svc.AdviseCongestion(network, visible);
+
+        advice.Source.Should().Be(CongestionSource.ApCount);
+        advice.UtilizationPercent.Should().Be(30);
+        advice.StationCount.Should().BeNull();
+    }
 }

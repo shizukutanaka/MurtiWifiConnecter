@@ -107,6 +107,8 @@ public sealed record BssInfo
     public bool HasInterworkingElement { get; init; }
     /// <summary>Protected Management Frames (802.11w) 状態</summary>
     public PmfStatus Pmf { get; init; } = PmfStatus.Unknown;
+    /// <summary>BSS Load (Element ID 11) — チャネル混雑情報 (null = 要素なし)</summary>
+    public BssLoad? BssLoad { get; init; }
 }
 
 /// <summary>Protected Management Frames (802.11w) 状態</summary>
@@ -314,3 +316,20 @@ public sealed record WiFi8Capability
     public bool SupportsUltraHighThroughput { get; init; }
 }
 
+// ══ BSS Load (802.11e/ax) ════════════════════════════════════════════════
+
+/// <summary>AP ビーコンの BSS Load 要素 (Element ID 11) から得たチャネル負荷スナップショット。</summary>
+public sealed record BssLoad(
+    ushort StationCount,
+    byte   ChannelUtilization,
+    ushort AvailableAdmissionCapacity)
+{
+    /// <summary>チャネル占有率 0.0–1.0 (255 → 100%)。</summary>
+    public double UtilizationFraction => ChannelUtilization / 255.0;
+
+    /// <summary>占有率を 0–100% の整数で返す (表示用)。</summary>
+    public int UtilizationPercent => (int)Math.Round(UtilizationFraction * 100.0);
+
+    /// <summary>チャネルが過負荷かどうか (占有率 75% 超)。</summary>
+    public bool IsOverloaded => ChannelUtilization > 191; // 191/255 ≈ 75%
+}
