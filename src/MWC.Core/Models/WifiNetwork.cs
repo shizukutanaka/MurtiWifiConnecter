@@ -109,6 +109,9 @@ public sealed record BssInfo
     public PmfStatus Pmf { get; init; } = PmfStatus.Unknown;
     /// <summary>BSS Load (Element ID 11) — チャネル混雑情報 (null = 要素なし)</summary>
     public BssLoad? BssLoad { get; init; }
+    /// <summary>802.11r Mobility Domain ID (Element ID 54) — null = FT 非対応/未取得。
+    /// 同一 SSID の BSS 間で一致すれば高速ローミング (FT) が網羅展開済み。</summary>
+    public ushort? MobilityDomainId { get; init; }
 }
 
 /// <summary>Protected Management Frames (802.11w) 状態</summary>

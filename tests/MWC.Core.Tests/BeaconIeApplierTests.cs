@@ -61,6 +61,26 @@ public class BeaconIeApplierTests
     }
 
     [Fact]
+    public void BackfillsMobilityDomainIdOnFirstEntry()
+    {
+        // Summary(ft: true) は MobilityDomainInfo(0x1234) を含む
+        var bss = new BssInfo { Bssid = "aa:bb:cc:dd:ee:ff", Channel = 36 };
+        var net = BaseNet(bss).WithBeaconIe(Summary(ft: true));
+
+        net.BssEntries[0].MobilityDomainId.Should().Be(0x1234);
+        net.FastTransition.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DoesNotOverwriteExistingMobilityDomainId()
+    {
+        var bss = new BssInfo { Bssid = "x", MobilityDomainId = 0xABCD };
+        var net = BaseNet(bss).WithBeaconIe(Summary(ft: true)); // would set 0x1234
+
+        net.BssEntries[0].MobilityDomainId.Should().Be(0xABCD, "既存 MDID を上書きしない");
+    }
+
+    [Fact]
     public void DoesNotOverwriteExistingBssLoad()
     {
         var existing = new BssLoad(5, 50, 0);

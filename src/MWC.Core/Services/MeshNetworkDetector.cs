@@ -79,15 +79,17 @@ public sealed class MeshNetworkDetector
         bool manyBss   = totalBss >= 3;
         if (!multiBand && !manyBss) return null;
 
-        // FT メッシュ: 全メンバーが同じ MDID を持つ
+        // FT メッシュ: 全 BSS が同じ Mobility Domain ID を共有する
+        // (BeaconIeApplier が BssInfo.MobilityDomainId に格納済み)
         var mdids = members
-            .Where(n => n.FastTransition)   // FT 対応
-            .Select(ExtractMdid)
+            .SelectMany(n => n.BssEntries)
+            .Select(b => b.MobilityDomainId)
             .Where(m => m.HasValue)
             .Select(m => m!.Value)
             .Distinct()
             .ToList();
-        bool consistentMdid = mdids.Count == 1 && members.All(n => !n.FastTransition || ExtractMdid(n) == mdids[0]);
+        // MDID が観測でき、かつ全て同一なら一貫していると判定
+        bool consistentMdid = mdids.Count == 1;
 
         // ベンダー OUI 検出
         var detectedVendors = members
@@ -125,14 +127,6 @@ public sealed class MeshNetworkDetector
             >= 3 => MeshConfidence.Medium,
             _    => MeshConfidence.Low
         };
-    }
-
-    private static ushort? ExtractMdid(WifiNetwork n)
-    {
-        // WifiNetwork.FastTransition が true ならプラットフォーム層が MDID を
-        // BssInfo に格納している想定 — ここでは FastTransition フラグの有無で代替
-        // (実際の MDID は BeaconIeApplier 経由で BssInfo に付与される)
-        return n.FastTransition ? (ushort?)0x0000 : null;   // プレースホルダー (実装上の注釈)
     }
 
     private static string OuiPrefix(string bssid)

@@ -25,8 +25,8 @@ public static class BeaconIeApplier
             FastTransition = network.FastTransition || summary.SupportsFastTransition,
             NeighborReport = network.NeighborReport || summary.HasNeighborReport,
 
-            // 混雑情報: 既に BssLoad があれば維持、なければ要約から補完
-            BssEntries = ApplyBssLoad(network.BssEntries, summary.BssLoad),
+            // 先頭 BSS へ BssLoad / MDID を補完 (各々未設定の場合のみ)
+            BssEntries = BackfillFirstBss(network.BssEntries, summary.BssLoad, summary.MobilityDomain?.Mdid),
         };
     }
 
@@ -35,17 +35,20 @@ public static class BeaconIeApplier
     /// </summary>
     public static bool SupportsWmm(this BeaconIeSummary summary) => summary.SupportsWmm;
 
-    private static System.Collections.Generic.IReadOnlyList<BssInfo> ApplyBssLoad(
-        System.Collections.Generic.IReadOnlyList<BssInfo> entries, BssLoad? bssLoad)
+    private static System.Collections.Generic.IReadOnlyList<BssInfo> BackfillFirstBss(
+        System.Collections.Generic.IReadOnlyList<BssInfo> entries, BssLoad? bssLoad, ushort? mdid)
     {
-        if (bssLoad is null || entries.Count == 0) return entries;
+        if (entries.Count == 0) return entries;
 
-        // 先頭 BSS に BssLoad を補完 (未設定の場合のみ)
         var first = entries[0];
-        if (first.BssLoad is not null) return entries;
+        // 既存値は上書きしない。補完すべき値がなければそのまま返す。
+        BssLoad? newLoad = first.BssLoad ?? bssLoad;
+        ushort?  newMdid = first.MobilityDomainId ?? mdid;
+        if (ReferenceEquals(newLoad, first.BssLoad) && newMdid == first.MobilityDomainId)
+            return entries;
 
         var updated = new BssInfo[entries.Count];
-        updated[0] = first with { BssLoad = bssLoad };
+        updated[0] = first with { BssLoad = newLoad, MobilityDomainId = newMdid };
         for (int i = 1; i < entries.Count; i++)
             updated[i] = entries[i];
         return updated;
