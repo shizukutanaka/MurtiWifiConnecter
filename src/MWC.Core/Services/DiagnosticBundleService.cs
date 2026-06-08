@@ -1,0 +1,134 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace MWC.Core.Services;
+
+/// <summary>
+/// サポート診断バンドル生成サービス (D9)。
+///
+/// アダプター状態・ヘルス・品質計測などの現況を、**PII を秘匿した**
+/// Markdown レポートにまとめる。利用者が GitHub Issue 等へ安全に貼り付け、
+/// 開発者がトラブルシュートできるようにする
+/// (<see cref="TroubleshootingHelper"/> の「ログを報告」導線を補完)。
+///
+/// 秘匿方針 (I5 準拠):
+///   - SSID         → 先頭 2 文字 + マスク (例: "My****")
+///   - BSSID/MAC    → OUI 3 バイトのみ残し下位を伏字 (例: "aa:bb:cc:**:**:**")
+///   - IPv4 アドレス → "x.x.x.x"
+///   - メール/電話   → 伏字
+///
+/// 生成物は人間可読の Markdown 文字列。ファイル I/O は呼び出し側に委ねる。
+/// </summary>
+public sealed class DiagnosticBundleService
+{
+    /// <summary>診断バンドル (Markdown) を生成する。</summary>
+    public string Build(DiagnosticContext ctx)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("# MWC 診断バンドル");
+        sb.AppendLine();
+        sb.AppendLine($"- 生成日時: {ctx.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine($"- アプリ版: {Redact(ctx.AppVersion)}");
+        sb.AppendLine($"- OS: {Redact(ctx.OsDescription)}");
+        sb.AppendLine();
+
+        // ── アダプター ──
+        sb.AppendLine("## アダプター");
+        if (ctx.Adapters.Count == 0)
+            sb.AppendLine("(検出なし)");
+        else
+            foreach (var a in ctx.Adapters)
+                sb.AppendLine($"- **{Redact(a.Name)}** — {a.State}" +
+                              (a.ConnectedSsid is null ? "" : $" → {MaskSsid(a.ConnectedSsid)}"));
+        sb.AppendLine();
+
+        // ── ヘルス ──
+        if (ctx.Health is { } h)
+        {
+            sb.AppendLine($"## ヘルス: {h.Status}");
+            foreach (var c in h.Checks)
+                sb.AppendLine($"- [{(c.Passed ? "x" : " ")}] {c.Name}: {Redact(c.Detail)}");
+            sb.AppendLine();
+        }
+
+        // ── 品質計測 ──
+        if (ctx.Quality is { } q)
+        {
+            sb.AppendLine("## 品質計測");
+            sb.AppendLine($"- レイテンシ: {q.LatencyAvgMs} ms (min {q.LatencyMinMs} / max {q.LatencyMaxMs})");
+            sb.AppendLine($"- パケットロス: {q.PacketLossPct:F0}%");
+            sb.AppendLine($"- グレード: {q.Grade}");
+            sb.AppendLine();
+        }
+
+        // ── 直近の失敗 ──
+        if (ctx.LastFailure is { } f)
+        {
+            sb.AppendLine("## 直近の接続失敗");
+            sb.AppendLine($"- 種別: {f}");
+            sb.AppendLine();
+        }
+
+        // ── 追加ノート (利用者入力 — 必ず秘匿) ──
+        if (!string.IsNullOrWhiteSpace(ctx.UserNote))
+        {
+            sb.AppendLine("## 補足");
+            sb.AppendLine(Redact(ctx.UserNote!));
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    // ── 秘匿ユーティリティ ───────────────────────────────────────────
+
+    private static readonly Regex Ipv4   = new(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", RegexOptions.Compiled);
+    private static readonly Regex Mac     = new(@"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b", RegexOptions.Compiled);
+    private static readonly Regex Email   = new(@"\b[\w.+-]+@[\w-]+\.[\w.-]+\b", RegexOptions.Compiled);
+    private static readonly Regex Phone   = new(@"\b0\d{1,4}-\d{1,4}-\d{4}\b", RegexOptions.Compiled);
+
+    /// <summary>任意文字列から PII を伏字に置換する。</summary>
+    public static string Redact(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return text ?? "";
+        string s = Mac.Replace(text, m => MaskMac(m.Value));   // MAC を先に (IPv4 より具体的)
+        s = Ipv4.Replace(s, "x.x.x.x");
+        s = Email.Replace(s, "[email]");
+        s = Phone.Replace(s, "[phone]");
+        return s;
+    }
+
+    /// <summary>SSID を先頭 2 文字残してマスクする。</summary>
+    public static string MaskSsid(string ssid)
+    {
+        if (string.IsNullOrEmpty(ssid)) return "(空)";
+        if (ssid.Length <= 2) return ssid[0] + "*";
+        return ssid.Substring(0, 2) + new string('*', Math.Min(ssid.Length - 2, 6));
+    }
+
+    /// <summary>BSSID/MAC を OUI (上位 3 バイト) のみ残して伏字化する。</summary>
+    public static string MaskMac(string mac)
+    {
+        var parts = mac.Split(':', '-');
+        if (parts.Length != 6) return "**:**:**:**:**:**";
+        return $"{parts[0]}:{parts[1]}:{parts[2]}:**:**:**".ToLowerInvariant();
+    }
+}
+
+// ── データ型 ─────────────────────────────────────────────────────
+
+/// <summary>診断バンドル生成の入力コンテキスト。</summary>
+public sealed record DiagnosticContext
+{
+    public DateTimeOffset GeneratedAt { get; init; } = DateTimeOffset.UtcNow;
+    public string AppVersion { get; init; } = "";
+    public string OsDescription { get; init; } = "";
+    public IReadOnlyList<Models.WifiAdapter> Adapters { get; init; } = Array.Empty<Models.WifiAdapter>();
+    public HealthReport? Health { get; init; }
+    public NetworkQualityResult? Quality { get; init; }
+    public Models.ConnectionFailure? LastFailure { get; init; }
+    /// <summary>利用者が任意で添える補足。PII の可能性があるため秘匿対象。</summary>
+    public string? UserNote { get; init; }
+}
