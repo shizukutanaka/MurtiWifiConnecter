@@ -19,23 +19,26 @@ public class SixGhzChannelHelperTests
     }
 
     [Fact]
-    public void PreferredScanningChannels_StartsAt5_Step32()
+    public void PreferredScanningChannels_StartsAt5_Step16_15Channels()
     {
         var psc = SixGhzChannelHelper.PreferredScanningChannels;
+        // IEEE 802.11ax: 15 PSC channels, 5,21,37,...,229 (step 16)
+        psc.Should().HaveCount(15);
         psc[0].Should().Be(5);
-        psc[1].Should().Be(37);
-        psc[2].Should().Be(69);
-        // All ≤ 233
-        psc.Should().AllSatisfy(ch => ch.Should().BeLessOrEqualTo(233));
+        psc[1].Should().Be(21);
+        psc[2].Should().Be(37);
+        psc[^1].Should().Be(229);
+        psc.Should().Equal(5, 21, 37, 53, 69, 85, 101, 117, 133, 149, 165, 181, 197, 213, 229);
     }
 
     [Theory]
     [InlineData(5,   true)]
+    [InlineData(21,  true)]
     [InlineData(37,  true)]
-    [InlineData(69,  true)]
-    [InlineData(229, true)]   // 5 + 7*32 = 229
+    [InlineData(229, true)]   // 5 + 14*16 = 229
     [InlineData(1,   false)]
     [InlineData(9,   false)]
+    [InlineData(69,  true)]   // 5 + 4*16 = 69
     [InlineData(100, false)]
     public void IsPreferredScanningChannel_Correct(int channel, bool expected)
     {

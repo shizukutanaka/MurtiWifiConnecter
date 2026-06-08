@@ -12,13 +12,14 @@ namespace MWC.Core.Services;
 ///   6GHz 帯の 59 チャネル (ch 1–233, 20MHz 単位) のうち、AP が
 ///   プローブ応答を確実に返すよう義務付けられた 15 チャネル。
 ///   クライアントは PSC のみをスキャンすることで大幅に時間短縮できる。
-///   規格上 PSC は ch 5 から 32 おき: 5, 37, 69, ... (ch = 5 + 32n, n=0..14)
+///   PSC は各 80MHz ブロックの先頭 20MHz チャネル = ch 5 から 16 おき:
+///   5, 21, 37, 53, 69, 85, 101, 117, 133, 149, 165, 181, 197, 213, 229 (ch = 5 + 16n, n=0..14)
 ///
 /// 参考: IEEE 802.11ax-2021 §26.17.2.3.3 (Preferred Scanning Channels)
 /// </summary>
 public static class SixGhzChannelHelper
 {
-    /// <summary>6GHz PSC チャネル番号一覧 (ch 5 から 32 おき、最大 8 チャネル ≤ 233)。</summary>
+    /// <summary>6GHz PSC チャネル番号一覧 (ch 5 から 16 おき、15 チャネル: 5,21,…,229)。</summary>
     public static IReadOnlyList<int> PreferredScanningChannels { get; } = BuildPsc();
 
     /// <summary>6GHz 全チャネル (ch 1, 5, 9, ... 233 — 20MHz 単位、59 チャネル)。</summary>
@@ -43,11 +44,11 @@ public static class SixGhzChannelHelper
 
     private static List<int> BuildPsc()
     {
-        // PSC = ch 5 + 32n (n = 0, 1, 2, ...) で ch ≤ 233 のもの
+        // PSC = ch 5 + 16n (各 80MHz ブロックの先頭) で ch ≤ 233 のもの → 15 チャネル
         var list = new List<int>();
         for (int n = 0; ; n++)
         {
-            int ch = 5 + n * 32;
+            int ch = 5 + n * 16;
             if (ch > 233) break;
             list.Add(ch);
         }
