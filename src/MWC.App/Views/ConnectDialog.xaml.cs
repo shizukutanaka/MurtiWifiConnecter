@@ -102,7 +102,7 @@ public partial class ConnectDialog : Window
 
         if (_auth is not (AuthMethod.Open or AuthMethod.OWE))
         {
-            if (string.IsNullOrEmpty(Passphrase) || Passphrase.Length < 8)
+            if (!IsPassphraseValid(Passphrase, _auth))
             {
                 ErrorLabel.Text = MWC.App.Resources.L.Get("Error_PassphraseShort");
                 ErrorLabel.Visibility = Visibility.Visible;
@@ -111,6 +111,26 @@ public partial class ConnectDialog : Window
         }
         DialogResult = true;
         Close();
+    }
+
+    // 認証方式ごとのパスフレーズ長検証。WEP は WPA と異なる鍵長 (5/13 ASCII or 10/26 hex) を持つため
+    // 一律 8 文字以上では有効な WEP キーを誤って拒否してしまう (ProfileXmlBuilder の検証と整合)。
+    private static bool IsPassphraseValid(string? passphrase, AuthMethod auth)
+    {
+        if (string.IsNullOrEmpty(passphrase)) return false;
+        if (auth is AuthMethod.WEP)
+        {
+            int len = passphrase.Length;
+            bool ascii = len is 5 or 13;
+            bool hex   = len is 10 or 26 &&
+                         passphrase.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f') or (>= 'A' and <= 'F'));
+            return ascii || hex;
+        }
+        // WPA/WPA2/WPA3 PSK: 8〜63 文字、または 64 桁 hex の raw PSK
+        if (passphrase.Length == 64 &&
+            passphrase.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f') or (>= 'A' and <= 'F')))
+            return true;
+        return passphrase.Length is >= 8 and <= 63;
     }
 
     private void OnCancel(object sender, RoutedEventArgs e)
