@@ -60,6 +60,8 @@ public class BeaconIeParserTests
         stream.AddRange(NeighborReport(Bssid1, 0u, 81, 6, 7));
         stream.AddRange(MobilityDomain(0x1A2B, overDs: true));
         stream.AddRange(BssLoadEl(15, 200, 0));
+        stream.AddRange(new byte[] { 7, 6, (byte)'U', (byte)'S', (byte)'I', 1, 11, 30 }); // Country
+        stream.AddRange(new byte[] { 35, 2, 20, 0 });                                     // TPC Report
         stream.AddRange(WmmParam());
 
         var s = BeaconIeParser.Parse(stream.ToArray());
@@ -73,6 +75,11 @@ public class BeaconIeParserTests
         s.BssLoad!.StationCount.Should().Be(15);
         s.Wmm.Should().NotBeNull();
         s.WmmQosInfo.Should().Be(0x02);
+        s.Country.Should().NotBeNull();
+        s.Country!.CountryCode.Should().Be("US");
+        s.Country.Environment.Should().Be(RegulatoryEnvironment.Indoor);
+        s.Tpc.Should().NotBeNull();
+        s.Tpc!.TransmitPowerDbm.Should().Be(20);
 
         s.SupportsFastTransition.Should().BeTrue();
         s.HasNeighborReport.Should().BeTrue();

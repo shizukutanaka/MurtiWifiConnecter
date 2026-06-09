@@ -27,6 +27,8 @@ public class BeaconIeApplierTests
             MobilityDomain: md,
             Wmm: null,
             WmmQosInfo: null,
+            Country: null,
+            Tpc: null,
             PresentElementIds: Array.Empty<byte>());
     }
 

@@ -29,6 +29,8 @@ public static class BeaconIeParser
         MobilityDomainInfo? mobilityDomain = null;
         WmmParameters? wmm = null;
         byte? wmmQosInfo = null;
+        CountryInfo? country = null;
+        TpcReport? tpc = null;
         var presentIds = new List<byte>();
 
         int i = 0;
@@ -63,6 +65,16 @@ public static class BeaconIeParser
                     DecodeRnr(body, rnr ??= new());
                     break;
 
+                case CountryInfoParser.CountryElementId
+                    when len >= CountryInfoParser.MinBodyLength && country is null:
+                    country = CountryInfoParser.Parse(data.Slice(i, 2 + len));
+                    break;
+
+                case TpcReportParser.TpcReportElementId
+                    when len >= TpcReportParser.BodyLength && tpc is null:
+                    tpc = TpcReportParser.Parse(data.Slice(i, 2 + len));
+                    break;
+
                 case VendorSpecificId:
                     DecodeVendorSpecific(body, ref wmm, ref wmmQosInfo);
                     break;
@@ -78,6 +90,8 @@ public static class BeaconIeParser
             MobilityDomain:  mobilityDomain,
             Wmm:             wmm,
             WmmQosInfo:      wmmQosInfo,
+            Country:         country,
+            Tpc:             tpc,
             PresentElementIds: presentIds);
     }
 
@@ -184,6 +198,8 @@ public sealed record BeaconIeSummary(
     MobilityDomainInfo?           MobilityDomain,
     WmmParameters?                Wmm,
     byte?                         WmmQosInfo,
+    CountryInfo?                  Country,
+    TpcReport?                    Tpc,
     IReadOnlyList<byte>           PresentElementIds)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>
