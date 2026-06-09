@@ -9,6 +9,7 @@ using ManagedNativeWifi;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
+using MWC.Core.Services;
 
 namespace MWC.Platform.Windows;
 
@@ -21,11 +22,18 @@ public sealed class WindowsWifiService : IWifiService
 {
     private readonly ILogger<WindowsWifiService> _log;
     private readonly IConnectivityChecker        _connectivity;
+    private readonly IBeaconIeProvider           _ieProvider;
+    private readonly BeaconEnrichmentService     _enrichment = new();
 
-    public WindowsWifiService(ILogger<WindowsWifiService> log, IConnectivityChecker connectivity)
+    public WindowsWifiService(
+        ILogger<WindowsWifiService> log,
+        IConnectivityChecker connectivity,
+        IBeaconIeProvider? ieProvider = null)
     {
         _log          = log;
         _connectivity = connectivity;
+        // 生 IE 供給源が無ければ Null オブジェクト (基本スキャンのみ、劣化なし)
+        _ieProvider   = ieProvider ?? NullBeaconIeProvider.Instance;
     }
 
     // ── Adapters ────────────────────────────────────────────────────
@@ -105,9 +113,22 @@ public sealed class WindowsWifiService : IWifiService
 
             // 接続中 SSID をマーク
             string? conn = GetConnectedSsid(adapterId);
-            return networks
+            var marked = networks
                 .Select(n => n with { IsConnected = n.Ssid == conn })
                 .ToList();
+
+            // 生 IE が供給される環境では詳細解析で強化 (Country/TPC/BSS Load/FT/MDID 等)。
+            // 供給源が無い (Null プロバイダ) 場合は marked をそのまま返す。
+            try
+            {
+                var rawBeacons = _ieProvider.GetRawBeacons(adapterId);
+                return _enrichment.Enrich(marked, rawBeacons);
+            }
+            catch (Exception ex)
+            {
+                _log.LogDebug(ex, "Beacon IE enrichment skipped");
+                return marked;
+            }
         }
         catch (Exception ex)
         {

@@ -108,4 +108,5 @@
 |---|---|---|
 | **EAP-AKA (SIM 認証)** | 宣言のみ・非サポート | SIM ハードウェア前提・Windows 実機での XML 検証が必要。`EapType` に残すが Build/Validate で明示的に拒否。需要があれば実装。 |
 | CI 実走検証 | 未 | 取込みソースに複数のビルド阻害があったため(build-blockers-2026)、`.github/workflows/` 設置で net9.0 ビルド+テストの緑化が最優先。 |
+| **生 IE スキャン (Country/TPC/BSS Load/RNR/MDID/WMM)** | Core 完備・Windows 実機検証待ち | ManagedNativeWifi 3.0.2 の `BssNetworkInfo` は生 IE バイトを公開しない(Ssid/Bssid/Phy/Rssi/Freq/Band/Channel のみ)。`IBeaconIeProvider` で取得経路を分離し、Core 側は `BeaconIeParser`/`BeaconEnrichmentService` で完備・テスト済み。Windows 実装 `WlanBssIeProvider` は `WlanGetNetworkBssList` P/Invoke だが**実機検証が必須**のため既定 DI 未登録(`WindowsWifiService` は `NullBeaconIeProvider` にフォールバックし基本スキャンは劣化なし)。 |
 | docs/improvement-* の P1/P2 | 計画 | DPP/CAPPORT/MLO アノマリー/FTM 等(improvement-analysis-2026, improvement-research-100/part2)。 |
