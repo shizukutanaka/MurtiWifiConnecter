@@ -28,51 +28,56 @@ public static partial class Program
 
         cmd.SetHandler(async (string h, int s, bool j, bool bb, string url) =>
         {
-            var svc = sp.GetRequiredService<NetworkQualityService>();
-
-            if (bb)
+            try
             {
-                Console.Error.Write($"Measuring responsiveness to {h} under load…");
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
-                var rr = await svc.MeasureResponsivenessAsync(
-                    h, ct => GenerateLoadAsync(url, ct), s, cts.Token);
+                var svc = sp.GetRequiredService<NetworkQualityService>();
+
+                if (bb)
+                {
+                    Console.Error.Write($"Measuring responsiveness to {h} under load…");
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                    var rr = await svc.MeasureResponsivenessAsync(
+                        h, ct => GenerateLoadAsync(url, ct), s, cts.Token);
+                    Console.Error.WriteLine();
+                    if (j)
+                    {
+                        Print(new {
+                            idle_latency_ms     = rr.IdleLatencyMs,
+                            working_latency_ms  = rr.WorkingLatencyMs,
+                            latency_increase_ms = rr.LatencyIncreaseMs,
+                            rpm                 = rr.Rpm,
+                            bufferbloat_grade   = rr.Grade.ToString()
+                        });
+                        return;
+                    }
+                    Console.WriteLine($"Idle RTT:        {rr.IdleLatencyMs} ms");
+                    Console.WriteLine($"Working RTT:     {rr.WorkingLatencyMs} ms (+{rr.LatencyIncreaseMs} ms under load)");
+                    Console.WriteLine($"Responsiveness:  {rr.RpmLabel}");
+                    Console.WriteLine($"Bufferbloat:     {rr.GradeLabel}");
+                    return;
+                }
+
+                Console.Error.Write($"Measuring quality to {h} ({s} pings)…");
+                var r = await svc.MeasureAsync(h, s);
                 Console.Error.WriteLine();
                 if (j)
                 {
                     Print(new {
-                        idle_latency_ms     = rr.IdleLatencyMs,
-                        working_latency_ms  = rr.WorkingLatencyMs,
-                        latency_increase_ms = rr.LatencyIncreaseMs,
-                        rpm                 = rr.Rpm,
-                        bufferbloat_grade   = rr.Grade.ToString()
+                        grade        = r.GradeLabel,
+                        latency_avg  = r.LatencyAvgMs,
+                        latency_min  = r.LatencyMinMs,
+                        latency_max  = r.LatencyMaxMs,
+                        packet_loss  = r.PacketLossPct
                     });
                     return;
                 }
-                Console.WriteLine($"Idle RTT:        {rr.IdleLatencyMs} ms");
-                Console.WriteLine($"Working RTT:     {rr.WorkingLatencyMs} ms (+{rr.LatencyIncreaseMs} ms under load)");
-                Console.WriteLine($"Responsiveness:  {rr.RpmLabel}");
-                Console.WriteLine($"Bufferbloat:     {rr.GradeLabel}");
-                return;
+                Console.WriteLine($"Grade:        {r.GradeLabel}");
+                Console.WriteLine($"RTT (avg):    {r.LatencyLabel}");
+                Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
+                Console.WriteLine($"Packet loss:  {r.LossLabel}");
             }
-
-            Console.Error.Write($"Measuring quality to {h} ({s} pings)…");
-            var r = await svc.MeasureAsync(h, s);
-            Console.Error.WriteLine();
-            if (j)
-            {
-                Print(new {
-                    grade        = r.GradeLabel,
-                    latency_avg  = r.LatencyAvgMs,
-                    latency_min  = r.LatencyMinMs,
-                    latency_max  = r.LatencyMaxMs,
-                    packet_loss  = r.PacketLossPct
-                });
-                return;
-            }
-            Console.WriteLine($"Grade:        {r.GradeLabel}");
-            Console.WriteLine($"RTT (avg):    {r.LatencyLabel}");
-            Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
-            Console.WriteLine($"Packet loss:  {r.LossLabel}");
+            catch (OperationCanceledException) { Console.Error.WriteLine("Measurement cancelled."); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, host, samples, json, bloat, loadUrl);
         return cmd;
     }

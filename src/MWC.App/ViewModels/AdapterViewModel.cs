@@ -165,7 +165,9 @@ public sealed partial class AdapterViewModel : ObservableObject
         PrefsService.SetBandFilter(_adapter.Id, band);
         Preferences = PrefsService.Get(_adapter.Id);
         OnPropertyChanged(nameof(PreferredBand));
-        _ = RefreshAsync();
+        _ = RefreshAsync().ContinueWith(
+            t => _log.LogError(t.Exception!.GetBaseException(), "Band change refresh failed"),
+            default, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
 
     /// <summary>SSIDをこのアダプター用にピン留め(永続化)</summary>

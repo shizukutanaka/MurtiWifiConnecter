@@ -82,7 +82,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             _timer.Start();
-            StatusMessage = $"{ads.Count} アダプター";
+            StatusMessage = MWC.App.Resources.L.StatusAdapterCount(ads.Count);
         }
         catch (Exception ex) { _log.LogError(ex, "Load"); }
         finally { IsBusy = false; }
@@ -102,7 +102,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             int connected = Adapters.Count(a => a.ConnectedSsid is not null);
-            StatusMessage = $"{connected} / {Adapters.Count} アダプターが接続中";
+            StatusMessage = MWC.App.Resources.L.StatusAdaptersConnected(connected, Adapters.Count);
         }
         catch (Exception ex) { _log.LogWarning(ex, "RefreshAll"); }
         finally { IsScanning = false; }

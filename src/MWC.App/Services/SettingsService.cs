@@ -40,7 +40,9 @@ public sealed class SettingsService
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(settings, Opts));
+            var tmp = ConfigPath + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Opts));
+            File.Move(tmp, ConfigPath, overwrite: true);
         }
         catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
     }

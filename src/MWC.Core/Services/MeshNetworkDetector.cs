@@ -131,7 +131,7 @@ public sealed class MeshNetworkDetector
 
     private static string OuiPrefix(string bssid)
     {
-        var parts = bssid.Split(':');
+        var parts = bssid.Split(':', '-');
         if (parts.Length < 3) return "";
         return $"{parts[0]}:{parts[1]}:{parts[2]}";
     }

@@ -187,4 +187,7 @@
   <data name="Tray_NoNetworks"><value>(検出なし)</value></data>
   <data name="Tray_OpenApp"><value>MWC を開く</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} 子機が接続中</value></data>
+  <data name="Status_NetworksFound"><value>{0} 個のネットワーク</value></data>
+  <data name="Status_ProfileCount"><value>{0} 件のプロファイル</value></data>
 </root>

@@ -182,4 +182,7 @@
   <data name="Tray_NoNetworks"><value>(No networks)</value></data>
   <data name="Tray_OpenApp"><value>Open MWC</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} अडेप्टर कनेक्ट हैं</value></data>
+  <data name="Status_NetworksFound"><value>{0} नेटवर्क</value></data>
+  <data name="Status_ProfileCount"><value>{0} प्रोफ़ाइल</value></data>
 </root>

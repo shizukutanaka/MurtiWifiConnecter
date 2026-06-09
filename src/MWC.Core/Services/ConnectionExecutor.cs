@@ -70,7 +70,11 @@ public sealed class ConnectionExecutor
             // 1. プロファイル登録
             var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
             var xml  = ProfileXmlBuilder.Build(spec);
-            await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false);
+            if (!await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false))
+            {
+                _history.RecordConnection(ssid, false);
+                return ConnectionResult.Fail(ConnectionFailure.OsError);
+            }
 
             // 2. 接続実行
             _log.LogInformation("Connecting to {ssid} on adapter {id}", ssid, adapterId);

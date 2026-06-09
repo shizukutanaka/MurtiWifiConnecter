@@ -81,4 +81,8 @@ public static class L
     // ─── v1.8 動的引数版 ─────────────────────────────────
     public static string StatusCopied(string ssid)        => Format("Status_Copied", ssid);
     public static string StatusDisconnected(string label) => Format("Status_Disconnected", label);
+    public static string StatusAdaptersConnected(int connected, int total)
+        => Format("Status_AdaptersConnected", connected, total);
+    public static string StatusNetworksFound(int count)   => Format("Status_NetworksFound", count);
+    public static string StatusProfileCount(int count)    => Format("Status_ProfileCount", count);
 }

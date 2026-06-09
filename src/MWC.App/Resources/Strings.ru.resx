@@ -187,4 +187,7 @@
   <data name="Tray_NoNetworks"><value>(Нет сетей)</value></data>
   <data name="Tray_OpenApp"><value>Открыть MWC</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} адаптеров подключено</value></data>
+  <data name="Status_NetworksFound"><value>{0} сетей</value></data>
+  <data name="Status_ProfileCount"><value>{0} профилей</value></data>
 </root>

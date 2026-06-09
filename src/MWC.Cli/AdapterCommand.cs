@@ -64,10 +64,14 @@ internal static class AdapterCommand
         c.AddArgument(n); c.AddArgument(l);
         c.SetHandler(async (string name, string label) =>
         {
-            var (id, ok) = await ResolveAdapter(sp, name);
-            if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
-            sp.GetRequiredService<AdapterPreferencesService>().SetLabel(id, label);
-            Console.WriteLine($"✓ Renamed: {label}");
+            try
+            {
+                var (id, ok) = await ResolveAdapter(sp, name);
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                sp.GetRequiredService<AdapterPreferencesService>().SetLabel(id, label);
+                Console.WriteLine($"✓ Renamed: {label}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, n, l);
         return c;
     }
@@ -81,17 +85,21 @@ internal static class AdapterCommand
         c.AddArgument(n); c.AddArgument(b);
         c.SetHandler(async (string name, string band) =>
         {
-            var (id, ok) = await ResolveAdapter(sp, name);
-            if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
-            var pref = band.ToLowerInvariant() switch
+            try
             {
-                "2.4" => BandPreference.Only2_4GHz,
-                "5"   => BandPreference.Only5GHz,
-                "6"   => BandPreference.Only6GHz,
-                _     => BandPreference.Any
-            };
-            sp.GetRequiredService<AdapterPreferencesService>().SetBandFilter(id, pref);
-            Console.WriteLine($"✓ Band: {pref}");
+                var (id, ok) = await ResolveAdapter(sp, name);
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                var pref = band.ToLowerInvariant() switch
+                {
+                    "2.4" => BandPreference.Only2_4GHz,
+                    "5"   => BandPreference.Only5GHz,
+                    "6"   => BandPreference.Only6GHz,
+                    _     => BandPreference.Any
+                };
+                sp.GetRequiredService<AdapterPreferencesService>().SetBandFilter(id, pref);
+                Console.WriteLine($"✓ Band: {pref}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, n, b);
         return c;
     }
@@ -104,10 +112,14 @@ internal static class AdapterCommand
         c.AddArgument(n); c.AddArgument(s);
         c.SetHandler(async (string name, string ssid) =>
         {
-            var (id, ok) = await ResolveAdapter(sp, name);
-            if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
-            sp.GetRequiredService<AdapterPreferencesService>().PinSsid(id, ssid);
-            Console.WriteLine($"★ Pinned: {ssid}");
+            try
+            {
+                var (id, ok) = await ResolveAdapter(sp, name);
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                sp.GetRequiredService<AdapterPreferencesService>().PinSsid(id, ssid);
+                Console.WriteLine($"★ Pinned: {ssid}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, n, s);
         return c;
     }
@@ -120,10 +132,14 @@ internal static class AdapterCommand
         c.AddArgument(n); c.AddArgument(s);
         c.SetHandler(async (string name, string ssid) =>
         {
-            var (id, ok) = await ResolveAdapter(sp, name);
-            if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
-            sp.GetRequiredService<AdapterPreferencesService>().UnpinSsid(id, ssid);
-            Console.WriteLine($"☆ Unpinned: {ssid}");
+            try
+            {
+                var (id, ok) = await ResolveAdapter(sp, name);
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                sp.GetRequiredService<AdapterPreferencesService>().UnpinSsid(id, ssid);
+                Console.WriteLine($"☆ Unpinned: {ssid}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, n, s);
         return c;
     }
@@ -140,10 +156,14 @@ internal static class AdapterCommand
         c.AddArgument(n);
         c.SetHandler(async (string name) =>
         {
-            var (id, ok) = await ResolveAdapter(sp, name);
-            if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
-            sp.GetRequiredService<AdapterPreferencesService>().SetEnabled(id, on);
-            Console.WriteLine($"✓ {(on ? "Enabled" : "Disabled")}: {name}");
+            try
+            {
+                var (id, ok) = await ResolveAdapter(sp, name);
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                sp.GetRequiredService<AdapterPreferencesService>().SetEnabled(id, on);
+                Console.WriteLine($"✓ {(on ? "Enabled" : "Disabled")}: {name}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
         }, n);
         return c;
     }

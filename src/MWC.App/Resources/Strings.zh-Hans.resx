@@ -187,4 +187,7 @@
   <data name="Tray_NoNetworks"><value>(未检测到网络)</value></data>
   <data name="Tray_OpenApp"><value>打开 MWC</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} 个适配器已连接</value></data>
+  <data name="Status_NetworksFound"><value>{0} 个网络</value></data>
+  <data name="Status_ProfileCount"><value>{0} 个配置文件</value></data>
 </root>

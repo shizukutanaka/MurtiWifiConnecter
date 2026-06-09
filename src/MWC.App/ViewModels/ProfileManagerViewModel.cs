@@ -32,7 +32,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
             Profiles.Clear();
             foreach (var n in names.OrderBy(x => x))
                 Profiles.Add(new ProfileItem(n));
-            StatusMessage = $"{Profiles.Count} 件のプロファイル";
+            StatusMessage = MWC.App.Resources.L.StatusProfileCount(Profiles.Count);
         }
         finally { IsBusy = false; }
     }

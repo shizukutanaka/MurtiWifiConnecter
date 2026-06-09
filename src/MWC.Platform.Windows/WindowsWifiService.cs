@@ -277,8 +277,9 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            return NativeWifi.EnumerateConnectedNetworkSsids()
-                .FirstOrDefault()?.ToString();
+            return NativeWifi.EnumerateConnectedNetworks()
+                .FirstOrDefault(n => n.Interface.Id == adapterId)
+                ?.Ssid.ToString();
         }
         catch { return null; }
     }

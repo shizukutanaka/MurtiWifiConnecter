@@ -187,4 +187,7 @@
   <data name="Tray_NoNetworks"><value>(Keine Netzwerke)</value></data>
   <data name="Tray_OpenApp"><value>MWC öffnen</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} Adapter verbunden</value></data>
+  <data name="Status_NetworksFound"><value>{0} Netzwerke</value></data>
+  <data name="Status_ProfileCount"><value>{0} Profile</value></data>
 </root>

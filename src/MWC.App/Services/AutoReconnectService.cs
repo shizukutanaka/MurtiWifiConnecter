@@ -58,7 +58,6 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
         await foreach (var ev in _wifi.SubscribeEventsAsync(ct).ConfigureAwait(false))
         {
             if (ev.Type != WifiEventType.Disconnected) continue;
-            if (!_settings.Current.ScanOnStartup) continue;
 
             await Task.Delay(3000, ct).ConfigureAwait(false);  // 意図的な切断と区別するため少し待つ
 

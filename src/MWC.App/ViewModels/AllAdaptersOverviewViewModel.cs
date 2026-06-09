@@ -79,7 +79,7 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
     public void UpdateSummary()
     {
         int connected = Panels.Count(p => !string.IsNullOrEmpty(p.ConnectedSsid));
-        SummaryStatus = $"{connected} / {Panels.Count} 子機が接続中";
+        SummaryStatus = MWC.App.Resources.L.StatusAdaptersConnected(connected, Panels.Count);
     }
 }
 
@@ -152,7 +152,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
             ConnectedSsid    = connected?.Ssid;
             ConnectedSignal  = connected?.SignalQuality ?? 0;
             StatusMessage    = ConnectedSsid is null
-                ? $"{nets.Count} 個のネットワーク"
+                ? MWC.App.Resources.L.StatusNetworksFound(nets.Count)
                 : MWC.App.Resources.L.Format("Status_ConnectedTo", ConnectedSsid, ConnectedSignal);
         }
         catch (Exception ex) { _log.LogWarning(ex, "Panel refresh: {n}", _adapter.Name); }
@@ -173,13 +173,14 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
         try
         {
             StatusMessage = MWC.App.Resources.L.Format("Progress_Connecting");
-            var net = SourceNetworks.First(n => n.Ssid == best);
+            var net = SourceNetworks.FirstOrDefault(n => n.Ssid == best);
+            if (net is null) { StatusMessage = MWC.App.Resources.L.Get("Status_PriorityOutOfRange"); return; }
             var res = await _executor.ConnectAsync(
                 _adapter.Id, best, net.Auth, "", TimeSpan.FromSeconds(20));
             await RefreshAsync();
             StatusMessage = res.Success
                 ? MWC.App.Resources.L.Format("Status_ConnectedTo_Short", best)
-                : $MWC.App.Resources.L.ErrorConnectionFailed(res.Failure?.ToString() ?? "");
+                : MWC.App.Resources.L.ErrorConnectionFailed(res.Failure?.ToString() ?? "");
         }
         finally { IsConnecting = false; }
     }
