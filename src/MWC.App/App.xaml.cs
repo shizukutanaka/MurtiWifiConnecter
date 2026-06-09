@@ -159,7 +159,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        Host?.Services.GetService<AutoReconnectService>()?.Dispose();
+        // 監視ループの完了を待ってから破棄 (WatchAsync は ConfigureAwait(false) のためデッドロックしない)
+        var autoReconnect = Host?.Services.GetService<AutoReconnectService>();
+        if (autoReconnect is not null)
+            autoReconnect.DisposeAsync().AsTask().GetAwaiter().GetResult();
         Host?.Services.GetService<SystemTrayService>()?.Dispose();
         Host?.Services.GetService<System.Windows.Forms.NotifyIcon>()?.Dispose();
         Log.CloseAndFlush();

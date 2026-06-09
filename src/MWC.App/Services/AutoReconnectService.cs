@@ -20,7 +20,7 @@ namespace MWC.App.Services;
 ///
 /// 設定: SettingsService.Current.AutoReconnect で on/off
 /// </summary>
-public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
+public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 {
     private readonly IWifiService          _wifi;
     private readonly NetworkHistoryService     _history;
@@ -32,6 +32,7 @@ public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
 
     private readonly CancellationTokenSource _cts = new();
     private Task? _watchLoop;
+    private bool _disposed;
 
     public AutoReconnectService(
         IWifiService wifi,
@@ -54,16 +55,16 @@ public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
 
     private async Task WatchAsync(CancellationToken ct)
     {
-        await foreach (var ev in _wifi.SubscribeEventsAsync(ct))
+        await foreach (var ev in _wifi.SubscribeEventsAsync(ct).ConfigureAwait(false))
         {
             if (ev.Type != WifiEventType.Disconnected) continue;
             if (!_settings.Current.ScanOnStartup) continue;
 
-            await Task.Delay(3000, ct);  // 意図的な切断と区別するため少し待つ
+            await Task.Delay(3000, ct).ConfigureAwait(false);  // 意図的な切断と区別するため少し待つ
 
             try
             {
-                var adapters = await _wifi.GetAdaptersAsync(ct);
+                var adapters = await _wifi.GetAdaptersAsync(ct).ConfigureAwait(false);
                 var disconnected = adapters
                     .FirstOrDefault(a => a.Id == ev.AdapterId && a.ConnectedSsid is null);
                 if (disconnected is null) continue;  // 再接続済み or 別アダプター
@@ -71,7 +72,7 @@ public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
                 // このアダプタで自動再接続が無効なら何もしない
                 if (!_adapterPrefs.IsAutoReconnectEnabled(ev.AdapterId)) continue;
 
-                var scan = await _wifi.ScanAsync(ev.AdapterId, ct);
+                var scan = await _wifi.ScanAsync(ev.AdapterId, ct).ConfigureAwait(false);
 
                 // ① まずアダプタ別優先ネットワークを試す
                 var preferred = _adapterPrefs.PickBestSsid(ev.AdapterId,
@@ -95,7 +96,7 @@ public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
                 _log.LogInformation("AutoReconnect: trying {ssid}", candidate.Ssid);
                 var res = await _executor.ConnectAsync(
                     ev.AdapterId, candidate.Ssid, candidate.Auth,
-                    "", TimeSpan.FromSeconds(20), ct);
+                    "", TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
 
                 if (res.Success)
                     _notify.NotifyConnected(candidate.Ssid, res.HasInternet, res.BehindCaptivePortal);
@@ -107,13 +108,22 @@ public sealed class AutoReconnectService : IAsyncDisposable : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _cts.Cancel();
         _cts.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
+        _disposed = true;
         _cts.Cancel();
-        try { await Task.Delay(100).ConfigureAwait(false); } catch { }
+        // 監視ループの実完了を待ってから CTS を破棄する (固定 Delay ではなく確実に)
+        if (_watchLoop is not null)
+        {
+            try { await _watchLoop.ConfigureAwait(false); }
+            catch { /* キャンセル/失敗は無視 */ }
+        }
         _cts.Dispose();
     }

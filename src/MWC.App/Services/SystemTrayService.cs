@@ -148,7 +148,10 @@ public sealed class SystemTrayService : IDisposable
             System.Windows.Application.Current.Shutdown());
         menu.Items.Add(exitItem);
 
+        // 旧メニューを破棄してから差し替え (GDI ハンドル/メモリリーク防止)
+        var oldMenu = _tray.ContextMenuStrip;
         _tray.ContextMenuStrip = menu;
+        oldMenu?.Dispose();
     }
 
     /// <summary>(後方互換) 単一アダプター用の旧 API</summary>
@@ -194,6 +197,7 @@ public sealed class SystemTrayService : IDisposable
         if (_disposed) return;
         _disposed = true;
         _tray.Visible = false;
+        _tray.ContextMenuStrip?.Dispose();
         _tray.Dispose();
     }
 }

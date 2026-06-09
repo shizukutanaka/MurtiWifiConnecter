@@ -11,6 +11,7 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Profile;
 using MWC.Core.Services;
+using MWC.App.Services;
 
 namespace MWC.App.ViewModels;
 
@@ -34,7 +35,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedAdapterChanged(AdapterViewModel? v)
     {
-        if (v is not null) _ = v.RefreshAsync();
+        // fire-and-forget だが SafeRunAsync で例外を捕捉・ログ化し、未観測例外でのクラッシュを防ぐ
+        if (v is not null)
+            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => v.RefreshAsync());
     }
 
     public NetworkFilterViewModel Filter { get; }

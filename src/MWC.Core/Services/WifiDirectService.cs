@@ -48,7 +48,6 @@ public sealed class WifiDirectService
     /// P2P デバイス探索を開始する。
     /// 発見したデバイスは DeviceDiscovered イベントで通知。
     /// </summary>
-    /// <summary>P2P デバイス探索を開始する。発見したデバイスは DeviceDiscovered イベントで通知。</summary>
     public async Task StartDiscoveryAsync(
         WifiDirectDiscoveryOptions? options = null,
         CancellationToken ct = default)
@@ -57,7 +56,26 @@ public sealed class WifiDirectService
         _discovering = true;
         _discovered.Clear();
 
-already done
+        try
+        {
+            await _adapter.StartDiscoveryAsync(
+                OnDeviceDiscovered,
+                options ?? WifiDirectDiscoveryOptions.Default,
+                ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            _discovering = false;
+            throw;
+        }
+    }
+
+    /// <summary>アダプターからの発見通知を受けて重複排除のうえ公開イベントへ転送する。</summary>
+    private void OnDeviceDiscovered(WifiDirectDevice device)
+    {
+        if (_discovered.Exists(d => d.DeviceId == device.DeviceId)) return;
+        _discovered.Add(device);
+        DeviceDiscovered?.Invoke(device);
     }
 
     /// <summary>探索を停止する。</summary>
