@@ -214,7 +214,8 @@ public sealed class CoreWlanWifiService : IWifiService
 
     private static Guid GuidFromString(string s)
     {
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        return new Guid(md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(s)));
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(s));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }

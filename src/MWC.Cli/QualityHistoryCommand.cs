@@ -76,8 +76,8 @@ public static partial class Program
                 Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
                 Console.WriteLine($"Packet loss:  {r.LossLabel}");
             }
-            catch (OperationCanceledException) { Console.Error.WriteLine("Measurement cancelled."); Environment.Exit(1); }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (OperationCanceledException) { Console.Error.WriteLine("Measurement cancelled."); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, host, samples, json, bloat, loadUrl);
         return cmd;
     }

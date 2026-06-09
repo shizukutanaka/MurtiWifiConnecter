@@ -44,7 +44,7 @@ public sealed class NmcliWifiService : IWifiService
         var adapters = new List<WifiAdapter>();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var cols = line.Split(':');
+            var cols = SplitTerse(line);
             if (cols.Length < 3) continue;
             if (!cols[1].Contains("wifi", StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -78,7 +78,7 @@ public sealed class NmcliWifiService : IWifiService
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var cols = line.Split(':');
+            var cols = SplitTerse(line);
             if (cols.Length < 8) continue;
 
             var ssid     = cols[0].Trim();
@@ -186,6 +186,17 @@ public sealed class NmcliWifiService : IWifiService
 
     // ── Private helpers ──────────────────────────────────────────────
 
+    // nmcli terse(-t)モードはフィールド内のコロンを \: にエスケープする。
+    // 単純な Split(':') では BSSID(AA:BB:...) が列にまたがり位置がズレる。
+    // 非エスケープのコロンのみで分割後、\: と \\ をアンエスケープする。
+    private static string[] SplitTerse(string line)
+    {
+        var cols = Regex.Split(line, @"(?<!\\):");
+        for (int i = 0; i < cols.Length; i++)
+            cols[i] = cols[i].Replace(@"\:", ":").Replace(@"\\", @"\");
+        return cols;
+    }
+
     private async Task<string> ResolveIface(Guid adapterId, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(_iface)) return _iface;
@@ -244,10 +255,10 @@ public sealed class NmcliWifiService : IWifiService
 
     private static Guid GuidFromString(string s)
     {
-        // 決定論的 Guid: デバイス名から生成
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(s));
-        return new Guid(hash);
+        // 決定論的 Guid: SHA-256 先頭 16 バイト。MD5 は FIPS 強制環境で例外を投げるため不使用。
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(s));
+        return new Guid(hash.AsSpan(0, 16));
     }
 
     public async Task<bool> DeleteProfileAsync(
@@ -266,7 +277,7 @@ public sealed class NmcliWifiService : IWifiService
         var profiles = new List<string>();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var cols = line.Split(':');
+            var cols = SplitTerse(line);
             if (cols.Length >= 2 && cols[1].Contains("wifi", StringComparison.OrdinalIgnoreCase))
                 profiles.Add(cols[0].Trim());
         }

@@ -17,7 +17,7 @@ namespace MWC.Cli;
 /// mwc CLI — Apple "consistent CLI experience" 原則:
 ///   - 短い動詞コマンド (list/scan/connect/qr/export/quality)
 ///   - --json フラグで全コマンドが JSON 出力
-///   - 終了コードが意味を持つ (0=成功 1=汎用エラー 2=引数不正 5=接続失敗)
+///   - 終了コードが意味を持つ → <see cref="ExitCode"/> 参照
 ///   - stderr = ログ/進捗 / stdout = データ (パイプ安全)
 /// </summary>
 public static partial class Program
@@ -211,19 +211,19 @@ public static partial class Program
             var svc  = sp.GetRequiredService<IWifiService>();
             var hist = sp.GetRequiredService<NetworkHistoryService>();
             var ad   = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(2); return; }
+            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
             string xml;
             try { xml = ProfileXmlBuilder.Build(new(){ Ssid=s, Auth=a, Passphrase=p, NonBroadcast=h }); }
-            catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(2); return; }
+            catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
             if (!await svc.RegisterProfileAsync(ad.Id, xml, true))
-                { Err("profile registration failed"); Environment.Exit(4); return; }
+                { Err("profile registration failed"); Environment.Exit(ExitCode.ProfileError); return; }
 
             ConnectionResult res;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(to + 5));
             try { res = await svc.ConnectAsync(ad.Id, s, s, TimeSpan.FromSeconds(to), cts.Token); }
-            catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(5); return; }
+            catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(ExitCode.ConnectionFailed); return; }
 
             hist.RecordConnection(s, res.Success);
 
@@ -235,12 +235,12 @@ public static partial class Program
                     internet   = res.HasInternet,
                     captive    = res.BehindCaptivePortal
                 }));
-                Environment.Exit(0);
+                Environment.Exit(ExitCode.Success);
             }
             else
             {
                 Err($"failed: {res.Failure}");
-                Environment.Exit(5);
+                Environment.Exit(ExitCode.ConnectionFailed);
             }
         }, ssid, pw, auth, adapter, timeout, hidden);
         return cmd;
@@ -317,7 +317,7 @@ public static partial class Program
         cmd.SetHandler((string u) =>
         {
             var p = WifiUri.Parse(u);
-            if (p is null) { Err("invalid URI"); Environment.Exit(2); return; }
+            if (p is null) { Err("invalid URI"); Environment.Exit(ExitCode.InvalidInput); return; }
             Print(new { ssid=p.Ssid, auth=p.Auth.ToString(), password=p.Passphrase, hidden=p.NonBroadcast });
         }, uri);
         return cmd;
@@ -342,7 +342,7 @@ public static partial class Program
             var svc = sp.GetRequiredService<IWifiService>();
             var oui = sp.GetRequiredService<OuiLookupService>();
             var ad  = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(2); return; }
+            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
             Console.Error.Write($"Scanning {ad.Name}…");
             var nets = await svc.ScanAsync(ad.Id);
@@ -368,7 +368,7 @@ public static partial class Program
                 }
                 Console.WriteLine(path);
             }
-            catch (Exception ex) { Err($"export failed: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Err($"export failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, adapter, format, output);
         return cmd;
     }
@@ -377,4 +377,24 @@ public static partial class Program
     private static void Err(string msg)     => CliHelpers.Err(msg);
     private static string Trunc(string s, int n) => CliHelpers.Trunc(s, n);
     private static string BandLabel(WifiBand b)  => CliHelpers.BandLabel(b);
+}
+
+/// <summary>
+/// mwc CLI 終了コード規約。スクリプトから参照可能な定数。
+/// </summary>
+/// <remarks>
+/// 0  Success          — 正常終了
+/// 1  GeneralError     — 予期しない実行時エラー
+/// 2  InvalidInput     — 不正な引数 / アダプター・ネットワーク未発見
+/// 3  (予約)
+/// 4  ProfileError     — プロファイル登録失敗
+/// 5  ConnectionFailed — 接続失敗 / タイムアウト / 圏外
+/// </remarks>
+public static class ExitCode
+{
+    public const int Success          = 0;
+    public const int GeneralError     = 1;
+    public const int InvalidInput     = 2;
+    public const int ProfileError     = 4;
+    public const int ConnectionFailed = 5;
 }

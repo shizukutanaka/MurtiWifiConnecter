@@ -78,7 +78,7 @@ internal static class MultiAdapterCommand
             int success = results.Count(r => r.ok);
             Console.WriteLine();
             Console.WriteLine($"{success} / {results.Length} adapters connected");
-            if (success < results.Length) Environment.Exit(1);
+            if (success < results.Length) Environment.Exit(ExitCode.GeneralError);
         }, pairs, pwOpt);
 
         return cmd;
@@ -129,7 +129,7 @@ internal static class MultiAdapterCommand
                 await Task.WhenAll(ads.Select(a => svc.DisconnectAsync(a.Id)));
                 Console.WriteLine($"{ads.Count} adapter(s) disconnected");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return cmd;
     }
@@ -167,7 +167,7 @@ internal static class MultiAdapterCommand
                 Console.WriteLine();
                 Console.WriteLine($"{results.Count(r => r.conn != null)} / {results.Length} connected");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return cmd;
     }

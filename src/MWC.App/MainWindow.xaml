@@ -182,15 +182,13 @@
                     <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="ネットワークを再スキャン" Content="↻"
                             Command="{Binding RefreshCommand}"
                             ToolTip="再スキャン (Ctrl+R)"
-                            Margin="0,0,4,0"
-                            AutomationProperties.Name="再スキャン"/>
+                            Margin="0,0,4,0"/>
 
                     <!-- Simple/Expert 切替 -->
                     <Button AutomationProperties.Name="シンプル/詳細モードを切り替え" Style="{StaticResource BtnIcon}"
                             Command="{Binding Filter.ToggleExpertModeCommand}"
                             Margin="0,0,4,0"
-                            ToolTip="シンプル/詳細モードを切り替え"
-                            AutomationProperties.Name="表示モード切替">
+                            ToolTip="シンプル/詳細モードを切り替え">
                         <Button.Content>
                             <TextBlock>
                                 <TextBlock.Style>
@@ -209,17 +207,15 @@
                     </Button>
 
                     <!-- 全子機俯瞰ビュー (新規) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="Wi-Fiスキャン" Content="📡"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="全子機俯瞰ビュー" Content="📡"
                             Click="OnAllAdaptersClick"
                             Margin="0,0,4,0"
-                            ToolTip="すべての無線子機を俯瞰 (Ctrl+Shift+A)"
-                            AutomationProperties.Name="全子機俯瞰ビュー"/>
+                            ToolTip="すべての無線子機を俯瞰 (Ctrl+Shift+A)"/>
 
                     <!-- ⋯ オーバーフローメニュー (Apple HIG: 頻度低アクションを隠す) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="その他のオプション" Content="⋯"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="その他のメニュー" Content="⋯"
                             Margin="0,0,4,0"
-                            Click="OnOverflowMenu"
-                            AutomationProperties.Name="その他のメニュー">
+                            Click="OnOverflowMenu">
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="📥  CSV エクスポート"
@@ -255,12 +251,11 @@
                     </Button>
 
                     <!-- 接続ボタン -->
-                    <Button AutomationProperties.Name="ネットワークに接続" Style="{StaticResource BtnPrimary}"
+                    <Button AutomationProperties.Name="選択したネットワークに接続" Style="{StaticResource BtnPrimary}"
                             Content="接続…"
                             Click="OnConnectClick"
                             IsEnabled="{Binding SelectedAdapter.Selected,
-                                        Converter={x:Null}, FallbackValue=False}"
-                            AutomationProperties.Name="選択したネットワークに接続"/>
+                                        Converter={x:Null}, FallbackValue=False}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -649,8 +644,7 @@
                         <Button Grid.Column="1" AutomationProperties.Name="切断" Content="切断"
                                 Style="{StaticResource BtnGhost}"
                                 Command="{Binding SelectedAdapter.DisconnectCommand}"
-                                Padding="10,5" FontSize="11"
-                                AutomationProperties.Name="切断"/>
+                                Padding="10,5" FontSize="11"/>
                     </Grid>
                 </Border>
             </Grid>

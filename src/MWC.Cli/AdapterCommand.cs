@@ -67,11 +67,11 @@ internal static class AdapterCommand
             try
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
-                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
                 sp.GetRequiredService<AdapterPreferencesService>().SetLabel(id, label);
                 Console.WriteLine($"✓ Renamed: {label}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, l);
         return c;
     }
@@ -88,7 +88,7 @@ internal static class AdapterCommand
             try
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
-                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
                 var pref = band.ToLowerInvariant() switch
                 {
                     "2.4" => BandPreference.Only2_4GHz,
@@ -99,7 +99,7 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().SetBandFilter(id, pref);
                 Console.WriteLine($"✓ Band: {pref}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, b);
         return c;
     }
@@ -115,11 +115,11 @@ internal static class AdapterCommand
             try
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
-                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
                 sp.GetRequiredService<AdapterPreferencesService>().PinSsid(id, ssid);
                 Console.WriteLine($"★ Pinned: {ssid}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, s);
         return c;
     }
@@ -135,11 +135,11 @@ internal static class AdapterCommand
             try
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
-                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
                 sp.GetRequiredService<AdapterPreferencesService>().UnpinSsid(id, ssid);
                 Console.WriteLine($"☆ Unpinned: {ssid}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, s);
         return c;
     }
@@ -159,11 +159,11 @@ internal static class AdapterCommand
             try
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
-                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(2); return; }
+                if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
                 sp.GetRequiredService<AdapterPreferencesService>().SetEnabled(id, on);
                 Console.WriteLine($"✓ {(on ? "Enabled" : "Disabled")}: {name}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(1); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n);
         return c;
     }
