@@ -24,6 +24,12 @@ public sealed class AdapterPreferencesService
         "MWC", "adapters.json");
 
     private readonly Dictionary<Guid, AdapterPreferences> _store;
+    // _store 保護用。AutoReconnectService(バックグラウンド)が Get/PickBestSsid で読み取る一方、
+    // UI スレッドが Save するため、ロック無しでは Dictionary の並行読み書きで
+    // InvalidOperationException("collection was modified") やデータ破損が起きうる。
+    private readonly object _lock = new();
+    // ディスク書き込み直列化用。_lock とは分離し、I/O 中に読み取りをブロックしない。
+    private readonly object _saveLock = new();
 
     /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。</summary>
     public AdapterPreferencesService()
@@ -32,16 +38,29 @@ public sealed class AdapterPreferencesService
     }
 
     public AdapterPreferences Get(Guid adapterId)
-        => _store.TryGetValue(adapterId, out var p) ? p
-           : new AdapterPreferences { AdapterId = adapterId };
+    {
+        lock (_lock)
+        {
+            return _store.TryGetValue(adapterId, out var p) ? p
+                : new AdapterPreferences { AdapterId = adapterId };
+        }
+    }
 
     public void Save(AdapterPreferences prefs)
     {
-        _store[prefs.AdapterId] = prefs;
-        Persist();
+        List<AdapterPreferences> snapshot;
+        lock (_lock)
+        {
+            _store[prefs.AdapterId] = prefs;
+            snapshot = _store.Values.ToList();
+        }
+        Persist(snapshot);
     }
 
-    public IReadOnlyList<AdapterPreferences> All() => _store.Values.ToList();
+    public IReadOnlyList<AdapterPreferences> All()
+    {
+        lock (_lock) { return _store.Values.ToList(); }
+    }
 
     /// <summary>子機Aで使ったSSIDを子機Bに自動共有(任意)</summary>
     public void PinSsid(Guid adapterId, string ssid)
@@ -169,20 +188,25 @@ public sealed class AdapterPreferencesService
         catch (UnauthorizedAccessException) { return new(); }
     }
 
-    private void Persist()
+    // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
+    // 読み取りをブロックしない。_saveLock で書き込み同士のみ直列化する。
+    private void Persist(List<AdapterPreferences> snapshot)
     {
-        try
+        lock (_saveLock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
-            var tmp = ConfigPath + ".tmp";
-            File.WriteAllText(tmp,
-                JsonSerializer.Serialize(_store.Values.ToList(),
-                    new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(tmp, ConfigPath, overwrite: true);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
+                var tmp = ConfigPath + ".tmp";
+                File.WriteAllText(tmp,
+                    JsonSerializer.Serialize(snapshot,
+                        new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(tmp, ConfigPath, overwrite: true);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
     }
 }
 
