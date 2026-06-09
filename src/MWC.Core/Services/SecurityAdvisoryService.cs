@@ -85,13 +85,16 @@ public sealed class SecurityAdvisoryService
         }
 
         // 4. オープンネットワーク (OWE でない)
+        //    暗号化が一切無く誰でも盗聴可能なため Warning。WEP(Critical)より軽いのは
+        //    WEP が「安全に見えて自明に破れる」誤信リスクを伴うため(ComputeScore も WEP<Open)。
         if (network.Auth is AuthMethod.Open)
         {
             advisories.Add(new SecurityAdvisory(
-                Severity:   AdvisorySeverity.Info,
+                Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-005",
                 Title:      "暗号化されていないネットワーク",
-                Detail:     "通信が暗号化されない。OWE (Enhanced Open) 対応版があればそちらを推奨。" +
+                Detail:     "通信が暗号化されず、同一ネットワーク上の第三者に盗聴される。" +
+                            "OWE (Enhanced Open) 対応版があればそちらを推奨。" +
                             "機密情報の送受信は避けること。",
                 Reference:  "RFC 8110 (OWE)"));
         }

@@ -108,7 +108,11 @@ public sealed class NmcliWifiService : IWifiService
                 IsConnected   = inUse,
                 BssEntries    = new[]
                 {
-                    new BssInfo { Bssid = cols[1].Trim(), Rssi = (signal - 100) }
+                    // 品質(0-100%) を概算 RSSI(-100..-30 dBm) に変換。
+                    // signal-100 だと 0 dBm(非現実的に強い)になるため 0.7 係数で圧縮
+                    // (RssiDistanceEstimator.QualityToRssi と一致)。
+                    new BssInfo { Bssid = cols[1].Trim(),
+                                  Rssi = (int)Math.Round(-100 + Math.Clamp(signal, 0, 100) * 0.7) }
                 }
             };
         }
