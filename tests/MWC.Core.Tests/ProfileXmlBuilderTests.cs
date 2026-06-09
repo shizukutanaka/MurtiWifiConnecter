@@ -158,7 +158,7 @@ public class ProfileXmlBuilderTests
     [Theory]
     [InlineData("Has\"Quote", "")]
     [InlineData("",           "")]
-    [InlineData("OK",         "tooshort")]
+    [InlineData("OK",         "short")]   // 5 文字 < 8 → 無効
     public void Validation_Rejects_Invalid(string ssid, string pw)
     {
         var act = () => ProfileXmlBuilder.Build(new()
@@ -211,5 +211,79 @@ public class ProfileXmlBuilderTests
         var doc = XDocument.Parse(xml);
         var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
         doc.Descendants(ns + "connectionMode").Single().Value.Should().Be("manual");
+    }
+
+    // ── 回帰: XElement(name, strayXName, content) 誤用で transitionMode /
+    //    PerformServerValidation が壊れた値になっていたバグ ──
+    [Fact]
+    public void Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "Mixed-WiFi",
+            Auth = AuthMethod.WPA3Transition,
+            Passphrase = "supersecret123"
+        });
+        var doc = XDocument.Parse(xml);
+        var v4 = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v4";
+
+        var tm = doc.Descendants(v4 + "transitionMode").Single();
+        // 値はちょうど "true" — 名前空間文字列が混入していないこと (旧バグの検出)
+        tm.Value.Should().Be("true");
+        xml.Should().NotContain("{http://", "XName が要素内容に混入してはならない");
+    }
+
+    [Fact]
+    public void EapTls_EmitsV2ServerValidationElements()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "TlsNet",
+            Auth = AuthMethod.WPA2Enterprise,
+            EapType = EapType.EAP_TLS,
+            ClientCertThumbprint = "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
+            ServerNames = new[] { "radius.example" },
+            TrustedRootCaThumbprints = new[] { "DEADBEEF" }
+        });
+        var doc = XDocument.Parse(xml);
+        var v2 = (XNamespace)"http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
+
+        doc.Descendants(v2 + "PerformServerValidation").Single().Value.Should().Be("true");
+        doc.Descendants(v2 + "AcceptServerName").Single().Value.Should().Be("true");
+        xml.Should().NotContain("{http://", "XName が要素内容に混入してはならない");
+    }
+
+    // ── WEP キー長検証 (5/13 ASCII or 10/26 hex) ──
+    [Fact]
+    public void Wep_5CharAsciiKey_Accepted()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "LegacyWep", Auth = AuthMethod.WEP, Passphrase = "abcde"
+        });
+        var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+        XDocument.Parse(xml).Descendants(ns + "keyType").Single().Value.Should().Be("passPhrase");
+    }
+
+    [Theory]
+    [InlineData("abc")]      // 3 chars — invalid length
+    [InlineData("abcdefg")]  // 7 chars — invalid length
+    public void Wep_InvalidLengthKey_Rejected(string key)
+    {
+        var act = () => ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "LegacyWep", Auth = AuthMethod.WEP, Passphrase = key
+        });
+        act.Should().Throw<System.ArgumentException>();
+    }
+
+    [Fact]
+    public void Wpa3Transition_RequiresPassphrase()
+    {
+        var act = () => ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "Mixed-WiFi", Auth = AuthMethod.WPA3Transition  // passphrase 無し
+        });
+        act.Should().Throw<System.ArgumentException>();
     }
 }

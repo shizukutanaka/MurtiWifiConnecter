@@ -70,27 +70,27 @@ public static class WifiProfileValidator
     /// </summary>
     public static void ValidatePassphrase(AuthMethod auth, string? passphrase)
     {
-        bool needsPass = auth is AuthMethod.WPA2PSK or AuthMethod.WPA3SAE
-                                or AuthMethod.WPAPSK or AuthMethod.WEP;
+        // WPA/WPA2/WPA3-Personal (transition 含む) は 8-63 ASCII / 64 hex の PSK
+        bool wpaPsk = auth is AuthMethod.WPA2PSK or AuthMethod.WPA3SAE
+                             or AuthMethod.WPAPSK or AuthMethod.WPA3Transition;
+        bool wep = auth is AuthMethod.WEP;   // WEP は独自長 (5/13 ASCII or 10/26 hex)
         bool enterpriseAuth = auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
                                      or AuthMethod.WPA3Enterprise192;
 
-        if (!needsPass && !enterpriseAuth)
-        {
-            // Open / OWE: passphrase は無視
+        // Open / OWE / Enterprise: passphrase 不要
+        if (!wpaPsk && !wep)
             return;
-        }
 
-        if (enterpriseAuth)
-        {
-            // Enterprise: パスフレーズ不要 (EAP credentials を使用)
-            return;
-        }
-
-        // PSK 系: passphrase 必須
+        // PSK / WEP: passphrase 必須
         if (string.IsNullOrEmpty(passphrase))
             throw new ArgumentException(
                 $"Passphrase is required for {auth}.", nameof(passphrase));
+
+        if (wep)
+        {
+            ValidateWepKey(passphrase);
+            return;
+        }
 
         // 64 桁 hex raw PSK は別扱い
         if (passphrase.Length == RawPskLen && IsHex(passphrase))
@@ -113,6 +113,25 @@ public static class WifiProfileValidator
                     $"Passphrase contains non-ASCII printable character U+{(int)c:X4}. " +
                     "WPA passphrases must use ASCII 0x20-0x7E.", nameof(passphrase));
         }
+    }
+
+    /// <summary>WEP キーの検証: 5/13 ASCII 文字 または 10/26 桁 16 進数。</summary>
+    private static void ValidateWepKey(string key)
+    {
+        int len = key.Length;
+        bool asciiKey = (len == 5 || len == 13) && IsAsciiPrintable(key);
+        bool hexKey   = (len == 10 || len == 26) && IsHex(key);
+        if (!asciiKey && !hexKey)
+            throw new ArgumentException(
+                "WEP key must be 5 or 13 ASCII characters, or 10 or 26 hex digits " +
+                $"(got {len}).", nameof(key));
+    }
+
+    private static bool IsAsciiPrintable(string s)
+    {
+        foreach (var c in s)
+            if (c < 0x20 || c > 0x7E) return false;
+        return true;
     }
 
     // ── 試行的検証 (例外を投げない) ─────────────────────────────

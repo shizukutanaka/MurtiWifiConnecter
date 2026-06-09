@@ -21,6 +21,7 @@ public static class ProfileXmlBuilder
 {
     // ───── 名前空間定義 ─────
     private static readonly XNamespace WlanNs   = "http://www.microsoft.com/networking/WLAN/profile/v1";
+    private static readonly XNamespace WlanV4Ns = "http://www.microsoft.com/networking/WLAN/profile/v4";
     private static readonly XNamespace OneXNs   = "http://www.microsoft.com/networking/OneX/v1";
     private static readonly XNamespace EhcNs    = "http://www.microsoft.com/provisioning/EapHostConfig";
     private static readonly XNamespace EcNs     = "http://www.microsoft.com/provisioning/EapCommon";
@@ -29,15 +30,17 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
     private static readonly XNamespace McNs     = "http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1";
     private static readonly XNamespace EtNs     = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+    private static readonly XNamespace EtV2Ns   = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
     private static readonly XNamespace EttNs    = "http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
 
-    /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
     /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
     /// <exception cref="ArgumentException">SSID / Passphrase が無効な場合</exception>
     public static string Build(WifiProfileSpec spec)
     {
-        WifiProfileValidator.Validate(spec);
         ArgumentNullException.ThrowIfNull(spec);
+        // 文字種・制御文字まで含む厳密検証 (例外送出)
+        WifiProfileValidator.Validate(spec);
+        // 認証方式別の整合性検証 (Result 形式)
         var v = spec.Validate();
         if (!v.IsValid) throw new ArgumentException(v.Error);
 
@@ -75,10 +78,9 @@ public static class ProfileXmlBuilder
             new XElement(WlanNs + "encryption", enc),
             new XElement(WlanNs + "useOneX", useOneX ? "true" : "false"));
 
-        // WPA3-Transitionは追加要素
+        // WPA3-Transitionは追加要素 (v4 スキーマの transitionMode 要素)
         if (spec.Auth == AuthMethod.WPA3Transition)
-            authEnc.Add(new XElement(WlanNs + "transitionMode",
-                XNamespace.Get("http://www.microsoft.com/networking/WLAN/profile/v4") + "transitionMode", "true"));
+            authEnc.Add(new XElement(WlanV4Ns + "transitionMode", "true"));
 
         var security = new XElement(WlanNs + "security", authEnc);
 
@@ -246,12 +248,9 @@ public static class ProfileXmlBuilder
                         new XElement(EtNs + "SimpleCertSelection", "true"))),
                 serverValidation,
                 new XElement(EtNs + "DifferentUsername", "false"),
-                new XElement(EtNs + "PerformServerValidation",
-                    XNamespace.Get("http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2") + "PerformServerValidation",
-                    "true"),
-                new XElement(EtNs + "AcceptServerName",
-                    XNamespace.Get("http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2") + "AcceptServerName",
-                    "true")));
+                // PerformServerValidation / AcceptServerName は V2 スキーマ要素
+                new XElement(EtV2Ns + "PerformServerValidation", "true"),
+                new XElement(EtV2Ns + "AcceptServerName", "true")));
     }
 
     // ───── EAP-TTLS (Type 21) ─────
