@@ -60,12 +60,13 @@ public sealed class IosWifiService : IWifiService
             Array.Empty<WifiNetwork>()).ConfigureAwait(false);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // iOS では NEHotspotConfigurationManager.shared.apply(config) を使用
         // Enterprise 向け: NEHotspotEAPSettings で EAP 設定
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(

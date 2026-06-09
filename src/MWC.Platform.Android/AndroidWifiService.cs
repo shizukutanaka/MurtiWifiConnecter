@@ -64,12 +64,13 @@ public sealed class AndroidWifiService : IWifiService
             Array.Empty<WifiNetwork>()).ConfigureAwait(false);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // Android 10+: WifiNetworkSuggestion API を使用
         // Android 29+: WifiManager.addNetworkSuggestions()
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(

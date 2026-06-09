@@ -115,7 +115,7 @@ public sealed class NmcliWifiService : IWifiService
         return networks.Values.ToList();
     }
 
-    public async Task RegisterProfileAsync(
+    public async Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // Windows WLAN XML からキー情報を抽出して nmcli connection として登録
@@ -125,7 +125,7 @@ public sealed class NmcliWifiService : IWifiService
         var keyMatch  = System.Text.RegularExpressions.Regex.Match(
             profileXml, @"<keyMaterial>([^<]+)</keyMaterial>");
 
-        if (!ssidMatch.Success) return;
+        if (!ssidMatch.Success) return false;
         var ssid = ssidMatch.Groups[1].Value;
         var pass = keyMatch.Success ? keyMatch.Groups[1].Value : "";
 
@@ -137,7 +137,7 @@ public sealed class NmcliWifiService : IWifiService
             var (exitMod, _, _) = await RunNmcliFullAsync(
                 $"connection modify "{EscapeShell(ssid)}" wifi-sec.psk "{EscapeShell(pass)}"", ct)
                 .ConfigureAwait(false);
-            if (exitMod == 0) return;
+            if (exitMod == 0) return true;
         }
 
         // 新規追加
@@ -145,7 +145,8 @@ public sealed class NmcliWifiService : IWifiService
         var args = string.IsNullOrEmpty(pass)
             ? $"connection add type wifi ssid "{EscapeShell(ssid)}""
             : $"connection add type wifi ssid "{EscapeShell(ssid)}" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "{EscapeShell(pass)}"";
-        await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
+        var (exitAdd, _, _) = await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
+        return exitAdd == 0;
     }
 
     public async Task<ConnectionResult> ConnectAsync(

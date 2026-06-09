@@ -73,12 +73,13 @@ public sealed class CoreWlanWifiService : IWifiService
         return ParseAirportScan(output);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // macOS では /Library/Preferences/SystemConfiguration/com.apple.wifi.plist
         // または networksetup -addpreferredwirelessnetworkatindex で管理
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(
