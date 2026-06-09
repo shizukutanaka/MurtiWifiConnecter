@@ -286,4 +286,51 @@ public class ProfileXmlBuilderTests
         });
         act.Should().Throw<System.ArgumentException>();
     }
+
+    // ── 不足していたゴールデンテスト ─────────────────────────────────
+
+    [Fact]
+    public void WPAPSK_LegacyAuth_CorrectXml()
+    {
+        // WPA (TKIP/AES) — MapAuth が "WPAPSK" を返すことを保証
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid       = "LegacyRouter",
+            Auth       = AuthMethod.WPAPSK,
+            Passphrase = "legacypassword1"
+        });
+        var doc = XDocument.Parse(xml);
+        var ns  = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+
+        doc.Descendants(ns + "authentication").Single().Value.Should().Be("WPAPSK");
+        doc.Descendants(ns + "encryption").Single().Value.Should().Be("AES");
+        doc.Descendants(ns + "keyMaterial").Single().Value.Should().Be("legacypassword1");
+        doc.Descendants(ns + "keyType").Single().Value.Should().Be("passPhrase");
+        // WPA (PSK) は useOneX なし
+        doc.Descendants(ns + "useOneX").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void WPA3Enterprise_NonSuite192_CorrectXml()
+    {
+        // WPA3-Enterprise (AES) — Suite B 192-bit 以外の Enterprise
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid                     = "UniversityNet",
+            Auth                     = AuthMethod.WPA3Enterprise,
+            EapType                  = EapType.EAP_TLS,
+            ClientCertThumbprint     = "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
+            ServerNames              = new[] { "radius.uni.example" },
+            TrustedRootCaThumbprints = new[] { "CAFEBABE" }
+        });
+        var doc = XDocument.Parse(xml);
+        var ns  = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+
+        doc.Descendants(ns + "authentication").Single().Value.Should().Be("WPA3");
+        doc.Descendants(ns + "encryption").Single().Value.Should().Be("AES");
+        doc.Descendants(ns + "useOneX").Single().Value.Should().Be("true");
+        // EAP-TLS は GCMP-256 ではなく AES (192bit Suite B との区別)
+        doc.Descendants(ns + "encryption").Single().Value.Should().NotBe("GCMP256");
+        xml.Should().Contain("EapHostConfig");
+    }
 }

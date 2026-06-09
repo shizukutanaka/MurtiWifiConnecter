@@ -194,16 +194,18 @@ public sealed record ConnectionHistoryEntry(
     int            ConnectCount,
     int            FailCount)
 {
+    // Core 層は App の L.cs に依存できないため英語のニュートラル表記。
+    // App 層での表示は ViewModel で LastConnected を直接フォーマットすること。
     public string LastConnectedLabel
     {
         get
         {
             var diff = DateTimeOffset.UtcNow - LastConnected;
-            if (diff.TotalMinutes < 1)  return "たった今";
-            if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}分前";
-            if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}時間前";
-            if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}日前";
-            return LastConnected.LocalDateTime.ToString("M/d");
+            if (diff.TotalMinutes < 1)  return "just now";
+            if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+            if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}h ago";
+            if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}d ago";
+            return LastConnected.LocalDateTime.ToString("yyyy/M/d", System.Globalization.CultureInfo.InvariantCulture);
         }
     }
     public bool HasFailures => FailCount > 0;

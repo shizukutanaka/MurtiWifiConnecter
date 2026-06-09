@@ -31,13 +31,13 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button AutomationProperties.Name="↻ 全スキャン" Content="↻ 全スキャン"
+                    <Button AutomationProperties.Name="全スキャン" Content="↻ 全スキャン"
                             Command="{Binding LoadCommand}"
                             Padding="12,7" Margin="0,0,8,0"
                             Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgBrush}"
                             BorderThickness="0" FontSize="12"
                             ToolTip="全子機を並列スキャン"/>
-                    <Button AutomationProperties.Name="⚡ 優先順に一括接続" Content="⚡ 優先順に一括接続"
+                    <Button AutomationProperties.Name="優先順に一括接続" Content="⚡ 優先順に一括接続"
                             Command="{Binding ConnectAllPreferredCommand}"
                             Padding="14,7" Margin="0,0,8,0"
                             Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}"
@@ -270,7 +270,7 @@
                                                                    TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Grid.Column="2"
                                                                     Orientation="Horizontal">
-                                                            <Button AutomationProperties.Name="↑" Content="↑"
+                                                            <Button AutomationProperties.Name="優先順位を上げる" Content="↑"
                                                                     Padding="4,0" FontSize="10"
                                                                     Command="{Binding DataContext.MoveUpPreferredCommand,
                                                                               RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -279,7 +279,7 @@
                                                                     Foreground="{DynamicResource FgMutedBrush}"
                                                                     BorderThickness="0"
                                                                     ToolTip="優先順位を上げる"/>
-                                                            <Button AutomationProperties.Name="✕" Content="✕"
+                                                            <Button AutomationProperties.Name="優先リストから削除" Content="✕"
                                                                     Padding="4,0" FontSize="10"
                                                                     Command="{Binding DataContext.RemovePreferredCommand,
                                                                               RelativeSource={RelativeSource AncestorType=ItemsControl}}"

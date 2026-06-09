@@ -287,26 +287,71 @@ public sealed class NmcliWifiService : IWifiService
     public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        // nmcli monitor delivers events as text lines; each poll checks adapter state.
-        // This simplified implementation polls every 5s — sufficient for AutoReconnect.
-        var prev = new System.Collections.Generic.Dictionary<string, string?>();
+        // nmcli monitor はイベント発生時に行を出力する。
+        // 例: "wlan0: connected to \"HomeWifi\""  / "wlan0: disconnected"
+        // プロセスが予期せず死んだ場合は 3 秒後に再起動する。
+        var adapterCache = await GetAdaptersAsync(ct).ConfigureAwait(false);
+        var ifaceToId    = adapterCache.ToDictionary(a => a.Name, a => a.Id);
+
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(5000, ct).ConfigureAwait(false);
-            IReadOnlyList<WifiAdapter> adapters;
-            try { adapters = await GetAdaptersAsync(ct).ConfigureAwait(false); }
-            catch { continue; }
-            foreach (var a in adapters)
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
             {
-                prev.TryGetValue(a.Name, out var prevSsid);
-                var curSsid = a.ConnectedSsid;
-                if (prevSsid != curSsid)
+                FileName               = "nmcli",
+                UseShellExecute        = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError  = true,
+                CreateNoWindow         = true,
+            };
+            proc.StartInfo.ArgumentList.Add("monitor");
+
+            Process? started = null;
+            try
+            {
+                proc.Start();
+                started = proc;
+                // stdout を非同期で行単位に読み込む
+                while (!ct.IsCancellationRequested)
                 {
-                    var type = curSsid is null ? WifiEventType.Disconnected : WifiEventType.Connected;
-                    yield return new WifiEvent(a.Id, type, curSsid, DateTimeOffset.UtcNow);
+                    var readTask = proc.StandardOutput.ReadLineAsync(ct).AsTask();
+                    var line = await readTask.ConfigureAwait(false);
+                    if (line is null) break;  // プロセス終了
+
+                    // 形式: "<iface>: connected to \"<ssid>\""  or  "<iface>: disconnected"
+                    var colonIdx = line.IndexOf(':', StringComparison.Ordinal);
+                    if (colonIdx <= 0) continue;
+
+                    var iface = line[..colonIdx].Trim();
+                    var rest  = line[(colonIdx + 1)..].Trim();
+
+                    if (!ifaceToId.TryGetValue(iface, out var adapterId)) continue;
+
+                    if (rest.StartsWith("connected to", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // connected to "SSID" — SSID は引用符で囲まれていることがある
+                        var ssid = rest["connected to".Length..].Trim().Trim('"');
+                        yield return new WifiEvent(adapterId, WifiEventType.Connected,
+                            string.IsNullOrEmpty(ssid) ? null : ssid, DateTimeOffset.UtcNow);
+                    }
+                    else if (rest.StartsWith("disconnected", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return new WifiEvent(adapterId, WifiEventType.Disconnected,
+                            null, DateTimeOffset.UtcNow);
+                    }
                 }
-                prev[a.Name] = curSsid;
             }
+            catch (OperationCanceledException) { break; }
+            catch { /* nmcli が見つからない等は再試行 */ }
+            finally
+            {
+                if (started is not null && !started.HasExited)
+                    try { started.Kill(); } catch { }
+            }
+
+            // プロセス死亡後は 3 秒待って再起動
+            if (!ct.IsCancellationRequested)
+                await Task.Delay(3000, ct).ConfigureAwait(false);
         }
     }
 }
