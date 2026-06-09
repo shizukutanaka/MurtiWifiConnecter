@@ -150,17 +150,23 @@ public sealed class AdapterPreferencesService
 
     private Dictionary<Guid, AdapterPreferences> Load()
     {
+        if (!File.Exists(ConfigPath)) return new();
         try
         {
-            if (File.Exists(ConfigPath))
-            {
-                var json = File.ReadAllText(ConfigPath);
-                var list = JsonSerializer.Deserialize<List<AdapterPreferences>>(json);
-                return list?.ToDictionary(p => p.AdapterId) ?? new();
-            }
+            var json = File.ReadAllText(ConfigPath);
+            var list = JsonSerializer.Deserialize<List<AdapterPreferences>>(json);
+            return list?.ToDictionary(p => p.AdapterId) ?? new();
         }
-        catch { }
-        return new();
+        catch (JsonException)
+        {
+            // 破損ファイルは黙って上書きせず .corrupt に退避。
+            try { File.Move(ConfigPath, ConfigPath + ".corrupt", overwrite: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return new();
+        }
+        catch (IOException) { return new(); }
+        catch (UnauthorizedAccessException) { return new(); }
     }
 
     private void Persist()
@@ -168,11 +174,15 @@ public sealed class AdapterPreferencesService
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            File.WriteAllText(ConfigPath,
+            // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
+            var tmp = ConfigPath + ".tmp";
+            File.WriteAllText(tmp,
                 JsonSerializer.Serialize(_store.Values.ToList(),
                     new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(tmp, ConfigPath, overwrite: true);
         }
-        catch { }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }
 

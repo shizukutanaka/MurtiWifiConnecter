@@ -36,7 +36,7 @@ public sealed class HttpConnectivityChecker : IConnectivityChecker
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(5));
 
-            var resp = await _http.GetAsync(ProbeUrl, cts.Token);
+            using var resp = await _http.GetAsync(ProbeUrl, cts.Token);
             sw.Stop();
 
             if (!resp.IsSuccessStatusCode)

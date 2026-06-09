@@ -114,7 +114,12 @@ public static class ExportService
     // ───── helpers ─────
     private static string CsvEscape(string s)
     {
-        if (s.Contains(',') || s.Contains('"') || s.Contains('\n'))
+        // CSV インジェクション対策: 数式起動文字で始まる値は先頭にアポストロフィを付与
+        // (悪意ある SSID 例: =cmd|'/c calc'!A1 が Excel/LibreOffice で実行されるのを防ぐ)
+        if (s.Length > 0 && (s[0] is '=' or '+' or '-' or '@' or '\t' or '\r'))
+            s = "'" + s;
+
+        if (s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r'))
             return $"\"{s.Replace("\"", "\"\"")}\"";
         return s;
     }

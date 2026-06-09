@@ -148,16 +148,22 @@ public sealed class NetworkHistoryService
 
     private List<ConnectionHistoryEntry> Load()
     {
+        if (!File.Exists(HistoryPath)) return new();
         try
         {
-            if (File.Exists(HistoryPath))
-            {
-                var json = File.ReadAllText(HistoryPath);
-                return JsonSerializer.Deserialize<List<ConnectionHistoryEntry>>(json) ?? new();
-            }
+            var json = File.ReadAllText(HistoryPath);
+            return JsonSerializer.Deserialize<List<ConnectionHistoryEntry>>(json) ?? new();
         }
-        catch { }
-        return new();
+        catch (JsonException)
+        {
+            // 破損ファイルは黙って上書きせず .corrupt に退避(復旧/調査可能にする)。
+            try { File.Move(HistoryPath, HistoryPath + ".corrupt", overwrite: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return new();
+        }
+        catch (IOException) { return new(); }
+        catch (UnauthorizedAccessException) { return new(); }
     }
 
     // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
@@ -169,11 +175,15 @@ public sealed class NetworkHistoryService
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(HistoryPath)!);
-                File.WriteAllText(HistoryPath,
+                // 一時ファイルへ書いてから置換し、書き込み中クラッシュでの破損を防ぐ。
+                var tmp = HistoryPath + ".tmp";
+                File.WriteAllText(tmp,
                     JsonSerializer.Serialize(snapshot,
                         new JsonSerializerOptions { WriteIndented = false }));
+                File.Move(tmp, HistoryPath, overwrite: true);
             }
-            catch { }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 }
