@@ -141,7 +141,6 @@ public sealed class NmcliWifiService : IWifiService
         }
 
         // 新規追加
-        var secType = string.IsNullOrEmpty(pass) ? "none" : "wpa-psk";
         var args = string.IsNullOrEmpty(pass)
             ? $"connection add type wifi ssid "{EscapeShell(ssid)}""
             : $"connection add type wifi ssid "{EscapeShell(ssid)}" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "{EscapeShell(pass)}"";

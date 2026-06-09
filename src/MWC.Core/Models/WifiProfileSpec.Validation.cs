@@ -74,10 +74,8 @@ public static class WifiProfileValidator
         bool wpaPsk = auth is AuthMethod.WPA2PSK or AuthMethod.WPA3SAE
                              or AuthMethod.WPAPSK or AuthMethod.WPA3Transition;
         bool wep = auth is AuthMethod.WEP;   // WEP は独自長 (5/13 ASCII or 10/26 hex)
-        bool enterpriseAuth = auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
-                                     or AuthMethod.WPA3Enterprise192;
 
-        // Open / OWE / Enterprise: passphrase 不要
+        // Open / OWE / Enterprise (EAP 資格情報を使用): passphrase 不要
         if (!wpaPsk && !wep)
             return;
 
