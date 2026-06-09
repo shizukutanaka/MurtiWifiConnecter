@@ -36,6 +36,7 @@
                  ItemsSource="{Binding Profiles}"
                  SelectedItem="{Binding Selected, Mode=TwoWay}"
                  Background="Transparent" BorderThickness="0"
+                 AutomationProperties.Name="保存済みプロファイル一覧"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
                 <DataTemplate>

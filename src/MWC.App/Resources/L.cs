@@ -28,7 +28,8 @@ public static class L
         var template = Get(key);
         try { return string.Format(CultureInfo.CurrentUICulture, template, args); }
         catch { return template; }
-    
+    }
+
     public static string LabelNoData            => Get("Label_NoData");
     public static string LabelNetworksNotFound   => Get("Label_NetworksNotFound");
     public static string LabelRetryHint          => Get("Label_RetryHint");
@@ -44,7 +45,6 @@ public static class L
     public static string ErrorUnexpected(string msg)    => Format("Error_Unexpected", msg);
     public static string StatusDeleted(string ssid)     => Format("Status_Deleted", ssid);
     public static string StatusDeleteFailed(string ssid) => Format("Status_DeleteFailed", ssid);
-}
 
     // ─── 静的プロパティ(よく使うキーのIntelliSense用) ───
     public static string AppTitle           => Get("App_Title");

@@ -302,6 +302,7 @@
                                                 HorizontalAlignment="Stretch"/>
                                         <CheckBox Content="自動再接続を有効にする"
                                                   IsChecked="{Binding AutoReconnectEnabled}"
+                                                  AutomationProperties.Name="自動再接続を有効にする"
                                                   Foreground="{DynamicResource FgMutedBrush}" FontSize="10"
                                                   Margin="0,6,0,0"/>
                                     </StackPanel>

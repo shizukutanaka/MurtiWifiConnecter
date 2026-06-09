@@ -41,7 +41,8 @@
                          BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
                          Visibility="Collapsed"
                          TextChanged="OnPasswordChanged"
-                         KeyDown="OnPasswordKeyDown"/>
+                         KeyDown="OnPasswordKeyDown"
+                         AutomationProperties.Name="パスフレーズ入力(表示)"/>
                 <TextBlock x:Name="PasswordPlaceholder"
                            Text="ネットワークのパスワードを入力"
                            Foreground="{DynamicResource FgVeryMutedBrush}" IsHitTestVisible="False"
@@ -72,6 +73,7 @@
             <!-- 表示切替 -->
             <CheckBox x:Name="ShowPwCheck" Content="パスワードを表示"
                       Margin="0,8,0,0" Foreground="{DynamicResource FgMutedBrush}" FontSize="12"
+                      AutomationProperties.Name="パスワードを表示"
                       Click="OnTogglePassword"/>
         </StackPanel>
 
