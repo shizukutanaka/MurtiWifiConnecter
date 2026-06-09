@@ -19,9 +19,7 @@ public class AsyncEventHelperTests
             await Task.Yield();
             ran = true;
         });
-        ran.Should().BeTrue();
-        ran.Should().BeTrue();
-        ran.Should().NotBeFalse("task must have run exactly");
+        ran.Should().BeTrue("the task body must have executed");
     }
 
     [Fact]
@@ -51,10 +49,8 @@ public class AsyncEventHelperTests
         await AsyncEventHelper.SafeRunAsync(null, "test",
             async () => { await Task.Yield(); throw new ArgumentException("test"); },
             onError: ex => captured = ex);
-        captured.Should().BeOfType<ArgumentException>();
-        captured.Should().BeOfType<ArgumentException>();
+        captured.Should().BeOfType<ArgumentException>("onError callback must receive the thrown exception");
         captured!.Message.Should().Be("test");
-        captured.Should().NotBeNull("onError callback must receive the exception");
     }
 
     [Fact]

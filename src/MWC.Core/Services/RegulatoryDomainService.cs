@@ -128,7 +128,7 @@ public sealed class RegulatoryDomainService
             .Where(ch => ch <= maxChannel)
             .Select(ch => new ChannelInfo(
                 Channel:       ch,
-                FrequencyMhz:  5950 + (ch - 1) * 5,     // 802.11 規定式
+                FrequencyMhz:  5950 + ch * 5,          // 6GHz: ch1=5955MHz (SixGhzChannelHelper と一致)
                 IsPsc:         PscChannels.Contains(ch),
                 MaxWidthMhz:   MaxChannelWidth(ch, maxChannel)))
             .ToList();
