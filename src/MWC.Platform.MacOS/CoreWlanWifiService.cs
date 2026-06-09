@@ -32,7 +32,7 @@ public sealed class CoreWlanWifiService : IWifiService
     public async Task<IReadOnlyList<WifiAdapter>> GetAdaptersAsync(CancellationToken ct = default)
     {
         // networksetup -listnetworkserviceorder でWi-Fiサービス一覧を取得
-        var output = await RunAsync("networksetup", "-listallhardwareports", ct)
+        var output = await RunAsync("networksetup", ["-listallhardwareports"], ct)
             .ConfigureAwait(false);
 
         var adapters = new List<WifiAdapter>();
@@ -69,7 +69,7 @@ public sealed class CoreWlanWifiService : IWifiService
         Guid adapterId, CancellationToken ct = default)
     {
         // airport --scan でスキャン(要 sudo または Location Services 許可)
-        var output = await RunAsync(AirportPath, "--scan", ct).ConfigureAwait(false);
+        var output = await RunAsync(AirportPath, ["--scan"], ct).ConfigureAwait(false);
         return ParseAirportScan(output);
     }
 
@@ -89,7 +89,7 @@ public sealed class CoreWlanWifiService : IWifiService
         // networksetup -setairportnetwork en0 <ssid> [password]
         var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
         var (exit, _, stderr) = await RunFullAsync(
-            "networksetup", $"-setairportnetwork {iface} \"{ssid}\"", ct)
+            "networksetup", ["-setairportnetwork", iface, ssid], ct)
             .ConfigureAwait(false);
 
         if (exit == 0)
@@ -105,9 +105,9 @@ public sealed class CoreWlanWifiService : IWifiService
     {
         var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
         var (exit, _, _) = await RunFullAsync(
-            "networksetup", $"-setairportpower {iface} off", ct).ConfigureAwait(false);
+            "networksetup", ["-setairportpower", iface, "off"], ct).ConfigureAwait(false);
         // 再度ONにして切断のみ実施
-        await RunFullAsync("networksetup", $"-setairportpower {iface} on", ct).ConfigureAwait(false);
+        await RunFullAsync("networksetup", ["-setairportpower", iface, "on"], ct).ConfigureAwait(false);
         return exit == 0;
     }
 
@@ -156,34 +156,60 @@ public sealed class CoreWlanWifiService : IWifiService
     private static async Task<bool> CheckConnectivityAsync(CancellationToken ct)
     {
         var (exit, _, _) = await RunFullAsync(
-            "curl", "-s --max-time 3 https://connectivitycheck.gstatic.com/generate_204", ct)
+            "curl", ["-s", "--max-time", "3",
+                     "https://connectivitycheck.gstatic.com/generate_204"], ct)
             .ConfigureAwait(false);
         return exit == 0;
     }
 
-    private static async Task<string> RunAsync(string cmd, string args, CancellationToken ct)
+    private static async Task<string> RunAsync(string cmd, string[] args, CancellationToken ct)
     {
         var (_, stdout, _) = await RunFullAsync(cmd, args, ct).ConfigureAwait(false);
         return stdout;
     }
 
     private static async Task<(int exit, string stdout, string stderr)> RunFullAsync(
-        string cmd, string args, CancellationToken ct)
+        string cmd, string[] args, CancellationToken ct)
     {
         using var proc = new Process();
         proc.StartInfo = new ProcessStartInfo
         {
             FileName               = cmd,
-            Arguments              = args,
+            UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
-            UseShellExecute        = false,
         };
+        foreach (var a in args)
+            proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
         var stdout = await proc.StandardOutput.ReadToEndAsync(ct).ConfigureAwait(false);
         var stderr = await proc.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
         await proc.WaitForExitAsync(ct).ConfigureAwait(false);
         return (proc.ExitCode, stdout, stderr);
+    }
+
+    public Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+    {
+        // macOS: networksetup -removepreferredwirelessnetwork <device> <ssid>
+        // Stubbed — full implementation requires entitlement validation
+        return Task.FromResult(false);
+    }
+
+    public Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+    {
+        // macOS: networksetup -listpreferredwirelessnetworks <device>
+        return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+    }
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // macOS CoreWLAN does not expose .NET-friendly event streams without ObjCRuntime.
+        // Stub: yields nothing.
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
     }
 
     private static Guid GuidFromString(string s)

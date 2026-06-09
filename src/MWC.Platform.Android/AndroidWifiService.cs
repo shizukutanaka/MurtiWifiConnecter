@@ -91,4 +91,21 @@ public sealed class AndroidWifiService : IWifiService
         // Android 10-: WifiManager.disconnect()
         return await Task.FromResult(true).ConfigureAwait(false);
     }
+
+    public Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+        => Task.FromResult(false);
+
+    public Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // Android does not expose a reliable Wi-Fi event stream to .NET MAUI without
+        // platform-specific BroadcastReceiver wiring. Stub: yields nothing.
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
+    }
 }

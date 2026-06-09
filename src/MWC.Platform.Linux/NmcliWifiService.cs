@@ -39,7 +39,7 @@ public sealed class NmcliWifiService : IWifiService
     {
         // nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device
         var output = await RunNmcliAsync(
-            "-t -f DEVICE,TYPE,STATE,CONNECTION device", ct).ConfigureAwait(false);
+            ["-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device"], ct).ConfigureAwait(false);
 
         var adapters = new List<WifiAdapter>();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -71,8 +71,8 @@ public sealed class NmcliWifiService : IWifiService
 
         // --rescan yes で強制再スキャン(3秒程度かかる)
         var output = await RunNmcliAsync(
-            $"-t -f SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY,IN-USE " +
-            $"dev wifi list ifname {iface} --rescan yes", ct).ConfigureAwait(false);
+            ["-t", "-f", "SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY,IN-USE",
+             "dev", "wifi", "list", "ifname", iface, "--rescan", "yes"], ct).ConfigureAwait(false);
 
         var networks = new Dictionary<string, WifiNetwork>(StringComparer.Ordinal);
 
@@ -130,20 +130,21 @@ public sealed class NmcliWifiService : IWifiService
         var pass = keyMatch.Success ? keyMatch.Groups[1].Value : "";
 
         // nmcli connection add で登録(既存があれば modify)
-        var op = overwrite ? "modify" : "add";
         if (overwrite)
         {
             // 既存の接続設定を更新
-            var (exitMod, _, _) = await RunNmcliFullAsync(
-                $"connection modify "{EscapeShell(ssid)}" wifi-sec.psk "{EscapeShell(pass)}"", ct)
-                .ConfigureAwait(false);
+            var modArgs = string.IsNullOrEmpty(pass)
+                ? new[] { "connection", "modify", ssid }
+                : new[] { "connection", "modify", ssid, "wifi-sec.psk", pass };
+            var (exitMod, _, _) = await RunNmcliFullAsync(modArgs, ct).ConfigureAwait(false);
             if (exitMod == 0) return true;
         }
 
         // 新規追加
         var args = string.IsNullOrEmpty(pass)
-            ? $"connection add type wifi ssid "{EscapeShell(ssid)}""
-            : $"connection add type wifi ssid "{EscapeShell(ssid)}" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "{EscapeShell(pass)}"";
+            ? new[] { "connection", "add", "type", "wifi", "ssid", ssid }
+            : new[] { "connection", "add", "type", "wifi", "ssid", ssid,
+                      "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", pass };
         var (exitAdd, _, _) = await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
         return exitAdd == 0;
     }
@@ -156,7 +157,7 @@ public sealed class NmcliWifiService : IWifiService
 
         // nmcli device wifi connect <ssid> ifname <iface>
         var (exit, stdout, stderr) = await RunNmcliFullAsync(
-            $"device wifi connect \"{EscapeShell(ssid)}\" ifname {iface}",
+            ["device", "wifi", "connect", ssid, "ifname", iface],
             ct).ConfigureAwait(false);
 
         if (exit == 0)
@@ -175,7 +176,7 @@ public sealed class NmcliWifiService : IWifiService
     {
         var iface = await ResolveIface(adapterId, ct).ConfigureAwait(false);
         var (exit, _, _) = await RunNmcliFullAsync(
-            $"device disconnect {iface}", ct).ConfigureAwait(false);
+            ["device", "disconnect", iface], ct).ConfigureAwait(false);
         return exit == 0;
     }
 
@@ -188,25 +189,26 @@ public sealed class NmcliWifiService : IWifiService
         return adapters.FirstOrDefault(a => a.Id == adapterId)?.Name ?? "wlan0";
     }
 
-    private static async Task<string> RunNmcliAsync(string args, CancellationToken ct)
+    private static async Task<string> RunNmcliAsync(string[] args, CancellationToken ct)
     {
         var (_, stdout, _) = await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
         return stdout;
     }
 
     private static async Task<(int exit, string stdout, string stderr)> RunNmcliFullAsync(
-        string args, CancellationToken ct)
+        string[] args, CancellationToken ct)
     {
         using var proc = new Process();
         proc.StartInfo = new ProcessStartInfo
         {
             FileName               = "nmcli",
-            Arguments              = args,
+            UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
-            UseShellExecute        = false,
             CreateNoWindow         = true,
         };
+        foreach (var a in args)
+            proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
         var stdout = await proc.StandardOutput.ReadToEndAsync(ct).ConfigureAwait(false);
         var stderr = await proc.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
@@ -219,7 +221,7 @@ public sealed class NmcliWifiService : IWifiService
         try
         {
             var (exit, _, _) = await RunNmcliFullAsync(
-                "networking connectivity check", ct).ConfigureAwait(false);
+                ["networking", "connectivity", "check"], ct).ConfigureAwait(false);
             return exit == 0;
         }
         catch { return false; }
@@ -244,6 +246,52 @@ public sealed class NmcliWifiService : IWifiService
         return new Guid(hash);
     }
 
-    private static string EscapeShell(string s)
-        => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    public async Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+    {
+        var (exit, _, _) = await RunNmcliFullAsync(
+            ["connection", "delete", profileName], ct).ConfigureAwait(false);
+        return exit == 0;
+    }
+
+    public async Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+    {
+        var output = await RunNmcliAsync(
+            ["-t", "-f", "NAME,TYPE", "connection", "show"], ct).ConfigureAwait(false);
+        var profiles = new List<string>();
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var cols = line.Split(':');
+            if (cols.Length >= 2 && cols[1].Contains("wifi", StringComparison.OrdinalIgnoreCase))
+                profiles.Add(cols[0].Trim());
+        }
+        return profiles;
+    }
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // nmcli monitor delivers events as text lines; each poll checks adapter state.
+        // This simplified implementation polls every 5s — sufficient for AutoReconnect.
+        var prev = new System.Collections.Generic.Dictionary<string, string?>();
+        while (!ct.IsCancellationRequested)
+        {
+            await Task.Delay(5000, ct).ConfigureAwait(false);
+            IReadOnlyList<WifiAdapter> adapters;
+            try { adapters = await GetAdaptersAsync(ct).ConfigureAwait(false); }
+            catch { continue; }
+            foreach (var a in adapters)
+            {
+                prev.TryGetValue(a.Name, out var prevSsid);
+                var curSsid = a.ConnectedSsid;
+                if (prevSsid != curSsid)
+                {
+                    var type = curSsid is null ? WifiEventType.Disconnected : WifiEventType.Connected;
+                    yield return new WifiEvent(a.Id, type, curSsid, DateTimeOffset.UtcNow);
+                }
+                prev[a.Name] = curSsid;
+            }
+        }
+    }
 }

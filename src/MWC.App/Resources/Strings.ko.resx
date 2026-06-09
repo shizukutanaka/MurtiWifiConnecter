@@ -184,4 +184,7 @@
   <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
   <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Tray_NoNetworks"><value>(네트워크 없음)</value></data>
+  <data name="Tray_OpenApp"><value>MWC 열기</value></data>
+  <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
 </root>

@@ -38,12 +38,16 @@
         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
             <StackPanel>
                 <RadioButton x:Name="BandAny" Content="すべてのバンド" GroupName="band"
+                             AutomationProperties.Name="すべてのバンド"
                              Margin="0,0,0,8" Foreground="{DynamicResource FgBrush}"/>
                 <RadioButton x:Name="Band24" Content="2.4 GHz のみ" GroupName="band"
+                             AutomationProperties.Name="2.4 GHz のみ"
                              Margin="0,0,0,8" Foreground="{DynamicResource FgBrush}"/>
                 <RadioButton x:Name="Band5"  Content="5 GHz のみ" GroupName="band"
+                             AutomationProperties.Name="5 GHz のみ"
                              Margin="0,0,0,8" Foreground="{DynamicResource FgBrush}"/>
                 <RadioButton x:Name="Band6"  Content="6 GHz のみ (Wi-Fi 6E/7)" GroupName="band"
+                             AutomationProperties.Name="6 GHz のみ (Wi-Fi 6E/7)"
                              Foreground="{DynamicResource FgBrush}"/>
                 <TextBlock Text="この子機で表示・接続できるバンドを制限"
                            FontSize="10" Foreground="{DynamicResource FgVeryMutedBrush}" Margin="0,8,0,0"/>

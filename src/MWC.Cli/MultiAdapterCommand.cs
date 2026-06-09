@@ -100,9 +100,11 @@ internal static class MultiAdapterCommand
                 Passphrase = passphrase
             };
             var xml = MWC.Core.Profile.ProfileXmlBuilder.Build(spec);
-            await svc.RegisterProfileAsync(adapterId, xml, overwrite: true);
+            if (!await svc.RegisterProfileAsync(adapterId, xml, overwrite: true))
+                return (adName, ssid, false, "profile registration failed");
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(25));
             var res = await svc.ConnectAsync(adapterId, ssid, ssid,
-                TimeSpan.FromSeconds(20));
+                TimeSpan.FromSeconds(20), cts.Token);
 
             return res.Success
                 ? (adName, ssid, true,  null)
@@ -120,11 +122,14 @@ internal static class MultiAdapterCommand
         var cmd = new Command("disconnect-all", "Disconnect all adapters in parallel");
         cmd.SetHandler(async () =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ads = await svc.GetAdaptersAsync();
-            var tasks = ads.Select(a => svc.DisconnectAsync(a.Id)).ToArray();
-            await Task.WhenAll(tasks);
-            Console.WriteLine($"{ads.Count} adapter(s) disconnected");
+            try
+            {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ads = await svc.GetAdaptersAsync();
+                await Task.WhenAll(ads.Select(a => svc.DisconnectAsync(a.Id)));
+                Console.WriteLine($"{ads.Count} adapter(s) disconnected");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(1); }
         });
         return cmd;
     }
@@ -135,27 +140,34 @@ internal static class MultiAdapterCommand
         var cmd = new Command("status", "Show all adapters with their current connections");
         cmd.SetHandler(async () =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ads = await svc.GetAdaptersAsync();
-
-            var tasks = ads.Select(async a =>
+            try
             {
-                var nets = await svc.ScanAsync(a.Id);
-                return (adapter: a, conn: nets.FirstOrDefault(n => n.IsConnected));
-            });
-            var results = await Task.WhenAll(tasks);
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ads = await svc.GetAdaptersAsync();
 
-            Console.WriteLine($"{"Adapter",-18}  {"Connected SSID",-26}  {"Signal",6}  PHY");
-            Console.WriteLine(new string('-', 72));
-            foreach (var (a, c) in results)
-            {
-                var ssid = c?.Ssid ?? "—";
-                var sig  = c != null ? $"{c.SignalQuality}%" : "—";
-                var phy  = c?.Phy.ToShortLabel() ?? "—";
-                Console.WriteLine($"{a.Name,-18}  {ssid,-26}  {sig,6}  {phy}");
+                var results = await Task.WhenAll(ads.Select(async a =>
+                {
+                    try
+                    {
+                        var nets = await svc.ScanAsync(a.Id);
+                        return (adapter: a, conn: nets.FirstOrDefault(n => n.IsConnected));
+                    }
+                    catch { return (adapter: a, conn: (MWC.Core.Models.WifiNetwork?)null); }
+                }));
+
+                Console.WriteLine($"{"Adapter",-18}  {"Connected SSID",-26}  {"Signal",6}  PHY");
+                Console.WriteLine(new string('-', 72));
+                foreach (var (a, c) in results)
+                {
+                    var ssid = c?.Ssid ?? "—";
+                    var sig  = c != null ? $"{c.SignalQuality}%" : "—";
+                    var phy  = c?.Phy.ToShortLabel() ?? "—";
+                    Console.WriteLine($"{a.Name,-18}  {ssid,-26}  {sig,6}  {phy}");
+                }
+                Console.WriteLine();
+                Console.WriteLine($"{results.Count(r => r.conn != null)} / {results.Length} connected");
             }
-            Console.WriteLine();
-            Console.WriteLine($"{results.Count(r => r.conn != null)} / {results.Length} connected");
+            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(1); }
         });
         return cmd;
     }

@@ -139,9 +139,9 @@ public class RegulatoryDomainServiceExtendedTests
     public void ChannelFrequency_FollowsStandard()
     {
         var ch5   = _svc.GetAvailable6GHzChannels("US").First(c => c.Channel == 5);
-        // ch5: 5950 + (5-1)*5 = 5970 MHz
-        ch5.FrequencyMhz.Should().Be(5970);
-        ch5.FrequencyGHz.Should().BeApproximately(5.97, 0.01);
+        // ch5: 5950 + 5×5 = 5975 MHz  (IEEE 802.11ax-2021 §27.3.23.2)
+        ch5.FrequencyMhz.Should().Be(5975);
+        ch5.FrequencyGHz.Should().BeApproximately(5.975, 0.001);
         ch5.IsPsc.Should().BeTrue();
         ch5.MaxWidthMhz.Should().BeGreaterOrEqualTo(20);
     }

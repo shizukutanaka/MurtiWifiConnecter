@@ -87,7 +87,9 @@ public sealed class SystemTrayService : IDisposable
 
             // 接続状態表示
             var status = new ToolStripMenuItem(
-                a.ConnectedSsid is null ? MWC.App.Resources.L.Get("Tray_NotConnected") : $"接続中: {a.ConnectedSsid}")
+                a.ConnectedSsid is null
+                    ? MWC.App.Resources.L.Get("Tray_NotConnected")
+                    : MWC.App.Resources.L.Format("Status_ConnectedTo_Short", a.ConnectedSsid))
             {
                 Enabled = false,
                 Font    = new Font(SystemFonts.MenuFont!, FontStyle.Italic)
@@ -101,8 +103,7 @@ public sealed class SystemTrayService : IDisposable
                                          .ThenByDescending(x => x.SignalQuality))
             {
                 if (n++ >= 8) break;
-                var item = new ToolStripMenuItem(
-                    $"{net.Ssid}  ({net.SignalQuality}%)")
+                var item = new ToolStripMenuItem($"{net.Ssid}  ({net.SignalQuality}%)")
                 {
                     Checked      = net.IsConnected,
                     CheckOnClick = false
@@ -118,7 +119,8 @@ public sealed class SystemTrayService : IDisposable
             }
 
             if (n == 0)
-                adapterItem.DropDownItems.Add(new ToolStripMenuItem("(検出なし)") { Enabled = false });
+                adapterItem.DropDownItems.Add(
+                    new ToolStripMenuItem(MWC.App.Resources.L.TrayNoNetworks) { Enabled = false });
 
             // 切断 (接続中のみ有効)
             adapterItem.DropDownItems.Add(new ToolStripSeparator());
@@ -139,7 +141,7 @@ public sealed class SystemTrayService : IDisposable
 
         // ── 操作 ──
         menu.Items.Add(new ToolStripSeparator());
-        var openItem = new ToolStripMenuItem("MWC を開く");
+        var openItem = new ToolStripMenuItem(MWC.App.Resources.L.TrayOpenApp);
         openItem.Click += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
         menu.Items.Add(openItem);
 
@@ -166,8 +168,8 @@ public sealed class SystemTrayService : IDisposable
     public void UpdateStatus(string? ssid, int signalQuality)
     {
         var text = ssid is null
-            ? "MWC — 未接続"
-            : $"MWC — {ssid} ({signalQuality}%)";
+            ? MWC.App.Resources.L.TrayNotConnected
+            : MWC.App.Resources.L.TrayStatusConnected(ssid, signalQuality);
         _tray.Text = text.Length > 127 ? text[..127] : text;
         _tray.Icon = BuildIcon(signalQuality, ssid is not null);
     }

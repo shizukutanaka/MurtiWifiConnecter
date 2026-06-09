@@ -66,6 +66,10 @@ public static class L
     public static string ActionExportTxt    => Get("Action_Export_Txt");
 
     public static string TrayNotConnected   => Get("Status_Tray_NotConnected");
+    public static string TrayNoNetworks     => Get("Tray_NoNetworks");
+    public static string TrayOpenApp        => Get("Tray_OpenApp");
+    public static string TrayStatusConnected(string ssid, int quality)
+        => Format("Tray_StatusConnected", ssid, quality);
 
     // ─── 動的引数版 ───────────────────────────────────
     public static string LabelConnected(string ssid)

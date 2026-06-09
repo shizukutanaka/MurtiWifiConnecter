@@ -220,8 +220,10 @@ public static partial class Program
             if (!await svc.RegisterProfileAsync(ad.Id, xml, true))
                 { Err("profile registration failed"); Environment.Exit(4); return; }
 
+            ConnectionResult res;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(to + 5));
-            var res = await svc.ConnectAsync(ad.Id, s, s, TimeSpan.FromSeconds(to), cts.Token);
+            try { res = await svc.ConnectAsync(ad.Id, s, s, TimeSpan.FromSeconds(to), cts.Token); }
+            catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(5); return; }
 
             hist.RecordConnection(s, res.Success);
 
@@ -356,13 +358,17 @@ public static partial class Program
             var ext  = fmt.ToLowerInvariant() switch { "json"=>"json","txt"=>"txt",_=>"csv" };
             var path = $"{outBase}.{ext}";
 
-            switch (ext)
+            try
             {
-                case "json": ExportService.ToJson(enriched, path); break;
-                case "txt":  ExportService.ToText(enriched, path); break;
-                default:     ExportService.ToCsv (enriched, path); break;
+                switch (ext)
+                {
+                    case "json": ExportService.ToJson(enriched, path); break;
+                    case "txt":  ExportService.ToText(enriched, path); break;
+                    default:     ExportService.ToCsv (enriched, path); break;
+                }
+                Console.WriteLine(path);
             }
-            Console.WriteLine(path);
+            catch (Exception ex) { Err($"export failed: {ex.Message}"); Environment.Exit(1); }
         }, adapter, format, output);
         return cmd;
     }
