@@ -232,4 +232,56 @@ public class AppUpdateServiceTests
         bool hasUpdate = lv > cv;
         hasUpdate.Should().Be(shouldUpdate);
     }
+
+    // ── NetworkHistoryService 並行アクセステスト ─────────────────────
+
+    [Fact]
+    public async Task NetworkHistory_ConcurrentRecordAndRead_NoCrash()
+    {
+        // 複数スレッドから同時に RecordConnection / GetRecent / GetStats を呼び出し、
+        // デッドロック・IndexOutOfRange・InvalidOperationException が発生しないことを確認。
+        var svc = new NetworkHistoryService();
+        const int writers = 4;
+        const int readers = 4;
+        const int ops     = 50;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var writerTasks = Enumerable.Range(0, writers).Select(w => Task.Run(() =>
+        {
+            for (int i = 0; i < ops && !cts.IsCancellationRequested; i++)
+                svc.RecordConnection($"Net{w}_{i % 5}", i % 3 == 0);
+        }, cts.Token));
+
+        var readerTasks = Enumerable.Range(0, readers).Select(_ => Task.Run(() =>
+        {
+            for (int i = 0; i < ops && !cts.IsCancellationRequested; i++)
+            {
+                _ = svc.GetRecent(10);
+                _ = svc.GetRecentSsids(5);
+                _ = svc.GetStats(30);
+                _ = svc.GetFrequentSsids(5);
+                _ = svc.Count;
+            }
+        }, cts.Token));
+
+        await Task.WhenAll(writerTasks.Concat(readerTasks));
+
+        // 少なくとも何件か記録されていること
+        svc.Count.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task NetworkHistory_ConcurrentForgetAndRecord_NoCrash()
+    {
+        var svc = new NetworkHistoryService();
+        for (int i = 0; i < 20; i++) svc.RecordConnection($"Net{i}", true);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var t1 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) svc.RecordConnection($"Net{i % 10}", true); }, cts.Token);
+        var t2 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) svc.Forget($"Net{i % 10}"); }, cts.Token);
+        var t3 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) _ = svc.GetAll(); }, cts.Token);
+
+        await Task.WhenAll(t1, t2, t3);
+        // クラッシュしなければ OK
+    }
 }

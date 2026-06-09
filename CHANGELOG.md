@@ -10,6 +10,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **ビルド阻害(XAML MC3024)**: `MainWindow.xaml` の同一 `<Button>` 要素に
+  `AutomationProperties.Name` が 2 つ指定されていた 6 箇所を解消。WPF はこれを
+  コンパイルエラーとして扱う。各ボタンでより説明的な名称を残した。
+- **Linux スキャン列ズレ**: `NmcliWifiService` が `line.Split(':')` を使用していたが、
+  nmcli terse(`-t`)モードはフィールド内のコロンを `\:` エスケープする(例: BSSID
+  `AA:BB:CC` → `AA\:BB\:CC`)。単純分割では BSSID が複数列に展開され、信号強度・
+  チャンネル・セキュリティの列が全てズレて実環境でスキャン結果が壊れていた。
+  `(?<!\\):` 正規表現で非エスケープのコロンのみ分割後、`\:` と `\\` をアンエスケープ
+  する `SplitTerse` ヘルパーに置き換えた。`GetAdaptersAsync`/`ScanAsync`/`ListProfilesAsync`
+  の全 nmcli terse 行パースに適用。
+- **FIPS 環境クラッシュ**: `GuidFromString` (Linux/macOS プラットフォームサービス)が
+  `MD5.Create()` を使用していた。FIPS 強制環境(US 政府機関など)では MD5 が禁止されており
+  `CryptographicException` をスローする。`SHA256.HashData` の先頭 16 バイトに変更。
+  (この GUID はセキュリティ用途でなくデバイス名の決定論的識別子のみ。)
+- **マルチアダプター SSID 誤帰属**: `WindowsWifiService.GetConnectedSsid` が
+  `EnumerateConnectedNetworkSsids().FirstOrDefault()` で **全アダプター横断の先頭 SSID**
+  を返していた。2 枚以上の Wi-Fi アダプターが異なる SSID に接続中の場合、接続状態が
+  誤ったアダプターに表示される。`EnumerateConnectedNetworks()` で `adapterId` で絞り込む
+  よう修正。
+- **AllAdaptersOverviewViewModel コンパイルエラー(CS1010)**: ternary 式の false 分岐に
+  `$MWC.App.Resources.L.ErrorConnectionFailed(...)` という `$` プレフィックスが残存し
+  コンパイル不能だった。`$` を除去。
+- **AutoReconnect が ScanOnStartup に誤ってゲートされていた**: `AutoReconnectService`
+  が切断イベント受信時に `_settings.Current.ScanOnStartup` を確認し、`false` なら
+  再接続を中断していた。この設定は起動時スキャン頻度を制御するもので再接続とは無関係。
+  行を削除し、正しいアダプター別 `IsAutoReconnectEnabled` チェックのみ残した。
+- **ConnectionExecutor がプロファイル登録失敗を無視**: `RegisterProfileAsync()` の `bool`
+  戻り値を破棄していたため、プロファイル登録が失敗しても `ConnectAsync` を実行し、
+  原因不明の接続タイムアウトが生じていた。失敗時に `OsError` で早期リターンするよう修正。
+- **SettingsService 非原子書き込み**: `File.WriteAllText` 直書きのため、書き込み中
+  クラッシュで settings.json が破損した。`.tmp` + `File.Move` に変更。
+- **NetworkHistoryService 日本語ハードコード**: `LastConnectedLabel` が「たった今」等の
+  日本語リテラルを返していた。Core 層は App の `L.cs` に依存できないため英語ニュートラル
+  表記("just now", "m ago", "h ago", "d ago")に変更。
+
+### Changed
+- **CLI 終了コード**: マジックナンバー(0/1/2/4/5)を `ExitCode` 静的クラスの名前付き
+  定数(`Success`/`GeneralError`/`InvalidInput`/`ProfileError`/`ConnectionFailed`)に
+  統一。全 CLI ファイルで使用。
+- **Linux イベント購読をリアルタイム化**: `NmcliWifiService.SubscribeEventsAsync` の
+  5 秒ポーリングを `nmcli monitor` サブプロセスの非同期 stdout 読み取りに置換。
+  プロセス死亡時は 3 秒後に自動再起動。
+- **SHA-256 GUID**: Linux/macOS の `GuidFromString` を MD5 → SHA-256 先頭 16 バイトに変更。
+- **アクセシビリティ**: `AllAdaptersOverviewView.xaml` の `AutomationProperties.Name`
+  から絵文字を除去(`"↻ 全スキャン"→"全スキャン"`, `"⚡ 優先順に一括接続"→"優先順に一括接続"`,
+  `"↑"→"優先順位を上げる"`, `"✕"→"優先リストから削除"`)。NVDA/JAWS は絵文字を
+  「時計回り開放矢印」等と読み上げ、支援技術ユーザーの体験を損なうため。
+
+### Added
+- **WPAPSK / WPA3Enterprise ゴールデンテスト**: `ProfileXmlBuilderTests` に不足していた
+  2 認証方式のゴールデンテストを追加。WPAPSK: authentication=WPAPSK/encryption=AES/
+  useOneX なし。WPA3Enterprise: authentication=WPA3/encryption=AES(GCMP256 でない)/
+  useOneX=true を検証。
+- **NetworkHistoryService 並行ストレステスト**: 4 ライター × 4 リーダー同時実行で
+  デッドロック・IndexOutOfRange が発生しないことを検証する 2 テストを追加。
+
 - **ビルド阻害(取込みソース・App 層)**: `MainWindow.xaml` が `Click="OnAllAdaptersClick"`
   を 2 箇所で参照していたが、`MainWindow.xaml.cs` にハンドラが無く WPF コンパイル(MC3074)で
   失敗していた。ハンドラ `OnAllAdaptersClick` と `MainWindowCommands.ShowAllAdapters`
