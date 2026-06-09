@@ -127,3 +127,4 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
         }
         _cts.Dispose();
     }
+}
