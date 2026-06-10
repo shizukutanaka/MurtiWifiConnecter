@@ -212,9 +212,12 @@ public sealed class MainWindowCommands
     public void PinNetwork(MainViewModel vm)
     {
         var ssid = vm.SelectedAdapter?.Selected?.Ssid;
-        if (string.IsNullOrEmpty(ssid) || vm.SelectedAdapter is null) return;
-        vm.SelectedAdapter.PinSsid(ssid);
-        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Pinned", ssid);
+        if (string.IsNullOrEmpty(ssid)) return;
+        _settings.TogglePin(ssid);
+        vm.Filter.ReapplyFilter();
+        vm.StatusMessage = _settings.IsPinned(ssid)
+            ? MWC.App.Resources.L.Format("Status_Pinned", ssid)
+            : MWC.App.Resources.L.Format("Status_Unpinned", ssid);
     }
 
     public AdapterPreferences? OpenAdapterPreferences(

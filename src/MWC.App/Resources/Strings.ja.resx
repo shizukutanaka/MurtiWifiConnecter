@@ -292,6 +292,9 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="ContextMenu_ShowQr"><value>QR コードを表示</value></data>
   <data name="ContextMenu_CopySsid"><value>SSID をコピー</value></data>
   <data name="ContextMenu_PinNetwork"><value>このネットワークをピン留め</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>このネットワークのピン留めを解除</value></data>
+  <data name="Main_PinnedTooltip"><value>ピン留め済み（先頭に表示）</value></data>
+  <data name="Status_Unpinned"><value>ピン留め解除: {0}</value></data>
   <data name="ContextMenu_HideNetwork"><value>このネットワークを非表示</value></data>
   <data name="Main_ProfileSavedTooltip"><value>プロファイル保存済み</value></data>
   <data name="Menu_ExportCsv"><value>📥  CSV エクスポート</value></data>

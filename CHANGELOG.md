@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Pin toggle bug**: "Pin Network" context menu item previously only pinned (never unpinned) and
+  updated only the per-adapter `PinnedSsids` list, which is separate from the global
+  `AppSettings.PinnedNetworks` list used by "Show Favorites First" sorting. Pinning now toggles
+  the global list so pinned networks actually appear first when `ShowFavoritesFirst` is enabled.
+  Context menu header dynamically switches between "Pin this network" / "Unpin this network"
+  based on current state. `📌` pin indicator added to network list rows. `SettingsService`
+  gets `IsPinned()` and `TogglePin()` helpers. `NetworkFilterViewModel.ApplyFilter()` now syncs
+  `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
+  stays current after scans. 3 new i18n keys × 15 locales.
+
+- **SecurityAdvisoryService i18n**: All advisory `Title` and `Detail` strings converted from
+  Japanese to English, following the Core-layer-uses-English principle established in this
+  release series. The advisory panel in the detail pane now renders language-neutral text.
+
 ### Added
 - **セキュリティレベルバッジ**: ネットワーク一覧の各 SSID 行に色付きインジケーター (●) を追加。
   既存の `SecurityBadgeService.GetBadge()` を活用し、WPA3=緑 / WPA2=黄緑 / OWE=黄 /

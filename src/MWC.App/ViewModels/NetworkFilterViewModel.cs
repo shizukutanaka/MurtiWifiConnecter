@@ -80,12 +80,17 @@ public sealed partial class NetworkFilterViewModel : ObservableObject
         });
     }
 
+    public void ReapplyFilter() => ApplyFilter();
+
     private void ApplyFilter()
     {
         var q = SearchText.Trim();
 
         var pinned  = _settings.Current.PinnedNetworks;
         var hidden  = _settings.Current.HiddenNetworks;
+
+        // Sync IsPinned on all source items so the pin indicator stays current
+        foreach (var n in _source) n.IsPinned = pinned.Contains(n.Ssid);
 
         var result = _source
             .Where(n => !hidden.Contains(n.Ssid))

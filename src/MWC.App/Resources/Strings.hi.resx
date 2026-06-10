@@ -287,6 +287,9 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="ContextMenu_ShowQr"><value>Show QR Code</value></data>
   <data name="ContextMenu_CopySsid"><value>Copy SSID</value></data>
   <data name="ContextMenu_PinNetwork"><value>Pin this network</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>इस नेटवर्क को अनपिन करें</value></data>
+  <data name="Main_PinnedTooltip"><value>पिन किया गया (पहले दिखाया जाता है)</value></data>
+  <data name="Status_Unpinned"><value>अनपिन किया गया: {0}</value></data>
   <data name="ContextMenu_HideNetwork"><value>Hide this network</value></data>
   <data name="Main_ProfileSavedTooltip"><value>Profile saved</value></data>
   <data name="Menu_ExportCsv"><value>📥  Export CSV</value></data>

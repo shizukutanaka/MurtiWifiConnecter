@@ -43,6 +43,15 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
     public string SignalAutomationLabel => MWC.App.Resources.L.MainSignalStrength(Signal);
 
+    // ── Pinned state ─────────────────────────────────────────────────
+    [ObservableProperty] private bool _isPinned;
+
+    partial void OnIsPinnedChanged(bool value) => OnPropertyChanged(nameof(PinMenuHeader));
+
+    public string PinMenuHeader => IsPinned
+        ? MWC.App.Resources.L.ContextMenuUnpinNetwork
+        : MWC.App.Resources.L.ContextMenuPinNetwork;
+
     // ── Signal trend indicator ────────────────────────────────────────
     [ObservableProperty] private string _signalTrendLabel = "";
 

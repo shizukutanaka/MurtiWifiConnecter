@@ -212,8 +212,10 @@ public static class L
     public static string ContextMenuShowQr         => Get("ContextMenu_ShowQr");
     public static string ContextMenuCopySsid       => Get("ContextMenu_CopySsid");
     public static string ContextMenuPinNetwork     => Get("ContextMenu_PinNetwork");
+    public static string ContextMenuUnpinNetwork   => Get("ContextMenu_UnpinNetwork");
     public static string ContextMenuHideNetwork    => Get("ContextMenu_HideNetwork");
     public static string MainProfileSavedTooltip   => Get("Main_ProfileSavedTooltip");
+    public static string MainPinnedTooltip         => Get("Main_PinnedTooltip");
     public static string MenuExportCsv             => Get("Menu_ExportCsv");
     public static string MenuExportJson            => Get("Menu_ExportJson");
     public static string MenuExportTxt             => Get("Menu_ExportTxt");

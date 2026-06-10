@@ -493,7 +493,9 @@
                                     <MenuItem Header="{x:Static r:L.ContextMenuShowQr}" Click="OnShowQrClick"/>
                                     <MenuItem Header="{x:Static r:L.ContextMenuCopySsid}" Click="OnCopySsid"/>
                                     <Separator/>
-                                    <MenuItem Header="{x:Static r:L.ContextMenuPinNetwork}" Click="OnPinNetwork"/>
+                                    <MenuItem Header="{Binding SelectedAdapter.Selected.PinMenuHeader,
+                                                       FallbackValue={x:Static r:L.ContextMenuPinNetwork}}"
+                                              Click="OnPinNetwork"/>
                                     <MenuItem Header="{x:Static r:L.ContextMenuHideNetwork}" Click="OnHideNetwork"/>
                                 </ContextMenu>
                             </ListBox.ContextMenu>
@@ -657,6 +659,21 @@
                                                     </Style>
                                                 </Border.Style>
                                             </Border>
+                                            <!-- ピン留め済みインジケーター -->
+                                            <TextBlock Text="📌" FontSize="10"
+                                                       VerticalAlignment="Center" Margin="0,0,3,0"
+                                                       ToolTip="{x:Static r:L.MainPinnedTooltip}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <!-- プロファイル保存済み -->
                                             <TextBlock Text="★" FontSize="10"
                                                        Foreground="{DynamicResource WarnBrush}"

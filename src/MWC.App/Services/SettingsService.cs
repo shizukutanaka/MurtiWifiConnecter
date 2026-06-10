@@ -34,6 +34,16 @@ public sealed class SettingsService
         _current = Load();
     }
 
+    public bool IsPinned(string ssid) => _current.PinnedNetworks.Contains(ssid);
+
+    public void TogglePin(string ssid)
+    {
+        var list = new System.Collections.Generic.List<string>(_current.PinnedNetworks);
+        if (list.Contains(ssid)) list.Remove(ssid);
+        else list.Add(ssid);
+        Save(_current with { PinnedNetworks = list });
+    }
+
     public void Save(AppSettings settings)
     {
         _current = settings;

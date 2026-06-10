@@ -292,6 +292,9 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="ContextMenu_ShowQr"><value>Show QR Code</value></data>
   <data name="ContextMenu_CopySsid"><value>Copy SSID</value></data>
   <data name="ContextMenu_PinNetwork"><value>Pin this network</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>이 네트워크 고정 해제</value></data>
+  <data name="Main_PinnedTooltip"><value>고정됨(먼저 표시)</value></data>
+  <data name="Status_Unpinned"><value>고정 해제: {0}</value></data>
   <data name="ContextMenu_HideNetwork"><value>Hide this network</value></data>
   <data name="Main_ProfileSavedTooltip"><value>Profile saved</value></data>
   <data name="Menu_ExportCsv"><value>📥  Export CSV</value></data>

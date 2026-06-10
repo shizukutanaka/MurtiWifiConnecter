@@ -292,6 +292,9 @@
   <data name="ContextMenu_ShowQr"><value>Show QR Code</value></data>
   <data name="ContextMenu_CopySsid"><value>Copy SSID</value></data>
   <data name="ContextMenu_PinNetwork"><value>Pin this network</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>Открепить эту сеть</value></data>
+  <data name="Main_PinnedTooltip"><value>Закреплено (показывается первым)</value></data>
+  <data name="Status_Unpinned"><value>Откреплено: {0}</value></data>
   <data name="ContextMenu_HideNetwork"><value>Hide this network</value></data>
   <data name="Main_ProfileSavedTooltip"><value>Profile saved</value></data>
   <data name="Menu_ExportCsv"><value>📥  Export CSV</value></data>
