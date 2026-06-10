@@ -35,6 +35,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `App.xaml.cs` に DI 登録・自動起動を追加。
   4 新リソースキー × 15 言語。
 
+- **詳細パネル拡張**: 詳細タブに 3 項目を追加。
+  ① ベンダー行 (`VendorLabel`) — PHY と Band の間に OUI 解決済みベンダー名を表示。
+  ② 推奨スコア行 — `NetworkRecommendationEngine.Score()` の総合スコア (0–100) を表示。
+  セキュリティ・ローミング・チャンネル・信号を重み付き合算した結果。
+  ③ セキュリティ勧告リスト — `SecurityAdvisoryService.Analyze()` の結果をネットワーク選択時に
+  自動表示。各勧告に重大度別の色バー (赤=致命的/橙=警告/青=情報/緑=良好) を付与。
+  勧告がなければ非表示。`SecurityAdvisoryItem` UI レコードを `NetworkDetailViewModel` に追加。
+  2 新リソースキー (`Detail_Vendor`/`Detail_Score`) × 15 言語。
+
+- **接続経過時間表示**: アダプタータブのステータステキスト (`ConnectionStatusLabel`) が
+  接続から経過した時間を表示 (例: "→ HomeWifi  (45m)", "→ OfficeAP  (2h 07m)")。
+  `_connectedSince` / `_prevConnectedSsid` フィールドで SSID 変化を検出し、
+  接続開始時刻を記録。スキャン毎に `OnPropertyChanged(nameof(ConnectionStatusLabel))` を発火。
+
+- **信号トレンド矢印**: ネットワーク一覧の信号バー下部に ↑/↓ を表示。
+  直近 3 サンプルの delta > ±5 で UP/DOWN、それ以外は非表示。
+  `AdapterViewModel.RefreshAsync()` が `SignalHistoryService` を参照して計算、
+  `NetworkItemViewModel.SignalTrendLabel` プロパティに設定。
+
 - **アダプター別フィルタープリセット**: ネットワーク一覧フィルター設定 (`ShowSecuredOnly` /
   `ShowFavoritesFirst`) をアダプターごとに永続化。アダプター切替時に各アダプターの
   フィルター設定を自動復元。`AdapterPreferences` レコードに 2 フィールド追加、

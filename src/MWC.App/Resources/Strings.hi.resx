@@ -371,4 +371,7 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Quality_Timeout"><value>समय सीमा समाप्त</value></data>
   <data name="Congestion_OverloadedTooltip"><value>चैनल ओवरलोड है ({0}% उपयोग)</value></data>
   <data name="Congestion_BusyTooltip"><value>चैनल व्यस्त है ({0}% उपयोग)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

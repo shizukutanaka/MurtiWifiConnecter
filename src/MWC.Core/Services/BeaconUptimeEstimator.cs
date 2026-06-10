@@ -45,11 +45,11 @@ public static class BeaconUptimeEstimator
     /// <summary>稼働時間を人間語のラベルにする (例: "3日 4時間")。</summary>
     public static string ToLabel(TimeSpan? uptime)
     {
-        if (uptime is not { } t) return "不明";
-        if (t.TotalDays >= 1)   return $"{(int)t.TotalDays}日 {t.Hours}時間";
-        if (t.TotalHours >= 1)  return $"{(int)t.TotalHours}時間 {t.Minutes}分";
-        if (t.TotalMinutes >= 1) return $"{(int)t.TotalMinutes}分";
-        return $"{(int)t.TotalSeconds}秒";
+        if (uptime is not { } t) return "Unknown";
+        if (t.TotalDays >= 1)   return $"{(int)t.TotalDays}d {t.Hours}h";
+        if (t.TotalHours >= 1)  return $"{(int)t.TotalHours}h {t.Minutes}m";
+        if (t.TotalMinutes >= 1) return $"{(int)t.TotalMinutes}m";
+        return $"{(int)t.TotalSeconds}s";
     }
 
     /// <summary>再起動直後 (5 分未満) かどうか — 不安定/更新直後の兆候。</summary>

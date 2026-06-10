@@ -39,7 +39,7 @@ public sealed class InterferenceAnalyzer
         {
             int penalty = Math.Min(coChannel * 12, 50);
             score -= penalty;
-            factors.Add($"同一チャネル ({target.Channel}) に {coChannel} 台の AP — co-channel 干渉");
+            factors.Add($"{coChannel} AP(s) on channel {target.Channel} — co-channel interference");
         }
 
         // 2. Adjacent-channel 干渉 (2.4GHz のみ — 5/6GHz は基本非重複)
@@ -53,12 +53,12 @@ public sealed class InterferenceAnalyzer
             {
                 int penalty = Math.Min(adjacent * 8, 30);
                 score -= penalty;
-                factors.Add($"隣接チャネルに {adjacent} 台 — adjacent-channel 干渉 (2.4GHz)");
+                factors.Add($"{adjacent} adjacent-channel AP(s) — adjacent-channel interference (2.4GHz)");
             }
 
             // 3. Bluetooth 共存リスク (2.4GHz は BT と同居)
             score -= 10;
-            factors.Add("2.4GHz 帯は Bluetooth/Zigbee と共存 — CTI リスクあり");
+            factors.Add("2.4GHz shares spectrum with Bluetooth/Zigbee — co-existence risk");
         }
 
         score = Math.Clamp(score, 0, 100);
@@ -102,13 +102,13 @@ public sealed class InterferenceAnalyzer
     private static string BuildRecommendation(WifiNetwork target, InterferenceLevel level)
     {
         if (level == InterferenceLevel.Low)
-            return "干渉は軽微。現在のチャネルで問題なし。";
+            return "Interference is minimal. Current channel is acceptable.";
 
         if (target.Band == WifiBand.Band2_4GHz)
-            return "干渉が大きい。可能なら 5GHz/6GHz 帯への移行を推奨。" +
-                   "2.4GHz に留まる場合はチャネル 1/6/11 を選ぶ。";
+            return "High interference. Consider switching to 5GHz/6GHz. " +
+                   "If staying on 2.4GHz, prefer channels 1, 6, or 11.";
 
-        return "同一チャネルの混雑あり。別のチャネルまたは 6GHz への移行を検討。";
+        return "Co-channel congestion detected. Consider a different channel or move to 6GHz.";
     }
 }
 

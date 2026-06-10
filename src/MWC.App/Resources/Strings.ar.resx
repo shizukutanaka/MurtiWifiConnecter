@@ -376,4 +376,7 @@
   <data name="Quality_Timeout"><value>انتهاء المهلة</value></data>
   <data name="Congestion_OverloadedTooltip"><value>القناة مثقلة ({0}% استخدام)</value></data>
   <data name="Congestion_BusyTooltip"><value>القناة مشغولة ({0}% استخدام)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

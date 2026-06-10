@@ -68,18 +68,18 @@ public sealed class CaptivePortalService
         if (!state.Captive)
             return new CaptivePortalDecision(
                 RequiresAuth: false,
-                Message:      "インターネット接続済み。認証は不要。",
+                Message:      "Internet connected. No authentication required.",
                 PortalUrl:    null);
 
         if (!string.IsNullOrEmpty(state.UserPortalUrl))
             return new CaptivePortalDecision(
                 RequiresAuth: true,
-                Message:      "このネットワークは認証が必要。ポータルを開いてサインインする。",
+                Message:      "Authentication required. Open the portal and sign in.",
                 PortalUrl:    state.UserPortalUrl);
 
         return new CaptivePortalDecision(
             RequiresAuth: true,
-            Message:      "認証が必要だがポータル URL が提供されていない。ブラウザで任意のサイトを開いてリダイレクトを待つ。",
+            Message:      "Authentication required but no portal URL provided. Open any site in a browser and wait for redirect.",
             PortalUrl:    null);
     }
 
@@ -88,17 +88,17 @@ public sealed class CaptivePortalService
     /// </summary>
     public string DescribeSession(CaptivePortalState state)
     {
-        if (!state.Captive) return "認証済み";
+        if (!state.Captive) return "Authenticated";
 
         var parts = new System.Collections.Generic.List<string>();
         if (state.SecondsRemaining is { } secs)
-            parts.Add($"残り {secs / 60} 分");
+            parts.Add($"{secs / 60}m remaining");
         if (state.BytesRemaining is { } bytes)
-            parts.Add($"残り {bytes / 1_000_000} MB");
+            parts.Add($"{bytes / 1_000_000} MB remaining");
         if (state.CanExtendSession)
-            parts.Add("延長可能");
+            parts.Add("extendable");
 
-        return parts.Count > 0 ? string.Join(" / ", parts) : "認証が必要";
+        return parts.Count > 0 ? string.Join(" / ", parts) : "Authentication required";
     }
 
     // ── 軽量 JSON フィールド抽出 (ゼロ依存) ──────────────────────

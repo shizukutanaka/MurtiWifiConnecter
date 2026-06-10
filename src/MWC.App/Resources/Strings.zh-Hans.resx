@@ -376,4 +376,7 @@
   <data name="Quality_Timeout"><value>超时</value></data>
   <data name="Congestion_OverloadedTooltip"><value>信道拥堵 ({0}% 占用率)</value></data>
   <data name="Congestion_BusyTooltip"><value>信道拥挤 ({0}% 占用率)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

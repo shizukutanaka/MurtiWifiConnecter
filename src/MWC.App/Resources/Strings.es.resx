@@ -376,4 +376,7 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Quality_Timeout"><value>Tiempo agotado</value></data>
   <data name="Congestion_OverloadedTooltip"><value>Canal sobrecargado ({0}% de uso)</value></data>
   <data name="Congestion_BusyTooltip"><value>Canal ocupado ({0}% de uso)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

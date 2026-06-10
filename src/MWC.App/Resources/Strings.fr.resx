@@ -376,4 +376,7 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="Quality_Timeout"><value>Délai dépassé</value></data>
   <data name="Congestion_OverloadedTooltip"><value>Canal surchargé ({0}% d'utilisation)</value></data>
   <data name="Congestion_BusyTooltip"><value>Canal chargé ({0}% d'utilisation)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

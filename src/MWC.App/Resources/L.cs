@@ -224,6 +224,10 @@ public static class L
     public static string MenuSavedNetworks         => Get("Menu_SavedNetworks");
     public static string MenuQualityMeasure        => Get("Menu_QualityMeasure");
     public static string MenuAllAdapters           => Get("Menu_AllAdapters");
+    public static string LabelBssid                => Get("Label_Bssid");
+    public static string BandFilter24              => Get("BandFilter_2_4");
+    public static string BandFilter5               => Get("BandFilter_5");
+    public static string BandFilter6               => Get("BandFilter_6");
     public static string DetailAuth                => Get("Detail_Auth");
     public static string DetailCipher              => Get("Detail_Cipher");
     public static string DetailPhy                 => Get("Detail_Phy");

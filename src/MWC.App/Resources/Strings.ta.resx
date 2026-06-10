@@ -371,4 +371,7 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Quality_Timeout"><value>காலவரம்கடந்தது</value></data>
   <data name="Congestion_OverloadedTooltip"><value>சானல் அதிகமாக உள்ளது ({0}% பயன்பாடு)</value></data>
   <data name="Congestion_BusyTooltip"><value>சானல் திரக்கமாக உள்ளது ({0}% பயன்பாடு)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
 </root>

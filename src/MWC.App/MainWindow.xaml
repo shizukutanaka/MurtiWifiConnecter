@@ -936,7 +936,7 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <TextBlock Text="BSSID" FontSize="11"
+                                <TextBlock Text="{x:Static r:L.LabelBssid}" FontSize="11"
                                            Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,4"/>
                                 <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.BssRows}">
                                     <ItemsControl.ItemTemplate>
@@ -992,13 +992,13 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                <RadioButton Content="2.4G" GroupName="band" IsChecked="True"
+                                <RadioButton Content="{x:Static r:L.BandFilter24}" GroupName="band" IsChecked="True"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect2_4"/>
-                                <RadioButton Content="5G"   GroupName="band"
+                                <RadioButton Content="{x:Static r:L.BandFilter5}" GroupName="band"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect5"/>
-                                <RadioButton Content="6G"   GroupName="band"
+                                <RadioButton Content="{x:Static r:L.BandFilter6}" GroupName="band"
                                              Foreground="{DynamicResource FgBrush}"
                                              Click="OnBandSelect6"/>
                             </StackPanel>
