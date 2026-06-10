@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **UI 文字列ローカライズ**: `SettingsDialog.xaml`/`AdapterPreferencesDialog.xaml`/
+  `ConnectDialog.xaml`/`AboutDialog.xaml` に散在していたハードコード日本語文字列を
+  すべて `{x:Static r:L.XYZ}` バインディングへ移行。44 の新リソースキーを 15 言語すべての
+  resx ファイルに追加(計 235 キー)。`CLAUDE.md` 規則「UI 文字列は必ず Strings.resx 経由」
+  に準拠。
+- **AdapterPreferencesDialog アンピンボタン**: `AutomationProperties.Name="✕"` が絵文字で
+  スクリーンリーダーに非読み上げだった問題を `L.AdapterPinnedUnpin`（「ピン留めを外す」等）
+  に変更。
 - **ビルド阻害(XAML MC3024)**: `MainWindow.xaml` の同一 `<Button>` 要素に
   `AutomationProperties.Name` が 2 つ指定されていた 6 箇所を解消。WPF はこれを
   コンパイルエラーとして扱う。各ボタンでより説明的な名称を残した。

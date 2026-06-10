@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} Adapter verbunden</value></data>
   <data name="Status_NetworksFound"><value>{0} Netzwerke</value></data>
   <data name="Status_ProfileCount"><value>{0} Profile</value></data>
+
+  <data name="Settings_Title"><value>Einstellungen</value></data>
+  <data name="Settings_DialogAutomation"><value>Einstellungsdialog</value></data>
+  <data name="Settings_Section_Display"><value>Anzeige</value></data>
+  <data name="Settings_DisplayMode_Label"><value>Anzeigemodus</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>Einfach: Verbindung im Fokus / Experte: technische Infos</value></data>
+  <data name="Settings_Mode_Simple"><value>Einfach</value></data>
+  <data name="Settings_Mode_Expert"><value>Experte</value></data>
+  <data name="Settings_Theme"><value>Thema</value></data>
+  <data name="Theme_Dark"><value>Dunkel</value></data>
+  <data name="Theme_Light"><value>Hell</value></data>
+  <data name="Theme_System"><value>Systemstandard</value></data>
+  <data name="Settings_Language"><value>Sprache</value></data>
+  <data name="Settings_Section_Scan"><value>Scannen</value></data>
+  <data name="Settings_ScanInterval_Label"><value>Scanintervall</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>Beeinflusst den Akkuverbrauch</value></data>
+  <data name="Settings_ScanOnStartup"><value>Beim Start automatisch scannen</value></data>
+  <data name="Settings_Section_Notify"><value>Benachrichtigungen</value></data>
+  <data name="Settings_Notify_Label"><value>Verbindungsbenachrichtigungen anzeigen</value></data>
+  <data name="Settings_Notify_Desc"><value>Toast im Info-Center anzeigen</value></data>
+  <data name="Action_Save"><value>Speichern</value></data>
+  <data name="Action_ResetDefaults"><value>Auf Standard zurücksetzen</value></data>
+  <data name="Adapter_Dialog_Title"><value>Adapter-Einstellungen</value></data>
+  <data name="Adapter_Dialog_Automation"><value>WLAN-Adapter-Einstellungen</value></data>
+  <data name="Adapter_DisplayName_Section"><value>Anzeigename</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>z.B. Heim-Dongle / Mobil / Nur 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>Frequenzband</value></data>
+  <data name="Band_Any"><value>Alle Bänder</value></data>
+  <data name="Adapter_Band_6E"><value>Nur 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>Einschränken, welche Bänder dieser Adapter nutzt</value></data>
+  <data name="Adapter_Pinned_Section"><value>Bevorzugte SSIDs (Autom. Verbindung)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>Lösen</value></data>
+  <data name="Adapter_Pinned_Empty"><value>Keine angehefteten SSIDs</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join versucht diese Netzwerke der Reihe nach</value></data>
+  <data name="Adapter_Enabled_Label"><value>Diesen Adapter verwenden</value></data>
+  <data name="Adapter_Enabled_Desc"><value>Deaktivieren blendet es aus der Liste aus</value></data>
+
+  <data name="Adapter_Band_24"><value>Nur 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>Nur 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>Netzwerkpasswort eingeben</value></data>
+  <data name="Label_ShowPassword"><value>Passwort anzeigen</value></data>
+
+  <data name="About_Title"><value>Über MWC</value></data>
+  <data name="About_Automation"><value>App-Informationen</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Multi-Adapter-WLAN-Manager für Windows.
+Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
+  <data name="About_GitHub"><value>Quellcode auf GitHub</value></data>
+  <data name="About_ReportBug"><value>Fehler melden</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

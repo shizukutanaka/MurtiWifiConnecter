@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} 个适配器已连接</value></data>
   <data name="Status_NetworksFound"><value>{0} 个网络</value></data>
   <data name="Status_ProfileCount"><value>{0} 个配置文件</value></data>
+
+  <data name="Settings_Title"><value>设置</value></data>
+  <data name="Settings_DialogAutomation"><value>设置对话框</value></data>
+  <data name="Settings_Section_Display"><value>显示</value></data>
+  <data name="Settings_DisplayMode_Label"><value>显示模式</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>简单：专注连接 / 专家：显示技术信息</value></data>
+  <data name="Settings_Mode_Simple"><value>简单</value></data>
+  <data name="Settings_Mode_Expert"><value>专家</value></data>
+  <data name="Settings_Theme"><value>主题</value></data>
+  <data name="Theme_Dark"><value>深色</value></data>
+  <data name="Theme_Light"><value>浅色</value></data>
+  <data name="Theme_System"><value>跟随系统</value></data>
+  <data name="Settings_Language"><value>语言</value></data>
+  <data name="Settings_Section_Scan"><value>扫描</value></data>
+  <data name="Settings_ScanInterval_Label"><value>自动扫描间隔</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>影响电池消耗</value></data>
+  <data name="Settings_ScanOnStartup"><value>启动时自动扫描</value></data>
+  <data name="Settings_Section_Notify"><value>通知</value></data>
+  <data name="Settings_Notify_Label"><value>显示连接通知</value></data>
+  <data name="Settings_Notify_Desc"><value>在操作中心显示提示</value></data>
+  <data name="Action_Save"><value>保存</value></data>
+  <data name="Action_ResetDefaults"><value>重置为默认</value></data>
+  <data name="Adapter_Dialog_Title"><value>适配器设置</value></data>
+  <data name="Adapter_Dialog_Automation"><value>无线适配器设置</value></data>
+  <data name="Adapter_DisplayName_Section"><value>显示名称</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>例: 家用加密狗 / 移动 / 仅5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>使用频段</value></data>
+  <data name="Band_Any"><value>所有频段</value></data>
+  <data name="Adapter_Band_6E"><value>仅 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>限制此适配器使用的频段</value></data>
+  <data name="Adapter_Pinned_Section"><value>首选SSID（自动连接）</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>取消固定</value></data>
+  <data name="Adapter_Pinned_Empty"><value>没有固定的SSID</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>自动加入将按此顺序尝试这些网络</value></data>
+  <data name="Adapter_Enabled_Label"><value>使用此适配器</value></data>
+  <data name="Adapter_Enabled_Desc"><value>禁用后将从列表中隐藏</value></data>
+
+  <data name="Adapter_Band_24"><value>仅 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>仅 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>输入网络密码</value></data>
+  <data name="Label_ShowPassword"><value>显示密码</value></data>
+
+  <data name="About_Title"><value>关于 MWC</value></data>
+  <data name="About_Automation"><value>应用信息</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows 多适配器 Wi-Fi 管理工具。
+支持 WPA3、企业版、二维码和 CLI。</value></data>
+  <data name="About_GitHub"><value>在 GitHub 查看源码</value></data>
+  <data name="About_ReportBug"><value>报告 Bug</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

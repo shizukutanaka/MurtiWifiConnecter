@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} 어댑터 연결됨</value></data>
   <data name="Status_NetworksFound"><value>{0}개 네트워크</value></data>
   <data name="Status_ProfileCount"><value>{0}개 프로파일</value></data>
+
+  <data name="Settings_Title"><value>설정</value></data>
+  <data name="Settings_DialogAutomation"><value>설정 대화상자</value></data>
+  <data name="Settings_Section_Display"><value>화면</value></data>
+  <data name="Settings_DisplayMode_Label"><value>표시 모드</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>간단: 연결 중심 / 전문: 기술 정보 표시</value></data>
+  <data name="Settings_Mode_Simple"><value>간단</value></data>
+  <data name="Settings_Mode_Expert"><value>전문가</value></data>
+  <data name="Settings_Theme"><value>테마</value></data>
+  <data name="Theme_Dark"><value>어두운</value></data>
+  <data name="Theme_Light"><value>밝은</value></data>
+  <data name="Theme_System"><value>시스템 기본값</value></data>
+  <data name="Settings_Language"><value>언어</value></data>
+  <data name="Settings_Section_Scan"><value>스캔</value></data>
+  <data name="Settings_ScanInterval_Label"><value>자동 스캔 간격</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>배터리 소비에 영향</value></data>
+  <data name="Settings_ScanOnStartup"><value>시작 시 자동 스캔</value></data>
+  <data name="Settings_Section_Notify"><value>알림</value></data>
+  <data name="Settings_Notify_Label"><value>연결 알림 표시</value></data>
+  <data name="Settings_Notify_Desc"><value>알림 센터에 팝업 표시</value></data>
+  <data name="Action_Save"><value>저장</value></data>
+  <data name="Action_ResetDefaults"><value>기본값으로 재설정</value></data>
+  <data name="Adapter_Dialog_Title"><value>어댑터 설정</value></data>
+  <data name="Adapter_Dialog_Automation"><value>무선 어댑터 설정</value></data>
+  <data name="Adapter_DisplayName_Section"><value>표시 이름</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>예: 가정용 동글 / 모바일 / 5GHz 전용</value></data>
+  <data name="Adapter_Band_Section"><value>주파수 대역</value></data>
+  <data name="Band_Any"><value>모든 대역</value></data>
+  <data name="Adapter_Band_6E"><value>6 GHz 전용 (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>이 어댑터가 사용할 대역 제한</value></data>
+  <data name="Adapter_Pinned_Section"><value>선호 SSID (자동 연결)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>고정 해제</value></data>
+  <data name="Adapter_Pinned_Empty"><value>고정된 SSID 없음</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>자동 연결이 이 순서로 시도합니다</value></data>
+  <data name="Adapter_Enabled_Label"><value>이 어댑터 사용</value></data>
+  <data name="Adapter_Enabled_Desc"><value>비활성화하면 목록에서 숨겨집니다</value></data>
+
+  <data name="Adapter_Band_24"><value>2.4 GHz 전용</value></data>
+  <data name="Adapter_Band_5"><value>5 GHz 전용</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>네트워크 비밀번호 입력</value></data>
+  <data name="Label_ShowPassword"><value>비밀번호 표시</value></data>
+
+  <data name="About_Title"><value>MWC 정보</value></data>
+  <data name="About_Automation"><value>앱 정보</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows 다중 어댑터 Wi-Fi 관리자.
+WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
+  <data name="About_GitHub"><value>GitHub에서 소스 보기</value></data>
+  <data name="About_ReportBug"><value>버그 신고</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} adaptadores conectados</value></data>
   <data name="Status_NetworksFound"><value>{0} redes</value></data>
   <data name="Status_ProfileCount"><value>{0} perfis</value></data>
+
+  <data name="Settings_Title"><value>Configurações</value></data>
+  <data name="Settings_DialogAutomation"><value>Caixa de configurações</value></data>
+  <data name="Settings_Section_Display"><value>Exibição</value></data>
+  <data name="Settings_DisplayMode_Label"><value>Modo de exibição</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>Simples: foco na conexão / Especialista: informações técnicas</value></data>
+  <data name="Settings_Mode_Simple"><value>Simples</value></data>
+  <data name="Settings_Mode_Expert"><value>Especialista</value></data>
+  <data name="Settings_Theme"><value>Tema</value></data>
+  <data name="Theme_Dark"><value>Escuro</value></data>
+  <data name="Theme_Light"><value>Claro</value></data>
+  <data name="Theme_System"><value>Padrão do sistema</value></data>
+  <data name="Settings_Language"><value>Idioma</value></data>
+  <data name="Settings_Section_Scan"><value>Varredura</value></data>
+  <data name="Settings_ScanInterval_Label"><value>Intervalo de varredura</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>Afeta o consumo de bateria</value></data>
+  <data name="Settings_ScanOnStartup"><value>Varrer ao iniciar</value></data>
+  <data name="Settings_Section_Notify"><value>Notificações</value></data>
+  <data name="Settings_Notify_Label"><value>Mostrar notificações de conexão</value></data>
+  <data name="Settings_Notify_Desc"><value>Exibir no Centro de Ações</value></data>
+  <data name="Action_Save"><value>Salvar</value></data>
+  <data name="Action_ResetDefaults"><value>Redefinir padrões</value></data>
+  <data name="Adapter_Dialog_Title"><value>Configurações do adaptador</value></data>
+  <data name="Adapter_Dialog_Automation"><value>Configurações do adaptador sem fio</value></data>
+  <data name="Adapter_DisplayName_Section"><value>Nome de exibição</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>ex.: dongle casa / móvel / apenas 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>Banda de frequência</value></data>
+  <data name="Band_Any"><value>Todas as bandas</value></data>
+  <data name="Adapter_Band_6E"><value>Somente 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>Restringir as bandas usadas por este adaptador</value></data>
+  <data name="Adapter_Pinned_Section"><value>SSIDs preferidos (conexão automática)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>Desafixar</value></data>
+  <data name="Adapter_Pinned_Empty"><value>Nenhum SSID fixado</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join tentará essas redes em ordem</value></data>
+  <data name="Adapter_Enabled_Label"><value>Usar este adaptador</value></data>
+  <data name="Adapter_Enabled_Desc"><value>Desativar oculta da lista</value></data>
+
+  <data name="Adapter_Band_24"><value>Somente 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>Somente 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>Digite a senha da rede</value></data>
+  <data name="Label_ShowPassword"><value>Mostrar senha</value></data>
+
+  <data name="About_Title"><value>Sobre o MWC</value></data>
+  <data name="About_Automation"><value>Informações do app</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Gerenciador Wi-Fi multi-adaptador para Windows.
+Suporta WPA3, Enterprise, QR code e CLI.</value></data>
+  <data name="About_GitHub"><value>Ver código no GitHub</value></data>
+  <data name="About_ReportBug"><value>Reportar bug</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

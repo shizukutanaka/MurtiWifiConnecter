@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} adaptadores conectados</value></data>
   <data name="Status_NetworksFound"><value>{0} redes</value></data>
   <data name="Status_ProfileCount"><value>{0} perfiles</value></data>
+
+  <data name="Settings_Title"><value>Configuración</value></data>
+  <data name="Settings_DialogAutomation"><value>Diálogo de configuración</value></data>
+  <data name="Settings_Section_Display"><value>Pantalla</value></data>
+  <data name="Settings_DisplayMode_Label"><value>Modo de visualización</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>Simple: enfoque en conectar / Experto: información técnica</value></data>
+  <data name="Settings_Mode_Simple"><value>Simple</value></data>
+  <data name="Settings_Mode_Expert"><value>Experto</value></data>
+  <data name="Settings_Theme"><value>Tema</value></data>
+  <data name="Theme_Dark"><value>Oscuro</value></data>
+  <data name="Theme_Light"><value>Claro</value></data>
+  <data name="Theme_System"><value>Predeterminado del sistema</value></data>
+  <data name="Settings_Language"><value>Idioma</value></data>
+  <data name="Settings_Section_Scan"><value>Escaneo</value></data>
+  <data name="Settings_ScanInterval_Label"><value>Intervalo de escaneo</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>Afecta el consumo de batería</value></data>
+  <data name="Settings_ScanOnStartup"><value>Escanear al inicio</value></data>
+  <data name="Settings_Section_Notify"><value>Notificaciones</value></data>
+  <data name="Settings_Notify_Label"><value>Mostrar notificaciones de conexión</value></data>
+  <data name="Settings_Notify_Desc"><value>Mostrar notificación en el Centro de actividades</value></data>
+  <data name="Action_Save"><value>Guardar</value></data>
+  <data name="Action_ResetDefaults"><value>Restablecer valores predeterminados</value></data>
+  <data name="Adapter_Dialog_Title"><value>Configuración del adaptador</value></data>
+  <data name="Adapter_Dialog_Automation"><value>Configuración del adaptador inalámbrico</value></data>
+  <data name="Adapter_DisplayName_Section"><value>Nombre para mostrar</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>ej. dongle hogar / móvil / solo 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>Banda de frecuencia</value></data>
+  <data name="Band_Any"><value>Todas las bandas</value></data>
+  <data name="Adapter_Band_6E"><value>Solo 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>Restringir las bandas que usa este adaptador</value></data>
+  <data name="Adapter_Pinned_Section"><value>SSIDs preferidos (conexión automática)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>Desanclar</value></data>
+  <data name="Adapter_Pinned_Empty"><value>No hay SSIDs anclados</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join intentará estas redes en orden</value></data>
+  <data name="Adapter_Enabled_Label"><value>Usar este adaptador</value></data>
+  <data name="Adapter_Enabled_Desc"><value>Desactivar lo oculta de la lista</value></data>
+
+  <data name="Adapter_Band_24"><value>Solo 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>Solo 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>Ingrese la contraseña de red</value></data>
+  <data name="Label_ShowPassword"><value>Mostrar contraseña</value></data>
+
+  <data name="About_Title"><value>Acerca de MWC</value></data>
+  <data name="About_Automation"><value>Información de la aplicación</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Gestor Wi-Fi multi-adaptador para Windows.
+Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
+  <data name="About_GitHub"><value>Ver código en GitHub</value></data>
+  <data name="About_ReportBug"><value>Reportar un error</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

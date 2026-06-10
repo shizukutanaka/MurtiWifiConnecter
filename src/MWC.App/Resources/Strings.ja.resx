@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} 子機が接続中</value></data>
   <data name="Status_NetworksFound"><value>{0} 個のネットワーク</value></data>
   <data name="Status_ProfileCount"><value>{0} 件のプロファイル</value></data>
+
+  <data name="Settings_Title"><value>設定</value></data>
+  <data name="Settings_DialogAutomation"><value>設定ダイアログ</value></data>
+  <data name="Settings_Section_Display"><value>表示</value></data>
+  <data name="Settings_DisplayMode_Label"><value>表示モード</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>シンプル: 接続に集中 / 詳細: 技術情報も表示</value></data>
+  <data name="Settings_Mode_Simple"><value>シンプル</value></data>
+  <data name="Settings_Mode_Expert"><value>詳細</value></data>
+  <data name="Settings_Theme"><value>テーマ</value></data>
+  <data name="Theme_Dark"><value>ダーク</value></data>
+  <data name="Theme_Light"><value>ライト</value></data>
+  <data name="Theme_System"><value>システムに合わせる</value></data>
+  <data name="Settings_Language"><value>言語</value></data>
+  <data name="Settings_Section_Scan"><value>スキャン</value></data>
+  <data name="Settings_ScanInterval_Label"><value>自動スキャン間隔</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>バッテリー消費に影響します</value></data>
+  <data name="Settings_ScanOnStartup"><value>起動時に自動スキャン</value></data>
+  <data name="Settings_Section_Notify"><value>通知</value></data>
+  <data name="Settings_Notify_Label"><value>接続・切断の通知を表示</value></data>
+  <data name="Settings_Notify_Desc"><value>アクションセンターにトースト表示</value></data>
+  <data name="Action_Save"><value>保存</value></data>
+  <data name="Action_ResetDefaults"><value>デフォルトに戻す</value></data>
+  <data name="Adapter_Dialog_Title"><value>子機の設定</value></data>
+  <data name="Adapter_Dialog_Automation"><value>無線アダプター設定</value></data>
+  <data name="Adapter_DisplayName_Section"><value>表示名</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>例: 自宅用ドングル / モバイル用 / 5GHz専用</value></data>
+  <data name="Adapter_Band_Section"><value>使用バンド</value></data>
+  <data name="Band_Any"><value>すべてのバンド</value></data>
+  <data name="Adapter_Band_6E"><value>6 GHz のみ (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>この子機で表示・接続できるバンドを制限</value></data>
+  <data name="Adapter_Pinned_Section"><value>優先SSID(自動接続候補)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>ピン留めを外す</value></data>
+  <data name="Adapter_Pinned_Empty"><value>ピン留めされたSSIDはありません</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Joinはこの順位で自動接続を試みます</value></data>
+  <data name="Adapter_Enabled_Label"><value>この子機を使用</value></data>
+  <data name="Adapter_Enabled_Desc"><value>無効にすると一覧から非表示になります</value></data>
+
+  <data name="Adapter_Band_24"><value>2.4 GHz のみ</value></data>
+  <data name="Adapter_Band_5"><value>5 GHz のみ</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>ネットワークのパスワードを入力</value></data>
+  <data name="Label_ShowPassword"><value>パスワードを表示</value></data>
+
+  <data name="About_Title"><value>MWC について</value></data>
+  <data name="About_Automation"><value>アプリ情報</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows 用マルチアダプター Wi-Fi 管理ツール。
+WPA3・Enterprise・QR コード・CLI に対応。</value></data>
+  <data name="About_GitHub"><value>GitHub でソースを見る</value></data>
+  <data name="About_ReportBug"><value>バグ報告</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

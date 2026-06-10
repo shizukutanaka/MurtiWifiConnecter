@@ -185,4 +185,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} অ্যাডাপ্টার সংযুক্ত</value></data>
   <data name="Status_NetworksFound"><value>{0}টি নেটওয়ার্ক</value></data>
   <data name="Status_ProfileCount"><value>{0}টি প্রোফাইল</value></data>
+
+  <data name="Settings_Title"><value>সেটিংস</value></data>
+  <data name="Settings_DialogAutomation"><value>সেটিংস ডায়ালগ</value></data>
+  <data name="Settings_Section_Display"><value>প্রদর্শন</value></data>
+  <data name="Settings_DisplayMode_Label"><value>প্রদর্শন মোড</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>সহজ: সংযোগে ফোকাস / বিশেষজ্ঞ: প্রযুক্তিগত তথ্য</value></data>
+  <data name="Settings_Mode_Simple"><value>সহজ</value></data>
+  <data name="Settings_Mode_Expert"><value>বিশেষজ্ঞ</value></data>
+  <data name="Settings_Theme"><value>থিম</value></data>
+  <data name="Theme_Dark"><value>গাঢ়</value></data>
+  <data name="Theme_Light"><value>হালকা</value></data>
+  <data name="Theme_System"><value>সিস্টেম ডিফল্ট</value></data>
+  <data name="Settings_Language"><value>ভাষা</value></data>
+  <data name="Settings_Section_Scan"><value>স্ক্যানিং</value></data>
+  <data name="Settings_ScanInterval_Label"><value>স্বয়ংক্রিয় স্ক্যান বিরতি</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>ব্যাটারি খরচকে প্রভাবিত করে</value></data>
+  <data name="Settings_ScanOnStartup"><value>স্টার্টআপে স্বয়ংক্রিয় স্ক্যান</value></data>
+  <data name="Settings_Section_Notify"><value>বিজ্ঞপ্তি</value></data>
+  <data name="Settings_Notify_Label"><value>সংযোগ বিজ্ঞপ্তি দেখান</value></data>
+  <data name="Settings_Notify_Desc"><value>অ্যাকশন সেন্টারে টোস্ট দেখান</value></data>
+  <data name="Action_Save"><value>সংরক্ষণ করুন</value></data>
+  <data name="Action_ResetDefaults"><value>ডিফল্টে রিসেট করুন</value></data>
+  <data name="Adapter_Dialog_Title"><value>অ্যাডাপ্টার সেটিংস</value></data>
+  <data name="Adapter_Dialog_Automation"><value>ওয়্যারলেস অ্যাডাপ্টার সেটিংস</value></data>
+  <data name="Adapter_DisplayName_Section"><value>প্রদর্শন নাম</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>উদা.: হোম ডঙ্গল / মোবাইল / শুধু 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>ফ্রিকোয়েন্সি ব্যান্ড</value></data>
+  <data name="Band_Any"><value>সব ব্যান্ড</value></data>
+  <data name="Adapter_Band_6E"><value>শুধু 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>এই অ্যাডাপ্টারের ব্যান্ড সীমিত করুন</value></data>
+  <data name="Adapter_Pinned_Section"><value>পছন্দের SSID (স্বয়ংক্রিয় সংযোগ)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>আনপিন করুন</value></data>
+  <data name="Adapter_Pinned_Empty"><value>কোনো পিন করা SSID নেই</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join এই নেটওয়ার্কগুলি ক্রমে চেষ্টা করবে</value></data>
+  <data name="Adapter_Enabled_Label"><value>এই অ্যাডাপ্টার ব্যবহার করুন</value></data>
+  <data name="Adapter_Enabled_Desc"><value>অক্ষম করলে তালিকা থেকে লুকিয়ে যাবে</value></data>
+
+  <data name="Adapter_Band_24"><value>শুধু 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>শুধু 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>নেটওয়ার্ক পাসওয়ার্ড লিখুন</value></data>
+  <data name="Label_ShowPassword"><value>পাসওয়ার্ড দেখান</value></data>
+
+  <data name="About_Title"><value>MWC সম্পর্কে</value></data>
+  <data name="About_Automation"><value>অ্যাপ তথ্য</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows এর জন্য মাল্টি-অ্যাডাপ্টার Wi-Fi ম্যানেজার।
+WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data>
+  <data name="About_GitHub"><value>GitHub-এ সোর্স দেখুন</value></data>
+  <data name="About_ReportBug"><value>বাগ রিপোর্ট করুন</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

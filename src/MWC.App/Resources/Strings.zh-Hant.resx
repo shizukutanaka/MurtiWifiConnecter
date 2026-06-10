@@ -190,4 +190,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} 個介面卡已連接</value></data>
   <data name="Status_NetworksFound"><value>{0} 個網路</value></data>
   <data name="Status_ProfileCount"><value>{0} 個設定檔</value></data>
+
+  <data name="Settings_Title"><value>設定</value></data>
+  <data name="Settings_DialogAutomation"><value>設定對話框</value></data>
+  <data name="Settings_Section_Display"><value>顯示</value></data>
+  <data name="Settings_DisplayMode_Label"><value>顯示模式</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>簡單：專注連線 / 專家：顯示技術資訊</value></data>
+  <data name="Settings_Mode_Simple"><value>簡單</value></data>
+  <data name="Settings_Mode_Expert"><value>專家</value></data>
+  <data name="Settings_Theme"><value>主題</value></data>
+  <data name="Theme_Dark"><value>深色</value></data>
+  <data name="Theme_Light"><value>淺色</value></data>
+  <data name="Theme_System"><value>跟隨系統</value></data>
+  <data name="Settings_Language"><value>語言</value></data>
+  <data name="Settings_Section_Scan"><value>掃描</value></data>
+  <data name="Settings_ScanInterval_Label"><value>自動掃描間隔</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>影響電池消耗</value></data>
+  <data name="Settings_ScanOnStartup"><value>啟動時自動掃描</value></data>
+  <data name="Settings_Section_Notify"><value>通知</value></data>
+  <data name="Settings_Notify_Label"><value>顯示連線通知</value></data>
+  <data name="Settings_Notify_Desc"><value>在動作中心顯示提示</value></data>
+  <data name="Action_Save"><value>儲存</value></data>
+  <data name="Action_ResetDefaults"><value>重設為預設值</value></data>
+  <data name="Adapter_Dialog_Title"><value>介面卡設定</value></data>
+  <data name="Adapter_Dialog_Automation"><value>無線介面卡設定</value></data>
+  <data name="Adapter_DisplayName_Section"><value>顯示名稱</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>例: 家用加密狗 / 行動 / 僅5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>使用頻段</value></data>
+  <data name="Band_Any"><value>所有頻段</value></data>
+  <data name="Adapter_Band_6E"><value>僅 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>限制此介面卡使用的頻段</value></data>
+  <data name="Adapter_Pinned_Section"><value>慣用SSID（自動連線）</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>取消釘選</value></data>
+  <data name="Adapter_Pinned_Empty"><value>沒有釘選的SSID</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>自動加入將依此順序嘗試連線</value></data>
+  <data name="Adapter_Enabled_Label"><value>使用此介面卡</value></data>
+  <data name="Adapter_Enabled_Desc"><value>停用後將從清單中隱藏</value></data>
+
+  <data name="Adapter_Band_24"><value>僅 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>僅 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>輸入網路密碼</value></data>
+  <data name="Label_ShowPassword"><value>顯示密碼</value></data>
+
+  <data name="About_Title"><value>關於 MWC</value></data>
+  <data name="About_Automation"><value>應用程式資訊</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows 多介面卡 Wi-Fi 管理工具。
+支援 WPA3、企業版、QR 碼和 CLI。</value></data>
+  <data name="About_GitHub"><value>在 GitHub 查看原始碼</value></data>
+  <data name="About_ReportBug"><value>回報 Bug</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

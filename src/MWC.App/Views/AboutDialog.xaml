@@ -1,10 +1,11 @@
 <Window x:Class="MWC.App.Views.AboutDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MWC について" Width="340" SizeToContent="Height"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.AboutTitle}" Width="340" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
-        AutomationProperties.Name="アプリ情報">
+        AutomationProperties.Name="{x:Static r:L.AboutAutomation}">
     <StackPanel Margin="28,28,28,24">
 
         <!-- アイコン -->
@@ -12,17 +13,17 @@
                    Margin="0,0,0,12"/>
 
         <!-- 名前 + バージョン -->
-        <TextBlock Text="MWC" FontSize="22" FontWeight="Bold"
+        <TextBlock Text="{x:Static r:L.AppTitle}" FontSize="22" FontWeight="Bold"
                    HorizontalAlignment="Center"/>
         <TextBlock x:Name="VersionLabel" FontSize="12" Foreground="{DynamicResource FgMutedBrush}"
                    HorizontalAlignment="Center" Margin="0,4,0,0"/>
-        <TextBlock Text="Multi WiFi Connector" FontSize="12" Foreground="{DynamicResource FgVeryMutedBrush}"
+        <TextBlock Text="{x:Static r:L.AboutTagline}" FontSize="12" Foreground="{DynamicResource FgVeryMutedBrush}"
                    HorizontalAlignment="Center" Margin="0,2,0,20"/>
 
         <Separator Background="{DynamicResource DividerBrush}" Margin="0,0,0,16"/>
 
         <!-- 説明 -->
-        <TextBlock Text="Windows 用マルチアダプター Wi-Fi 管理ツール。&#xa;WPA3・Enterprise・QR コード・CLI に対応。"
+        <TextBlock Text="{x:Static r:L.AboutDesc}"
                    FontSize="12" Foreground="{DynamicResource FgMutedBrush}"
                    TextWrapping="Wrap" TextAlignment="Center"
                    Margin="0,0,0,16"/>
@@ -32,24 +33,25 @@
             <TextBlock FontSize="12">
                 <Hyperlink x:Name="GitHubLink" NavigateUri="https://github.com/shizukutanaka/MurtiWifiConnecter"
                            RequestNavigate="OnHyperlinkNavigate" Foreground="{DynamicResource AccentBrush}">
-                    GitHub でソースを見る
+                    <Run Text="{x:Static r:L.AboutGitHub}"/>
                 </Hyperlink>
             </TextBlock>
             <TextBlock Text="  ·  " Foreground="{DynamicResource FgVeryMutedBrush}" FontSize="12"/>
             <TextBlock FontSize="12">
                 <Hyperlink x:Name="IssueLink" NavigateUri="https://github.com/shizukutanaka/MurtiWifiConnecter/issues"
                            RequestNavigate="OnHyperlinkNavigate" Foreground="{DynamicResource AccentBrush}">
-                    バグ報告
+                    <Run Text="{x:Static r:L.AboutReportBug}"/>
                 </Hyperlink>
             </TextBlock>
         </StackPanel>
 
         <!-- ライセンス -->
-        <TextBlock Text="MIT License © 2026 Shizuku Tanaka"
+        <TextBlock Text="{x:Static r:L.AboutLicense}"
                    FontSize="10" Foreground="{DynamicResource FgVeryMutedBrush}"
                    HorizontalAlignment="Center" Margin="0,0,0,20"/>
 
-        <Button AutomationProperties.Name="閉じる" Content="閉じる" IsDefault="True" IsCancel="True"
+        <Button Content="{x:Static r:L.ActionClose}"
+                AutomationProperties.Name="{x:Static r:L.ActionClose}" IsDefault="True" IsCancel="True"
                 Click="OnClose" HorizontalAlignment="Center"
                 Padding="24,8" Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}"
                 BorderThickness="0"/>

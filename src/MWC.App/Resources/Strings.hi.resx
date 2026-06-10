@@ -185,4 +185,55 @@
   <data name="Status_AdaptersConnected"><value>{0} / {1} अडेप्टर कनेक्ट हैं</value></data>
   <data name="Status_NetworksFound"><value>{0} नेटवर्क</value></data>
   <data name="Status_ProfileCount"><value>{0} प्रोफ़ाइल</value></data>
+
+  <data name="Settings_Title"><value>सेटिंग्स</value></data>
+  <data name="Settings_DialogAutomation"><value>सेटिंग्स संवाद</value></data>
+  <data name="Settings_Section_Display"><value>प्रदर्शन</value></data>
+  <data name="Settings_DisplayMode_Label"><value>प्रदर्शन मोड</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>सरल: कनेक्शन पर ध्यान / विशेषज्ञ: तकनीकी जानकारी</value></data>
+  <data name="Settings_Mode_Simple"><value>सरल</value></data>
+  <data name="Settings_Mode_Expert"><value>विशेषज्ञ</value></data>
+  <data name="Settings_Theme"><value>थीम</value></data>
+  <data name="Theme_Dark"><value>गहरा</value></data>
+  <data name="Theme_Light"><value>हल्का</value></data>
+  <data name="Theme_System"><value>सिस्टम डिफ़ॉल्ट</value></data>
+  <data name="Settings_Language"><value>भाषा</value></data>
+  <data name="Settings_Section_Scan"><value>स्कैनिंग</value></data>
+  <data name="Settings_ScanInterval_Label"><value>स्वतः-स्कैन अंतराल</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>बैटरी की खपत को प्रभावित करता है</value></data>
+  <data name="Settings_ScanOnStartup"><value>स्टार्टअप पर स्वतः-स्कैन</value></data>
+  <data name="Settings_Section_Notify"><value>सूचनाएं</value></data>
+  <data name="Settings_Notify_Label"><value>कनेक्शन अधिसूचनाएं दिखाएं</value></data>
+  <data name="Settings_Notify_Desc"><value>एक्शन सेंटर में टोस्ट दिखाएं</value></data>
+  <data name="Action_Save"><value>सहेजें</value></data>
+  <data name="Action_ResetDefaults"><value>डिफ़ॉल्ट पर रीसेट करें</value></data>
+  <data name="Adapter_Dialog_Title"><value>एडाप्टर सेटिंग्स</value></data>
+  <data name="Adapter_Dialog_Automation"><value>वायरलेस एडाप्टर सेटिंग्स</value></data>
+  <data name="Adapter_DisplayName_Section"><value>प्रदर्शन नाम</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>उदा.: होम डोंगल / मोबाइल / केवल 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>आवृत्ति बैंड</value></data>
+  <data name="Band_Any"><value>सभी बैंड</value></data>
+  <data name="Adapter_Band_6E"><value>केवल 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>इस एडाप्टर के लिए बैंड सीमित करें</value></data>
+  <data name="Adapter_Pinned_Section"><value>पसंदीदा SSID (ऑटो-कनेक्ट)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>अनपिन करें</value></data>
+  <data name="Adapter_Pinned_Empty"><value>कोई पिन किए SSID नहीं</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join इन नेटवर्क को क्रम में आज़माएगा</value></data>
+  <data name="Adapter_Enabled_Label"><value>इस एडाप्टर का उपयोग करें</value></data>
+  <data name="Adapter_Enabled_Desc"><value>अक्षम करने पर सूची से छुप जाएगा</value></data>
+
+  <data name="Adapter_Band_24"><value>केवल 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>केवल 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>नेटवर्क पासवर्ड दर्ज करें</value></data>
+  <data name="Label_ShowPassword"><value>पासवर्ड दिखाएं</value></data>
+
+  <data name="About_Title"><value>MWC के बारे में</value></data>
+  <data name="About_Automation"><value>ऐप जानकारी</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Windows के लिए मल्टी-एडाप्टर Wi-Fi मैनेजर।
+WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
+  <data name="About_GitHub"><value>GitHub पर सोर्स देखें</value></data>
+  <data name="About_ReportBug"><value>बग रिपोर्ट करें</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
 </root>

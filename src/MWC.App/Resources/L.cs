@@ -85,4 +85,58 @@ public static class L
         => Format("Status_AdaptersConnected", connected, total);
     public static string StatusNetworksFound(int count)   => Format("Status_NetworksFound", count);
     public static string StatusProfileCount(int count)    => Format("Status_ProfileCount", count);
+
+    // ─── Settings dialog ─────────────────────────────────────────────
+    public static string SettingsTitle             => Get("Settings_Title");
+    public static string SettingsDialogAutomation  => Get("Settings_DialogAutomation");
+    public static string SettingsSectionDisplay    => Get("Settings_Section_Display");
+    public static string SettingsDisplayModeLabel  => Get("Settings_DisplayMode_Label");
+    public static string SettingsDisplayModeDesc   => Get("Settings_DisplayMode_Desc");
+    public static string SettingsModeSimple        => Get("Settings_Mode_Simple");
+    public static string SettingsModeExpert        => Get("Settings_Mode_Expert");
+    public static string SettingsTheme             => Get("Settings_Theme");
+    public static string ThemeDark                 => Get("Theme_Dark");
+    public static string ThemeLight                => Get("Theme_Light");
+    public static string ThemeSystem               => Get("Theme_System");
+    public static string SettingsLanguage          => Get("Settings_Language");
+    public static string SettingsSectionScan       => Get("Settings_Section_Scan");
+    public static string SettingsScanIntervalLabel => Get("Settings_ScanInterval_Label");
+    public static string SettingsScanIntervalDesc  => Get("Settings_ScanInterval_Desc");
+    public static string SettingsScanOnStartup     => Get("Settings_ScanOnStartup");
+    public static string SettingsSectionNotify     => Get("Settings_Section_Notify");
+    public static string SettingsNotifyLabel       => Get("Settings_Notify_Label");
+    public static string SettingsNotifyDesc        => Get("Settings_Notify_Desc");
+    public static string ActionSave                => Get("Action_Save");
+    public static string ActionResetDefaults       => Get("Action_ResetDefaults");
+
+    // ─── Adapter preferences dialog ──────────────────────────────────
+    public static string AdapterDialogTitle        => Get("Adapter_Dialog_Title");
+    public static string AdapterDialogAutomation   => Get("Adapter_Dialog_Automation");
+    public static string AdapterDisplayNameSection => Get("Adapter_DisplayName_Section");
+    public static string AdapterDisplayNameHint    => Get("Adapter_DisplayName_Hint");
+    public static string AdapterBandSection        => Get("Adapter_Band_Section");
+    public static string BandAny                   => Get("Band_Any");
+    public static string AdapterBand24             => Get("Adapter_Band_24");
+    public static string AdapterBand5              => Get("Adapter_Band_5");
+    public static string AdapterBand6E             => Get("Adapter_Band_6E");
+    public static string AdapterBandDesc           => Get("Adapter_Band_Desc");
+    public static string AdapterPinnedSection      => Get("Adapter_Pinned_Section");
+    public static string AdapterPinnedUnpin        => Get("Adapter_Pinned_Unpin");
+    public static string AdapterPinnedEmpty        => Get("Adapter_Pinned_Empty");
+    public static string AdapterAutoJoinDesc       => Get("Adapter_AutoJoin_Desc");
+    public static string AdapterEnabledLabel        => Get("Adapter_Enabled_Label");
+    public static string AdapterEnabledDesc         => Get("Adapter_Enabled_Desc");
+
+    // ─── Connect dialog ───────────────────────────────────────────────
+    public static string LabelPasswordPlaceholder  => Get("Label_PasswordPlaceholder");
+    public static string LabelShowPassword         => Get("Label_ShowPassword");
+
+    // ─── About dialog ─────────────────────────────────────────────────
+    public static string AboutTitle                => Get("About_Title");
+    public static string AboutAutomation           => Get("About_Automation");
+    public static string AboutTagline              => Get("About_Tagline");
+    public static string AboutDesc                 => Get("About_Desc");
+    public static string AboutGitHub               => Get("About_GitHub");
+    public static string AboutReportBug            => Get("About_ReportBug");
+    public static string AboutLicense              => Get("About_License");
 }
