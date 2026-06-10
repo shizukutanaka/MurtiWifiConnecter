@@ -4,13 +4,14 @@
         xmlns:ctrl="clr-namespace:MWC.App.Controls"
         xmlns:conv="clr-namespace:MWC.App.Converters"
         xmlns:vm="clr-namespace:MWC.App.ViewModels"
-        Title="MWC — Multi WiFi Connector" Width="880" Height="620"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.MainWindowTitle}" Width="880" Height="620"
         MinWidth="540" MinHeight="420"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI Variable, Segoe UI, Yu Gothic UI, sans-serif"
         FontSize="13"
-        AutomationProperties.Name="MWC メインウィンドウ">
+        AutomationProperties.Name="{x:Static r:L.MainWindowAutomation}">
 
     <Window.Resources>
         <!-- カラートークンは Dark.xaml/Light.xaml から DynamicResource で供給 -->
@@ -151,8 +152,8 @@
                          Style="{StaticResource SearchBox}"
                          Text="{Binding Filter.SearchText, UpdateSourceTrigger=PropertyChanged}"
                          Margin="16,0,0,0"
-                         ToolTip="ネットワーク名で検索 (Ctrl+F)"
-                         AutomationProperties.Name="ネットワーク検索"/>
+                         ToolTip="{x:Static r:L.MainSearchTooltip}"
+                         AutomationProperties.Name="{x:Static r:L.MainSearchAutomation}"/>
 
                 <!-- 接続状態インジケーター -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,12,0">
@@ -179,16 +180,16 @@
                 <!-- アクションボタン群 -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
                     <!-- 再スキャン -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="ネットワークを再スキャン" Content="↻"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainRescanAutomation}" Content="↻"
                             Command="{Binding RefreshCommand}"
-                            ToolTip="再スキャン (Ctrl+R)"
+                            ToolTip="{x:Static r:L.MainRescanTooltip}"
                             Margin="0,0,4,0"/>
 
                     <!-- Simple/Expert 切替 -->
-                    <Button AutomationProperties.Name="シンプル/詳細モードを切り替え" Style="{StaticResource BtnIcon}"
+                    <Button AutomationProperties.Name="{x:Static r:L.MainToggleModeTooltip}" Style="{StaticResource BtnIcon}"
                             Command="{Binding Filter.ToggleExpertModeCommand}"
                             Margin="0,0,4,0"
-                            ToolTip="シンプル/詳細モードを切り替え">
+                            ToolTip="{x:Static r:L.MainToggleModeTooltip}">
                         <Button.Content>
                             <TextBlock>
                                 <TextBlock.Style>
@@ -207,43 +208,43 @@
                     </Button>
 
                     <!-- 全子機俯瞰ビュー (新規) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="全子機俯瞰ビュー" Content="📡"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainAllAdaptersAutomation}" Content="📡"
                             Click="OnAllAdaptersClick"
                             Margin="0,0,4,0"
-                            ToolTip="すべての無線子機を俯瞰 (Ctrl+Shift+A)"/>
+                            ToolTip="{x:Static r:L.MainAllAdaptersTooltip}"/>
 
                     <!-- ⋯ オーバーフローメニュー (Apple HIG: 頻度低アクションを隠す) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="その他のメニュー" Content="⋯"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainOverflowMenuAutomation}" Content="⋯"
                             Margin="0,0,4,0"
                             Click="OnOverflowMenu">
                         <Button.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="📥  CSV エクスポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportCsv}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="csv"/>
-                                <MenuItem Header="📥  JSON エクスポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportJson}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="json"/>
-                                <MenuItem Header="📄  テキストレポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportTxt}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="txt"/>
                                 <Separator/>
-                                <MenuItem Header="QR コード表示"
+                                <MenuItem Header="{x:Static r:L.MenuShowQr}"
                                           Click="OnShowQrClick"/>
                                 <Separator/>
-                                <MenuItem Header="⚙️  設定…"
+                                <MenuItem Header="{x:Static r:L.MenuSettings}"
                                           Click="OnSettingsClick"/>
-                                <MenuItem Header="ℹ️  MWC について"
+                                <MenuItem Header="{x:Static r:L.MenuAbout}"
                                           Click="OnAboutClick"/>
                                 <Separator/>
-                                <MenuItem Header="↻↻  全アダプターを並列スキャン  Ctrl+Shift+A"
+                                <MenuItem Header="{x:Static r:L.MenuScanAll}"
                                           Command="{Binding RefreshAllCommand}"/>
-                                <MenuItem Header="📋  保存済みネットワーク"
+                                <MenuItem Header="{x:Static r:L.MenuSavedNetworks}"
                                           Click="OnProfileManagerClick"/>
-                                <MenuItem Header="📊  ネットワーク品質計測"
+                                <MenuItem Header="{x:Static r:L.MenuQualityMeasure}"
                                           Click="OnMeasureQualityClick"/>
                                 <Separator/>
-                                <MenuItem Header="📡  すべての無線子機を表示"
+                                <MenuItem Header="{x:Static r:L.MenuAllAdapters}"
                                           Click="OnAllAdaptersClick"
                                           InputGestureText="Ctrl+Shift+A"/>
                             </ContextMenu>
@@ -251,8 +252,8 @@
                     </Button>
 
                     <!-- 接続ボタン -->
-                    <Button AutomationProperties.Name="選択したネットワークに接続" Style="{StaticResource BtnPrimary}"
-                            Content="接続…"
+                    <Button AutomationProperties.Name="{x:Static r:L.MainConnectAutomation}" Style="{StaticResource BtnPrimary}"
+                            Content="{x:Static r:L.ActionConnect}"
                             Click="OnConnectClick"
                             IsEnabled="{Binding SelectedAdapter.Selected,
                                         Converter={x:Null}, FallbackValue=False}"/>
@@ -284,7 +285,7 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          Margin="0,0,0,6"
-                         AutomationProperties.Name="無線アダプタータブ">
+                         AutomationProperties.Name="{x:Static r:L.MainAdapterTabsAutomation}">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"/>
@@ -447,7 +448,7 @@
                                         </EventTrigger>
                                     </TextBlock.Triggers>
                                 </TextBlock>
-                                <TextBlock Text="スキャン中…" FontSize="12"
+                                <TextBlock Text="{x:Static r:L.StatusScanning}" FontSize="12"
                                            Foreground="{DynamicResource FgMutedBrush}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -456,9 +457,9 @@
                         <!-- 空状態 (Empty State) -->
                         <ctrl:EmptyStateControl
                             Icon="📡"
-                            Title="ネットワークが見つかりません"
-                            Message="Wi-Fi アダプターが有効であることを確認してから、再スキャンしてください。"
-                            ActionLabel="再スキャン"
+                            Title="{x:Static r:L.LabelNetworksNotFound}"
+                            Message="{x:Static r:L.MainEmptyStateMessage}"
+                            ActionLabel="{x:Static r:L.ActionRefresh}"
                             ActionCommand="{Binding RefreshCommand}">
                             <ctrl:EmptyStateControl.Style>
                                 <Style TargetType="ctrl:EmptyStateControl">
@@ -481,18 +482,18 @@
                                  VirtualizingPanel.IsVirtualizing="True"
                                  VirtualizingPanel.VirtualizationMode="Recycling"
                                  Padding="4"
-                                 AutomationProperties.Name="検出ネットワーク一覧">
+                                 AutomationProperties.Name="{x:Static r:L.MainNetworkListAutomation}">
 
                             <!-- 右クリックコンテキストメニュー -->
                             <ListBox.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="接続…" Click="OnConnectClick" FontWeight="SemiBold"/>
+                                    <MenuItem Header="{x:Static r:L.ActionConnect}" Click="OnConnectClick" FontWeight="SemiBold"/>
                                     <Separator/>
-                                    <MenuItem Header="QR コードを表示" Click="OnShowQrClick"/>
-                                    <MenuItem Header="SSID をコピー"   Click="OnCopySsid"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuShowQr}" Click="OnShowQrClick"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuCopySsid}" Click="OnCopySsid"/>
                                     <Separator/>
-                                    <MenuItem Header="このネットワークをピン留め" Click="OnPinNetwork"/>
-                                    <MenuItem Header="このネットワークを非表示"   Click="OnHideNetwork"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuPinNetwork}" Click="OnPinNetwork"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuHideNetwork}" Click="OnHideNetwork"/>
                                 </ContextMenu>
                             </ListBox.ContextMenu>
 
@@ -590,7 +591,7 @@
                                             <TextBlock Text="★" FontSize="10"
                                                        Foreground="{DynamicResource WarnBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,4,0"
-                                                       ToolTip="プロファイル保存済み">
+                                                       ToolTip="{x:Static r:L.MainProfileSavedTooltip}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -617,7 +618,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="接続中" FontSize="10"
+                                                <TextBlock Text="{x:Static r:L.DetailConnected}" FontSize="10"
                                                            FontWeight="Bold"
                                                            Foreground="{DynamicResource SuccessBrush}"/>
                                             </Border>
@@ -641,7 +642,7 @@
                                    Text="{Binding StatusMessage}"
                                    Foreground="{DynamicResource FgMutedBrush}" FontSize="11"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" AutomationProperties.Name="切断" Content="切断"
+                        <Button Grid.Column="1" AutomationProperties.Name="{x:Static r:L.ActionDisconnect}" Content="{x:Static r:L.ActionDisconnect}"
                                 Style="{StaticResource BtnGhost}"
                                 Command="{Binding SelectedAdapter.DisconnectCommand}"
                                 Padding="10,5" FontSize="11"/>
@@ -669,7 +670,7 @@
                     </TabControl.Resources>
 
                     <!-- ── 詳細タブ ── -->
-                    <TabItem Header="詳細">
+                    <TabItem Header="{x:Static r:L.TabDetail}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
                             <StackPanel>
                                 <TextBlock Text="{Binding SelectedAdapter.Detail.Ssid,
@@ -691,7 +692,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">認証</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailAuth}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.AuthLabel}"
                                                FontSize="11"/>
@@ -702,7 +703,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">暗号</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailCipher}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.CipherLabel}"
                                                FontSize="11"/>
@@ -713,7 +714,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">世代</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailPhy}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.PhyLabel}"
                                                FontSize="11"/>
@@ -724,7 +725,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">バンド</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailBand}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.BandLabel}"
                                                FontSize="11"/>
@@ -735,7 +736,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">チャンネル</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailChannel}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.ChannelLabel}"
                                                FontSize="11"/>
@@ -746,7 +747,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">周波数</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailFrequency}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.FrequencyLabel}"
                                                FontSize="11"/>
@@ -757,7 +758,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">最大速度</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailSpeed}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.SpeedLabel}"
                                                FontSize="11"/>
@@ -768,7 +769,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">信号</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailSignal}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.SignalLabel}"
                                                FontSize="11"
@@ -780,7 +781,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">状態</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailStatus}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.StatusLabel}"
                                                FontSize="11" FontWeight="SemiBold"/>
@@ -817,7 +818,7 @@
                     </TabItem>
 
                     <!-- ── 信号履歴タブ ── -->
-                    <TabItem Header="信号履歴">
+                    <TabItem Header="{x:Static r:L.TabSignal}">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -831,12 +832,12 @@
                             <ctrl:SignalHistoryCanvas Grid.Row="1" MinHeight="160"
                                 History="{Binding SelectedAdapter.SelectedHistory}"
                                 Ssid="{Binding SelectedAdapter.Selected.Ssid}"
-                                AutomationProperties.Name="信号強度グラフ"/>
+                                AutomationProperties.Name="{x:Static r:L.MainSignalGraphAutomation}"/>
                         </Grid>
                     </TabItem>
 
                     <!-- ── チャンネルタブ ── -->
-                    <TabItem Header="チャンネル">
+                    <TabItem Header="{x:Static r:L.TabChannel}">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -857,7 +858,7 @@
                                 MinHeight="140"
                                 Networks="{Binding SelectedAdapter.SourceNetworks}"
                                 BandFilter="Band2_4GHz"
-                                AutomationProperties.Name="チャンネル帯域グラフ"/>
+                                AutomationProperties.Name="{x:Static r:L.MainChannelGraphAutomation}"/>
                         </Grid>
                     </TabItem>
                 </TabControl>

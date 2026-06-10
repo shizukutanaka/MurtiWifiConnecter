@@ -191,4 +191,61 @@ public static class L
     public static string CertExpiryLabel           => Get("Cert_ExpiryLabel");
     public static string CertOpenStore             => Get("Cert_OpenStore");
     public static string CertUseThis               => Get("Cert_UseThis");
+
+    // ─── MainWindow ───────────────────────────────────────────────────
+    public static string DetailConnected           => Get("Detail_Connected");
+    public static string MainWindowTitle           => Get("Main_WindowTitle");
+    public static string MainWindowAutomation      => Get("Main_WindowAutomation");
+    public static string MainSearchTooltip         => Get("Main_SearchTooltip");
+    public static string MainSearchAutomation      => Get("Main_SearchAutomation");
+    public static string MainRescanTooltip         => Get("Main_RescanTooltip");
+    public static string MainRescanAutomation      => Get("Main_RescanAutomation");
+    public static string MainToggleModeTooltip     => Get("Main_ToggleModeTooltip");
+    public static string MainAllAdaptersTooltip    => Get("Main_AllAdaptersTooltip");
+    public static string MainAllAdaptersAutomation => Get("Main_AllAdaptersAutomation");
+    public static string MainOverflowMenuAutomation=> Get("Main_OverflowMenuAutomation");
+    public static string MainConnectAutomation     => Get("Main_ConnectAutomation");
+    public static string MainAdapterTabsAutomation => Get("Main_AdapterTabsAutomation");
+    public static string MainNetworkListAutomation => Get("Main_NetworkListAutomation");
+    public static string MainEmptyStateMessage     => Get("Main_EmptyStateMessage");
+    public static string ContextMenuShowQr         => Get("ContextMenu_ShowQr");
+    public static string ContextMenuCopySsid       => Get("ContextMenu_CopySsid");
+    public static string ContextMenuPinNetwork     => Get("ContextMenu_PinNetwork");
+    public static string ContextMenuHideNetwork    => Get("ContextMenu_HideNetwork");
+    public static string MainProfileSavedTooltip   => Get("Main_ProfileSavedTooltip");
+    public static string MenuExportCsv             => Get("Menu_ExportCsv");
+    public static string MenuExportJson            => Get("Menu_ExportJson");
+    public static string MenuExportTxt             => Get("Menu_ExportTxt");
+    public static string MenuShowQr                => Get("Menu_ShowQr");
+    public static string MenuSettings              => Get("Menu_Settings");
+    public static string MenuAbout                 => Get("Menu_About");
+    public static string MenuScanAll               => Get("Menu_ScanAll");
+    public static string MenuSavedNetworks         => Get("Menu_SavedNetworks");
+    public static string MenuQualityMeasure        => Get("Menu_QualityMeasure");
+    public static string MenuAllAdapters           => Get("Menu_AllAdapters");
+    public static string DetailAuth                => Get("Detail_Auth");
+    public static string DetailCipher              => Get("Detail_Cipher");
+    public static string DetailPhy                 => Get("Detail_Phy");
+    public static string DetailBand                => Get("Detail_Band");
+    public static string DetailChannel             => Get("Detail_Channel");
+    public static string DetailFrequency           => Get("Detail_Frequency");
+    public static string DetailSpeed               => Get("Detail_Speed");
+    public static string DetailSignal              => Get("Detail_Signal");
+    public static string DetailStatus              => Get("Detail_Status");
+    public static string MainSignalGraphAutomation  => Get("Main_SignalGraphAutomation");
+    public static string MainChannelGraphAutomation => Get("Main_ChannelGraphAutomation");
+
+    // ─── AllAdaptersOverviewView ──────────────────────────────────────
+    public static string AllAdaptersWindowTitle       => Get("AllAdapters_WindowTitle");
+    public static string AllAdaptersWindowAutomation  => Get("AllAdapters_WindowAutomation");
+    public static string AllAdaptersHeading           => Get("AllAdapters_Heading");
+    public static string AllAdaptersScanAll           => Get("AllAdapters_ScanAll");
+    public static string AllAdaptersScanAllTooltip    => Get("AllAdapters_ScanAllTooltip");
+    public static string AllAdaptersConnectAll        => Get("AllAdapters_ConnectAll");
+    public static string AllAdaptersConnectAllTooltip => Get("AllAdapters_ConnectAllTooltip");
+    public static string AllAdaptersPreferredHeader   => Get("AllAdapters_PreferredHeader");
+    public static string AllAdaptersMoveUp            => Get("AllAdapters_MoveUp");
+    public static string AllAdaptersRemovePreferred   => Get("AllAdapters_RemovePreferred");
+    public static string AllAdaptersAddPreferred      => Get("AllAdapters_AddPreferred");
+    public static string AllAdaptersAutoReconnect     => Get("AllAdapters_AutoReconnect");
 }

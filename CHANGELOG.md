@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **UI 文字列ローカライズ (Round 12)**: `MainWindow.xaml` と `AllAdaptersOverviewView.xaml`
+  に残存していたハードコード日本語文字列(計 ~49 箇所)を `{x:Static r:L.XYZ}` バインディングへ
+  移行。52 の新リソースキー + `Detail_Connected` プロパティを L.cs に追加(全 15 言語対応)。
+  `TabItem.Header`(詳細/信号履歴/チャンネル)・詳細パネル 9 フィールドラベル・コンテキスト
+  メニュー・オーバーフローメニュー・AutomationProperties.Name・ToolTip をすべて resx 経由化。
+  なお `StringFormat=接続中: {0}` 等の Binding 式内 StringFormat/FallbackValue は WPF
+  バインディングの制約で `{x:Static}` を注入できない(後続 ViewModel プロパティ化で対応)。
 - **UI 文字列ローカライズ**: `SettingsDialog.xaml`/`AdapterPreferencesDialog.xaml`/
   `ConnectDialog.xaml`/`AboutDialog.xaml` に散在していたハードコード日本語文字列を
   すべて `{x:Static r:L.XYZ}` バインディングへ移行。44 の新リソースキーを 15 言語すべての
