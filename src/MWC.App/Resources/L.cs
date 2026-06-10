@@ -139,4 +139,56 @@ public static class L
     public static string AboutGitHub               => Get("About_GitHub");
     public static string AboutReportBug            => Get("About_ReportBug");
     public static string AboutLicense              => Get("About_License");
+
+    // ─── FirstRunWizard ───────────────────────────────────────────────
+    public static string WizardWindowTitle         => Get("Wizard_WindowTitle");
+    public static string WizardDialogAutomation    => Get("Wizard_DialogAutomation");
+    public static string WizardBack                => Get("Wizard_Back");
+    public static string WizardNext                => Get("Wizard_Next");
+
+    // ─── ShortcutHelpDialog ───────────────────────────────────────────
+    public static string ShortcutsTitle            => Get("Shortcuts_Title");
+    public static string ShortcutsDialogAutomation => Get("Shortcuts_DialogAutomation");
+    public static string ShortcutsDesc             => Get("Shortcuts_Desc");
+
+    // ─── QrCodeDialog ─────────────────────────────────────────────────
+    public static string QRWindowTitle             => Get("QR_WindowTitle");
+    public static string QRDialogAutomation        => Get("QR_DialogAutomation");
+    public static string ActionCopy                => Get("Action_Copy");
+    public static string QRSavePng                 => Get("QR_SavePng");
+
+    // ─── ProfileManagerDialog ─────────────────────────────────────────
+    public static string ProfileWindowTitle        => Get("Profile_WindowTitle");
+    public static string ProfileDialogAutomation   => Get("Profile_DialogAutomation");
+    public static string ProfileListAutomation     => Get("Profile_ListAutomation");
+    public static string ActionDelete              => Get("Action_Delete");
+    public static string ProfileDeleteWarning      => Get("Profile_DeleteWarning");
+
+    // ─── ConnectionProgressDialog ─────────────────────────────────────
+    public static string ProgressWindowTitle       => Get("Progress_WindowTitle");
+    public static string ProgressDialogAutomation  => Get("Progress_DialogAutomation");
+
+    // ─── CaptivePortalDialog ──────────────────────────────────────────
+    public static string CaptiveDialogAutomation   => Get("Captive_DialogAutomation");
+    public static string CaptiveOpenExternal       => Get("Captive_OpenExternal");
+    public static string CaptiveLoading            => Get("Captive_Loading");
+    public static string ActionSkip                => Get("Action_Skip");
+    public static string CaptiveDone               => Get("Captive_Done");
+
+    // ─── TroubleshootingDialog ────────────────────────────────────────
+    public static string TroubleWindowTitle        => Get("Trouble_WindowTitle");
+    public static string TroubleDialogAutomation   => Get("Trouble_DialogAutomation");
+    public static string TroubleSolutions          => Get("Trouble_Solutions");
+    public static string ActionRetry               => Get("Action_Retry");
+
+    // ─── CertificatePickerDialog ──────────────────────────────────────
+    public static string CertPickerTitle           => Get("Cert_PickerTitle");
+    public static string CertPickerAutomation      => Get("Cert_PickerAutomation");
+    public static string CertPickerDesc            => Get("Cert_PickerDesc");
+    public static string CertListAutomation        => Get("Cert_ListAutomation");
+    public static string CertSubject               => Get("Cert_Subject");
+    public static string CertIssuerLabel           => Get("Cert_IssuerLabel");
+    public static string CertExpiryLabel           => Get("Cert_ExpiryLabel");
+    public static string CertOpenStore             => Get("Cert_OpenStore");
+    public static string CertUseThis               => Get("Cert_UseThis");
 }

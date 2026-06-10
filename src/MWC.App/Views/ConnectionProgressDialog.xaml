@@ -1,11 +1,12 @@
 <Window x:Class="MWC.App.Views.ConnectionProgressDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="接続中" Width="360" SizeToContent="Height"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.ProgressWindowTitle}" Width="360" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         ShowInTaskbar="False"
-        AutomationProperties.Name="接続進行状況">
+        AutomationProperties.Name="{x:Static r:L.ProgressDialogAutomation}">
     <StackPanel Margin="28,24">
         <TextBlock x:Name="SsidLabel" FontSize="17" FontWeight="Bold"
                    HorizontalAlignment="Center" Margin="0,0,0,6"/>
@@ -69,7 +70,9 @@
         </ItemsControl>
 
         <!-- キャンセル -->
-        <Button x:Name="CancelBtn" AutomationProperties.Name="キャンセル" Content="キャンセル"
+        <Button x:Name="CancelBtn"
+                Content="{x:Static r:L.ActionCancel}"
+                AutomationProperties.Name="{x:Static r:L.ActionCancel}"
                 Click="OnCancel" HorizontalAlignment="Center"
                 Padding="20,8" Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}"
                 BorderThickness="0"/>
