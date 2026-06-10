@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **HideNetwork was a no-op**: The "Hide this network" context menu item only set a status
+  message and never modified `AppSettings.HiddenNetworks`, so the filter never excluded anything.
+  `SettingsService` now has `HideNetwork()` and `UnhideNetwork()` helpers. `MainWindowCommands`
+  has a new `HideNetwork(vm)` method. `OnHideNetwork` code-behind delegates to it. Settings
+  dialog now has a "Hidden Networks" section listing all hidden SSIDs with per-item Unhide
+  buttons; `SettingsViewModel` exposes `HiddenNetworks` as an `ObservableCollection` and a
+  `UnhideCommand`. Filter is re-applied immediately when the Settings dialog closes.
+  4 new i18n keys × 15 locales.
+
 - **SecurityAdvisoryService i18n**: All advisory `Title` and `Detail` strings converted from
   Japanese to English, following the Core-layer-uses-English principle established in this
   release series. The advisory panel in the detail pane now renders language-neutral text.

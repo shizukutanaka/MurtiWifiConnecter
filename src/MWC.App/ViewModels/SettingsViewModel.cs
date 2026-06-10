@@ -50,9 +50,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<(string Code, string Label)> Languages { get; } = new[]
     {
-        ("ja","日本語"), ("en","English"), ("zh-Hans","中文(简体)"),
+        ("ja","日本語"), ("en","English"), ("zh-Hans","中文(简体)"), ("zh-Hant","中文(繁體)"),
         ("ko","한국어"), ("ar","العربية"), ("es","Español"),
-        ("fr","Français"), ("de","Deutsch"), ("ru","Русский"), ("pt-BR","Português")
+        ("fr","Français"), ("de","Deutsch"), ("ru","Русский"), ("pt-BR","Português"),
+        ("hi","हिन्दी"), ("bn","বাংলা"), ("ta","தமிழ்")
     };
 
     public IReadOnlyList<(int Secs, string Label)> ScanIntervals { get; }
