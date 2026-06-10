@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Resources;
+using MWC.Core.Services;
 
 namespace MWC.App.Resources;
 
@@ -315,4 +316,19 @@ public static class L
     public static string FailoverBackupHint                     => Get("Failover_BackupHint");
     public static string NotifyFailoverActivated(string name)   => Format("Notify_FailoverActivated", name);
     public static string NotifyFailoverRestored(string name)    => Format("Notify_FailoverRestored", name);
+
+    // ─── Quality grade labels (localized) ────────────────────────────
+    public static string QualityGradeLabel(QualityGrade grade) => grade switch
+    {
+        QualityGrade.Excellent => Get("Quality_Grade_Excellent"),
+        QualityGrade.Good      => Get("Quality_Grade_Good"),
+        QualityGrade.Fair      => Get("Quality_Grade_Fair"),
+        QualityGrade.Poor      => Get("Quality_Grade_Poor"),
+        _                      => Get("Quality_Grade_Unknown"),
+    };
+    public static string QualityTimeout => Get("Quality_Timeout");
+
+    // ─── Channel congestion tooltips ──────────────────────────────────
+    public static string CongestionOverloadedTooltip(int pct) => Format("Congestion_OverloadedTooltip", pct);
+    public static string CongestionBusyTooltip(int pct)       => Format("Congestion_BusyTooltip", pct);
 }

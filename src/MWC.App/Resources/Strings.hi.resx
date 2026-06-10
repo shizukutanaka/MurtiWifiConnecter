@@ -361,4 +361,12 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>उत्तम</value></data>
+  <data name="Quality_Grade_Good"><value>अच्छा</value></data>
+  <data name="Quality_Grade_Fair"><value>ठीक</value></data>
+  <data name="Quality_Grade_Poor"><value>खराब</value></data>
+  <data name="Quality_Grade_Unknown"><value>माप हो रहा है…</value></data>
+  <data name="Quality_Timeout"><value>समय सीमा समाप्त</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>चैनल ओवरलोड है ({0}% उपयोग)</value></data>
+  <data name="Congestion_BusyTooltip"><value>चैनल व्यस्त है ({0}% उपयोग)</value></data>
 </root>

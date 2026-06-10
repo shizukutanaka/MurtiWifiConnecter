@@ -366,4 +366,12 @@
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>Отлично</value></data>
+  <data name="Quality_Grade_Good"><value>Хорошо</value></data>
+  <data name="Quality_Grade_Fair"><value>Удовлетворительно</value></data>
+  <data name="Quality_Grade_Poor"><value>Плохо</value></data>
+  <data name="Quality_Grade_Unknown"><value>Измерение…</value></data>
+  <data name="Quality_Timeout"><value>Таймаут</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>Канал перегружен ({0}% загруженость)</value></data>
+  <data name="Congestion_BusyTooltip"><value>Канал занят ({0}% загруженость)</value></data>
 </root>

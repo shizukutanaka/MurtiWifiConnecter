@@ -134,6 +134,15 @@ public sealed partial class AdapterViewModel : ObservableObject
                 else            ex.Update(n);
             }
 
+            // チャンネル混雑度を計算して各ネットワークに設定
+            var channelAdvisor = new ChannelAdvisorService();
+            foreach (var netVm in Networks)
+            {
+                var advisory = channelAdvisor.AdviseCongestion(netVm.Source, enriched);
+                netVm.CongestionPercent   = advisory.UtilizationPercent;
+                netVm.IsChannelOverloaded = advisory.IsOverloaded;
+            }
+
             ConnectedSsid = enriched.FirstOrDefault(n => n.IsConnected)?.Ssid;
             OnPropertyChanged(nameof(CurrentSignal));
             OnPropertyChanged(nameof(ConnectionStatusLabel));

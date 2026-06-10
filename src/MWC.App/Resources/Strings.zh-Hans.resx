@@ -366,4 +366,12 @@
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>优秀</value></data>
+  <data name="Quality_Grade_Good"><value>良好</value></data>
+  <data name="Quality_Grade_Fair"><value>一般</value></data>
+  <data name="Quality_Grade_Poor"><value>差</value></data>
+  <data name="Quality_Grade_Unknown"><value>测量中…</value></data>
+  <data name="Quality_Timeout"><value>超时</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>信道拥堵 ({0}% 占用率)</value></data>
+  <data name="Congestion_BusyTooltip"><value>信道拥挤 ({0}% 占用率)</value></data>
 </root>

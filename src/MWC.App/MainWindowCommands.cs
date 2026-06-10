@@ -165,8 +165,10 @@ public sealed class MainWindowCommands
             MWC.App.Resources.L.Get("Quality_Op"));
         if (result.IsCancelled) return MWC.App.Resources.L.Get("Quality_Cancelled");
         if (!result.Success)    return result.ErrorMessage ?? MWC.App.Resources.L.Get("Quality_Failed");
-        var r = result.Value;
-        return L.QualityResultFormat(r.LatencyLabel, r.LossLabel, r.GradeLabel);
+        var r     = result.Value;
+        var rtt   = r.LatencyAvgMs >= 999 ? L.QualityTimeout : $"{r.LatencyAvgMs} ms";
+        var grade = L.QualityGradeLabel(r.Grade);
+        return L.QualityResultFormat(rtt, r.LossLabel, grade);
     }
 
     public void ShowSettings(Window owner, MainViewModel vm)

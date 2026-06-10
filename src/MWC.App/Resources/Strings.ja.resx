@@ -366,4 +366,12 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Failover_BackupHint"><value>接続が失われた場合に有効化するアダプターを選択します。</value></data>
   <data name="Notify_FailoverActivated"><value>フェイルオーバー: {0} に切り替えました</value></data>
   <data name="Notify_FailoverRestored"><value>プライマリアダプター {0} が再接続しました</value></data>
+  <data name="Quality_Grade_Excellent"><value>優良</value></data>
+  <data name="Quality_Grade_Good"><value>良好</value></data>
+  <data name="Quality_Grade_Fair"><value>普通</value></data>
+  <data name="Quality_Grade_Poor"><value>不良</value></data>
+  <data name="Quality_Grade_Unknown"><value>計測中…</value></data>
+  <data name="Quality_Timeout"><value>タイムアウト</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>チャンネル混雑 ({0}% 使用中)</value></data>
+  <data name="Congestion_BusyTooltip"><value>チャンネル多数使用 ({0}% 使用中)</value></data>
 </root>

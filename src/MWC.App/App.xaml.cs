@@ -76,7 +76,9 @@ public partial class App : Application
 
                 // ViewModels
                 s.AddSingleton<NetworkFilterViewModel>(sp =>
-                    new NetworkFilterViewModel(sp.GetRequiredService<SettingsService>()));
+                    new NetworkFilterViewModel(
+                        sp.GetRequiredService<SettingsService>(),
+                        sp.GetRequiredService<AdapterPreferencesService>()));
                 s.AddSingleton<MainViewModel>(sp => new MainViewModel(
                     sp.GetRequiredService<IWifiService>(),
                     sp.GetRequiredService<ILogger<MainViewModel>>(),

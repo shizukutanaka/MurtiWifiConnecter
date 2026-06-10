@@ -35,6 +35,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedAdapterChanged(AdapterViewModel? v)
     {
+        Filter.SetAdapter(v?.Id);
         // fire-and-forget だが SafeRunAsync で例外を捕捉・ログ化し、未観測例外でのクラッシュを防ぐ
         if (v is not null)
             _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => v.RefreshAsync());

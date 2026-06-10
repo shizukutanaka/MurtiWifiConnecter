@@ -366,4 +366,12 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>Excellent</value></data>
+  <data name="Quality_Grade_Good"><value>Bon</value></data>
+  <data name="Quality_Grade_Fair"><value>Passable</value></data>
+  <data name="Quality_Grade_Poor"><value>Mauvais</value></data>
+  <data name="Quality_Grade_Unknown"><value>Mesure en cours…</value></data>
+  <data name="Quality_Timeout"><value>Délai dépassé</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>Canal surchargé ({0}% d'utilisation)</value></data>
+  <data name="Congestion_BusyTooltip"><value>Canal chargé ({0}% d'utilisation)</value></data>
 </root>

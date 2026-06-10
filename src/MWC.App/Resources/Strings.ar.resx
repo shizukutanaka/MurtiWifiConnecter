@@ -366,4 +366,12 @@
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>ممتاز</value></data>
+  <data name="Quality_Grade_Good"><value>جيد</value></data>
+  <data name="Quality_Grade_Fair"><value>مقبول</value></data>
+  <data name="Quality_Grade_Poor"><value>ضعيف</value></data>
+  <data name="Quality_Grade_Unknown"><value>جاري القياس…</value></data>
+  <data name="Quality_Timeout"><value>انتهاء المهلة</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>القناة مثقلة ({0}% استخدام)</value></data>
+  <data name="Congestion_BusyTooltip"><value>القناة مشغولة ({0}% استخدام)</value></data>
 </root>

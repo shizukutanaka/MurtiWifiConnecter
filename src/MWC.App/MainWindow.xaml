@@ -631,6 +631,26 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
+                                            <!-- チャンネル混雑インジケーター -->
+                                            <Border Width="7" Height="7" CornerRadius="3.5"
+                                                    VerticalAlignment="Center" Margin="0,0,4,0"
+                                                    ToolTip="{Binding CongestionTooltip}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#F59E0B"/>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChannelCrowded}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsChannelOverloaded}" Value="True">
+                                                                <Setter Property="Background" Value="#EF4444"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
                                             <!-- プロファイル保存済み -->
                                             <TextBlock Text="★" FontSize="10"
                                                        Foreground="{DynamicResource WarnBrush}"

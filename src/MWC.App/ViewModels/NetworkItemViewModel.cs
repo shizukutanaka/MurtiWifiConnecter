@@ -51,6 +51,23 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     // ── DFS channel indicator ────────────────────────────────────────
     public bool IsDfs => DfsChannelHelper.IsDfsChannel(Source);
 
+    // ── Channel congestion indicator ─────────────────────────────────
+    [ObservableProperty] private int  _congestionPercent;
+    [ObservableProperty] private bool _isChannelOverloaded;
+
+    public bool IsChannelCrowded => CongestionPercent >= 30;
+
+    public string? CongestionTooltip => CongestionPercent < 30 ? null
+        : IsChannelOverloaded
+            ? MWC.App.Resources.L.CongestionOverloadedTooltip(CongestionPercent)
+            : MWC.App.Resources.L.CongestionBusyTooltip(CongestionPercent);
+
+    partial void OnCongestionPercentChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsChannelCrowded));
+        OnPropertyChanged(nameof(CongestionTooltip));
+    }
+
     partial void OnSignalChanged(int value) => OnPropertyChanged(nameof(SignalAutomationLabel));
     partial void OnAuthChanged(AuthMethod value)
     {

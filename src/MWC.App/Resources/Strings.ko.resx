@@ -366,4 +366,12 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>우수</value></data>
+  <data name="Quality_Grade_Good"><value>양호</value></data>
+  <data name="Quality_Grade_Fair"><value>보통</value></data>
+  <data name="Quality_Grade_Poor"><value>불량</value></data>
+  <data name="Quality_Grade_Unknown"><value>측정 중…</value></data>
+  <data name="Quality_Timeout"><value>시간 초과</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>채널 과부하 ({0}% 사용 중)</value></data>
+  <data name="Congestion_BusyTooltip"><value>채널 혈잡 ({0}% 사용 중)</value></data>
 </root>

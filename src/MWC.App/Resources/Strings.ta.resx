@@ -361,4 +361,12 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
   <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
   <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>மிகுந்த சிறப்பான</value></data>
+  <data name="Quality_Grade_Good"><value>நல்லது</value></data>
+  <data name="Quality_Grade_Fair"><value>சரியானது</value></data>
+  <data name="Quality_Grade_Poor"><value>மேசமான</value></data>
+  <data name="Quality_Grade_Unknown"><value>அளவிடுகிறது…</value></data>
+  <data name="Quality_Timeout"><value>காலவரம்கடந்தது</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>சானல் அதிகமாக உள்ளது ({0}% பயன்பாடு)</value></data>
+  <data name="Congestion_BusyTooltip"><value>சானல் திரக்கமாக உள்ளது ({0}% பயன்பாடு)</value></data>
 </root>

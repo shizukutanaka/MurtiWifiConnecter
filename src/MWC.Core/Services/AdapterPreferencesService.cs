@@ -100,6 +100,9 @@ public sealed class AdapterPreferencesService
     public void SetFailover(Guid adapterId, Guid? failoverAdapterId, bool enabled)
         => Save(Get(adapterId) with { FailoverAdapterId = failoverAdapterId, EnableFailover = enabled });
 
+    public void SetFilterPreset(Guid adapterId, bool showSecuredOnly, bool showFavoritesFirst)
+        => Save(Get(adapterId) with { ShowSecuredOnly = showSecuredOnly, ShowFavoritesFirst = showFavoritesFirst });
+
 
     /// <summary>この子機で自動再接続が有効か(IsEnabled かつ PinnedSsids > 0)</summary>
     public bool IsAutoReconnectEnabled(Guid adapterId)
@@ -233,6 +236,10 @@ public sealed record AdapterPreferences
     public Guid?             FailoverAdapterId { get; init; }
     /// <summary>フェイルオーバー機能を有効にする</summary>
     public bool              EnableFailover { get; init; } = false;
+    /// <summary>ネットワーク一覧フィルタ: セキュアのみ表示</summary>
+    public bool              ShowSecuredOnly { get; init; } = false;
+    /// <summary>ネットワーク一覧フィルタ: お気に入りを先頭表示</summary>
+    public bool              ShowFavoritesFirst { get; init; } = true;
 }
 
 public enum BandPreference

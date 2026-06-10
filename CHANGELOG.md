@@ -35,6 +35,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `App.xaml.cs` に DI 登録・自動起動を追加。
   4 新リソースキー × 15 言語。
 
+- **アダプター別フィルタープリセット**: ネットワーク一覧フィルター設定 (`ShowSecuredOnly` /
+  `ShowFavoritesFirst`) をアダプターごとに永続化。アダプター切替時に各アダプターの
+  フィルター設定を自動復元。`AdapterPreferences` レコードに 2 フィールド追加、
+  `AdapterPreferencesService` に `SetFilterPreset()` ヘルパー追加。
+  `NetworkFilterViewModel` が `AdapterPreferencesService` を受け取り、
+  `SetAdapter(Guid?)` 呼び出しでプリセットを読み込み、変更時に自動保存。
+  `MainViewModel.OnSelectedAdapterChanged` で `Filter.SetAdapter(v?.Id)` を呼び出し。
+
+- **チャンネル混雑インジケーター**: ネットワーク一覧の各行に混雑度ドット (●) を追加。
+  既存の `ChannelAdvisorService.AdviseCongestion()` を活用し、スキャン後に全ネットワークへ
+  混雑度を設定。30%以上で橙色、75%以上(IsOverloaded)で赤色のドットを表示。
+  ToolTip で利用率% を表示。`NetworkItemViewModel` に `CongestionPercent` /
+  `IsChannelOverloaded` / `IsChannelCrowded` / `CongestionTooltip` プロパティ追加。
+  `AdapterViewModel.RefreshAsync()` でスキャン後に全ネットワークの混雑度を計算・設定。
+  2 新リソースキー × 15 言語。
+
+- **品質グレード i18n 修正**: `NetworkQualityService.GradeLabel` が Core 層に埋め込まれた
+  日本語文字列 ("優良"/"良好" 等) を返していた問題を修正。App 層では `L.QualityGradeLabel(r.Grade)`
+  と `L.QualityTimeout` を使用するよう `MainWindowCommands.MeasureQualityAsync` を変更。
+  6 新リソースキー (`Quality_Grade_Excellent` 等 + `Quality_Timeout`) × 15 言語。
+
 ### Fixed
 - **UI 文字列ローカライズ (Round 14)**: App 層の残存ハードコード文字列を resx 経由化。
   `NotificationService` — `NotifyConnected`/`NotifyDisconnected`/`NotifyFailed` のトースト
