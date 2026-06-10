@@ -381,4 +381,8 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="BandFilter_2_4"><value>2.4G</value></data>
   <data name="BandFilter_5"><value>5G</value></data>
   <data name="BandFilter_6"><value>6G</value></data>
+  <data name="Detail_Distance"><value>தூரம்</value></data>
+  <data name="Detail_Roaming"><value>ரோமிங்</value></data>
+  <data name="Menu_DiagnosticExport"><value>ஆதரவு அறிக்கையை ஏற்றுமதி செய்…</value></data>
+  <data name="Status_DiagnosticExported"><value>ஆதரவு அறிக்கை சேமிக்கப்பட்டது → {0}</value></data>
 </root>

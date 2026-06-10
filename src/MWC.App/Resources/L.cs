@@ -316,8 +316,13 @@ public static class L
     };
 
     // ─── DFS channel ──────────────────────────────────────────────────
-    public static string DetailDfsWarning => Get("Detail_DfsWarning");
-    public static string DetailDfsHint    => Get("Detail_DfsHint");
+    public static string DetailDfsWarning  => Get("Detail_DfsWarning");
+    public static string DetailDfsHint     => Get("Detail_DfsHint");
+    public static string DetailDistance    => Get("Detail_Distance");
+    public static string DetailRoaming     => Get("Detail_Roaming");
+    public static string MenuDiagnosticExport => Get("Menu_DiagnosticExport");
+    public static string StatusDiagnosticExported(string filename)
+        => Format("Status_DiagnosticExported", filename);
 
     // ─── Adapter failover ─────────────────────────────────────────────
     public static string FailoverSection                        => Get("Failover_Section");

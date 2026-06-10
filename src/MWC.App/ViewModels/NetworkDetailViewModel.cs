@@ -18,6 +18,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 {
     private static readonly SecurityAdvisoryService _secAdvisor = new();
     private static readonly NetworkRecommendationEngine _recEngine = new();
+    private static readonly RoamingAdvisoryService _roamAdvisor = new();
+    private static readonly RssiDistanceEstimator _distEstimator = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -34,6 +36,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _frequencyLabel = "";
     [ObservableProperty] private string _speedLabel = "";
     [ObservableProperty] private string _signalLabel = "";
+    [ObservableProperty] private string _distanceLabel = "";
+    [ObservableProperty] private string _roamingLabel = "";
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -55,6 +59,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             Ssid = "-";
             AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
+            DistanceLabel = RoamingLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
             SecurityAdvisories = Array.Empty<SecurityAdvisoryItem>();
@@ -90,6 +95,19 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SignalLabel  = $"{n.SignalQuality}%"
                        + (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : "")
                        + "  " + BuildBar(n.SignalQuality);
+
+        var dist = _distEstimator.Estimate(n);
+        DistanceLabel = dist.Confidence != DistanceConfidence.Unknown ? dist.Label : "-";
+
+        var roaming = _roamAdvisor.Analyze(n);
+        RoamingLabel = roaming.Tier switch
+        {
+            RoamingTier.Seamless => $"Seamless ({string.Join("/", roaming.SupportedStandards)})",
+            RoamingTier.Fast     => $"Fast (802.11r)  ~{roaming.EstimatedHandoverMs}ms",
+            RoamingTier.Assisted => "Assisted (802.11k/v)",
+            _                    => $"Standard  ~{roaming.EstimatedHandoverMs}ms"
+        };
+
         VendorLabel  = n.VendorName ?? "";
         StatusLabel  = n.IsConnected ? MWC.App.Resources.L.Get("Detail_Connected")
                      : n.HasProfile  ? MWC.App.Resources.L.Get("Detail_HasProfile")

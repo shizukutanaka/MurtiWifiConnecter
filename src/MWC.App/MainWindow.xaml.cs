@@ -190,6 +190,13 @@ public partial class MainWindow : Window
     private void OnAboutClick(object sender, RoutedEventArgs e)
         => _cmd?.ShowAbout(this);
 
+    private void OnExportDiagnostic(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || _cmd is null) return;
+        _ = AsyncEventHelper.SafeRunAsync(null, "ExportDiagnostic",
+            () => _cmd.ExportDiagnosticAsync(vm, this));
+    }
+
     private void OnAllAdaptersClick(object sender, RoutedEventArgs e)
         => _cmd?.ShowAllAdapters(this);
 

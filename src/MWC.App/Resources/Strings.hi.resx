@@ -381,4 +381,8 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="BandFilter_2_4"><value>2.4G</value></data>
   <data name="BandFilter_5"><value>5G</value></data>
   <data name="BandFilter_6"><value>6G</value></data>
+  <data name="Detail_Distance"><value>दूरी</value></data>
+  <data name="Detail_Roaming"><value>रोमिंग</value></data>
+  <data name="Menu_DiagnosticExport"><value>सहायता रिपोर्ट निर्यात करें…</value></data>
+  <data name="Status_DiagnosticExported"><value>सहायता रिपोर्ट सहेजी → {0}</value></data>
 </root>

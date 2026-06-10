@@ -231,6 +231,39 @@ public sealed class MainWindowCommands
             : MWC.App.Resources.L.Format("Status_Unpinned", ssid);
     }
 
+    public async Task ExportDiagnosticAsync(MainViewModel vm, Window owner)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName   = $"mwc-diagnostic-{DateTime.Now:yyyyMMdd-HHmmss}",
+            DefaultExt = "md",
+            Filter     = "Markdown (*.md)|*.md|Text (*.txt)|*.txt"
+        };
+        if (dlg.ShowDialog(owner) != true) return;
+
+        try
+        {
+            var adapters = await _wifi.GetAdaptersAsync();
+            var health   = new HealthCheckService().CheckAdapters(adapters);
+            var ctx      = new DiagnosticContext
+            {
+                AppVersion    = System.Reflection.Assembly
+                                    .GetExecutingAssembly()
+                                    .GetName().Version?.ToString() ?? "unknown",
+                OsDescription = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
+                Adapters      = adapters,
+                Health        = health,
+            };
+            var markdown = new DiagnosticBundleService().Build(ctx);
+            await System.IO.File.WriteAllTextAsync(dlg.FileName, markdown);
+            vm.StatusMessage = L.StatusDiagnosticExported(System.IO.Path.GetFileName(dlg.FileName));
+        }
+        catch (Exception ex)
+        {
+            vm.StatusMessage = _errors.Handle(ex, "Diagnostic export");
+        }
+    }
+
     public AdapterPreferences? OpenAdapterPreferences(
         AdapterViewModel adapter,
         Window owner,
