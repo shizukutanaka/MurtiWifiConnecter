@@ -200,7 +200,7 @@ public static class ProfileXmlBuilder
             EapType.EAP_TLS       => BuildEapTlsConfig(spec),
             EapType.EAP_TTLS      => BuildEapTtlsConfig(spec),
             EapType.EAP_AKA       => throw new NotSupportedException(
-                "EAP-AKA (SIM ベース認証) は未サポート。SIM ハードウェアと実機検証が必要なため将来対応 (docs/specification.md 参照)。"),
+                "EAP-AKA (SIM-based auth) is not supported. Requires SIM hardware and device testing (see docs/specification.md)."),
             _ => throw new NotSupportedException($"EAP type {eapType} not implemented")
         });
         eapHost.Add(config);

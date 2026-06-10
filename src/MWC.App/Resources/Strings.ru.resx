@@ -332,4 +332,23 @@
   <data name="Main_SignalHistoryTitle"><value>{0} — Signal History</value></data>
   <data name="Main_SignalStrength"><value>Signal {0}%</value></data>
   <data name="AllAdapters_NetworkListAutomation"><value>{0} networks</value></data>
+  <data name="Notify_ConnectedTo"><value>Connected to {0}</value></data>
+  <data name="Notify_ConnectedComplete"><value>{0} — internet verified</value></data>
+  <data name="Notify_Disconnected"><value>Disconnected from {0}</value></data>
+  <data name="Notify_CannotConnect"><value>Cannot connect to {0}</value></data>
+  <data name="Announce_Connected"><value>Connected to {0}</value></data>
+  <data name="Announce_ConnectFailed"><value>Failed to connect to {0}</value></data>
+  <data name="Announce_SsidCopied"><value>SSID copied: {0}</value></data>
+  <data name="Quality_ResultFormat"><value>RTT: {0}  Loss: {1}  Grade: {2}</value></data>
+  <data name="Step_IpAddress"><value>Obtain IP address</value></data>
+  <data name="ScanInterval_Manual"><value>Manual only</value></data>
+  <data name="ScanInterval_10s"><value>10 sec</value></data>
+  <data name="ScanInterval_15s"><value>15 sec</value></data>
+  <data name="ScanInterval_30s"><value>30 sec</value></data>
+  <data name="ScanInterval_60s"><value>1 min</value></data>
+  <data name="ScanInterval_300s"><value>5 min</value></data>
+  <data name="Jump_ConnectDescription"><value>Connect to {0}</value></data>
+  <data name="Connect_PassphraseAutomation"><value>Passphrase input</value></data>
+  <data name="Connect_PassphraseVisibleAutomation"><value>Passphrase input (visible)</value></data>
+  <data name="CertPicker_ExpiryFormat"><value>{0} (expires in {1} days)</value></data>
 </root>

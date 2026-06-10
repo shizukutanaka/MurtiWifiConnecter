@@ -332,4 +332,23 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Main_SignalHistoryTitle"><value>{0} — 信号品質推移</value></data>
   <data name="Main_SignalStrength"><value>信号強度{0}%</value></data>
   <data name="AllAdapters_NetworkListAutomation"><value>{0}のネットワーク</value></data>
+  <data name="Notify_ConnectedTo"><value>{0} に接続</value></data>
+  <data name="Notify_ConnectedComplete"><value>{0} に接続完了</value></data>
+  <data name="Notify_Disconnected"><value>{0} から切断</value></data>
+  <data name="Notify_CannotConnect"><value>{0} に接続できません</value></data>
+  <data name="Announce_Connected"><value>{0} に接続しました</value></data>
+  <data name="Announce_ConnectFailed"><value>{0} に接続できませんでした</value></data>
+  <data name="Announce_SsidCopied"><value>SSID をコピーしました: {0}</value></data>
+  <data name="Quality_ResultFormat"><value>RTT: {0}  ロス: {1}  評価: {2}</value></data>
+  <data name="Step_IpAddress"><value>IPアドレス取得</value></data>
+  <data name="ScanInterval_Manual"><value>手動のみ</value></data>
+  <data name="ScanInterval_10s"><value>10秒</value></data>
+  <data name="ScanInterval_15s"><value>15秒</value></data>
+  <data name="ScanInterval_30s"><value>30秒</value></data>
+  <data name="ScanInterval_60s"><value>1分</value></data>
+  <data name="ScanInterval_300s"><value>5分</value></data>
+  <data name="Jump_ConnectDescription"><value>{0} に接続</value></data>
+  <data name="Connect_PassphraseAutomation"><value>パスフレーズ入力</value></data>
+  <data name="Connect_PassphraseVisibleAutomation"><value>パスフレーズ入力(表示)</value></data>
+  <data name="CertPicker_ExpiryFormat"><value>{0} (残 {1} 日)</value></data>
 </root>

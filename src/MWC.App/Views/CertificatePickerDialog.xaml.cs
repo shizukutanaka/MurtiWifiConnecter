@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
+using MWC.App.Resources;
 using MWC.Core.Services;
 
 namespace MWC.App.Views;
@@ -47,7 +48,7 @@ public partial class CertificatePickerDialog : Window
 
         SubjectLabel.Text     = vm.Cert.Subject;
         IssuerLabel.Text      = vm.Cert.Issuer;
-        ExpiryDetailLabel.Text = $"{vm.Cert.NotAfter:yyyy-MM-dd} (残 {vm.Cert.DaysUntilExpiry} 日)";
+        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd"), vm.Cert.DaysUntilExpiry);
     }
 
     private void OnOk(object sender, RoutedEventArgs e)

@@ -253,4 +253,41 @@ public static class L
     public static string AllAdaptersAddPreferred      => Get("AllAdapters_AddPreferred");
     public static string AllAdaptersAutoReconnect     => Get("AllAdapters_AutoReconnect");
     public static string AllAdaptersNetworkListAutomation(string name) => Format("AllAdapters_NetworkListAutomation", name);
+
+    // ─── Notifications ────────────────────────────────────────────────
+    public static string NotifyConnectedTo(string ssid)       => Format("Notify_ConnectedTo", ssid);
+    public static string NotifyConnectedComplete(string ssid) => Format("Notify_ConnectedComplete", ssid);
+    public static string NotifyDisconnected(string ssid)      => Format("Notify_Disconnected", ssid);
+    public static string NotifyCannotConnect(string ssid)     => Format("Notify_CannotConnect", ssid);
+
+    // ─── Accessibility announcements ──────────────────────────────────
+    public static string AnnounceConnected(string ssid)     => Format("Announce_Connected", ssid);
+    public static string AnnounceConnectFailed(string ssid) => Format("Announce_ConnectFailed", ssid);
+    public static string AnnounceSsidCopied(string ssid)    => Format("Announce_SsidCopied", ssid);
+
+    // ─── Quality measurement result ───────────────────────────────────
+    public static string QualityResultFormat(string rtt, string loss, string grade)
+        => Format("Quality_ResultFormat", rtt, loss, grade);
+
+    // ─── Connection progress steps ────────────────────────────────────
+    public static string StepIpAddress => Get("Step_IpAddress");
+
+    // ─── Scan interval labels ─────────────────────────────────────────
+    public static string ScanIntervalManual => Get("ScanInterval_Manual");
+    public static string ScanInterval10s    => Get("ScanInterval_10s");
+    public static string ScanInterval15s    => Get("ScanInterval_15s");
+    public static string ScanInterval30s    => Get("ScanInterval_30s");
+    public static string ScanInterval60s    => Get("ScanInterval_60s");
+    public static string ScanInterval300s   => Get("ScanInterval_300s");
+
+    // ─── JumpList ─────────────────────────────────────────────────────
+    public static string JumpConnectDescription(string ssid) => Format("Jump_ConnectDescription", ssid);
+
+    // ─── ConnectDialog accessibility ──────────────────────────────────
+    public static string ConnectPassphraseAutomation        => Get("Connect_PassphraseAutomation");
+    public static string ConnectPassphraseVisibleAutomation => Get("Connect_PassphraseVisibleAutomation");
+
+    // ─── CertificatePickerDialog ──────────────────────────────────────
+    public static string CertPickerExpiryFormat(string date, int days)
+        => Format("CertPicker_ExpiryFormat", date, days);
 }

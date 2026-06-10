@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **UI 文字列ローカライズ (Round 14)**: App 層の残存ハードコード文字列を resx 経由化。
+  `NotificationService` — `NotifyConnected`/`NotifyDisconnected`/`NotifyFailed` のトースト
+  タイトル 5 箇所を `L.NotifyConnectedTo` 等の format メソッドへ移行。
+  `MainWindowCommands` — アクセシビリティアナウンス(`AnnounceConnectionStatus`/`AnnounceError`)
+  3 箇所と品質測定結果フォーマット文字列を `L.AnnounceConnected` / `L.QualityResultFormat` へ。
+  `ConnectionProgressDialog` — 「IPアドレス取得」ステップ名を `L.StepIpAddress` へ。
+  `SettingsViewModel` — スキャン間隔ラベル 6 件(`手動のみ`/`10秒`等)を constructor 初期化 +
+  `L.ScanIntervalManual` 等へ。`JumpListService` — JumpList 接続説明文を `L.JumpConnectDescription` へ。
+  `ConnectDialog.xaml` — `AutomationProperties.Name="パスフレーズ入力"` 2 箇所を
+  `{x:Static r:L.ConnectPassphraseAutomation}` へ。
+  `CertificatePickerDialog.xaml.cs` — 有効期限表示(`残 X 日`)を `L.CertPickerExpiryFormat` へ。
+  19 新キーを全 15 言語 resx に追加。Core 層の `ProfileXmlBuilder` — EAP-AKA 例外メッセージを
+  英語ニュートラル表記に統一(Core は App.Resources に依存不可のため)。
 - **CI ワークフロー追加**: `.github/workflows/ci.yml` — `windows-latest` でフルビルド +
   `MWC.Core.Tests` 実行(trx アップロード)+ `ubuntu-latest` で `MWC.Core` /
   `MWC.Platform.Linux` ビルド確認。`MWC.ci.slnf` ソリューションフィルターで Android/iOS/macOS

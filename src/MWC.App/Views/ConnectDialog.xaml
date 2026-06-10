@@ -36,14 +36,14 @@
                              BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
                              PasswordChanged="OnPasswordChanged"
                              KeyDown="OnPasswordKeyDown"
-                             AutomationProperties.Name="パスフレーズ入力"/>
+                             AutomationProperties.Name="{x:Static r:L.ConnectPassphraseAutomation}"/>
                 <TextBox x:Name="PasswordVisible"
                          Padding="10,9" Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
                          BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
                          Visibility="Collapsed"
                          TextChanged="OnPasswordChanged"
                          KeyDown="OnPasswordKeyDown"
-                         AutomationProperties.Name="パスフレーズ入力(表示)"/>
+                         AutomationProperties.Name="{x:Static r:L.ConnectPassphraseVisibleAutomation}"/>
                 <TextBlock x:Name="PasswordPlaceholder"
                            Text="{x:Static r:L.LabelPasswordPlaceholder}"
                            Foreground="{DynamicResource FgVeryMutedBrush}" IsHitTestVisible="False"

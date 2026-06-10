@@ -51,7 +51,7 @@ public sealed class JumpListService
                 jl.JumpItems.Add(new JumpTask
                 {
                     Title           = ssid,
-                    Description     = $"{ssid} に接続",
+                    Description     = MWC.App.Resources.L.JumpConnectDescription(ssid),
                     ApplicationPath = GetCliPath(),
                     Arguments       = $"connect \"{ssid}\"",
                     CustomCategory  = MWC.App.Resources.L.Get("Jump_RecentCategory")

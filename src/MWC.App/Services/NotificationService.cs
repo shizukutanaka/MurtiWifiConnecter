@@ -33,26 +33,26 @@ public sealed class NotificationService
     {
         if (captive)
         {
-            Show($"{ssid} に接続",
+            Show(MWC.App.Resources.L.NotifyConnectedTo(ssid),
                 MWC.App.Resources.L.Get("Notify_CaptivePortal"),
                 ToolTipIcon.Warning);
         }
         else if (hasInternet)
         {
-            Show($"{ssid} に接続完了",
+            Show(MWC.App.Resources.L.NotifyConnectedComplete(ssid),
                 MWC.App.Resources.L.Get("Notify_InternetOk"),
                 ToolTipIcon.Info);
         }
         else
         {
-            Show($"{ssid} に接続",
+            Show(MWC.App.Resources.L.NotifyConnectedTo(ssid),
                 MWC.App.Resources.L.Get("Notify_NoInternet"),
                 ToolTipIcon.Warning);
         }
     }
 
     public void NotifyDisconnected(string ssid)
-        => Show($"{ssid} から切断", "", ToolTipIcon.Info);
+        => Show(MWC.App.Resources.L.NotifyDisconnected(ssid), "", ToolTipIcon.Info);
 
     public void NotifyFailed(string ssid, ConnectionFailure failure)
     {
@@ -65,7 +65,7 @@ public sealed class NotificationService
             ConnectionFailure.InsufficientPrivilege => MWC.App.Resources.L.Get("Notify_InsufficientPrivilege"),
             _ => MWC.App.Resources.L.Get("Notify_GenericFailure")
         };
-        Show($"{ssid} に接続できません", msg, ToolTipIcon.Error);
+        Show(MWC.App.Resources.L.NotifyCannotConnect(ssid), msg, ToolTipIcon.Error);
     }
 
     private void Show(string title, string text, ToolTipIcon icon)

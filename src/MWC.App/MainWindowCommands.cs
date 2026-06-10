@@ -79,12 +79,12 @@ public sealed class MainWindowCommands
         if (success)
         {
             AnimationHelper.PulseSuccessAsync(owner).Forget();
-            AccessibilityService.AnnounceConnectionStatus($"{net.Ssid} に接続しました");
+            AccessibilityService.AnnounceConnectionStatus(L.AnnounceConnected(net.Ssid));
         }
         else
         {
             AnimationHelper.ShakeAsync(owner).Forget();
-            AccessibilityService.AnnounceError($"{net.Ssid} に接続できませんでした");
+            AccessibilityService.AnnounceError(L.AnnounceConnectFailed(net.Ssid));
         }
         return success;
     }
@@ -105,7 +105,7 @@ public sealed class MainWindowCommands
         {
             Clipboard.SetText(ssid);
             vm.StatusMessage = L.Format("Status_Copied", ssid);
-            AccessibilityService.AnnounceConnectionStatus($"SSID をコピーしました: {ssid}");
+            AccessibilityService.AnnounceConnectionStatus(L.AnnounceSsidCopied(ssid));
         }
         catch (Exception ex)
         {
@@ -166,7 +166,7 @@ public sealed class MainWindowCommands
         if (result.IsCancelled) return MWC.App.Resources.L.Get("Quality_Cancelled");
         if (!result.Success)    return result.ErrorMessage ?? MWC.App.Resources.L.Get("Quality_Failed");
         var r = result.Value;
-        return $"RTT: {r.LatencyLabel}  ロス: {r.LossLabel}  評価: {r.GradeLabel}";
+        return L.QualityResultFormat(r.LatencyLabel, r.LossLabel, r.GradeLabel);
     }
 
     public void ShowSettings(Window owner, MainViewModel vm)

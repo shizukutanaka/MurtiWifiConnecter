@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MWC.App.Resources;
 using MWC.App.Services;
 
 namespace MWC.App.ViewModels;
@@ -36,14 +37,20 @@ public sealed partial class SettingsViewModel : ObservableObject
         ("fr","Français"), ("de","Deutsch"), ("ru","Русский"), ("pt-BR","Português")
     };
 
-    public IReadOnlyList<(int Secs, string Label)> ScanIntervals { get; } = new[]
-    {
-        (0,"手動のみ"),(10,"10秒"),(15,"15秒"),(30,"30秒"),(60,"1分"),(300,"5分")
-    };
+    public IReadOnlyList<(int Secs, string Label)> ScanIntervals { get; }
 
     public SettingsViewModel(SettingsService svc)
     {
         _svc = svc;
+        ScanIntervals = new[]
+        {
+            (0,   L.ScanIntervalManual),
+            (10,  L.ScanInterval10s),
+            (15,  L.ScanInterval15s),
+            (30,  L.ScanInterval30s),
+            (60,  L.ScanInterval60s),
+            (300, L.ScanInterval300s),
+        };
         Load();
     }
 
