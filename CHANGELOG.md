@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **CI ワークフロー追加**: `.github/workflows/ci.yml` — `windows-latest` でフルビルド +
+  `MWC.Core.Tests` 実行(trx アップロード)+ `ubuntu-latest` で `MWC.Core` /
+  `MWC.Platform.Linux` ビルド確認。`MWC.ci.slnf` ソリューションフィルターで Android/iOS/macOS
+  プロジェクトを除外し、クロスプラットフォーム SDK 未インストールによるビルド失敗を回避。
+  `.github/workflows/codeql.yml` — `windows-latest` で週次 SAST(build-mode: manual)。
+  README に CI/CodeQL バッジが既にあったが `.github/` ディレクトリが欠落していた問題を解消。
 - **サイレント catch ブロック解消**: `NetworkHistoryService` と `AdapterPreferencesService` の
   `Load()`/`Save()`/`Persist()` メソッドで `IOException`/`UnauthorizedAccessException` を
   黙って握りつぶしていた。`ILogger<T>` を両コンストラクタに追加(DI 自動注入)し、
