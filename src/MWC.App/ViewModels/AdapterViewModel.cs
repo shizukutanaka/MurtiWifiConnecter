@@ -139,11 +139,12 @@ public sealed partial class AdapterViewModel : ObservableObject
             // 子機の好みバンドフィルタを適用 (5GHz 専用ドングル等)
             SourceNetworks = ApplyBandFilter(enriched);
 
-            // UI差分更新(スクロール位置維持)
-            var byKey = enriched.ToDictionary(n => n.Ssid);
+            // UI差分更新はバンドフィルタ後の SourceNetworks を基準にする
+            // (enriched を使うと band-filter の効果がUIに反映されない)
+            var byKey = SourceNetworks.ToDictionary(n => n.Ssid);
             for (int i = Networks.Count - 1; i >= 0; i--)
                 if (!byKey.ContainsKey(Networks[i].Ssid)) Networks.RemoveAt(i);
-            foreach (var n in enriched)
+            foreach (var n in SourceNetworks)
             {
                 var ex = Networks.FirstOrDefault(x => x.Ssid == n.Ssid);
                 if (ex is null) Networks.Add(new NetworkItemViewModel(n));
@@ -151,6 +152,7 @@ public sealed partial class AdapterViewModel : ObservableObject
             }
 
             // チャンネル混雑度・信号トレンドを計算して各ネットワークに設定
+            // (congestion context uses enriched — all bands — for accurate co-channel counting)
             var channelAdvisor = new ChannelAdvisorService();
             foreach (var netVm in Networks)
             {
@@ -169,7 +171,6 @@ public sealed partial class AdapterViewModel : ObservableObject
             ConnectedSsid = newConnectedSsid;
             OnPropertyChanged(nameof(ConnectionStatusLabel));
             OnPropertyChanged(nameof(CurrentSignal));
-            OnPropertyChanged(nameof(ConnectionStatusLabel));
 
             // 選択中の詳細・履歴を最新化
             if (_selected is not null && byKey.TryGetValue(_selected.Ssid, out var upd))

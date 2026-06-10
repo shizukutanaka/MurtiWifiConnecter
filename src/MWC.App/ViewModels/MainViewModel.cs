@@ -59,7 +59,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AdapterPreferences = adapterPrefs;
         _executor = executor;
         _timer = new System.Timers.Timer(15_000) { AutoReset = true };
-        _timer.Elapsed += async (_, _) => await SafeRefresh();
+        // Use SafeRunAsync to avoid unhandled exception from async void on ThreadPool timer
+        _timer.Elapsed += (_, _) => _ = AsyncEventHelper.SafeRunAsync(_log, "AutoScan", SafeRefresh);
     }
 
     [RelayCommand]
