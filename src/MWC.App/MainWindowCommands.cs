@@ -171,16 +171,27 @@ public sealed class MainWindowCommands
         return L.QualityResultFormat(rtt, r.LossLabel, grade);
     }
 
+    public void HideNetwork(MainViewModel vm)
+    {
+        var ssid = vm.SelectedAdapter?.Selected?.Ssid;
+        if (string.IsNullOrEmpty(ssid)) return;
+        _settings.HideNetwork(ssid);
+        vm.Filter.ReapplyFilter();
+        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Hidden", ssid);
+    }
+
     public void ShowSettings(Window owner, MainViewModel vm)
     {
         var svm = _services.GetService(typeof(SettingsViewModel)) as SettingsViewModel;
         if (svm is null) return;
+        svm.LoadHiddenNetworks();
         var dlg = new SettingsDialog(svm) { Owner = owner };
         if (dlg.ShowDialog() == true)
         {
             // 即時反映
             _theme.Apply(_settings.Current.Theme);
             vm.ApplySettings(_settings.Current);
+            vm.Filter.ReapplyFilter();
         }
     }
 

@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>自动扫描间隔</value></data>
   <data name="Settings_ScanInterval_Desc"><value>影响电池消耗</value></data>
   <data name="Settings_ScanOnStartup"><value>启动时自动扫描</value></data>
+  <data name="Settings_Section_Hidden"><value>已隐藏的网络</value></data>
+  <data name="Settings_Hidden_Empty"><value>没有隐藏的网络</value></data>
+  <data name="Settings_Hidden_Unhide"><value>取消隐藏</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>已隐藏网络列表</value></data>
   <data name="Settings_Section_Notify"><value>通知</value></data>
   <data name="Settings_Notify_Label"><value>显示连接通知</value></data>
   <data name="Settings_Notify_Desc"><value>在操作中心显示提示</value></data>

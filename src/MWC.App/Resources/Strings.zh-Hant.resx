@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>自動掃描間隔</value></data>
   <data name="Settings_ScanInterval_Desc"><value>影響電池消耗</value></data>
   <data name="Settings_ScanOnStartup"><value>啟動時自動掃描</value></data>
+  <data name="Settings_Section_Hidden"><value>已隱藏的網路</value></data>
+  <data name="Settings_Hidden_Empty"><value>沒有隱藏的網路</value></data>
+  <data name="Settings_Hidden_Unhide"><value>取消隱藏</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>已隱藏網路清單</value></data>
   <data name="Settings_Section_Notify"><value>通知</value></data>
   <data name="Settings_Notify_Label"><value>顯示連線通知</value></data>
   <data name="Settings_Notify_Desc"><value>在動作中心顯示提示</value></data>

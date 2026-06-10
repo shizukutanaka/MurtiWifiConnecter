@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MWC.App.Resources;
@@ -21,6 +22,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int    _autoScanInterval = 15;
     [ObservableProperty] private bool   _scanOnStartup   = true;
     [ObservableProperty] private bool   _showNotifications = true;
+
+    /// <summary>Hidden Networks — Settings dialog で管理</summary>
+    public ObservableCollection<string> HiddenNetworks { get; } = new();
+
+    public void LoadHiddenNetworks()
+    {
+        HiddenNetworks.Clear();
+        foreach (var ssid in _svc.Current.HiddenNetworks)
+            HiddenNetworks.Add(ssid);
+    }
+
+    [RelayCommand]
+    public void Unhide(string ssid)
+    {
+        _svc.UnhideNetwork(ssid);
+        HiddenNetworks.Remove(ssid);
+    }
 
     // RadioButton 相互排他
     partial void OnIsSimpleModeChanged(bool v)  { if (v) _isExpertMode = false; OnPropertyChanged(nameof(IsExpertMode)); }

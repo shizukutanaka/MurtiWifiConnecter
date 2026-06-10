@@ -202,6 +202,10 @@
   <data name="Settings_ScanInterval_Label"><value>স্বয়ংক্রিয় স্ক্যান বিরতি</value></data>
   <data name="Settings_ScanInterval_Desc"><value>ব্যাটারি খরচকে প্রভাবিত করে</value></data>
   <data name="Settings_ScanOnStartup"><value>স্টার্টআপে স্বয়ংক্রিয় স্ক্যান</value></data>
+  <data name="Settings_Section_Hidden"><value>লুকানো নেটওয়ার্ক</value></data>
+  <data name="Settings_Hidden_Empty"><value>কোনো লুকানো নেটওয়ার্ক নেই</value></data>
+  <data name="Settings_Hidden_Unhide"><value>দেখান</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>লুকানো নেটওয়ার্কের তালিকা</value></data>
   <data name="Settings_Section_Notify"><value>বিজ্ঞপ্তি</value></data>
   <data name="Settings_Notify_Label"><value>সংযোগ বিজ্ঞপ্তি দেখান</value></data>
   <data name="Settings_Notify_Desc"><value>অ্যাকশন সেন্টারে টোস্ট দেখান</value></data>

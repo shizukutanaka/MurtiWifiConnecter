@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>Intervalle d'analyse</value></data>
   <data name="Settings_ScanInterval_Desc"><value>Affecte la consommation de batterie</value></data>
   <data name="Settings_ScanOnStartup"><value>Analyser au démarrage</value></data>
+  <data name="Settings_Section_Hidden"><value>Réseaux masqués</value></data>
+  <data name="Settings_Hidden_Empty"><value>Aucun réseau masqué</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Afficher</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Liste des réseaux masqués</value></data>
   <data name="Settings_Section_Notify"><value>Notifications</value></data>
   <data name="Settings_Notify_Label"><value>Afficher les notifications de connexion</value></data>
   <data name="Settings_Notify_Desc"><value>Afficher une notification dans le Centre de notifications</value></data>

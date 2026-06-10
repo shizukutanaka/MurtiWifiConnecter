@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>自動スキャン間隔</value></data>
   <data name="Settings_ScanInterval_Desc"><value>バッテリー消費に影響します</value></data>
   <data name="Settings_ScanOnStartup"><value>起動時に自動スキャン</value></data>
+  <data name="Settings_Section_Hidden"><value>非表示ネットワーク</value></data>
+  <data name="Settings_Hidden_Empty"><value>非表示ネットワークはありません</value></data>
+  <data name="Settings_Hidden_Unhide"><value>表示に戻す</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>非表示ネットワーク一覧</value></data>
   <data name="Settings_Section_Notify"><value>通知</value></data>
   <data name="Settings_Notify_Label"><value>接続・切断の通知を表示</value></data>
   <data name="Settings_Notify_Desc"><value>アクションセンターにトースト表示</value></data>

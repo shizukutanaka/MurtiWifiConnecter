@@ -104,7 +104,11 @@ public static class L
     public static string SettingsScanIntervalLabel => Get("Settings_ScanInterval_Label");
     public static string SettingsScanIntervalDesc  => Get("Settings_ScanInterval_Desc");
     public static string SettingsScanOnStartup     => Get("Settings_ScanOnStartup");
-    public static string SettingsSectionNotify     => Get("Settings_Section_Notify");
+    public static string SettingsSectionNotify      => Get("Settings_Section_Notify");
+    public static string SettingsSectionHidden      => Get("Settings_Section_Hidden");
+    public static string SettingsHiddenEmpty        => Get("Settings_Hidden_Empty");
+    public static string SettingsHiddenUnhide       => Get("Settings_Hidden_Unhide");
+    public static string SettingsHiddenListAutomation => Get("Settings_Hidden_ListAutomation");
     public static string SettingsNotifyLabel       => Get("Settings_Notify_Label");
     public static string SettingsNotifyDesc        => Get("Settings_Notify_Desc");
     public static string ActionSave                => Get("Action_Save");

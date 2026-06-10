@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>Auto-scan interval</value></data>
   <data name="Settings_ScanInterval_Desc"><value>Affects battery consumption</value></data>
   <data name="Settings_ScanOnStartup"><value>Auto-scan on startup</value></data>
+  <data name="Settings_Section_Hidden"><value>Hidden Networks</value></data>
+  <data name="Settings_Hidden_Empty"><value>No hidden networks</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Unhide</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Hidden networks list</value></data>
   <data name="Settings_Section_Notify"><value>Notifications</value></data>
   <data name="Settings_Notify_Label"><value>Show connection notifications</value></data>
   <data name="Settings_Notify_Desc"><value>Show toast in Action Center</value></data>

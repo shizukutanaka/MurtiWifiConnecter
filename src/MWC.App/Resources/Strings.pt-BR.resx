@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>Intervalo de varredura</value></data>
   <data name="Settings_ScanInterval_Desc"><value>Afeta o consumo de bateria</value></data>
   <data name="Settings_ScanOnStartup"><value>Varrer ao iniciar</value></data>
+  <data name="Settings_Section_Hidden"><value>Redes ocultas</value></data>
+  <data name="Settings_Hidden_Empty"><value>Nenhuma rede oculta</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Exibir</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Lista de redes ocultas</value></data>
   <data name="Settings_Section_Notify"><value>Notificações</value></data>
   <data name="Settings_Notify_Label"><value>Mostrar notificações de conexão</value></data>
   <data name="Settings_Notify_Desc"><value>Exibir no Centro de Ações</value></data>

@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>Scanintervall</value></data>
   <data name="Settings_ScanInterval_Desc"><value>Beeinflusst den Akkuverbrauch</value></data>
   <data name="Settings_ScanOnStartup"><value>Beim Start automatisch scannen</value></data>
+  <data name="Settings_Section_Hidden"><value>Ausgeblendete Netzwerke</value></data>
+  <data name="Settings_Hidden_Empty"><value>Keine ausgeblendeten Netzwerke</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Einblenden</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Liste ausgeblendeter Netzwerke</value></data>
   <data name="Settings_Section_Notify"><value>Benachrichtigungen</value></data>
   <data name="Settings_Notify_Label"><value>Verbindungsbenachrichtigungen anzeigen</value></data>
   <data name="Settings_Notify_Desc"><value>Toast im Info-Center anzeigen</value></data>

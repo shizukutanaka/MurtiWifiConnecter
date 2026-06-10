@@ -44,6 +44,21 @@ public sealed class SettingsService
         Save(_current with { PinnedNetworks = list });
     }
 
+    public void HideNetwork(string ssid)
+    {
+        if (_current.HiddenNetworks.Contains(ssid)) return;
+        var list = new System.Collections.Generic.List<string>(_current.HiddenNetworks) { ssid };
+        Save(_current with { HiddenNetworks = list });
+    }
+
+    public void UnhideNetwork(string ssid)
+    {
+        if (!_current.HiddenNetworks.Contains(ssid)) return;
+        var list = new System.Collections.Generic.List<string>(_current.HiddenNetworks);
+        list.Remove(ssid);
+        Save(_current with { HiddenNetworks = list });
+    }
+
     public void Save(AppSettings settings)
     {
         _current = settings;

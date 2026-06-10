@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>Интервал сканирования</value></data>
   <data name="Settings_ScanInterval_Desc"><value>Влияет на расход аккумулятора</value></data>
   <data name="Settings_ScanOnStartup"><value>Сканировать при запуске</value></data>
+  <data name="Settings_Section_Hidden"><value>Скрытые сети</value></data>
+  <data name="Settings_Hidden_Empty"><value>Скрытых сетей нет</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Показать</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Список скрытых сетей</value></data>
   <data name="Settings_Section_Notify"><value>Уведомления</value></data>
   <data name="Settings_Notify_Label"><value>Показывать уведомления о подключении</value></data>
   <data name="Settings_Notify_Desc"><value>Тост в центре уведомлений</value></data>

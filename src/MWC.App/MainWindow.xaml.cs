@@ -160,10 +160,7 @@ public partial class MainWindow : Window
 
     private void OnHideNetwork(object sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel vm) return;
-        var ssid = vm.SelectedAdapter?.Selected?.Ssid;
-        if (string.IsNullOrEmpty(ssid)) return;
-        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Hidden", ssid);
+        if (DataContext is MainViewModel vm) _cmd?.HideNetwork(vm);
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)

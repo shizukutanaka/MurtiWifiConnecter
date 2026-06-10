@@ -207,6 +207,10 @@
   <data name="Settings_ScanInterval_Label"><value>자동 스캔 간격</value></data>
   <data name="Settings_ScanInterval_Desc"><value>배터리 소비에 영향</value></data>
   <data name="Settings_ScanOnStartup"><value>시작 시 자동 스캔</value></data>
+  <data name="Settings_Section_Hidden"><value>숨긴 네트워크</value></data>
+  <data name="Settings_Hidden_Empty"><value>숨긴 네트워크 없음</value></data>
+  <data name="Settings_Hidden_Unhide"><value>숨기기 해제</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>숨긴 네트워크 목록</value></data>
   <data name="Settings_Section_Notify"><value>알림</value></data>
   <data name="Settings_Notify_Label"><value>연결 알림 표시</value></data>
   <data name="Settings_Notify_Desc"><value>알림 센터에 팝업 표시</value></data>
