@@ -37,41 +37,41 @@ public sealed class SecurityAdvisoryService
     {
         var advisories = new List<SecurityAdvisory>();
 
-        // 1. WPA3 transition mode → Dragonblood ダウングレード攻撃
+        // 1. WPA3 transition mode → Dragonblood downgrade attack
         if (network.IsWpa3TransitionMode)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-001",
-                Title:      "WPA3 移行モード検出",
-                Detail:     "このネットワークは WPA2 と WPA3 の混在モードで動作している。" +
-                            "攻撃者が WPA2 へのダウングレードを誘導し、辞書攻撃を行える可能性がある " +
-                            "(Dragonblood, IEEE S&P 2020)。WPA3 専用モードの利用を推奨。",
+                Title:      "WPA3 Transition Mode Detected",
+                Detail:     "This network operates in mixed WPA2/WPA3 mode. " +
+                            "An attacker can induce a WPA2 downgrade and perform a dictionary attack " +
+                            "(Dragonblood, IEEE S&P 2020). Prefer WPA3-only mode.",
                 Reference:  "Vanhoef & Ronen, Dragonblood (2020)"));
         }
 
-        // 2. MFP 無効 → deauth/disassoc 攻撃
+        // 2. MFP disabled → deauth/disassoc attack
         if (network.Pmf == PmfStatus.Disabled &&
             network.Auth is AuthMethod.WPA2PSK or AuthMethod.WPA2Enterprise)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-002",
-                Title:      "Protected Management Frames 無効",
-                Detail:     "このネットワークは管理フレーム保護 (802.11w/MFP) に対応していない。" +
-                            "攻撃者が偽装した切断フレームでクライアントを強制切断できる " +
-                            "(WiSec 2022)。MFP 対応ネットワークの利用を推奨。",
+                Title:      "Protected Management Frames Disabled",
+                Detail:     "This network does not support management frame protection (802.11w/MFP). " +
+                            "An attacker can force-disconnect clients with spoofed deauth frames " +
+                            "(WiSec 2022). Use a network with MFP enabled.",
                 Reference:  "Schepers et al., WiSec 2022"));
         }
 
-        // 3. WEP / WPA (TKIP) → 旧式暗号
+        // 3. WEP / WPA (TKIP) → legacy ciphers
         if (network.Auth is AuthMethod.WEP)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Critical,
                 Code:       "MWC-SEC-003",
-                Title:      "WEP は危殆化済み",
-                Detail:     "WEP 暗号は数分で解読可能。直ちに WPA2/WPA3 への移行が必要。",
+                Title:      "WEP Is Broken",
+                Detail:     "WEP encryption can be cracked in minutes. Migrate to WPA2 or WPA3 immediately.",
                 Reference:  "RC4 keystream reuse"));
         }
         else if (network.Auth is AuthMethod.WPAPSK)
@@ -79,64 +79,63 @@ public sealed class SecurityAdvisoryService
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-004",
-                Title:      "WPA (TKIP) は非推奨",
-                Detail:     "WPA1/TKIP は既知の脆弱性がある。WPA2-AES 以上を推奨。",
+                Title:      "WPA (TKIP) Is Deprecated",
+                Detail:     "WPA1/TKIP has known vulnerabilities. Use WPA2-AES or higher.",
                 Reference:  "TKIP MIC attacks"));
         }
 
-        // 4. オープンネットワーク (OWE でない)
-        //    暗号化が一切無く誰でも盗聴可能なため Warning。WEP(Critical)より軽いのは
-        //    WEP が「安全に見えて自明に破れる」誤信リスクを伴うため(ComputeScore も WEP<Open)。
+        // 4. Open network (not OWE) — Warning rather than Critical because WEP carries
+        //    the additional false-sense-of-security risk (ComputeScore also ranks WEP < Open).
         if (network.Auth is AuthMethod.Open)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-005",
-                Title:      "暗号化されていないネットワーク",
-                Detail:     "通信が暗号化されず、同一ネットワーク上の第三者に盗聴される。" +
-                            "OWE (Enhanced Open) 対応版があればそちらを推奨。" +
-                            "機密情報の送受信は避けること。",
+                Title:      "Unencrypted Network",
+                Detail:     "Traffic is not encrypted and can be eavesdropped by anyone on the network. " +
+                            "Use the OWE (Enhanced Open) variant if available. " +
+                            "Avoid transmitting sensitive data.",
                 Reference:  "RFC 8110 (OWE)"));
         }
 
-        // 5. FragAttacks → 集約/フラグメンテーションの設計・実装欠陥 (ほぼ全機器が影響)
-        //    暗号化ありかつ MFP 未必須の場合に情報提供 (MFP 必須は平文注入リスクを軽減)。
-        //    WEP/Open は別途より強い勧告があるため対象外。
+        // 5. FragAttacks — design/implementation flaws in frame aggregation/fragmentation
+        //    (affects nearly all Wi-Fi devices). Provide info when encrypted but MFP not required.
+        //    WEP/Open have stronger advisories already, so exclude them here.
         bool isEncrypted = network.Auth is not (AuthMethod.Open or AuthMethod.WEP);
         if (isEncrypted && network.Pmf != PmfStatus.Required)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Info,
                 Code:       "MWC-SEC-006",
-                Title:      "FragAttacks 緩和の確認",
-                Detail:     "フレームの集約・フラグメンテーションに関する設計/実装上の欠陥 " +
-                            "(FragAttacks, CVE-2020-24586/24587/24588) はほぼ全ての Wi-Fi 機器に影響する。" +
-                            "OS・ドライバー・ファームウェアを最新に保ち、通信は HTTPS を優先すること。" +
-                            "MFP (802.11w) 必須の AP は平文注入リスクを軽減できる。",
+                Title:      "FragAttacks Mitigation",
+                Detail:     "Design and implementation flaws in frame aggregation and fragmentation " +
+                            "(FragAttacks, CVE-2020-24586/24587/24588) affect nearly all Wi-Fi devices. " +
+                            "Keep OS, drivers, and firmware up to date, and prefer HTTPS. " +
+                            "An AP with mandatory MFP (802.11w) reduces plaintext injection risk.",
                 Reference:  "Vanhoef, FragAttacks CVE-2020-24586/87/88 (USENIX Security 2021)"));
         }
 
-        // 6. WPS 有効 → 外部レジストラ PIN 方式のブルートフォース/Pixie-Dust
+        // 6. WPS enabled → external registrar PIN brute-force / Pixie-Dust
         if (network.WpsEnabled)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Warning,
                 Code:       "MWC-SEC-007",
-                Title:      "WPS (Wi-Fi Protected Setup) 有効",
-                Detail:     "この AP は WPS が有効。外部レジストラの PIN 方式は 8 桁 PIN の構造的弱点により" +
-                            "総当たり(数時間)や Pixie-Dust 攻撃で破られうる。" +
-                            "ルーター設定で WPS(特に PIN 方式)を無効化することを推奨。",
+                Title:      "WPS Enabled",
+                Detail:     "This AP has WPS active. The external registrar PIN method can be broken " +
+                            "via brute-force (hours) or the Pixie-Dust attack due to structural weaknesses " +
+                            "in the 8-digit PIN. Disable WPS (especially PIN method) in your router settings.",
                 Reference:  "WSC PIN external registrar brute-force / Pixie-Dust"));
         }
 
-        // 7. 堅牢ネットワーク → 肯定的フィードバック
+        // 7. Hardened network → positive feedback
         if (network.Hardening == SecurityHardening.Hardened)
         {
             advisories.Add(new SecurityAdvisory(
                 Severity:   AdvisorySeverity.Good,
                 Code:       "MWC-SEC-100",
-                Title:      "堅牢なセキュリティ設定",
-                Detail:     "WPA3-SAE + MFP 必須。Dragonblood・deauth 両方の攻撃に耐性がある。",
+                Title:      "Hardened Security Configuration",
+                Detail:     "WPA3-SAE with mandatory MFP. Resistant to both Dragonblood and deauth attacks.",
                 Reference:  "WPA3 + 802.11w"));
         }
 
