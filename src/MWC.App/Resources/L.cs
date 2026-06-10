@@ -227,12 +227,14 @@ public static class L
     public static string DetailAuth                => Get("Detail_Auth");
     public static string DetailCipher              => Get("Detail_Cipher");
     public static string DetailPhy                 => Get("Detail_Phy");
+    public static string DetailVendor              => Get("Detail_Vendor");
     public static string DetailBand                => Get("Detail_Band");
     public static string DetailChannel             => Get("Detail_Channel");
     public static string DetailFrequency           => Get("Detail_Frequency");
     public static string DetailSpeed               => Get("Detail_Speed");
     public static string DetailSignal              => Get("Detail_Signal");
     public static string DetailStatus              => Get("Detail_Status");
+    public static string DetailScore               => Get("Detail_Score");
     public static string MainSignalGraphAutomation  => Get("Main_SignalGraphAutomation");
     public static string MainChannelGraphAutomation => Get("Main_ChannelGraphAutomation");
     public static string MainSelectNetworkHint      => Get("Main_SelectNetworkHint");

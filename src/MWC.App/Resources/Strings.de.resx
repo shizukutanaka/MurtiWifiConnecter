@@ -307,6 +307,8 @@ Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
   <data name="Detail_Auth"><value>Auth</value></data>
   <data name="Detail_Cipher"><value>Cipher</value></data>
   <data name="Detail_Phy"><value>Generation</value></data>
+  <data name="Detail_Vendor"><value>Hersteller</value></data>
+  <data name="Detail_Score"><value>Bewertung</value></data>
   <data name="Detail_Band"><value>Band</value></data>
   <data name="Detail_Channel"><value>Channel</value></data>
   <data name="Detail_Frequency"><value>Frequency</value></data>

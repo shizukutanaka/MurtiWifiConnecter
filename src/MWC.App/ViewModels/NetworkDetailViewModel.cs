@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,6 +16,9 @@ namespace MWC.App.ViewModels;
 /// </summary>
 public sealed partial class NetworkDetailViewModel : ObservableObject
 {
+    private static readonly SecurityAdvisoryService _secAdvisor = new();
+    private static readonly NetworkRecommendationEngine _recEngine = new();
+
     [ObservableProperty] private string _ssid = "";
 
     public string SsidOrHint =>
@@ -31,20 +35,30 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _speedLabel = "";
     [ObservableProperty] private string _signalLabel = "";
     [ObservableProperty] private string _statusLabel = "";
+    [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
     [ObservableProperty] private bool _isConnected;
     [ObservableProperty] private bool _isDfs;
-    [ObservableProperty] private IReadOnlyList<BssDetailRow> _bssRows = System.Array.Empty<BssDetailRow>();
+    [ObservableProperty] private double _recommendationScore;
+    [ObservableProperty] private IReadOnlyList<SecurityAdvisoryItem> _securityAdvisories
+        = Array.Empty<SecurityAdvisoryItem>();
+    public bool HasSecurityAdvisories => SecurityAdvisories.Count > 0;
+    [ObservableProperty] private IReadOnlyList<BssDetailRow> _bssRows = Array.Empty<BssDetailRow>();
+
+    partial void OnSecurityAdvisoriesChanged(IReadOnlyList<SecurityAdvisoryItem> value)
+        => OnPropertyChanged(nameof(HasSecurityAdvisories));
 
     public void Load(WifiNetwork? n)
     {
         if (n is null)
         {
             Ssid = "-";
-            AuthLabel = CipherLabel = PhyLabel = BandLabel = "";
+            AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             IsDfs = false;
-            BssRows = System.Array.Empty<BssDetailRow>();
+            RecommendationScore = 0;
+            SecurityAdvisories = Array.Empty<SecurityAdvisoryItem>();
+            BssRows = Array.Empty<BssDetailRow>();
             return;
         }
 
@@ -76,9 +90,16 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SignalLabel  = $"{n.SignalQuality}%"
                        + (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : "")
                        + "  " + BuildBar(n.SignalQuality);
+        VendorLabel  = n.VendorName ?? "";
         StatusLabel  = n.IsConnected ? MWC.App.Resources.L.Get("Detail_Connected")
                      : n.HasProfile  ? MWC.App.Resources.L.Get("Detail_HasProfile")
                      : MWC.App.Resources.L.Get("Detail_NotConnected");
+
+        // セキュリティ勧告 + 総合スコア
+        SecurityAdvisories = _secAdvisor.Analyze(n)
+            .Select(a => new SecurityAdvisoryItem(a.Title, a.Severity))
+            .ToList();
+        RecommendationScore = Math.Round(_recEngine.Score(n).Total, 0);
 
         BssRows = n.BssEntries
             .Select(b => new BssDetailRow(
@@ -122,3 +143,17 @@ public sealed record BssDetailRow(
     string PhyLabel,
     string ChannelWidth
 );
+
+public sealed record SecurityAdvisoryItem(
+    string Title,
+    AdvisorySeverity Severity)
+{
+    public string SeverityColor => Severity switch
+    {
+        AdvisorySeverity.Critical => "#EF4444",
+        AdvisorySeverity.Warning  => "#F59E0B",
+        AdvisorySeverity.Info     => "#3B82F6",
+        AdvisorySeverity.Good     => "#22C55E",
+        _ => "#6B7280"
+    };
+}

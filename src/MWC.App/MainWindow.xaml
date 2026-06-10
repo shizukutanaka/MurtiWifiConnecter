@@ -789,6 +789,17 @@
                                                Text="{Binding SelectedAdapter.Detail.PhyLabel}"
                                                FontSize="11"/>
                                 </Grid>
+                                <!-- ベンダー -->
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailVendor}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.VendorLabel}"
+                                               FontSize="11"/>
+                                </Grid>
                                 <!-- バンド -->
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>
@@ -880,6 +891,50 @@
                                                Text="{Binding SelectedAdapter.Detail.StatusLabel}"
                                                FontSize="11" FontWeight="SemiBold"/>
                                 </Grid>
+
+                                <!-- 推奨スコア -->
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailScore}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.RecommendationScore,
+                                                      StringFormat={}{0}/100}"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Grid>
+
+                                <!-- セキュリティ勧告 -->
+                                <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.SecurityAdvisories}"
+                                              Margin="0,0,0,12">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding SelectedAdapter.Detail.HasSecurityAdvisories}"
+                                                    Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="5" Padding="8,5" Margin="0,2"
+                                                    Background="{DynamicResource SurfaceHoverBrush}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="5" CornerRadius="2.5" Margin="0,0,8,0"
+                                                            Background="{Binding SeverityColor}"/>
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontSize="10" TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource FgBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
                                 <TextBlock Text="BSSID" FontSize="11"
                                            Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,4"/>

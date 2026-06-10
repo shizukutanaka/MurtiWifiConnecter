@@ -307,6 +307,8 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_Auth"><value>認証</value></data>
   <data name="Detail_Cipher"><value>暗号</value></data>
   <data name="Detail_Phy"><value>世代</value></data>
+  <data name="Detail_Vendor"><value>ベンダー</value></data>
+  <data name="Detail_Score"><value>推奨スコア</value></data>
   <data name="Detail_Band"><value>バンド</value></data>
   <data name="Detail_Channel"><value>チャンネル</value></data>
   <data name="Detail_Frequency"><value>周波数</value></data>
