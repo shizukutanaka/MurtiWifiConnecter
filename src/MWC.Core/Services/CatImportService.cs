@@ -32,13 +32,13 @@ public sealed class CatImportService
     public IReadOnlyList<CatProfile> ParseEapConfig(string xmlContent)
     {
         if (string.IsNullOrWhiteSpace(xmlContent))
-            throw new ArgumentException("CAT XML が空です。", nameof(xmlContent));
+            throw new ArgumentException("CAT XML content is empty.", nameof(xmlContent));
 
         XDocument doc;
         try { doc = XDocument.Parse(xmlContent); }
-        catch (Exception ex) { throw new FormatException($"CAT XML の解析に失敗: {ex.Message}", ex); }
+        catch (Exception ex) { throw new FormatException($"Failed to parse CAT XML: {ex.Message}", ex); }
 
-        var root = doc.Root ?? throw new FormatException("XML にルート要素がありません。");
+        var root = doc.Root ?? throw new FormatException("XML has no root element.");
 
         // NameSpace 検出(CAT v1.0 / v2.0 両対応)
         var ns = root.GetDefaultNamespace();
@@ -56,7 +56,7 @@ public sealed class CatImportService
         }
 
         if (profiles.Count == 0)
-            throw new FormatException("有効な EAPIdentityProvider が見つかりません。");
+            throw new FormatException("No valid EAPIdentityProvider found.");
 
         return profiles;
     }

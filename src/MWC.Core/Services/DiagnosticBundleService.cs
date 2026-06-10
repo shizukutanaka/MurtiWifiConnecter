@@ -27,17 +27,17 @@ public sealed class DiagnosticBundleService
     public string Build(DiagnosticContext ctx)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("# MWC 診断バンドル");
+        sb.AppendLine("# MWC Diagnostic Bundle");
         sb.AppendLine();
-        sb.AppendLine($"- 生成日時: {ctx.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
-        sb.AppendLine($"- アプリ版: {Redact(ctx.AppVersion)}");
+        sb.AppendLine($"- Generated: {ctx.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine($"- App version: {Redact(ctx.AppVersion)}");
         sb.AppendLine($"- OS: {Redact(ctx.OsDescription)}");
         sb.AppendLine();
 
         // ── アダプター ──
-        sb.AppendLine("## アダプター");
+        sb.AppendLine("## Adapters");
         if (ctx.Adapters.Count == 0)
-            sb.AppendLine("(検出なし)");
+            sb.AppendLine("(none detected)");
         else
             foreach (var a in ctx.Adapters)
                 sb.AppendLine($"- **{Redact(a.Name)}** — {a.State}" +
@@ -47,7 +47,7 @@ public sealed class DiagnosticBundleService
         // ── ヘルス ──
         if (ctx.Health is { } h)
         {
-            sb.AppendLine($"## ヘルス: {h.Status}");
+            sb.AppendLine($"## Health: {h.Status}");
             foreach (var c in h.Checks)
                 sb.AppendLine($"- [{(c.Passed ? "x" : " ")}] {c.Name}: {Redact(c.Detail)}");
             sb.AppendLine();
@@ -56,25 +56,25 @@ public sealed class DiagnosticBundleService
         // ── 品質計測 ──
         if (ctx.Quality is { } q)
         {
-            sb.AppendLine("## 品質計測");
-            sb.AppendLine($"- レイテンシ: {q.LatencyAvgMs} ms (min {q.LatencyMinMs} / max {q.LatencyMaxMs})");
-            sb.AppendLine($"- パケットロス: {q.PacketLossPct:F0}%");
-            sb.AppendLine($"- グレード: {q.Grade}");
+            sb.AppendLine("## Quality Measurement");
+            sb.AppendLine($"- Latency: {q.LatencyAvgMs} ms (min {q.LatencyMinMs} / max {q.LatencyMaxMs})");
+            sb.AppendLine($"- Packet loss: {q.PacketLossPct:F0}%");
+            sb.AppendLine($"- Grade: {q.Grade}");
             sb.AppendLine();
         }
 
         // ── 直近の失敗 ──
         if (ctx.LastFailure is { } f)
         {
-            sb.AppendLine("## 直近の接続失敗");
-            sb.AppendLine($"- 種別: {f}");
+            sb.AppendLine("## Last Connection Failure");
+            sb.AppendLine($"- Type: {f}");
             sb.AppendLine();
         }
 
         // ── 追加ノート (利用者入力 — 必ず秘匿) ──
         if (!string.IsNullOrWhiteSpace(ctx.UserNote))
         {
-            sb.AppendLine("## 補足");
+            sb.AppendLine("## Notes");
             sb.AppendLine(Redact(ctx.UserNote!));
             sb.AppendLine();
         }
@@ -103,7 +103,7 @@ public sealed class DiagnosticBundleService
     /// <summary>SSID を先頭 2 文字残してマスクする。</summary>
     public static string MaskSsid(string ssid)
     {
-        if (string.IsNullOrEmpty(ssid)) return "(空)";
+        if (string.IsNullOrEmpty(ssid)) return "(empty)";
         if (ssid.Length <= 2) return ssid[0] + "*";
         return ssid.Substring(0, 2) + new string('*', Math.Min(ssid.Length - 2, 6));
     }

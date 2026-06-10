@@ -81,14 +81,14 @@ public sealed class CertificateStoreService
         X509Certificate2 cert;
         try { cert = new X509Certificate2(derBytes); }
         catch (Exception ex)
-        { return new(false, "証明書の読み込みに失敗", ex.Message, null, null); }
+        { return new(false, "Failed to load certificate", ex.Message, null, null); }
 
         using (cert)
         {
             // 有効期限
             if (DateTime.UtcNow < cert.NotBefore || DateTime.UtcNow > cert.NotAfter)
-                return new(false, "有効期限切れ",
-                    $"有効期間: {cert.NotBefore:yyyy-MM-dd} – {cert.NotAfter:yyyy-MM-dd}",
+                return new(false, "Certificate expired",
+                    $"Valid: {cert.NotBefore:yyyy-MM-dd} – {cert.NotAfter:yyyy-MM-dd}",
                     cert.Thumbprint, null);
 
             // チェーン検証
@@ -105,8 +105,8 @@ public sealed class CertificateStoreService
                 var cn = cert.GetNameInfo(X509NameType.DnsName, false);
                 if (!MatchesHostname(cn, expectedHostname))
                     return new(false,
-                        "ホスト名不一致",
-                        $"証明書: {cn}, 期待値: {expectedHostname}",
+                        "Hostname mismatch",
+                        $"Certificate: {cn}, expected: {expectedHostname}",
                         cert.Thumbprint,
                         cert.GetNameInfo(X509NameType.SimpleName, false));
             }
@@ -118,7 +118,7 @@ public sealed class CertificateStoreService
 
             return new(
                 chainValid && errors.Count == 0,
-                chainValid ? "検証成功" : "チェーン検証失敗",
+                chainValid ? "Validation succeeded" : "Chain validation failed",
                 string.Join("; ", errors),
                 cert.Thumbprint,
                 cert.GetNameInfo(X509NameType.SimpleName, false));

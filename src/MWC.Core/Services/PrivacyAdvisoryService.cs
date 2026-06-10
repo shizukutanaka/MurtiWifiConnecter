@@ -75,9 +75,9 @@ public sealed class PrivacyAdvisoryService
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Good,
                 Code:      "MWC-PRIV-100",
-                Title:     "MAC プライバシー良好",
-                Detail:    "ランダム MAC を日次でローテーションしており、追跡耐性が高い。",
-                Reference: "Windows ランダムなハードウェア アドレス(毎日変更)"));
+                Title:     "Good MAC Privacy",
+                Detail:    "You are using daily random MAC rotation — high resistance to tracking.",
+                Reference: "Windows random hardware address (change daily)"));
         }
 
         // 5. ランダム化していても限界がある旨の教育的情報(ランダム系モード時)
@@ -86,10 +86,10 @@ public sealed class PrivacyAdvisoryService
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Info,
                 Code:      "MWC-PRIV-004",
-                Title:     "ランダム化だけでは不十分な場合がある",
-                Detail:    "MAC をランダム化していても、Probe Request 内の Information Element 指紋で" +
-                           "端末が再識別される場合がある(報告では最大 ~99%)。スキャンの抑制や" +
-                           "不要時の Wi-Fi オフも併用すると追跡耐性が向上する。",
+                Title:     "Randomisation May Not Be Sufficient",
+                Detail:    "Even with MAC randomisation, a device may be re-identified via Information Element " +
+                           "fingerprints in Probe Requests (up to ~99% accuracy reported). Limiting scans and " +
+                           "turning off Wi-Fi when not in use further improves tracking resistance.",
                 Reference: "arXiv 2412.10548 / 1703.02874"));
         }
 

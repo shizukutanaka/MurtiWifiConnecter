@@ -116,8 +116,8 @@ public readonly record struct DistanceEstimate(
 {
     /// <summary>表示用ラベル (例: "約 4.2 m (2–7 m)")。</summary>
     public string Label => Confidence == DistanceConfidence.Unknown
-        ? "不明"
-        : $"約 {Meters:0.#} m ({MinMeters:0.#}–{MaxMeters:0.#} m)";
+        ? "Unknown"
+        : $"~{Meters:0.#} m ({MinMeters:0.#}–{MaxMeters:0.#} m)";
 }
 
 /// <summary>距離推定の信頼度。</summary>
