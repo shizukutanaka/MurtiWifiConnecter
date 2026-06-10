@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **サイレント catch ブロック解消**: `NetworkHistoryService` と `AdapterPreferencesService` の
+  `Load()`/`Save()`/`Persist()` メソッドで `IOException`/`UnauthorizedAccessException` を
+  黙って握りつぶしていた。`ILogger<T>` を両コンストラクタに追加(DI 自動注入)し、
+  `LogWarning` でパスと例外を記録するよう変更。ファイル I/O 失敗が Serilog に流れるため
+  診断が可能になる。
 - **UI 文字列ローカライズ (Round 13)**: Round 12 で残存していた WPF Binding 式内 StringFormat /
   FallbackValue ハードコード問題を ViewModel プロパティ化で解消。`AdapterViewModel` に
   `ToolbarStatusText`・`SignalHistoryTitle` を追加し `L.LabelConnected` / `L.MainSignalHistoryTitle`

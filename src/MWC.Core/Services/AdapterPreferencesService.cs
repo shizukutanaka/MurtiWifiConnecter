@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace MWC.Core.Services;
 
@@ -24,6 +25,7 @@ public sealed class AdapterPreferencesService
         "MWC", "adapters.json");
 
     private readonly Dictionary<Guid, AdapterPreferences> _store;
+    private readonly ILogger<AdapterPreferencesService> _log;
     // _store 保護用。AutoReconnectService(バックグラウンド)が Get/PickBestSsid で読み取る一方、
     // UI スレッドが Save するため、ロック無しでは Dictionary の並行読み書きで
     // InvalidOperationException("collection was modified") やデータ破損が起きうる。
@@ -32,8 +34,9 @@ public sealed class AdapterPreferencesService
     private readonly object _saveLock = new();
 
     /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。</summary>
-    public AdapterPreferencesService()
+    public AdapterPreferencesService(ILogger<AdapterPreferencesService> log)
     {
+        _log = log;
         _store = Load();
     }
 
@@ -184,8 +187,8 @@ public sealed class AdapterPreferencesService
             catch (UnauthorizedAccessException) { }
             return new();
         }
-        catch (IOException) { return new(); }
-        catch (UnauthorizedAccessException) { return new(); }
+        catch (IOException ex) { _log.LogWarning(ex, "Failed to read adapter prefs {Path}", ConfigPath); return new(); }
+        catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied reading adapter prefs {Path}", ConfigPath); return new(); }
     }
 
     // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
@@ -204,8 +207,8 @@ public sealed class AdapterPreferencesService
                         new JsonSerializerOptions { WriteIndented = true }));
                 File.Move(tmp, ConfigPath, overwrite: true);
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException ex) { _log.LogWarning(ex, "Failed to save adapter prefs {Path}", ConfigPath); }
+            catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied saving adapter prefs {Path}", ConfigPath); }
         }
     }
 }

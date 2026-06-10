@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace MWC.Core.Services;
 
@@ -23,6 +24,7 @@ public sealed class NetworkHistoryService
         "MWC", "history.json");
 
     private readonly List<ConnectionHistoryEntry> _entries;
+    private readonly ILogger<NetworkHistoryService> _log;
     // _entries 保護用。net9.0 / netstandard2.0 双方でビルドできるよう object lock を使用
     // (System.Threading.Lock は net9.0 専用のため netstandard2.0 でビルド不能)。
     private readonly object _lock = new();
@@ -31,8 +33,9 @@ public sealed class NetworkHistoryService
     private readonly object _saveLock = new();
 
     /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。</summary>
-    public NetworkHistoryService()
+    public NetworkHistoryService(ILogger<NetworkHistoryService> log)
     {
+        _log = log;
         _entries = Load();
     }
 
@@ -162,8 +165,8 @@ public sealed class NetworkHistoryService
             catch (UnauthorizedAccessException) { }
             return new();
         }
-        catch (IOException) { return new(); }
-        catch (UnauthorizedAccessException) { return new(); }
+        catch (IOException ex) { _log.LogWarning(ex, "Failed to read history file {Path}", HistoryPath); return new(); }
+        catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied reading history file {Path}", HistoryPath); return new(); }
     }
 
     // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
@@ -182,8 +185,8 @@ public sealed class NetworkHistoryService
                         new JsonSerializerOptions { WriteIndented = false }));
                 File.Move(tmp, HistoryPath, overwrite: true);
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException ex) { _log.LogWarning(ex, "Failed to save history file {Path}", HistoryPath); }
+            catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied saving history file {Path}", HistoryPath); }
         }
     }
 }
