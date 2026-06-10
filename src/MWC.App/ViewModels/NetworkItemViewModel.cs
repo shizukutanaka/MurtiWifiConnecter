@@ -43,6 +43,9 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
     public string SignalAutomationLabel => MWC.App.Resources.L.MainSignalStrength(Signal);
 
+    // ── Signal trend indicator ────────────────────────────────────────
+    [ObservableProperty] private string _signalTrendLabel = "";
+
     // ── Security level badge ─────────────────────────────────────────
     public SecurityLevel SecurityLevel  => SecurityBadgeService.GetBadge(Auth).Level;
     public string SecurityBadgeLabel    => MWC.App.Resources.L.SecurityLevelLabel(SecurityLevel);

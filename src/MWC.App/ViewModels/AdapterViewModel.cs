@@ -34,7 +34,13 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     /// <summary>接続状態の人間語ラベル</summary>
     public string ConnectionStatusLabel =>
-        ConnectedSsid is null ? MWC.App.Resources.L.LabelNotConnected : $"→ {ConnectedSsid}";
+        ConnectedSsid is null ? MWC.App.Resources.L.LabelNotConnected
+        : _connectedSince.HasValue
+            ? $"→ {ConnectedSsid}  ({FormatDuration(DateTimeOffset.UtcNow - _connectedSince.Value)})"
+            : $"→ {ConnectedSsid}";
+
+    private static string FormatDuration(TimeSpan e) =>
+        e.TotalHours >= 1 ? $"{(int)e.TotalHours}h {e.Minutes:D2}m" : $"{(int)e.TotalMinutes}m";
 
     /// <summary>ツールバー接続状態テキスト (resx 経由でローカライズ済み)</summary>
     public string ToolbarStatusText =>
@@ -60,6 +66,9 @@ public sealed partial class AdapterViewModel : ObservableObject
     [ObservableProperty] private bool                     _isScanning;
     [ObservableProperty] private NetworkDetailViewModel   _detail = new();
 
+    private DateTimeOffset? _connectedSince;
+    private string?         _prevConnectedSsid;
+
     /// <summary>選択中 SSID の信号履歴サンプル (SignalHistoryCanvas用)</summary>
     public IReadOnlyList<MWC.Core.Services.SignalSample> SelectedHistory
         => _selected is null
@@ -77,6 +86,13 @@ public sealed partial class AdapterViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ConnectionStatusLabel));
         OnPropertyChanged(nameof(ToolbarStatusText));
+    }
+
+    private static string ComputeTrendArrow(IReadOnlyList<MWC.Core.Services.SignalSample> history)
+    {
+        if (history.Count < 3) return "";
+        int delta = history[0].Quality - history[Math.Min(2, history.Count - 1)].Quality;
+        return delta > 5 ? "↑" : delta < -5 ? "↓" : "";
     }
 
     public AdapterPreferences Preferences { get; private set; }
@@ -134,16 +150,24 @@ public sealed partial class AdapterViewModel : ObservableObject
                 else            ex.Update(n);
             }
 
-            // チャンネル混雑度を計算して各ネットワークに設定
+            // チャンネル混雑度・信号トレンドを計算して各ネットワークに設定
             var channelAdvisor = new ChannelAdvisorService();
             foreach (var netVm in Networks)
             {
                 var advisory = channelAdvisor.AdviseCongestion(netVm.Source, enriched);
                 netVm.CongestionPercent   = advisory.UtilizationPercent;
                 netVm.IsChannelOverloaded = advisory.IsOverloaded;
+                netVm.SignalTrendLabel    = ComputeTrendArrow(_history.GetHistory(netVm.Ssid));
             }
 
-            ConnectedSsid = enriched.FirstOrDefault(n => n.IsConnected)?.Ssid;
+            var newConnectedSsid = enriched.FirstOrDefault(n => n.IsConnected)?.Ssid;
+            if (newConnectedSsid != _prevConnectedSsid)
+            {
+                _connectedSince      = newConnectedSsid is null ? null : DateTimeOffset.UtcNow;
+                _prevConnectedSsid   = newConnectedSsid;
+            }
+            ConnectedSsid = newConnectedSsid;
+            OnPropertyChanged(nameof(ConnectionStatusLabel));
             OnPropertyChanged(nameof(CurrentSignal));
             OnPropertyChanged(nameof(ConnectionStatusLabel));
 

@@ -161,15 +161,15 @@ public readonly record struct NetworkQualityResult(
 {
     public string GradeLabel => Grade switch
     {
-        QualityGrade.Excellent => "優良",
-        QualityGrade.Good      => "良好",
-        QualityGrade.Fair      => "普通",
-        QualityGrade.Poor      => "不良",
-        _ => "計測中…"
+        QualityGrade.Excellent => "Excellent",
+        QualityGrade.Good      => "Good",
+        QualityGrade.Fair      => "Fair",
+        QualityGrade.Poor      => "Poor",
+        _ => "Unknown"
     };
 
     public string LatencyLabel => LatencyAvgMs >= 999
-        ? "タイムアウト"
+        ? "Timeout"
         : $"{LatencyAvgMs} ms";
 
     public string LossLabel => $"{PacketLossPct:F0}%";
@@ -192,11 +192,11 @@ public readonly record struct ResponsivenessResult(
 
     public string GradeLabel => Grade switch
     {
-        BufferbloatGrade.A => "A (優秀)",
-        BufferbloatGrade.B => "B (良好)",
-        BufferbloatGrade.C => "C (普通)",
-        BufferbloatGrade.D => "D (要改善)",
-        BufferbloatGrade.F => "F (深刻)",
+        BufferbloatGrade.A => "A (Excellent)",
+        BufferbloatGrade.B => "B (Good)",
+        BufferbloatGrade.C => "C (Fair)",
+        BufferbloatGrade.D => "D (Needs improvement)",
+        BufferbloatGrade.F => "F (Critical)",
         _                  => "—"
     };
 }

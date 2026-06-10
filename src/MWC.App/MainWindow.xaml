@@ -507,35 +507,41 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- 信号バー (色で強度を示す) -->
-                                        <TextBlock Grid.Column="0" FontSize="15"
-                                                   VerticalAlignment="Center" TextAlignment="Center"
-                                                   AutomationProperties.Name="{Binding SignalAutomationLabel}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text"       Value="▁"/>
-                                                    <Setter Property="Foreground" Value="#EF4444"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="4">
-                                                            <Setter Property="Text"       Value="▄"/>
-                                                            <Setter Property="Foreground" Value="#22C55E"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="3">
-                                                            <Setter Property="Text"       Value="▄"/>
-                                                            <Setter Property="Foreground" Value="#A3E635"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="2">
-                                                            <Setter Property="Text"       Value="▃"/>
-                                                            <Setter Property="Foreground" Value="#F59E0B"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="1">
-                                                            <Setter Property="Text"       Value="▂"/>
-                                                            <Setter Property="Foreground" Value="#F97316"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <!-- 信号バー + トレンド矢印 -->
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center">
+                                            <TextBlock FontSize="15" TextAlignment="Center"
+                                                       AutomationProperties.Name="{Binding SignalAutomationLabel}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text"       Value="▁"/>
+                                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="4">
+                                                                <Setter Property="Text"       Value="▄"/>
+                                                                <Setter Property="Foreground" Value="#22C55E"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="3">
+                                                                <Setter Property="Text"       Value="▄"/>
+                                                                <Setter Property="Foreground" Value="#A3E635"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="2">
+                                                                <Setter Property="Text"       Value="▃"/>
+                                                                <Setter Property="Foreground" Value="#F59E0B"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="1">
+                                                                <Setter Property="Text"       Value="▂"/>
+                                                                <Setter Property="Foreground" Value="#F97316"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding SignalTrendLabel}"
+                                                       FontSize="8" TextAlignment="Center"
+                                                       Foreground="{DynamicResource FgVeryMutedBrush}"
+                                                       Margin="0,-2,0,0"/>
+                                        </StackPanel>
 
                                         <!-- SSID + セキュリティ(人間語) + 詳細情報 -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
