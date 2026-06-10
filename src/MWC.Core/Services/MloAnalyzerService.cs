@@ -37,7 +37,7 @@ public sealed class MloAnalyzerService
                 AggregatedMbps:   0,
                 BestLinkRssi:     network.SignalQuality > 0 ? -60 : 0,
                 ReliabilityTier:  MloReliability.SingleLink,
-                Summary:          "MLO 非対応 (シングルリンク)。");
+                Summary:          "MLO not supported (single link).");
 
         var links = network.MloLinks;
         var bands = links.Select(l => l.Band).Distinct().ToList();
@@ -58,9 +58,9 @@ public sealed class MloAnalyzerService
         };
 
         string summary = crossBand
-            ? $"{links.Count}リンク MLO ({string.Join("+", bands.Select(BandLabel))})。" +
-              $"集約 約{aggregated:F0}Mbps。1リンク劣化時も他バンドで継続。"
-            : $"{links.Count}リンク MLO (同一バンド)。集約 約{aggregated:F0}Mbps。";
+            ? $"{links.Count}-link MLO ({string.Join("+", bands.Select(BandLabel))}). " +
+              $"Aggregated approx. {aggregated:F0}Mbps. Continues on other bands if one link degrades."
+            : $"{links.Count}-link MLO (same band). Aggregated approx. {aggregated:F0}Mbps.";
 
         return new MloAnalysis(
             IsMlo:           true,
@@ -122,16 +122,16 @@ public sealed class MloAnalyzerService
 
         if (best <= WeakRssiDbm)
             return new MloAnomaly(MloAnomalyKind.AllLinksWeak,
-                "全リンクが弱い。MLO 集約の利点が乏しく、最良リンクへの固定や設置改善を推奨。");
+                "All links are weak. MLO aggregation offers limited benefit; consider pinning to the best link or improving AP placement.");
 
         if (gap >= AsymmetricGapDb)
             return new MloAnomaly(MloAnomalyKind.AsymmetricLinks,
-                $"リンク間 RSSI 差が大きい (約{gap}dB)。遅延重視の通信では MLO が最良単一リンクに" +
-                "劣る場合がある (arXiv 2210.07695)。強リンクへの固定を検討。");
+                $"Large RSSI gap between links (approx. {gap}dB). For latency-sensitive traffic, MLO may perform worse than the best single link " +
+                "(arXiv 2210.07695). Consider pinning to the stronger link.");
 
         if (links.Select(l => l.Band).Distinct().Count() < 2)
             return new MloAnomaly(MloAnomalyKind.SameBandRedundancy,
-                "同一バンドのみの MLO。障害時の冗長性が限定的。クロスバンド構成が望ましい。");
+                "Single-band MLO only. Redundancy on link failure is limited. A cross-band configuration is recommended.");
 
         return new MloAnomaly(MloAnomalyKind.None, null);
     }

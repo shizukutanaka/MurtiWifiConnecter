@@ -27,44 +27,44 @@ public static partial class MwcLog
 
     [LoggerMessage(
         EventId = 1001, Level = LogLevel.Information,
-        Message = "接続試行開始 adapter={AdapterId} ssidHash={SsidHash} auth={Auth}")]
+        Message = "Connect attempt adapter={AdapterId} ssidHash={SsidHash} auth={Auth}")]
     public static partial void ConnectAttempt(
         this ILogger logger, Guid adapterId, string ssidHash, AuthMethod auth);
 
     [LoggerMessage(
         EventId = 1002, Level = LogLevel.Information,
-        Message = "接続成功 adapter={AdapterId} ssidHash={SsidHash} elapsedMs={ElapsedMs}")]
+        Message = "Connect succeeded adapter={AdapterId} ssidHash={SsidHash} elapsedMs={ElapsedMs}")]
     public static partial void ConnectSucceeded(
         this ILogger logger, Guid adapterId, string ssidHash, long elapsedMs);
 
     [LoggerMessage(
         EventId = 1003, Level = LogLevel.Warning,
-        Message = "接続失敗 adapter={AdapterId} ssidHash={SsidHash} reason={Failure} attempt={Attempt}")]
+        Message = "Connect failed adapter={AdapterId} ssidHash={SsidHash} reason={Failure} attempt={Attempt}")]
     public static partial void ConnectFailed(
         this ILogger logger, Guid adapterId, string ssidHash,
         ConnectionFailure failure, int attempt);
 
     [LoggerMessage(
         EventId = 1004, Level = LogLevel.Information,
-        Message = "切断 adapter={AdapterId}")]
+        Message = "Disconnected adapter={AdapterId}")]
     public static partial void Disconnected(this ILogger logger, Guid adapterId);
 
     [LoggerMessage(
         EventId = 1005, Level = LogLevel.Debug,
-        Message = "リトライ待機 attempt={Attempt} delayMs={DelayMs}")]
+        Message = "Retry backoff attempt={Attempt} delayMs={DelayMs}")]
     public static partial void RetryBackoff(this ILogger logger, int attempt, long delayMs);
 
     // ── セキュリティ ────────────────────────────────────────────
 
     [LoggerMessage(
         EventId = 2001, Level = LogLevel.Warning,
-        Message = "セキュリティ勧告 code={Code} ssidHash={SsidHash}")]
+        Message = "Security advisory code={Code} ssidHash={SsidHash}")]
     public static partial void SecurityAdvisory(
         this ILogger logger, string code, string ssidHash);
 
     [LoggerMessage(
         EventId = 2002, Level = LogLevel.Warning,
-        Message = "Evil Twin の疑い risk={Risk} ssidHash={SsidHash}")]
+        Message = "Evil twin suspected risk={Risk} ssidHash={SsidHash}")]
     public static partial void EvilTwinSuspected(
         this ILogger logger, EvilTwinRisk risk, string ssidHash);
 
@@ -72,7 +72,7 @@ public static partial class MwcLog
 
     [LoggerMessage(
         EventId = 3001, Level = LogLevel.Error,
-        Message = "プラグインエラー plugin={PluginName} hook={Hook}")]
+        Message = "Plugin error plugin={PluginName} hook={Hook}")]
     public static partial void PluginError(
         this ILogger logger, string pluginName, string hook, Exception ex);
 

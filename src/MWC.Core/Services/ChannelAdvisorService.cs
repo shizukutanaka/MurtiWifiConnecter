@@ -94,8 +94,9 @@ public sealed class ChannelAdvisorService
         {
             return new ChannelWidthAdvice(
                 Recommended: 20,
-                Reason: "高密度環境 (近隣AP多数)。20MHz 幅の方が非重複チャネルが増え、" +
-                        "co-channel 干渉が減り総容量が向上する。",
+                Reason: "High-density environment (many nearby APs). 20 MHz width increases " +
+                        "non-overlapping channel count, reducing co-channel interference and " +
+                        "improving aggregate capacity.",
                 IsOptimal: false);
         }
 
@@ -103,13 +104,13 @@ public sealed class ChannelAdvisorService
         {
             return new ChannelWidthAdvice(
                 Recommended: 80,
-                Reason: "低密度環境。80/160MHz 幅で個別スループットを最大化できる。",
+                Reason: "Low-density environment. 80/160 MHz width maximises individual throughput.",
                 IsOptimal: false);
         }
 
         return new ChannelWidthAdvice(
             Recommended: network.ChannelWidth,
-            Reason: "現在のチャネル幅は環境に適している。",
+            Reason: "Current channel width is appropriate for this environment.",
             IsOptimal: true);
     }
 
@@ -164,16 +165,16 @@ public sealed class ChannelAdvisorService
         return network.Band switch
         {
             WifiBand.Band6GHz when network.SignalQuality >= 50 =>
-                "6GHz 帯。最も空いており高速。近距離で最適。",
+                "6 GHz band — least congested and fastest. Ideal at close range.",
             WifiBand.Band6GHz =>
-                "6GHz 帯だが信号が弱い。壁越しでは 5GHz の方が安定する場合がある。",
+                "6 GHz band with weak signal. 5 GHz may be more stable through walls.",
             WifiBand.Band5GHz =>
-                "5GHz 帯。速度と到達性のバランスが良い。",
+                "5 GHz band — good balance of speed and range.",
             WifiBand.Band2_4GHz when !IsNonOverlappingChannel(network) =>
-                $"2.4GHz 帯 (Ch{network.Channel})。重複チャネルのため干渉しやすい。",
+                $"2.4 GHz band (Ch {network.Channel}) — overlapping channel, prone to interference.",
             WifiBand.Band2_4GHz =>
-                "2.4GHz 帯。到達性は高いが混雑しやすい。",
-            _ => "不明なバンド。"
+                "2.4 GHz band — good range but congested.",
+            _ => "Unknown band."
         };
     }
 }

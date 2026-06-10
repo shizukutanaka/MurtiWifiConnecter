@@ -115,16 +115,16 @@ public sealed class RoamingAdvisoryService
 
         if (roamCount >= FlappingThreshold)
             return new RoamingStability(RoamingStabilityState.Flapping, roamCount,
-                $"短時間に {roamCount} 回ローミングしている(フラッピング)。" +
-                "ローミング閾値が攻撃的すぎる可能性。AP の出力/配置の見直しを推奨。");
+                $"Roamed {roamCount} times in a short period (flapping). " +
+                "Roaming threshold may be too aggressive. Review AP transmit power and placement.");
 
         if (roamCount == 0 && currentRssiDbm <= StickyRssiDbm)
             return new RoamingStability(RoamingStabilityState.Sticky, 0,
-                $"弱い信号 ({currentRssiDbm}dBm) のまま同じ AP に居座っている可能性" +
-                "(スティッキークライアント)。手動再接続やより近い AP への移動を推奨。");
+                $"Weak signal ({currentRssiDbm}dBm) while staying on the same AP " +
+                "(sticky client). Recommend reconnecting manually or moving closer to a better AP.");
 
         return new RoamingStability(RoamingStabilityState.Stable, roamCount,
-            "ローミングは安定している。");
+            "Roaming is stable.");
     }
 
     /// <summary>
@@ -136,14 +136,14 @@ public sealed class RoamingAdvisoryService
         return profile.Tier switch
         {
             RoamingTier.Seamless =>
-                $"シームレスローミング対応 ({string.Join("/", profile.SupportedStandards)})。" +
-                $"遷移遅延 約{profile.EstimatedHandoverMs}ms — VoIP/ビデオ通話でも途切れない。",
+                $"Seamless roaming supported ({string.Join("/", profile.SupportedStandards)}). " +
+                $"Handover latency approx. {profile.EstimatedHandoverMs}ms — uninterrupted VoIP/video calls.",
             RoamingTier.Fast =>
-                $"高速ローミング対応 (802.11r)。遷移遅延 約{profile.EstimatedHandoverMs}ms。",
+                $"Fast roaming supported (802.11r). Handover latency approx. {profile.EstimatedHandoverMs}ms.",
             RoamingTier.Assisted =>
-                $"スキャン補助あり (802.11k/v)。AP候補リストでローミング判断が速い。",
+                $"Scan assistance available (802.11k/v). AP candidate list speeds up roaming decisions.",
             _ =>
-                $"標準ローミング。遷移時に約{profile.EstimatedHandoverMs}ms の中断が発生しうる。"
+                $"Standard roaming. Handover may cause a ~{profile.EstimatedHandoverMs}ms interruption."
         };
     }
 }

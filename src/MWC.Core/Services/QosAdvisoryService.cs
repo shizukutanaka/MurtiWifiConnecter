@@ -47,7 +47,7 @@ public sealed class QosAdvisoryService
         // 計測がなければ判定不能
         if (grade == BufferbloatGrade.Unknown)
             return new AppSuitability(app, SuitabilityLevel.Unknown, wmmActive,
-                Reason: "負荷時遅延が未計測のため判定できません。");
+                Reason: "Load-time latency not yet measured; suitability cannot be determined.");
 
         // グレードを数値化 (A=1 ... F=5、小さいほど良い)
         int g  = GradeRank(grade);
@@ -81,22 +81,22 @@ public sealed class QosAdvisoryService
     {
         string appName = app switch
         {
-            AppClass.RealtimeGaming    => "オンラインゲーム",
-            AppClass.VideoConferencing => "ビデオ会議",
-            AppClass.VideoStreaming    => "動画ストリーミング",
-            _                          => "Web 閲覧",
+            AppClass.RealtimeGaming    => "Online Gaming",
+            AppClass.VideoConferencing => "Video Conferencing",
+            AppClass.VideoStreaming    => "Video Streaming",
+            _                          => "Web Browsing",
         };
         string wmmNote = wmmActive
-            ? "WMM 有効で優先制御あり"
-            : "WMM 無効 — 全トラフィックが Best Effort";
+            ? "WMM active — priority queuing enabled"
+            : "WMM disabled — all traffic is best-effort";
         string verdict = level switch
         {
-            SuitabilityLevel.Excellent => "快適に利用できます",
-            SuitabilityLevel.Good      => "問題なく利用できます",
-            SuitabilityLevel.Marginal  => "混雑時に支障が出る可能性があります",
-            _                          => "推奨できません (遅延が大きい)",
+            SuitabilityLevel.Excellent => "Excellent — comfortable for this use case.",
+            SuitabilityLevel.Good      => "Good — usable without issues.",
+            SuitabilityLevel.Marginal  => "Marginal — may degrade under congestion.",
+            _                          => "Poor — high latency, not recommended.",
         };
-        return $"{appName}: グレード{grade} / {wmmNote}。{verdict}。";
+        return $"{appName}: grade {grade} / {wmmNote}. {verdict}";
     }
 }
 

@@ -47,7 +47,7 @@ public sealed class HandoverPredictor
         if (currentRssi >= GoodSignalDbm && trend != SignalTrend.Degrading)
             return new HandoverRecommendation(
                 ShouldHandover: false,
-                Reason:         "現在の信号は良好。切替不要。",
+                Reason:         "Current signal is good. No handover needed.",
                 Urgency:        HandoverUrgency.None);
 
         // 悪化傾向 + 候補あり → 事前ローミング推奨
@@ -57,7 +57,7 @@ public sealed class HandoverPredictor
         if (degrading && candidate != null && candidate.SignalQuality > 50)
             return new HandoverRecommendation(
                 ShouldHandover: true,
-                Reason:         "信号悪化を予測。より強い候補 AP へ事前ローミング推奨。",
+                Reason:         "Signal degradation predicted. Proactive roaming to stronger candidate AP recommended.",
                 Urgency:        currentRssi < StickyThresholdDbm
                                     ? HandoverUrgency.High
                                     : HandoverUrgency.Medium,
@@ -67,12 +67,12 @@ public sealed class HandoverPredictor
         if (currentRssi < StickyThresholdDbm && candidate == null)
             return new HandoverRecommendation(
                 ShouldHandover: false,
-                Reason:         "信号が弱いが切替候補なし。AP に近づくか再スキャンを推奨。",
+                Reason:         "Weak signal but no handover candidate available. Move closer to an AP or rescan.",
                 Urgency:        HandoverUrgency.Low);
 
         return new HandoverRecommendation(
             ShouldHandover: false,
-            Reason:         "現状維持で問題なし。",
+            Reason:         "No issues with current connection. No action needed.",
             Urgency:        HandoverUrgency.None);
     }
 
@@ -117,8 +117,8 @@ public sealed class HandoverPredictor
             return new FlappingVerdict(
                 IsFlapping: true,
                 RecentHandovers: recent.Count,
-                Detail: $"{FlapWindowSeconds}秒間に {flappingPair.Count()} 回の往復を検出。" +
-                        "ローミング閾値の調整を推奨。");
+                Detail: $"Detected {flappingPair.Count()} back-and-forth handovers within {FlapWindowSeconds} seconds. " +
+                        "Recommend adjusting roaming threshold.");
 
         return new FlappingVerdict(false, recent.Count, "");
     }
