@@ -29,19 +29,19 @@ public static class SignalIconService
         {
             >= 80 => new SignalIndicator(
                 Bars: 4, Level: SignalLevel.Excellent,
-                Glyph: "▰▰▰▰", TextLabel: "非常に強い", AccentHex: "#3fb950"),
+                Glyph: "▰▰▰▰", TextLabel: "Excellent", AccentHex: "#3fb950"),
             >= 60 => new SignalIndicator(
                 Bars: 3, Level: SignalLevel.Good,
-                Glyph: "▰▰▰▱", TextLabel: "強い", AccentHex: "#3fb950"),
+                Glyph: "▰▰▰▱", TextLabel: "Good", AccentHex: "#3fb950"),
             >= 40 => new SignalIndicator(
                 Bars: 2, Level: SignalLevel.Fair,
-                Glyph: "▰▰▱▱", TextLabel: "普通", AccentHex: "#d29922"),
+                Glyph: "▰▰▱▱", TextLabel: "Fair", AccentHex: "#d29922"),
             >= 20 => new SignalIndicator(
                 Bars: 1, Level: SignalLevel.Weak,
-                Glyph: "▰▱▱▱", TextLabel: "弱い", AccentHex: "#d29922"),
+                Glyph: "▰▱▱▱", TextLabel: "Weak", AccentHex: "#d29922"),
             _ => new SignalIndicator(
                 Bars: 0, Level: SignalLevel.VeryWeak,
-                Glyph: "▱▱▱▱", TextLabel: "非常に弱い", AccentHex: "#f85149"),
+                Glyph: "▱▱▱▱", TextLabel: "Very Weak", AccentHex: "#f85149"),
         };
     }
 
@@ -63,7 +63,7 @@ public static class SignalIconService
     public static string AccessibleLabel(int signalQuality)
     {
         var ind = Describe(signalQuality);
-        return $"信号強度 {ind.TextLabel} ({ind.Bars}/4 バー、{signalQuality}%)";
+        return $"Signal strength {ind.TextLabel} ({ind.Bars}/4 bars, {signalQuality}%)";
     }
 }
 

@@ -39,10 +39,10 @@ public sealed class PrivacyAdvisoryService
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Warning,
                 Code:      "MWC-PRIV-001",
-                Title:     "固定 MAC で公共ネットワークに接続",
-                Detail:    "ハードウェア(固定)MAC アドレスのまま認証なしのネットワークに接続している。" +
-                           "固定 MAC は来訪のたびに同一識別子となり、場所をまたいだ追跡を容易にする " +
-                           "(arXiv 2206.10927)。このネットワーク用にランダム MAC を有効化することを推奨。",
+                Title:     "Hardware MAC on Public Network",
+                Detail:    "You are connecting to an open network with your hardware (fixed) MAC address. " +
+                           "A fixed MAC acts as a persistent identifier across visits, making cross-location " +
+                           "tracking easy (arXiv 2206.10927). Enable random MAC for this network.",
                 Reference: "arXiv 2206.10927 (Probe Request Privacy)"));
         }
         // 2. 固定 MAC(一般) → ランダム化の推奨
@@ -51,9 +51,9 @@ public sealed class PrivacyAdvisoryService
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Info,
                 Code:      "MWC-PRIV-002",
-                Title:     "ランダム MAC が無効",
-                Detail:    "ハードウェア(固定)MAC を使用している。ネットワーク別のランダム MAC を" +
-                           "有効化すると、ネットワーク運営者やローカル観測者による追跡を抑制できる。",
+                Title:     "Random MAC Disabled",
+                Detail:    "You are using your hardware (fixed) MAC address. Enabling per-network random MAC " +
+                           "addresses reduces tracking by network operators and local observers.",
                 Reference: "arXiv 2206.10927"));
         }
 
@@ -63,10 +63,10 @@ public sealed class PrivacyAdvisoryService
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Info,
                 Code:      "MWC-PRIV-003",
-                Title:     "ランダム MAC(ネットワーク別・固定)",
-                Detail:    "このネットワークではランダム MAC を使用しているが、値は固定的。" +
-                           "日次ローテーションを使うと、長期の追跡をさらに抑制できる。",
-                Reference: "Windows ランダムなハードウェア アドレス設定"));
+                Title:     "Random MAC (Per-Network, Fixed)",
+                Detail:    "You are using a random MAC for this network, but the value is fixed. " +
+                           "Using daily rotation further reduces long-term tracking.",
+                Reference: "Windows random hardware address settings"));
         }
 
         // 4. 日次ローテーション → 良好
