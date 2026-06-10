@@ -171,8 +171,8 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock Text="{Binding SelectedAdapter.ConnectedSsid,
-                                     StringFormat=接続中: {0}, FallbackValue=未接続}"
+                    <TextBlock Text="{Binding SelectedAdapter.ToolbarStatusText,
+                                     FallbackValue={x:Static r:L.LabelNotConnected}}"
                                FontSize="12" Foreground="{DynamicResource FgMutedBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -509,8 +509,7 @@
                                         <!-- 信号バー (色で強度を示す) -->
                                         <TextBlock Grid.Column="0" FontSize="15"
                                                    VerticalAlignment="Center" TextAlignment="Center"
-                                                   AutomationProperties.Name="{Binding Signal,
-                                                   StringFormat=信号強度{0}%}">
+                                                   AutomationProperties.Name="{Binding SignalAutomationLabel}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Text"       Value="▁"/>
@@ -673,8 +672,8 @@
                     <TabItem Header="{x:Static r:L.TabDetail}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
                             <StackPanel>
-                                <TextBlock Text="{Binding SelectedAdapter.Detail.Ssid,
-                                                  FallbackValue='ネットワークを選択'}"
+                                <TextBlock Text="{Binding SelectedAdapter.Detail.SsidOrHint,
+                                                  FallbackValue={x:Static r:L.MainSelectNetworkHint}}"
                                            FontSize="15" FontWeight="Bold" Margin="0,0,0,12"/>
 
                                 <!-- 詳細フィールド — Apple "Clarity" 人間語ラベル -->
@@ -826,9 +825,8 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" Margin="0,0,0,8" FontSize="11"
                                        Foreground="{DynamicResource FgMutedBrush}"
-                                       Text="{Binding SelectedAdapter.Selected.Ssid,
-                                              StringFormat={}{0} — 信号品質推移,
-                                              FallbackValue='ネットワークを選択してください'}"/>
+                                       Text="{Binding SelectedAdapter.SignalHistoryTitle,
+                                              FallbackValue={x:Static r:L.MainSelectHistoryHint}}"/>
                             <ctrl:SignalHistoryCanvas Grid.Row="1" MinHeight="160"
                                 History="{Binding SelectedAdapter.SelectedHistory}"
                                 Ssid="{Binding SelectedAdapter.Selected.Ssid}"

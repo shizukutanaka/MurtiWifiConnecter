@@ -10,13 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **UI 文字列ローカライズ (Round 13)**: Round 12 で残存していた WPF Binding 式内 StringFormat /
+  FallbackValue ハードコード問題を ViewModel プロパティ化で解消。`AdapterViewModel` に
+  `ToolbarStatusText`・`SignalHistoryTitle` を追加し `L.LabelConnected` / `L.MainSignalHistoryTitle`
+  を経由。`NetworkDetailViewModel` に `SsidOrHint` を追加。`NetworkItemViewModel` に
+  `SignalAutomationLabel` を追加 (`L.MainSignalStrength` 経由)。`AdapterPanelViewModel` に
+  `NetworkListAutomationLabel` を追加。5 新キー (format + hint) × 15 言語。
+  MainWindow.xaml と AllAdaptersOverviewView.xaml に日本語ハードコード文字列ゼロを達成。
 - **UI 文字列ローカライズ (Round 12)**: `MainWindow.xaml` と `AllAdaptersOverviewView.xaml`
   に残存していたハードコード日本語文字列(計 ~49 箇所)を `{x:Static r:L.XYZ}` バインディングへ
   移行。52 の新リソースキー + `Detail_Connected` プロパティを L.cs に追加(全 15 言語対応)。
   `TabItem.Header`(詳細/信号履歴/チャンネル)・詳細パネル 9 フィールドラベル・コンテキスト
   メニュー・オーバーフローメニュー・AutomationProperties.Name・ToolTip をすべて resx 経由化。
-  なお `StringFormat=接続中: {0}` 等の Binding 式内 StringFormat/FallbackValue は WPF
-  バインディングの制約で `{x:Static}` を注入できない(後続 ViewModel プロパティ化で対応)。
 - **UI 文字列ローカライズ**: `SettingsDialog.xaml`/`AdapterPreferencesDialog.xaml`/
   `ConnectDialog.xaml`/`AboutDialog.xaml` に散在していたハードコード日本語文字列を
   すべて `{x:Static r:L.XYZ}` バインディングへ移行。44 の新リソースキーを 15 言語すべての

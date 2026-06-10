@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MWC.Core.Models;
+using MWC.App.Resources;
 
 namespace MWC.App.ViewModels;
 
@@ -14,6 +15,12 @@ namespace MWC.App.ViewModels;
 public sealed partial class NetworkDetailViewModel : ObservableObject
 {
     [ObservableProperty] private string _ssid = "";
+
+    public string SsidOrHint =>
+        string.IsNullOrEmpty(Ssid) || Ssid == "-" ? L.MainSelectNetworkHint : Ssid;
+
+    partial void OnSsidChanged(string value) => OnPropertyChanged(nameof(SsidOrHint));
+
     [ObservableProperty] private string _authLabel = "";
     [ObservableProperty] private string _cipherLabel = "";
     [ObservableProperty] private string _phyLabel = "";

@@ -36,6 +36,18 @@ public sealed partial class AdapterViewModel : ObservableObject
     public string ConnectionStatusLabel =>
         ConnectedSsid is null ? MWC.App.Resources.L.LabelNotConnected : $"→ {ConnectedSsid}";
 
+    /// <summary>ツールバー接続状態テキスト (resx 経由でローカライズ済み)</summary>
+    public string ToolbarStatusText =>
+        ConnectedSsid is null
+            ? MWC.App.Resources.L.LabelNotConnected
+            : MWC.App.Resources.L.LabelConnected(ConnectedSsid);
+
+    /// <summary>信号履歴タブのタイトル (resx 経由でローカライズ済み)</summary>
+    public string SignalHistoryTitle =>
+        _selected is null
+            ? MWC.App.Resources.L.MainSelectHistoryHint
+            : MWC.App.Resources.L.MainSignalHistoryTitle(_selected.Ssid);
+
     /// <summary>UI表示用 NetworkItemViewModel 一覧</summary>
     public ObservableCollection<NetworkItemViewModel> Networks { get; } = new();
 
@@ -58,6 +70,13 @@ public sealed partial class AdapterViewModel : ObservableObject
     {
         Detail.Load(v?.Source);
         OnPropertyChanged(nameof(SelectedHistory));
+        OnPropertyChanged(nameof(SignalHistoryTitle));
+    }
+
+    partial void OnConnectedSsidChanged(string? value)
+    {
+        OnPropertyChanged(nameof(ConnectionStatusLabel));
+        OnPropertyChanged(nameof(ToolbarStatusText));
     }
 
     public AdapterPreferences Preferences { get; private set; }

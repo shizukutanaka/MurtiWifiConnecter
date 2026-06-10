@@ -327,4 +327,9 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="AllAdapters_RemovePreferred"><value>優先リストから削除</value></data>
   <data name="AllAdapters_AddPreferred"><value>+ 選択中を優先に追加</value></data>
   <data name="AllAdapters_AutoReconnect"><value>自動再接続を有効にする</value></data>
+  <data name="Main_SelectNetworkHint"><value>ネットワークを選択</value></data>
+  <data name="Main_SelectHistoryHint"><value>ネットワークを選択してください</value></data>
+  <data name="Main_SignalHistoryTitle"><value>{0} — 信号品質推移</value></data>
+  <data name="Main_SignalStrength"><value>信号強度{0}%</value></data>
+  <data name="AllAdapters_NetworkListAutomation"><value>{0}のネットワーク</value></data>
 </root>

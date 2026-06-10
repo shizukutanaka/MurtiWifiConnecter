@@ -180,8 +180,7 @@
                                              SelectedItem="{Binding Selected, Mode=TwoWay}"
                                              Background="Transparent" BorderThickness="0"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                             AutomationProperties.Name="{Binding Name,
-                                                StringFormat={}{0}のネットワーク}">
+                                             AutomationProperties.Name="{Binding NetworkListAutomationLabel}">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid Margin="0,2">

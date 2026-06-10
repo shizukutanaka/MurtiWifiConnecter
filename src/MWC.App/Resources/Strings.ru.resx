@@ -327,4 +327,9 @@
   <data name="AllAdapters_RemovePreferred"><value>Remove from preferred list</value></data>
   <data name="AllAdapters_AddPreferred"><value>+ Add selected to preferred</value></data>
   <data name="AllAdapters_AutoReconnect"><value>Enable auto-reconnect</value></data>
+  <data name="Main_SelectNetworkHint"><value>Select a network</value></data>
+  <data name="Main_SelectHistoryHint"><value>Select a network to view history</value></data>
+  <data name="Main_SignalHistoryTitle"><value>{0} — Signal History</value></data>
+  <data name="Main_SignalStrength"><value>Signal {0}%</value></data>
+  <data name="AllAdapters_NetworkListAutomation"><value>{0} networks</value></data>
 </root>

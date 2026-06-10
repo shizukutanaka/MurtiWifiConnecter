@@ -96,6 +96,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
     public Guid    Id          => _adapter.Id;
     public string  Name        => _adapter.Name;
     public string  Description => _adapter.Description;
+    public string  NetworkListAutomationLabel => MWC.App.Resources.L.AllAdaptersNetworkListAutomation(Name);
 
     /// <summary>このアダプタで利用可能な全ネットワーク</summary>
     public ObservableCollection<NetworkItemViewModel> Networks { get; } = new();

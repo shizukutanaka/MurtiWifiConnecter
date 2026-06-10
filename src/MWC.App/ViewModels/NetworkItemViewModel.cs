@@ -40,7 +40,10 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         VendorLabel = n.VendorName ?? "";
     }
 
-    public int    Bars      => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
+    public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
+    public string SignalAutomationLabel => MWC.App.Resources.L.MainSignalStrength(Signal);
+
+    partial void OnSignalChanged(int value) => OnPropertyChanged(nameof(SignalAutomationLabel));
     public string AuthLabel => Auth switch
     {
         AuthMethod.Open              => "Open",

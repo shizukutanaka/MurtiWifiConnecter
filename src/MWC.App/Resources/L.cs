@@ -234,6 +234,10 @@ public static class L
     public static string DetailStatus              => Get("Detail_Status");
     public static string MainSignalGraphAutomation  => Get("Main_SignalGraphAutomation");
     public static string MainChannelGraphAutomation => Get("Main_ChannelGraphAutomation");
+    public static string MainSelectNetworkHint      => Get("Main_SelectNetworkHint");
+    public static string MainSelectHistoryHint      => Get("Main_SelectHistoryHint");
+    public static string MainSignalHistoryTitle(string ssid) => Format("Main_SignalHistoryTitle", ssid);
+    public static string MainSignalStrength(int pct)         => Format("Main_SignalStrength", pct);
 
     // ─── AllAdaptersOverviewView ──────────────────────────────────────
     public static string AllAdaptersWindowTitle       => Get("AllAdapters_WindowTitle");
@@ -248,4 +252,5 @@ public static class L
     public static string AllAdaptersRemovePreferred   => Get("AllAdapters_RemovePreferred");
     public static string AllAdaptersAddPreferred      => Get("AllAdapters_AddPreferred");
     public static string AllAdaptersAutoReconnect     => Get("AllAdapters_AutoReconnect");
+    public static string AllAdaptersNetworkListAutomation(string name) => Format("AllAdapters_NetworkListAutomation", name);
 }
