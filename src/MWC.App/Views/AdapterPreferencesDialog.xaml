@@ -111,6 +111,39 @@
             </Grid>
         </Border>
 
+        <!-- ── フェイルオーバー ───────────────────── -->
+        <TextBlock Text="{x:Static r:L.FailoverSection}" FontSize="11" Foreground="{DynamicResource FgMutedBrush}"
+                   Margin="0,0,0,6" FontWeight="SemiBold"/>
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+            <StackPanel>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="{x:Static r:L.FailoverEnable}" FontSize="12"/>
+                        <TextBlock Text="{x:Static r:L.FailoverDesc}"
+                                   FontSize="10" Foreground="{DynamicResource FgVeryMutedBrush}"
+                                   TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <CheckBox Grid.Column="1" x:Name="FailoverCheck"
+                              VerticalAlignment="Top" Margin="8,0,0,0"
+                              AutomationProperties.Name="{x:Static r:L.FailoverEnable}"/>
+                </Grid>
+                <StackPanel x:Name="FailoverAdapterPanel">
+                    <TextBlock Text="{x:Static r:L.FailoverBackupAdapter}"
+                               FontSize="11" Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="FailoverAdapterCombo"
+                              Padding="10,8" Background="{DynamicResource SurfaceHoverBrush}"
+                              Foreground="{DynamicResource FgBrush}" BorderBrush="{DynamicResource DividerBrush}"
+                              AutomationProperties.Name="{x:Static r:L.FailoverBackupAdapter}"/>
+                    <TextBlock Text="{x:Static r:L.FailoverBackupHint}"
+                               FontSize="10" Foreground="{DynamicResource FgVeryMutedBrush}" Margin="0,4,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- ── ボタン ─────────────────────────────── -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="{x:Static r:L.ActionCancel}"

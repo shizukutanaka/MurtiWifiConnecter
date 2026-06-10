@@ -215,9 +215,12 @@ public sealed class MainWindowCommands
         vm.StatusMessage = MWC.App.Resources.L.Format("Status_Pinned", ssid);
     }
 
-    public AdapterPreferences? OpenAdapterPreferences(AdapterViewModel adapter, Window owner)
+    public AdapterPreferences? OpenAdapterPreferences(
+        AdapterViewModel adapter,
+        Window owner,
+        System.Collections.Generic.IReadOnlyList<AdapterViewModel>? allAdapters = null)
     {
-        var dlg = new AdapterPreferencesDialog(adapter) { Owner = owner };
+        var dlg = new AdapterPreferencesDialog(adapter, allAdapters) { Owner = owner };
         return dlg.ShowDialog() == true ? adapter.Preferences : null;
     }
 }

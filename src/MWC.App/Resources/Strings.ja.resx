@@ -351,4 +351,19 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Connect_PassphraseAutomation"><value>パスフレーズ入力</value></data>
   <data name="Connect_PassphraseVisibleAutomation"><value>パスフレーズ入力(表示)</value></data>
   <data name="CertPicker_ExpiryFormat"><value>{0} (残 {1} 日)</value></data>
+  <data name="Security_Excellent"><value>最高セキュリティ (WPA3)</value></data>
+  <data name="Security_Good"><value>高セキュリティ (WPA2)</value></data>
+  <data name="Security_Fair"><value>普通のセキュリティ</value></data>
+  <data name="Security_Weak"><value>弱いセキュリティ — 旧式暗号</value></data>
+  <data name="Security_Danger"><value>危険 — 暗号化なし</value></data>
+  <data name="Detail_DfsWarning"><value>DFSチャンネル</value></data>
+  <data name="Detail_DfsHint"><value>このチャンネルはDFS(動的周波数選択)を使用します。レーダー検出時に一時的な切断が発生する可能性があります。</value></data>
+  <data name="Failover_Section"><value>アダプターフェイルオーバー</value></data>
+  <data name="Failover_Desc"><value>このアダプターがインターネット接続を失った場合、自動的にバックアップアダプターに切り替えます。</value></data>
+  <data name="Failover_Enable"><value>フェイルオーバーを有効にする</value></data>
+  <data name="Failover_BackupAdapter"><value>バックアップアダプター</value></data>
+  <data name="Failover_BackupNone"><value>(なし)</value></data>
+  <data name="Failover_BackupHint"><value>接続が失われた場合に有効化するアダプターを選択します。</value></data>
+  <data name="Notify_FailoverActivated"><value>フェイルオーバー: {0} に切り替えました</value></data>
+  <data name="Notify_FailoverRestored"><value>プライマリアダプター {0} が再接続しました</value></data>
 </root>

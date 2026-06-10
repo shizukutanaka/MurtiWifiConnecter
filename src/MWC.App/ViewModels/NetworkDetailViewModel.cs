@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MWC.Core.Models;
+using MWC.Core.Services;
 using MWC.App.Resources;
 
 namespace MWC.App.ViewModels;
@@ -32,6 +33,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private bool _hasProfile;
     [ObservableProperty] private bool _isConnected;
+    [ObservableProperty] private bool _isDfs;
     [ObservableProperty] private IReadOnlyList<BssDetailRow> _bssRows = System.Array.Empty<BssDetailRow>();
 
     public void Load(WifiNetwork? n)
@@ -41,6 +43,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             Ssid = "-";
             AuthLabel = CipherLabel = PhyLabel = BandLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
+            IsDfs = false;
             BssRows = System.Array.Empty<BssDetailRow>();
             return;
         }
@@ -59,8 +62,10 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             WifiBand.Band6GHz   => "6 GHz (Wi-Fi 6E/7)",
             _ => "Unknown"
         };
+        IsDfs = DfsChannelHelper.IsDfsChannel(n);
         ChannelLabel = n.Channel > 0
             ? $"Ch {n.Channel}" + (n.ChannelWidth > 0 ? $"  ({n.ChannelWidth} MHz)" : "")
+                       + (DfsChannelHelper.IsDfsChannel(n) ? "  ⚡ DFS" : "")
             : "-";
         FrequencyLabel = n.FrequencyMhz.HasValue
             ? $"{n.FrequencyMhz} MHz"

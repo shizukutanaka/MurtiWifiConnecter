@@ -116,6 +116,7 @@ public partial class App : Application
                         sp.GetRequiredService<OuiLookupService>(),
                         sp.GetRequiredService<ILogger<AllAdaptersOverviewViewModel>>()));
                 s.AddSingleton<AutoReconnectService>();
+                s.AddSingleton<AdapterFailoverService>();
                 s.AddTransient<ProfileManagerViewModel>(sp => new ProfileManagerViewModel(
                     sp.GetRequiredService<IWifiService>()));
 
@@ -141,6 +142,9 @@ public partial class App : Application
 
         // AutoReconnect 起動
         Host.Services.GetRequiredService<AutoReconnectService>().Start();
+
+        // AdapterFailover 起動
+        Host.Services.GetRequiredService<AdapterFailoverService>().Start();
 
         // MainWindow 表示
         var win = Host.Services.GetRequiredService<MainWindow>();

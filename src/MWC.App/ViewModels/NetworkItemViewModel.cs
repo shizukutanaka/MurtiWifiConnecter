@@ -43,7 +43,22 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
     public string SignalAutomationLabel => MWC.App.Resources.L.MainSignalStrength(Signal);
 
+    // ── Security level badge ─────────────────────────────────────────
+    public SecurityLevel SecurityLevel  => SecurityBadgeService.GetBadge(Auth).Level;
+    public string SecurityBadgeLabel    => MWC.App.Resources.L.SecurityLevelLabel(SecurityLevel);
+    public string SecurityTechLabel     => SecurityBadgeService.GetBadge(Auth).TechLabel;
+
+    // ── DFS channel indicator ────────────────────────────────────────
+    public bool IsDfs => DfsChannelHelper.IsDfsChannel(Source);
+
     partial void OnSignalChanged(int value) => OnPropertyChanged(nameof(SignalAutomationLabel));
+    partial void OnAuthChanged(AuthMethod value)
+    {
+        OnPropertyChanged(nameof(SecurityLevel));
+        OnPropertyChanged(nameof(SecurityBadgeLabel));
+        OnPropertyChanged(nameof(SecurityTechLabel));
+    }
+
     public string AuthLabel => Auth switch
     {
         AuthMethod.Open              => "Open",

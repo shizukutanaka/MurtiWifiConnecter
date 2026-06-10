@@ -290,4 +290,29 @@ public static class L
     // ─── CertificatePickerDialog ──────────────────────────────────────
     public static string CertPickerExpiryFormat(string date, int days)
         => Format("CertPicker_ExpiryFormat", date, days);
+
+    // ─── Security badge labels ────────────────────────────────────────
+    public static string SecurityLevelLabel(MWC.Core.Services.SecurityLevel level) => level switch
+    {
+        MWC.Core.Services.SecurityLevel.Excellent => Get("Security_Excellent"),
+        MWC.Core.Services.SecurityLevel.Good      => Get("Security_Good"),
+        MWC.Core.Services.SecurityLevel.Fair      => Get("Security_Fair"),
+        MWC.Core.Services.SecurityLevel.Weak      => Get("Security_Weak"),
+        MWC.Core.Services.SecurityLevel.Danger    => Get("Security_Danger"),
+        _                                          => Get("Security_Weak")
+    };
+
+    // ─── DFS channel ──────────────────────────────────────────────────
+    public static string DetailDfsWarning => Get("Detail_DfsWarning");
+    public static string DetailDfsHint    => Get("Detail_DfsHint");
+
+    // ─── Adapter failover ─────────────────────────────────────────────
+    public static string FailoverSection                        => Get("Failover_Section");
+    public static string FailoverDesc                           => Get("Failover_Desc");
+    public static string FailoverEnable                         => Get("Failover_Enable");
+    public static string FailoverBackupAdapter                  => Get("Failover_BackupAdapter");
+    public static string FailoverBackupNone                     => Get("Failover_BackupNone");
+    public static string FailoverBackupHint                     => Get("Failover_BackupHint");
+    public static string NotifyFailoverActivated(string name)   => Format("Notify_FailoverActivated", name);
+    public static string NotifyFailoverRestored(string name)    => Format("Notify_FailoverRestored", name);
 }

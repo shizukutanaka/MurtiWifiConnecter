@@ -97,6 +97,9 @@ public sealed class AdapterPreferencesService
     public void SetLabel(Guid adapterId, string? label)
         => Save(Get(adapterId) with { CustomLabel = label });
 
+    public void SetFailover(Guid adapterId, Guid? failoverAdapterId, bool enabled)
+        => Save(Get(adapterId) with { FailoverAdapterId = failoverAdapterId, EnableFailover = enabled });
+
 
     /// <summary>この子機で自動再接続が有効か(IsEnabled かつ PinnedSsids > 0)</summary>
     public bool IsAutoReconnectEnabled(Guid adapterId)
@@ -226,6 +229,10 @@ public sealed record AdapterPreferences
     public IReadOnlyList<string> PinnedSsids { get; init; } = Array.Empty<string>();
     /// <summary>このアダプターで使うバンド(例: 5GHz専用ドングル)</summary>
     public BandPreference    PreferredBand { get; init; } = BandPreference.Any;
+    /// <summary>フェイルオーバー先アダプターID。このアダプターが切断時に自動切替 (null = 無効)</summary>
+    public Guid?             FailoverAdapterId { get; init; }
+    /// <summary>フェイルオーバー機能を有効にする</summary>
+    public bool              EnableFailover { get; init; } = false;
 }
 
 public enum BandPreference

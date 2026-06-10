@@ -351,4 +351,19 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Connect_PassphraseAutomation"><value>Passphrase input</value></data>
   <data name="Connect_PassphraseVisibleAutomation"><value>Passphrase input (visible)</value></data>
   <data name="CertPicker_ExpiryFormat"><value>{0} (expires in {1} days)</value></data>
+  <data name="Security_Excellent"><value>Excellent security (WPA3)</value></data>
+  <data name="Security_Good"><value>Good security (WPA2)</value></data>
+  <data name="Security_Fair"><value>Fair security</value></data>
+  <data name="Security_Weak"><value>Weak security — legacy encryption</value></data>
+  <data name="Security_Danger"><value>Danger — insecure network</value></data>
+  <data name="Detail_DfsWarning"><value>DFS Channel</value></data>
+  <data name="Detail_DfsHint"><value>This channel uses Dynamic Frequency Selection. Temporary outages may occur if radar is detected.</value></data>
+  <data name="Failover_Section"><value>Adapter Failover</value></data>
+  <data name="Failover_Desc"><value>Automatically switch to a backup adapter if this adapter loses internet connectivity.</value></data>
+  <data name="Failover_Enable"><value>Enable failover</value></data>
+  <data name="Failover_BackupAdapter"><value>Backup adapter</value></data>
+  <data name="Failover_BackupNone"><value>(None)</value></data>
+  <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
+  <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
+  <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
 </root>

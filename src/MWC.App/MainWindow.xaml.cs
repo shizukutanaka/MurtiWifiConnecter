@@ -209,7 +209,8 @@ public partial class MainWindow : Window
     {
         var ad = GetAdapterFromMenu(sender);
         if (ad is null || _cmd is null) return;
-        var prefs = _cmd.OpenAdapterPreferences(ad, this);
+        var allAdapters = DataContext is MainViewModel mvm ? mvm.Adapters.ToList() : null;
+        var prefs = _cmd.OpenAdapterPreferences(ad, this, allAdapters);
         if (prefs is not null && DataContext is MainViewModel vm)
             vm.LoadCommand.ExecuteAsync(null).Forget();
     }

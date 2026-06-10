@@ -5,6 +5,7 @@
         xmlns:conv="clr-namespace:MWC.App.Converters"
         xmlns:vm="clr-namespace:MWC.App.ViewModels"
         xmlns:r="clr-namespace:MWC.App.Resources"
+        xmlns:svc="clr-namespace:MWC.Core.Services;assembly=MWC.Core"
         Title="{x:Static r:L.MainWindowTitle}" Width="880" Height="620"
         MinWidth="540" MinHeight="420"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
@@ -583,9 +584,53 @@
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <!-- 右端: 接続中バッジ or プロファイルアイコン -->
+                                        <!-- 右端: セキュリティバッジ + 接続中バッジ or プロファイルアイコン -->
                                         <StackPanel Grid.Column="2" Orientation="Horizontal"
                                                     VerticalAlignment="Center">
+                                            <!-- セキュリティレベルインジケーター (色付き点) -->
+                                            <Border Width="7" Height="7" CornerRadius="3.5"
+                                                    VerticalAlignment="Center" Margin="0,0,5,0"
+                                                    ToolTip="{Binding SecurityBadgeLabel}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#F97316"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Excellent}">
+                                                                <Setter Property="Background" Value="#22C55E"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Good}">
+                                                                <Setter Property="Background" Value="#A3E635"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Fair}">
+                                                                <Setter Property="Background" Value="#F59E0B"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Danger}">
+                                                                <Setter Property="Background" Value="#EF4444"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <!-- DFS チャンネル警告 -->
+                                            <TextBlock Text="⚡" FontSize="10"
+                                                       Foreground="#F59E0B"
+                                                       VerticalAlignment="Center" Margin="0,0,4,0"
+                                                       ToolTip="{x:Static r:L.DetailDfsHint}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDfs}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <!-- プロファイル保存済み -->
                                             <TextBlock Text="★" FontSize="10"
                                                        Foreground="{DynamicResource WarnBrush}"
@@ -740,6 +785,30 @@
                                                Text="{Binding SelectedAdapter.Detail.ChannelLabel}"
                                                FontSize="11"/>
                                 </Grid>
+                                <!-- DFS 警告バナー -->
+                                <Border CornerRadius="6" Padding="8,5" Margin="0,4,0,0"
+                                        Background="#2D2400">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding SelectedAdapter.Detail.IsDfs}"
+                                                    Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Static r:L.DetailDfsWarning}"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="#F59E0B"/>
+                                        <TextBlock Text="{x:Static r:L.DetailDfsHint}"
+                                                   FontSize="10" Foreground="#D97706"
+                                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                                 <!-- 周波数 -->
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>

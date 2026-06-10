@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **セキュリティレベルバッジ**: ネットワーク一覧の各 SSID 行に色付きインジケーター (●) を追加。
+  既存の `SecurityBadgeService.GetBadge()` を活用し、WPA3=緑 / WPA2=黄緑 / OWE=黄 /
+  WPA(TKIP)=橙 / WEP・Open=赤 でひと目でセキュリティ強度を判別可能に。
+  `NetworkItemViewModel` に `SecurityLevel`・`SecurityBadgeLabel`・`SecurityTechLabel` プロパティ追加。
+  `MainWindow.xaml` に 7×7px の Border バッジ + ToolTip を追加。
+  5 新リソースキー (`Security_Excellent` 等) × 15 言語。
+
+- **DFS チャンネル警告**: 5GHz の DFS 対象チャンネル (UNII-2: 52–64, UNII-2E: 100–144) に接続時、
+  ネットワーク一覧に ⚡ アイコン (ToolTip: 詳細説明)、詳細パネルにアンバー色の警告バナーを表示。
+  `DfsChannelHelper.IsDfsChannel()` を `MWC.Core.Services` に新設。
+  `NetworkItemViewModel.IsDfs` / `NetworkDetailViewModel.IsDfs` プロパティ追加。
+  チャンネルラベルに "⚡ DFS" サフィックス追加。
+  2 新リソースキー × 15 言語。
+
+- **アダプターフェイルオーバー**: プライマリアダプターが切断されたとき、
+  あらかじめ設定したバックアップアダプターへ自動的に切り替える新機能。
+  `AdapterPreferencesService` に `FailoverAdapterId` / `EnableFailover` フィールドを追加、
+  `SetFailover()` ヘルパーを追加。
+  `AdapterFailoverService` (新規) が 30 秒ごとに接続状態を監視し、切断検出→バックアップ SSID スキャン
+  →自動接続→トースト通知を実行。復旧時にも通知発行。
+  `AdapterPreferencesDialog` にフェイルオーバーセクション追加(有効化チェックボックス +
+  バックアップアダプター ComboBox)。
+  `App.xaml.cs` に DI 登録・自動起動を追加。
+  4 新リソースキー × 15 言語。
+
 ### Fixed
 - **UI 文字列ローカライズ (Round 14)**: App 層の残存ハードコード文字列を resx 経由化。
   `NotificationService` — `NotifyConnected`/`NotifyDisconnected`/`NotifyFailed` のトースト
