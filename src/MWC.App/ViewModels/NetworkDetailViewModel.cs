@@ -44,6 +44,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private bool _isConnected;
     [ObservableProperty] private bool _isDfs;
     [ObservableProperty] private double _recommendationScore;
+    [ObservableProperty] private string _recommendationSummary = "";
     [ObservableProperty] private IReadOnlyList<SecurityAdvisoryItem> _securityAdvisories
         = Array.Empty<SecurityAdvisoryItem>();
     public bool HasSecurityAdvisories => SecurityAdvisories.Count > 0;
@@ -62,6 +63,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             DistanceLabel = RoamingLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
+            RecommendationSummary = "";
             SecurityAdvisories = Array.Empty<SecurityAdvisoryItem>();
             BssRows = Array.Empty<BssDetailRow>();
             return;
@@ -117,7 +119,9 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SecurityAdvisories = _secAdvisor.Analyze(n)
             .Select(a => new SecurityAdvisoryItem(a.Title, a.Severity))
             .ToList();
-        RecommendationScore = Math.Round(_recEngine.Score(n).Total, 0);
+        var score = _recEngine.Score(n);
+        RecommendationScore   = Math.Round(score.Total, 0);
+        RecommendationSummary = _recEngine.Explain(score).Summary;
 
         BssRows = n.BssEntries
             .Select(b => new BssDetailRow(

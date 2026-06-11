@@ -922,7 +922,9 @@
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.RecommendationScore,
                                                       StringFormat={}{0}/100}"
-                                               FontSize="11" FontWeight="SemiBold"/>
+                                               FontSize="11" FontWeight="SemiBold"
+                                               ToolTip="{Binding SelectedAdapter.Detail.RecommendationSummary}"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.RecommendationSummary}"/>
                                 </Grid>
 
                                 <!-- Distance estimate -->
