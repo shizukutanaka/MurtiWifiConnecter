@@ -147,9 +147,10 @@ public static partial class Program
         var adapter = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
         var json    = new Option<bool>("--json");
         var advise  = new Option<bool>("--advise", "Show security advisories (warnings) per network");
+        var recommend = new Option<bool>("--recommend", "Rank networks by overall recommendation score");
         var cmd     = new Command("scan", "Scan available networks");
-        cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise);
-        cmd.SetHandler(async (string? af, bool j, bool adv) =>
+        cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise); cmd.AddOption(recommend);
+        cmd.SetHandler(async (string? af, bool j, bool adv, bool rec) =>
         {
             var svc  = sp.GetRequiredService<IWifiService>();
             var oui  = sp.GetRequiredService<OuiLookupService>();
@@ -189,7 +190,21 @@ public static partial class Program
                         Console.WriteLine($"    [{a.Severity}] {a.Code}: {a.Title}");
                 }
             }
-        }, adapter, json, advise);
+
+            if (rec)
+            {
+                var engine = new NetworkRecommendationEngine();
+                Console.WriteLine();
+                Console.WriteLine($"Recommended (best first):");
+                Console.WriteLine($"{"#",2} {"Score",6} {"Grade",-10} {"SSID",-32} {"Top factor"}");
+                int rank = 1;
+                foreach (var s in engine.Rank(enriched))
+                {
+                    var top = engine.Explain(s).TopFactor;
+                    Console.WriteLine($"{rank++,2} {s.Total,5:F0}  {s.Grade,-10} {Trunc(s.Network.Ssid,32),-32} {top}");
+                }
+            }
+        }, adapter, json, advise, recommend);
         return cmd;
     }
 
