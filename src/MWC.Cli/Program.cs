@@ -144,13 +144,15 @@ public static partial class Program
     // ── scan ─────────────────────────────────────────────
     private static Command BuildScan(ServiceProvider sp)
     {
-        var adapter = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
-        var json    = new Option<bool>("--json");
-        var advise  = new Option<bool>("--advise", "Show security advisories (warnings) per network");
+        var adapter   = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
+        var json      = new Option<bool>("--json");
+        var advise    = new Option<bool>("--advise", "Show security advisories (warnings) per network");
         var recommend = new Option<bool>("--recommend", "Rank networks by overall recommendation score");
-        var cmd     = new Command("scan", "Scan available networks");
-        cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise); cmd.AddOption(recommend);
-        cmd.SetHandler(async (string? af, bool j, bool adv, bool rec) =>
+        var evilTwin  = new Option<bool>("--evil-twin", "Flag potential evil twin / rogue APs");
+        var cmd       = new Command("scan", "Scan available networks");
+        cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise);
+        cmd.AddOption(recommend); cmd.AddOption(evilTwin);
+        cmd.SetHandler(async (string? af, bool j, bool adv, bool rec, bool et) =>
         {
             var svc  = sp.GetRequiredService<IWifiService>();
             var oui  = sp.GetRequiredService<OuiLookupService>();
@@ -204,7 +206,27 @@ public static partial class Program
                     Console.WriteLine($"{rank++,2} {s.Total,5:F0}  {s.Grade,-10} {Trunc(s.Network.Ssid,32),-32} {top}");
                 }
             }
-        }, adapter, json, advise, recommend);
+
+            if (et)
+            {
+                var detector = new EvilTwinDetector(oui);
+                var suspects = enriched
+                    .Select(n => (Network: n, Verdict: detector.Analyze(n, enriched)))
+                    .Where(x => x.Verdict.IsSuspect)
+                    .ToList();
+                Console.WriteLine();
+                if (suspects.Count == 0)
+                {
+                    Console.WriteLine("Evil Twin Check: no suspicious APs detected.");
+                }
+                else
+                {
+                    Console.WriteLine($"{"SSID",-32} {"Risk",-12} Reasons");
+                    foreach (var (n, v) in suspects)
+                        Console.WriteLine($"{Trunc(n.Ssid,32),-32} {v.Risk,-12} {string.Join("; ", v.Reasons)}");
+                }
+            }
+        }, adapter, json, advise, recommend, evilTwin);
         return cmd;
     }
 

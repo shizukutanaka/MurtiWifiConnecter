@@ -20,6 +20,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly NetworkRecommendationEngine _recEngine = new();
     private static readonly RoamingAdvisoryService _roamAdvisor = new();
     private static readonly RssiDistanceEstimator _distEstimator = new();
+    private static readonly EvilTwinDetector _evilTwin = new();
+    private static readonly HandoverPredictor _handover = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -53,7 +55,15 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     partial void OnSecurityAdvisoriesChanged(IReadOnlyList<SecurityAdvisoryItem> value)
         => OnPropertyChanged(nameof(HasSecurityAdvisories));
 
-    public void Load(WifiNetwork? n)
+    public static void RecordTrustedConnection(WifiNetwork network)
+    {
+        if (network.BssEntries.Count > 0)
+            _evilTwin.RecordTrusted(network.Ssid, network.BssEntries[0].Bssid, network.Auth);
+    }
+
+    public void Load(WifiNetwork? n,
+                     IReadOnlyList<WifiNetwork>? allNetworks = null,
+                     TimeSpan? connectedDuration = null)
     {
         if (n is null)
         {
@@ -115,10 +125,29 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
                      : n.HasProfile  ? MWC.App.Resources.L.Get("Detail_HasProfile")
                      : MWC.App.Resources.L.Get("Detail_NotConnected");
 
-        // セキュリティ勧告 + 総合スコア
-        SecurityAdvisories = _secAdvisor.Analyze(n)
+        // セキュリティ勧告 + Evil Twin 検査 + スティッキークライアント検査
+        var advisories = _secAdvisor.Analyze(n)
             .Select(a => new SecurityAdvisoryItem(a.Title, a.Severity))
             .ToList();
+
+        var visible = allNetworks ?? Array.Empty<WifiNetwork>();
+        var twin = _evilTwin.Analyze(n, visible);
+        if (twin.Risk == EvilTwinRisk.HighRisk)
+            advisories.Insert(0, new SecurityAdvisoryItem(
+                "Evil Twin: High Risk — multiple spoofing indicators detected",
+                AdvisorySeverity.Critical));
+        else if (twin.Risk == EvilTwinRisk.Suspicious)
+            advisories.Insert(0, new SecurityAdvisoryItem(
+                "Evil Twin: Suspicious — possible rogue AP with same SSID",
+                AdvisorySeverity.Warning));
+
+        if (n.IsConnected && n.Rssi.HasValue && connectedDuration.HasValue &&
+            _handover.IsStickyClient(n.Rssi.Value, connectedDuration.Value))
+            advisories.Add(new SecurityAdvisoryItem(
+                "Sticky Client: Signal too weak — consider moving closer or reconnecting",
+                AdvisorySeverity.Warning));
+
+        SecurityAdvisories = advisories;
         var score = _recEngine.Score(n);
         RecommendationScore   = Math.Round(score.Total, 0);
         RecommendationSummary = _recEngine.Explain(score).Summary;

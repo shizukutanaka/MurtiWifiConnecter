@@ -77,7 +77,7 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     partial void OnSelectedChanged(NetworkItemViewModel? v)
     {
-        Detail.Load(v?.Source);
+        Detail.Load(v?.Source, SourceNetworks);
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
@@ -162,11 +162,14 @@ public sealed partial class AdapterViewModel : ObservableObject
                 netVm.SignalTrendLabel    = ComputeTrendArrow(_history.GetHistory(netVm.Ssid));
             }
 
-            var newConnectedSsid = enriched.FirstOrDefault(n => n.IsConnected)?.Ssid;
+            var connectedNet     = enriched.FirstOrDefault(n => n.IsConnected);
+            var newConnectedSsid = connectedNet?.Ssid;
             if (newConnectedSsid != _prevConnectedSsid)
             {
-                _connectedSince      = newConnectedSsid is null ? null : DateTimeOffset.UtcNow;
-                _prevConnectedSsid   = newConnectedSsid;
+                _connectedSince    = newConnectedSsid is null ? null : DateTimeOffset.UtcNow;
+                _prevConnectedSsid = newConnectedSsid;
+                if (connectedNet is not null)
+                    NetworkDetailViewModel.RecordTrustedConnection(connectedNet);
             }
             ConnectedSsid = newConnectedSsid;
             OnPropertyChanged(nameof(ConnectionStatusLabel));
@@ -175,7 +178,10 @@ public sealed partial class AdapterViewModel : ObservableObject
             // 選択中の詳細・履歴を最新化
             if (_selected is not null && byKey.TryGetValue(_selected.Ssid, out var upd))
                 _selected.Update(upd);
-            Detail.Load(_selected?.Source);
+            var duration = _connectedSince.HasValue
+                ? DateTimeOffset.UtcNow - _connectedSince.Value
+                : (TimeSpan?)null;
+            Detail.Load(_selected?.Source, SourceNetworks, duration);
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
         }
