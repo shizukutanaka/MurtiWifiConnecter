@@ -390,6 +390,7 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="Detail_Roaming"><value>Mobilité</value></data>
   <data name="Detail_Interference"><value>Interférence</value></data>
   <data name="Detail_Mesh"><value>Maillage</value></data>
+  <data name="Detail_PowerSave"><value>Économie d'énergie</value></data>
   <data name="Menu_DiagnosticExport"><value>Exporter le rapport de support…</value></data>
   <data name="Status_DiagnosticExported"><value>Rapport sauvegardé → {0}</value></data>
 </root>

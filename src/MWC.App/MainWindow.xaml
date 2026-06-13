@@ -967,7 +967,7 @@
                                 </Grid>
 
                                 <!-- Mesh detection -->
-                                <Grid Margin="0,4,0,12">
+                                <Grid Margin="0,4,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
@@ -977,6 +977,19 @@
                                                Text="{Binding SelectedAdapter.Detail.MeshLabel}"
                                                FontSize="11" FontWeight="SemiBold"
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.MeshLabel}"/>
+                                </Grid>
+
+                                <!-- Power saving capability -->
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailPowerSave}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.PowerSaveLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.PowerSaveLabel}"/>
                                 </Grid>
 
                                 <!-- セキュリティ勧告 -->

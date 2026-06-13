@@ -390,6 +390,7 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Detail_Roaming"><value>로밍</value></data>
   <data name="Detail_Interference"><value>간섭</value></data>
   <data name="Detail_Mesh"><value>메시</value></data>
+  <data name="Detail_PowerSave"><value>절전</value></data>
   <data name="Menu_DiagnosticExport"><value>지원 보고서 내보내기…</value></data>
   <data name="Status_DiagnosticExported"><value>지원 보고서 저장됨 → {0}</value></data>
 </root>

@@ -385,6 +385,7 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Detail_Roaming"><value>रोमिंग</value></data>
   <data name="Detail_Interference"><value>व्यवधान</value></data>
   <data name="Detail_Mesh"><value>मेश</value></data>
+  <data name="Detail_PowerSave"><value>ऊर्जा बचत</value></data>
   <data name="Menu_DiagnosticExport"><value>सहायता रिपोर्ट निर्यात करें…</value></data>
   <data name="Status_DiagnosticExported"><value>सहायता रिपोर्ट सहेजी → {0}</value></data>
 </root>

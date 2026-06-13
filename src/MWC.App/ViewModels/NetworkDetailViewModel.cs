@@ -24,6 +24,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly HandoverPredictor _handover = new();
     private static readonly InterferenceAnalyzer _interferenceAnalyzer = new();
     private static readonly MeshNetworkDetector _meshDetector = new();
+    private static readonly PowerSaveAdvisorService _powerSaveAdvisor = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -44,6 +45,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _roamingLabel = "";
     [ObservableProperty] private string _interferenceLabel = "";
     [ObservableProperty] private string _meshLabel = "";
+    [ObservableProperty] private string _powerSaveLabel = "";
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -74,7 +76,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             Ssid = "-";
             AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
-            DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = "";
+            DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -139,6 +141,14 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
               + (myGroup.IsTriBand ? " · Tri-band" : myGroup.Has6GHz ? " · 6 GHz" : "")
               + (myGroup.HasFastTransition ? " · 802.11r" : "")
               + $"  ({myGroup.Confidence})";
+
+        var ps = _powerSaveAdvisor.Analyze(n);
+        PowerSaveLabel = ps.Tier switch
+        {
+            PowerSaveTier.Advanced => $"rTWT  (~{ps.EstimatedSavingPercent}% battery saving)",
+            PowerSaveTier.Standard => $"TWT  (~{ps.EstimatedSavingPercent}% battery saving)",
+            _                      => "Legacy (DTIM/PSM)"
+        };
 
         VendorLabel  = n.VendorName ?? "";
         StatusLabel  = n.IsConnected ? MWC.App.Resources.L.Get("Detail_Connected")

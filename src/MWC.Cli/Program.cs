@@ -312,7 +312,11 @@ public static partial class Program
             }
             else
             {
-                Err($"failed: {res.Failure}");
+                var advice = TroubleshootingHelper.GetAdvice(
+                    res.Failure ?? ConnectionFailure.Unknown, a);
+                Err($"failed: {res.Failure} — {advice.Reason}");
+                foreach (var step in advice.Steps)
+                    Console.Error.WriteLine($"  • {step}");
                 Environment.Exit(ExitCode.ConnectionFailed);
             }
         }, ssid, pw, auth, adapter, timeout, hidden);
