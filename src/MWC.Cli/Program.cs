@@ -148,11 +148,14 @@ public static partial class Program
         var json      = new Option<bool>("--json");
         var advise    = new Option<bool>("--advise", "Show security advisories (warnings) per network");
         var recommend = new Option<bool>("--recommend", "Rank networks by overall recommendation score");
-        var evilTwin  = new Option<bool>("--evil-twin", "Flag potential evil twin / rogue APs");
-        var cmd       = new Command("scan", "Scan available networks");
+        var evilTwin     = new Option<bool>("--evil-twin", "Flag potential evil twin / rogue APs");
+        var interference = new Option<bool>("--interference", "Show per-channel interference analysis");
+        var mesh         = new Option<bool>("--mesh", "Detect mesh network groups");
+        var cmd          = new Command("scan", "Scan available networks");
         cmd.AddOption(adapter); cmd.AddOption(json); cmd.AddOption(advise);
         cmd.AddOption(recommend); cmd.AddOption(evilTwin);
-        cmd.SetHandler(async (string? af, bool j, bool adv, bool rec, bool et) =>
+        cmd.AddOption(interference); cmd.AddOption(mesh);
+        cmd.SetHandler(async (string? af, bool j, bool adv, bool rec, bool et, bool ifr, bool msh) =>
         {
             var svc  = sp.GetRequiredService<IWifiService>();
             var oui  = sp.GetRequiredService<OuiLookupService>();
@@ -226,7 +229,40 @@ public static partial class Program
                         Console.WriteLine($"{Trunc(n.Ssid,32),-32} {v.Risk,-12} {string.Join("; ", v.Reasons)}");
                 }
             }
-        }, adapter, json, advise, recommend, evilTwin);
+
+            if (ifr)
+            {
+                var analyzer = new InterferenceAnalyzer();
+                Console.WriteLine();
+                Console.WriteLine($"{"SSID",-32} {"Ch",3} {"Band",4} {"Level",-10} {"Score",5}  Factors");
+                foreach (var n in enriched.OrderByDescending(x => x.SignalQuality))
+                {
+                    var r = analyzer.Analyze(n, enriched);
+                    var factor = r.Factors.Count > 0 ? r.Factors[0] : r.Recommendation;
+                    Console.WriteLine($"{Trunc(n.Ssid,32),-32} {n.Channel,3} {BandLabel(n.Band),4} {r.Level,-10} {r.Score,5}  {Trunc(factor, 50)}");
+                }
+            }
+
+            if (msh)
+            {
+                var detector = new MeshNetworkDetector(oui);
+                var groups = detector.Detect(enriched);
+                Console.WriteLine();
+                if (groups.Count == 0)
+                {
+                    Console.WriteLine("Mesh Check: no mesh networks detected.");
+                }
+                else
+                {
+                    Console.WriteLine($"{"SSID",-32} {"Nodes",5} {"Bands",-14} {"FT",4} {"Confidence"}");
+                    foreach (var g in groups)
+                    {
+                        var bands = string.Join("+", g.BandCoverage.Select(BandLabel));
+                        Console.WriteLine($"{Trunc(g.Ssid,32),-32} {g.NodeCount,5} {bands,-14} {(g.HasFastTransition ? "Yes" : "No"),4} {g.Confidence}");
+                    }
+                }
+            }
+        }, adapter, json, advise, recommend, evilTwin, interference, mesh);
         return cmd;
     }
 
