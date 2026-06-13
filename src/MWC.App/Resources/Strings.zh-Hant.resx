@@ -388,6 +388,8 @@
   <data name="BandFilter_6"><value>6G</value></data>
   <data name="Detail_Distance"><value>距離</value></data>
   <data name="Detail_Roaming"><value>漫遊</value></data>
+  <data name="Detail_Interference"><value>干擾</value></data>
+  <data name="Detail_Mesh"><value>網狀網路</value></data>
   <data name="Menu_DiagnosticExport"><value>匯出支援報告…</value></data>
   <data name="Status_DiagnosticExported"><value>支援報告已儲存 → {0}</value></data>
 </root>

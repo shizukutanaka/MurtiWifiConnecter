@@ -22,6 +22,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly RssiDistanceEstimator _distEstimator = new();
     private static readonly EvilTwinDetector _evilTwin = new();
     private static readonly HandoverPredictor _handover = new();
+    private static readonly InterferenceAnalyzer _interferenceAnalyzer = new();
+    private static readonly MeshNetworkDetector _meshDetector = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -40,6 +42,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _signalLabel = "";
     [ObservableProperty] private string _distanceLabel = "";
     [ObservableProperty] private string _roamingLabel = "";
+    [ObservableProperty] private string _interferenceLabel = "";
+    [ObservableProperty] private string _meshLabel = "";
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -70,7 +74,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             Ssid = "-";
             AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
-            DistanceLabel = RoamingLabel = "";
+            DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -78,6 +82,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             BssRows = Array.Empty<BssDetailRow>();
             return;
         }
+
+        var visible = allNetworks ?? Array.Empty<WifiNetwork>();
 
         Ssid     = n.Ssid;
         IsConnected = n.IsConnected;
@@ -120,6 +126,20 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             _                    => $"Standard  ~{roaming.EstimatedHandoverMs}ms"
         };
 
+        var iReport = _interferenceAnalyzer.Analyze(n, visible);
+        InterferenceLabel = iReport.Level == InterferenceLevel.Low
+            ? $"Low  ({iReport.Score}/100)"
+            : $"{iReport.Level}  ({iReport.Score}/100)  — {iReport.Factors.FirstOrDefault() ?? iReport.Recommendation}";
+
+        var meshGroups = _meshDetector.Detect(visible);
+        var myGroup = meshGroups.FirstOrDefault(g =>
+            string.Equals(g.Ssid, n.Ssid, StringComparison.Ordinal));
+        MeshLabel = myGroup is null ? "-"
+            : $"{myGroup.NodeCount} nodes"
+              + (myGroup.IsTriBand ? " · Tri-band" : myGroup.Has6GHz ? " · 6 GHz" : "")
+              + (myGroup.HasFastTransition ? " · 802.11r" : "")
+              + $"  ({myGroup.Confidence})";
+
         VendorLabel  = n.VendorName ?? "";
         StatusLabel  = n.IsConnected ? MWC.App.Resources.L.Get("Detail_Connected")
                      : n.HasProfile  ? MWC.App.Resources.L.Get("Detail_HasProfile")
@@ -130,7 +150,6 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             .Select(a => new SecurityAdvisoryItem(a.Title, a.Severity))
             .ToList();
 
-        var visible = allNetworks ?? Array.Empty<WifiNetwork>();
         var twin = _evilTwin.Analyze(n, visible);
         if (twin.Risk == EvilTwinRisk.HighRisk)
             advisories.Insert(0, new SecurityAdvisoryItem(

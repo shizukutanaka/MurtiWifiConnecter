@@ -383,6 +383,8 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="BandFilter_6"><value>6G</value></data>
   <data name="Detail_Distance"><value>দূরত্ব</value></data>
   <data name="Detail_Roaming"><value>রোমিং</value></data>
+  <data name="Detail_Interference"><value>হস্তক্ষেপ</value></data>
+  <data name="Detail_Mesh"><value>মেশ</value></data>
   <data name="Menu_DiagnosticExport"><value>সাপোর্ট রিপোর্ট রপ্তানি করুন…</value></data>
   <data name="Status_DiagnosticExported"><value>সাপোর্ট রিপোর্ট সংরক্ষিত → {0}</value></data>
 </root>

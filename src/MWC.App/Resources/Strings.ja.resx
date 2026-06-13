@@ -388,6 +388,8 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="BandFilter_6"><value>6G</value></data>
   <data name="Detail_Distance"><value>距離</value></data>
   <data name="Detail_Roaming"><value>ローミング</value></data>
+  <data name="Detail_Interference"><value>干渉</value></data>
+  <data name="Detail_Mesh"><value>メッシュ</value></data>
   <data name="Menu_DiagnosticExport"><value>サポートレポートをエクスポート…</value></data>
   <data name="Status_DiagnosticExported"><value>サポートレポートを保存 → {0}</value></data>
 </root>

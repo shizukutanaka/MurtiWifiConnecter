@@ -388,6 +388,8 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="BandFilter_6"><value>6G</value></data>
   <data name="Detail_Distance"><value>Distancia</value></data>
   <data name="Detail_Roaming"><value>Movilidad</value></data>
+  <data name="Detail_Interference"><value>Interferencia</value></data>
+  <data name="Detail_Mesh"><value>Malla</value></data>
   <data name="Menu_DiagnosticExport"><value>Exportar informe de soporte…</value></data>
   <data name="Status_DiagnosticExported"><value>Informe guardado → {0}</value></data>
 </root>

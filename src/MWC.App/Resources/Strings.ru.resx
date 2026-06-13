@@ -388,6 +388,8 @@
   <data name="BandFilter_6"><value>6G</value></data>
   <data name="Detail_Distance"><value>Расстояние</value></data>
   <data name="Detail_Roaming"><value>Роуминг</value></data>
+  <data name="Detail_Interference"><value>Помехи</value></data>
+  <data name="Detail_Mesh"><value>Меш</value></data>
   <data name="Menu_DiagnosticExport"><value>Экспорт отчёта поддержки…</value></data>
   <data name="Status_DiagnosticExported"><value>Отчёт сохранён → {0}</value></data>
 </root>

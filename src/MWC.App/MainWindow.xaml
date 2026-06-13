@@ -953,6 +953,32 @@
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.RoamingLabel}"/>
                                 </Grid>
 
+                                <!-- Interference level -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailInterference}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.InterferenceLabel}"
+                                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.InterferenceLabel}"/>
+                                </Grid>
+
+                                <!-- Mesh detection -->
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailMesh}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.MeshLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.MeshLabel}"/>
+                                </Grid>
+
                                 <!-- セキュリティ勧告 -->
                                 <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.SecurityAdvisories}"
                                               Margin="0,0,0,12">
