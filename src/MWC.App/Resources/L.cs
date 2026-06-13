@@ -53,6 +53,7 @@ public static class L
     public static string ActionConnect      => Get("Action_Connect");
     public static string ActionDisconnect   => Get("Action_Disconnect");
     public static string ActionCancel       => Get("Action_Cancel");
+    public static string ActionClose        => Get("Action_Close");
     public static string LabelPassphrase    => Get("Label_Passphrase");
     public static string LabelNotConnected  => Get("Label_NotConnected");
     public static string StatusScanning     => Get("Status_Scanning");
