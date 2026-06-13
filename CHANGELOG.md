@@ -34,6 +34,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release series. The advisory panel in the detail pane now renders language-neutral text.
 
 ### Added
+- **詳細パネル大拡張 (9 サービス統合)**: `NetworkDetailViewModel.Load()` に 8 つの新行を追加し、
+  Core 層の未使用サービスを一挙に公開。
+  ① **推定距離** — `RssiDistanceEstimator` (対数距離減衰モデル) による推定距離と信頼度。
+  ② **ローミング能力** — `RoamingAdvisoryService` による 802.11r/k/v 対応状況とハンドオーバー推定時間。
+  ③ **シグナルトレンド予測** — `SignalQualityPredictor.PredictFromHistory()` が RSSI 履歴 3+ サンプルから
+     次回 RSSI を EMA 三重平均で予測。`AdapterViewModel` が RSSI 履歴を `Load()` に渡す。
+  ④ **推定スループット** — `LinkRateEstimator.Estimate()` による MCS インデックス / PHY レート /
+     有効スループット (~65%) / SNR。RSSI と帯域幅から算出。
+  ⑤ **MLO 検出** (Wi-Fi 7) — `MloAnalyzerService.Analyze()` がマルチリンク動作を検出し、
+     リンク数・バンド組合せ・集約スループット・信頼性階層を表示。
+  ⑥ **干渉分析** — `InterferenceAnalyzer.Analyze()` が同一/隣接チャンネルの AP 数から
+     干渉スコア (0–100) と主要因を表示。
+  ⑦ **メッシュ検出** — `MeshNetworkDetector.Detect()` がスキャン結果から同一 SSID のメッシュグループを
+     識別し、ノード数・バンドカバレッジ・802.11r・検出信頼度を表示。
+  ⑧ **省電力能力** — `PowerSaveAdvisorService.Analyze()` による rTWT/TWT/Legacy 省電力ティアと
+     推定バッテリー節約率。
+  合計 9 新リソースキー × 15 言語 (Detail_Distance / Detail_Roaming / Detail_SignalTrend /
+  Detail_LinkEstimate / Detail_Mlo / Detail_Interference / Detail_Mesh / Detail_PowerSave +
+  Status_DiagnosticExported)。
+
+- **Evil Twin / スプーフィング検出**: `EvilTwinDetector.Analyze()` をネットワーク選択時に自動実行。
+  同一 SSID に複数のセキュリティ設定が存在するか、既知 BSSID の OUI が変化した場合、
+  セキュリティ勧告パネルの先頭に Critical (HighRisk) または Warning (Suspicious) アドバイザリを挿入。
+  接続成功時に `RecordTrustedConnection()` で BSSID を記録し、以降のスキャンでベンダー照合・
+  セキュリティダウングレードを検出可能に。
+
+- **スティッキークライアント警告**: `HandoverPredictor.IsStickyClient()` が接続中ネットワークの
+  RSSI とセッション継続時間を評価し、弱信号のまま長時間保持している場合に Warning アドバイザリを追加。
+  `AdapterViewModel` が接続経過時間を `Detail.Load()` に渡す。
+
+- **推奨スコア説明 ToolTip**: `NetworkRecommendationEngine.Explain()` の `Summary` を
+  推奨スコア数値の `ToolTip` に設定。スコアにマウスオーバーすると上位ファクター (Security/
+  Roaming/Channel/Signal) の詳細が表示される。
+
+- **診断レポートエクスポート**: オーバーフローメニューに「サポートレポートをエクスポート」を追加。
+  `DiagnosticBundleService.Build()` が PII を除いた Markdown レポートを生成し、
+  SaveFileDialog 経由でファイル保存。`HealthCheckService.CheckAdapters()` の診断結果も含む。
+  `Ctrl+Shift+?` のキーボードショートカット無し(メニューのみ)。1 新リソースキー × 15 言語。
+
+- **CLI `scan` コマンド拡張**: 5 つの分析フラグを追加。
+  `--recommend` : 推奨スコア降順ランキング + 上位ファクター表示。
+  `--evil-twin` : `EvilTwinDetector` による疑わしい AP の検出・一覧表示。
+  `--interference` : 全ネットワークの干渉スコア・レベル・主要因の表形式表示。
+  `--mesh` : メッシュグループの検出・ノード数・バンド・FT 対応状況の表示。
+  `--advise` : 既存の `SecurityAdvisoryService` 警告 (既実装、今回文書化)。
+
+- **CLI `connect` エラー改善**: 接続失敗時に `TroubleshootingHelper.GetAdvice()` を呼び出し、
+  失敗理由の説明と対処ステップを stderr に出力。従来は `failed: BadCredentials` のみ。
+
 - **セキュリティレベルバッジ**: ネットワーク一覧の各 SSID 行に色付きインジケーター (●) を追加。
   既存の `SecurityBadgeService.GetBadge()` を活用し、WPA3=緑 / WPA2=黄緑 / OWE=黄 /
   WPA(TKIP)=橙 / WEP・Open=赤 でひと目でセキュリティ強度を判別可能に。
