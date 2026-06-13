@@ -888,6 +888,30 @@
                                                Text="{Binding SelectedAdapter.Detail.SpeedLabel}"
                                                FontSize="11"/>
                                 </Grid>
+                                <!-- Link rate estimate -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailLinkEstimate}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.LinkEstimateLabel}"
+                                               FontSize="11" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.LinkEstimateLabel}"/>
+                                </Grid>
+                                <!-- MLO (Wi-Fi 7) -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailMlo}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.MloLabel}"
+                                               FontSize="11" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.MloLabel}"/>
+                                </Grid>
                                 <!-- 信号 -->
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>

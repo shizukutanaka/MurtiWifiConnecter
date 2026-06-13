@@ -391,6 +391,8 @@
   <data name="Detail_Interference"><value>干扰</value></data>
   <data name="Detail_Mesh"><value>网状网络</value></data>
   <data name="Detail_PowerSave"><value>节能</value></data>
+  <data name="Detail_LinkEstimate"><value>链路估算</value></data>
+  <data name="Detail_Mlo"><value>多链路</value></data>
   <data name="Menu_DiagnosticExport"><value>导出支持报告…</value></data>
   <data name="Status_DiagnosticExported"><value>支持报告已保存 → {0}</value></data>
 </root>

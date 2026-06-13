@@ -25,6 +25,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly InterferenceAnalyzer _interferenceAnalyzer = new();
     private static readonly MeshNetworkDetector _meshDetector = new();
     private static readonly PowerSaveAdvisorService _powerSaveAdvisor = new();
+    private static readonly LinkRateEstimator _linkRate = new();
+    private static readonly MloAnalyzerService _mloAnalyzer = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -46,6 +48,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _interferenceLabel = "";
     [ObservableProperty] private string _meshLabel = "";
     [ObservableProperty] private string _powerSaveLabel = "";
+    [ObservableProperty] private string _linkEstimateLabel = "";
+    [ObservableProperty] private string _mloLabel = "";
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -77,6 +81,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
+            LinkEstimateLabel = MloLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -115,6 +120,22 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SignalLabel  = $"{n.SignalQuality}%"
                        + (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : "")
                        + "  " + BuildBar(n.SignalQuality);
+
+        if (n.Rssi.HasValue)
+        {
+            var le = _linkRate.Estimate(n.Rssi.Value,
+                channelWidthMhz: n.ChannelWidth > 0 ? n.ChannelWidth : 80);
+            LinkEstimateLabel = $"MCS {le.MaxMcs}  {le.PhyRateMbps} Mbps PHY  (~{le.EffectiveMbps} Mbps effective)  SNR {le.SnrDb} dB";
+        }
+        else
+        {
+            LinkEstimateLabel = "-";
+        }
+
+        var mlo = _mloAnalyzer.Analyze(n);
+        MloLabel = mlo.IsMlo
+            ? $"{mlo.LinkCount} links  ({string.Join("+", mlo.Bands.Select(b => b switch { WifiBand.Band2_4GHz => "2.4", WifiBand.Band5GHz => "5", WifiBand.Band6GHz => "6", _ => "?" })) })GHz  {mlo.AggregatedMbps:F0} Mbps aggregate  ({mlo.ReliabilityTier})"
+            : "-";
 
         var dist = _distEstimator.Estimate(n);
         DistanceLabel = dist.Confidence != DistanceConfidence.Unknown ? dist.Label : "-";

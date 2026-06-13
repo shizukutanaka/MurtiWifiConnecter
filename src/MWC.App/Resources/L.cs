@@ -323,6 +323,8 @@ public static class L
     public static string DetailInterference => Get("Detail_Interference");
     public static string DetailMesh         => Get("Detail_Mesh");
     public static string DetailPowerSave    => Get("Detail_PowerSave");
+    public static string DetailLinkEstimate => Get("Detail_LinkEstimate");
+    public static string DetailMlo          => Get("Detail_Mlo");
     public static string MenuDiagnosticExport => Get("Menu_DiagnosticExport");
     public static string StatusDiagnosticExported(string filename)
         => Format("Status_DiagnosticExported", filename);

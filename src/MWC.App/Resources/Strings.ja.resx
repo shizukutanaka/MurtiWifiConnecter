@@ -391,6 +391,8 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_Interference"><value>干渉</value></data>
   <data name="Detail_Mesh"><value>メッシュ</value></data>
   <data name="Detail_PowerSave"><value>省電力</value></data>
+  <data name="Detail_LinkEstimate"><value>リンク推定</value></data>
+  <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Menu_DiagnosticExport"><value>サポートレポートをエクスポート…</value></data>
   <data name="Status_DiagnosticExported"><value>サポートレポートを保存 → {0}</value></data>
 </root>
