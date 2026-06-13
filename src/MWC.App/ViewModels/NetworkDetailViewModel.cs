@@ -131,7 +131,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             : "-";
         FrequencyLabel = n.FrequencyMhz.HasValue
             ? $"{n.FrequencyMhz} MHz"
-            : n.Channel > 0 ? ChannelToFreq(n.Channel) : "-";
+            : n.Channel > 0 ? ChannelToFreq(n.Channel, n.Band) : "-";
         SpeedLabel   = n.MaxLinkSpeedMbps.HasValue
             ? $"{n.MaxLinkSpeedMbps} Mbps"
             : "-";
@@ -261,7 +261,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
                 b.Bssid,
                 b.Rssi,
                 b.Channel,
-                b.FrequencyMhz > 0 ? $"{b.FrequencyMhz} MHz" : ChannelToFreq(b.Channel),
+                b.FrequencyMhz > 0 ? $"{b.FrequencyMhz} MHz" : ChannelToFreq(b.Channel, n.Band),
                 b.Phy.ToShortLabel(),
                 b.ChannelWidth > 0 ? $"{b.ChannelWidth} MHz" : "-"))
             .ToList();
@@ -282,20 +282,17 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             _                   => "?"
         })) + " GHz";
 
-    private static string ChannelToFreq(int ch) => ch switch
+    // Channel numbers collide across bands (2.4 GHz ch 1-14 vs 6 GHz ch 1,5,9,13…),
+    // so the band is required to disambiguate. Formula-based per band — verified to
+    // reproduce the standard center frequencies (5 GHz ch36→5180, ch165→5825;
+    // 6 GHz ch1→5955, ch13→6015). Only a fallback: FrequencyMhz is used when present.
+    private static string ChannelToFreq(int ch, WifiBand band) => band switch
     {
-        >= 1 and <= 14 => $"{2412 + (ch - 1) * 5} MHz",
-        36  => "5180 MHz", 40 => "5200 MHz", 44 => "5220 MHz", 48 => "5240 MHz",
-        52  => "5260 MHz", 56 => "5280 MHz", 60 => "5300 MHz", 64 => "5320 MHz",
-        100 => "5500 MHz", 104 => "5520 MHz", 108 => "5540 MHz", 112 => "5560 MHz",
-        116 => "5580 MHz", 120 => "5600 MHz", 124 => "5620 MHz", 128 => "5640 MHz",
-        132 => "5660 MHz", 136 => "5680 MHz", 140 => "5700 MHz", 144 => "5720 MHz",
-        149 => "5745 MHz", 153 => "5765 MHz", 157 => "5785 MHz", 161 => "5805 MHz",
-        165 => "5825 MHz",
-        // 6 GHz (Wi-Fi 6E)
-        1   => "5955 MHz", 5 => "5975 MHz", 9 => "5995 MHz", 13 => "6015 MHz",
-        17  => "6035 MHz", 21 => "6055 MHz", 25 => "6075 MHz", 29 => "6095 MHz",
-        _ => "-"
+        WifiBand.Band2_4GHz => ch == 14 ? "2484 MHz"
+                             : ch is >= 1 and <= 13 ? $"{2412 + (ch - 1) * 5} MHz" : "-",
+        WifiBand.Band5GHz   => ch is >= 32 and <= 177 ? $"{5000 + ch * 5} MHz" : "-",
+        WifiBand.Band6GHz   => ch is >= 1 and <= 233 ? $"{5950 + ch * 5} MHz" : "-",
+        _                   => "-"
     };
 }
 
