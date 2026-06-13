@@ -24,14 +24,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   results via `BeaconEnrichmentService`, but its `IBeaconIeProvider` defaults to
   `NullBeaconIeProvider` and the real `WlanBssIeProvider` (raw `WlanGetNetworkBssList` P/Invoke) is
   **deliberately not registered in DI** — its class doc requires on-hardware verification before
-  activation. Consequently `FastTransition` (802.11r), `NeighborReport` (802.11k), `BssLoad`, and
-  `MobilityDomain` are unpopulated in normal use, so the detail panel's **Roaming row defaults to
-  "Standard"** and **Mesh Fast-Transition is always false**, regardless of the AP's real
-  capability. Activation path (requires a real Windows machine): verify `WlanBssIeProvider` against
-  live hardware, register `IBeaconIeProvider → WlanBssIeProvider` in `App.xaml.cs` DI, then confirm
-  the enrichment fields populate. Not done here — this environment cannot run native Windows P/Invoke
-  and CI is dormant, so shipping it unverified would risk AccessViolations the author's gate exists
-  to prevent.
+  activation. Consequently `FastTransition` (802.11r), `NeighborReport` (802.11k), `Pmf` (802.11w),
+  `WpsEnabled`, `IsWpa3TransitionMode`, `BssLoad`, and `MobilityDomain` are unpopulated in normal
+  use. **Full blast radius (each verified by source audit):**
+    - Detail panel **Roaming row defaults to "Standard"** and **Mesh Fast-Transition is always false**.
+    - **Security advisories that depend on IE-only fields never fire** — "Protected Management Frames
+      Disabled" (MWC-SEC-002), "WPS Enabled" (MWC-SEC-007), and the WPA3-transition-mode warning —
+      and the positive "Hardened" badge is never awarded (requires `Pmf == Required`). The advisory
+      logic is defensively written (unpopulated → `PmfStatus.Unknown` → silence), so there are **no
+      false positives**, but users get **false reassurance**: a genuinely PMF-disabled or WPS-enabled
+      AP is never flagged. This is the most security-relevant consequence.
+    - `NetworkRecommendationEngine`'s roaming dimension is a non-differentiating constant — ranking
+      *order* is preserved (same offset for all networks), but ~20% of the General-profile weight is
+      inert and the Realtime profile's 0.35 roaming emphasis is silently defeated.
+    - **Not affected** (verified): congestion (falls back to co-channel AP count), distance,
+      interference, and link estimate all use basic-scan fields and degrade gracefully.
+  Activation path (requires a real Windows machine): verify `WlanBssIeProvider` against live
+  hardware, register `IBeaconIeProvider → WlanBssIeProvider` in `App.xaml.cs` DI, then confirm the
+  enrichment fields populate. Not done here — this environment cannot run native Windows P/Invoke and
+  CI is dormant, so shipping it unverified would risk AccessViolations the author's gate exists to
+  prevent.
 - **802.11v (BSS Transition Management) is never parsed**: even with enrichment active,
   `BssTransitionMgmt` is populated nowhere and `BeaconIeParser` does not read the Extended
   Capabilities element (EID 127, bit 19). This makes `RoamingAdvisoryService`'s **Seamless and
