@@ -77,15 +77,22 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     partial void OnSelectedChanged(NetworkItemViewModel? v)
     {
-        var rssiHistory = v is null ? null
-            : _history.GetHistory(v.Ssid)
-                       .Where(s => s.Rssi.HasValue)
-                       .Select(s => s.Rssi!.Value)
-                       .ToList();
-        Detail.Load(v?.Source, SourceNetworks, rssiHistory: rssiHistory);
+        Detail.Load(v?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(v?.Ssid));
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
+
+    /// <summary>接続継続時間 (未接続なら null)。スティッキークライアント判定に使用。</summary>
+    private TimeSpan? ConnectedDuration()
+        => _connectedSince.HasValue ? DateTimeOffset.UtcNow - _connectedSince.Value : null;
+
+    /// <summary>指定 SSID の RSSI 履歴 (信号トレンド予測用)。</summary>
+    private IReadOnlyList<int>? RssiHistoryFor(string? ssid)
+        => ssid is null ? null
+            : _history.GetHistory(ssid)
+                       .Where(s => s.Rssi.HasValue)
+                       .Select(s => s.Rssi!.Value)
+                       .ToList();
 
     partial void OnConnectedSsidChanged(string? value)
     {
@@ -183,15 +190,7 @@ public sealed partial class AdapterViewModel : ObservableObject
             // 選択中の詳細・履歴を最新化
             if (_selected is not null && byKey.TryGetValue(_selected.Ssid, out var upd))
                 _selected.Update(upd);
-            var duration = _connectedSince.HasValue
-                ? DateTimeOffset.UtcNow - _connectedSince.Value
-                : (TimeSpan?)null;
-            var selHistory = _selected is null ? null
-                : _history.GetHistory(_selected.Ssid)
-                           .Where(s => s.Rssi.HasValue)
-                           .Select(s => s.Rssi!.Value)
-                           .ToList();
-            Detail.Load(_selected?.Source, SourceNetworks, duration, selHistory);
+            Detail.Load(_selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(_selected?.Ssid));
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
         }

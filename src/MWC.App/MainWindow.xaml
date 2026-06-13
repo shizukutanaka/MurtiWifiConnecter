@@ -900,8 +900,9 @@
                                                FontSize="11" TextWrapping="Wrap"
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.LinkEstimateLabel}"/>
                                 </Grid>
-                                <!-- MLO (Wi-Fi 7) -->
-                                <Grid Margin="0,4,0,4">
+                                <!-- MLO (Wi-Fi 7) — MLO 非対応ネットワークでは非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasMlo, Converter={StaticResource BoolToVis}}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
@@ -924,8 +925,9 @@
                                                FontSize="11"
                                                FontFamily="Cascadia Mono, Consolas, monospace"/>
                                 </Grid>
-                                <!-- Predicted signal (from history) -->
-                                <Grid Margin="0,4,0,4">
+                                <!-- Predicted signal (from history) — 履歴が貯まるまで非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasPredictedSignal, Converter={StaticResource BoolToVis}}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
@@ -1002,8 +1004,9 @@
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.InterferenceLabel}"/>
                                 </Grid>
 
-                                <!-- Mesh detection -->
-                                <Grid Margin="0,4,0,4">
+                                <!-- Mesh detection — メッシュ未検出時は非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasMesh, Converter={StaticResource BoolToVis}}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>

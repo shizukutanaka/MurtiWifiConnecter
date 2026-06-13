@@ -16,6 +16,11 @@ namespace MWC.App.ViewModels;
 /// </summary>
 public sealed partial class NetworkDetailViewModel : ObservableObject
 {
+    // 解析サービスは全アダプター共有の static インスタンス。
+    // 不変条件: Load() / RecordTrustedConnection() は WPF UI スレッドからのみ呼ばれる
+    // (await 継続は SynchronizationContext で UI スレッドへ戻る)。これらが
+    // EvilTwinDetector の Dictionary を保護なしで触るため、background スレッド
+    // (Task.Run / ConfigureAwait(false)) から呼ぶ場合はロックが必要になる。
     private static readonly SecurityAdvisoryService _secAdvisor = new();
     private static readonly NetworkRecommendationEngine _recEngine = new();
     private static readonly RoamingAdvisoryService _roamAdvisor = new();
@@ -51,6 +56,12 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _linkEstimateLabel = "";
     [ObservableProperty] private string _mloLabel = "";
     [ObservableProperty] private string _predictedSignalLabel = "";
+
+    // 大半のネットワークでは空になる行は、勧告パネル同様、値があるときだけ表示する
+    // (情報過多を避ける — CLAUDE.md「性能 vs 可読性 → 可読性」)
+    [ObservableProperty] private bool _hasMlo;
+    [ObservableProperty] private bool _hasMesh;
+    [ObservableProperty] private bool _hasPredictedSignal;
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -68,8 +79,11 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
     public static void RecordTrustedConnection(WifiNetwork network)
     {
-        if (network.BssEntries.Count > 0)
-            _evilTwin.RecordTrusted(network.Ssid, network.BssEntries[0].Bssid, network.Auth);
+        // 接続した SSID を提供する全 BSS を信頼集合に記録する。
+        // BssEntries[0] のみだと、同一 ESS の別 AP へ正規にローミングした際に
+        // ベンダー/BSSID 不一致として誤検知してしまう。
+        foreach (var bss in network.BssEntries)
+            _evilTwin.RecordTrusted(network.Ssid, bss.Bssid, network.Auth);
     }
 
     public void Load(WifiNetwork? n,
@@ -84,6 +98,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
+            HasMlo = HasMesh = HasPredictedSignal = false;
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -123,17 +138,13 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
                        + (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : "")
                        + "  " + BuildBar(n.SignalQuality);
 
-        if (rssiHistory is { Count: >= 3 })
-        {
-            var predicted = SignalQualityPredictor.PredictFromHistory(rssiHistory);
-            PredictedSignalLabel = predicted.HasValue
-                ? $"~{predicted:F0} dBm  ({rssiHistory.Count} samples)"
-                : "-";
-        }
-        else
-        {
-            PredictedSignalLabel = "-";
-        }
+        var predicted = rssiHistory is { Count: >= 3 }
+            ? SignalQualityPredictor.PredictFromHistory(rssiHistory)
+            : null;
+        HasPredictedSignal = predicted.HasValue;
+        PredictedSignalLabel = predicted.HasValue
+            ? $"~{predicted:F0} dBm  ({rssiHistory!.Count} samples)"
+            : "-";
 
         if (n.Rssi.HasValue)
         {
@@ -147,8 +158,9 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         }
 
         var mlo = _mloAnalyzer.Analyze(n);
+        HasMlo = mlo.IsMlo;
         MloLabel = mlo.IsMlo
-            ? $"{mlo.LinkCount} links  ({string.Join("+", mlo.Bands.Select(b => b switch { WifiBand.Band2_4GHz => "2.4", WifiBand.Band5GHz => "5", WifiBand.Band6GHz => "6", _ => "?" })) })GHz  {mlo.AggregatedMbps:F0} Mbps aggregate  ({mlo.ReliabilityTier})"
+            ? $"{mlo.LinkCount} links  ({FormatBands(mlo.Bands)})  {mlo.AggregatedMbps:F0} Mbps aggregate  ({mlo.ReliabilityTier})"
             : "-";
 
         var dist = _distEstimator.Estimate(n);
@@ -171,6 +183,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         var meshGroups = _meshDetector.Detect(visible);
         var myGroup = meshGroups.FirstOrDefault(g =>
             string.Equals(g.Ssid, n.Ssid, StringComparison.Ordinal));
+        HasMesh = myGroup is not null;
         MeshLabel = myGroup is null ? "-"
             : $"{myGroup.NodeCount} nodes"
               + (myGroup.IsTriBand ? " · Tri-band" : myGroup.Has6GHz ? " · 6 GHz" : "")
@@ -232,6 +245,15 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         int f = q / 10;
         return "[" + new string('█', f) + new string('░', 10 - f) + "]";
     }
+
+    private static string FormatBands(IReadOnlyList<WifiBand> bands)
+        => string.Join("+", bands.Select(b => b switch
+        {
+            WifiBand.Band2_4GHz => "2.4",
+            WifiBand.Band5GHz   => "5",
+            WifiBand.Band6GHz   => "6",
+            _                   => "?"
+        })) + " GHz";
 
     private static string ChannelToFreq(int ch) => ch switch
     {
