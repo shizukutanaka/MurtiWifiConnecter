@@ -148,7 +148,7 @@ public static partial class Program
         var json      = new Option<bool>("--json");
         var advise    = new Option<bool>("--advise", "Show security advisories (warnings) per network");
         var recommend = new Option<bool>("--recommend", "Rank networks by overall recommendation score");
-        var evilTwin     = new Option<bool>("--evil-twin", "Flag potential evil twin / rogue APs");
+        var evilTwin     = new Option<bool>("--evil-twin", "Flag rogue/evil-twin APs (stateless: same-SSID security-mismatch heuristic only)");
         var interference = new Option<bool>("--interference", "Show per-channel interference analysis");
         var mesh         = new Option<bool>("--mesh", "Detect mesh network groups");
         var cmd          = new Command("scan", "Scan available networks");
@@ -212,21 +212,27 @@ public static partial class Program
 
             if (et)
             {
+                // CLI は接続履歴を持たないステートレス実行のため、EvilTwinDetector の
+                // 5 ヒューリスティックのうち履歴非依存の 1 つ (同一 SSID に異なる
+                // セキュリティ設定が混在) のみが発火する。残り 4 つ (BSSID/ベンダー/
+                // セキュリティ降格の履歴照合) はデスクトップアプリ側でのみ機能する。
                 var detector = new EvilTwinDetector(oui);
                 var suspects = enriched
                     .Select(n => (Network: n, Verdict: detector.Analyze(n, enriched)))
                     .Where(x => x.Verdict.IsSuspect)
                     .ToList();
                 Console.WriteLine();
+                Console.WriteLine("Evil Twin Check (stateless scan — flags same-SSID security mismatches;");
+                Console.WriteLine("BSSID/vendor/downgrade history checks require the desktop app):");
                 if (suspects.Count == 0)
                 {
-                    Console.WriteLine("Evil Twin Check: no suspicious APs detected.");
+                    Console.WriteLine("  No suspicious APs detected.");
                 }
                 else
                 {
-                    Console.WriteLine($"{"SSID",-32} {"Risk",-12} Reasons");
+                    Console.WriteLine($"  {"SSID",-32} {"Risk",-12} Reasons");
                     foreach (var (n, v) in suspects)
-                        Console.WriteLine($"{Trunc(n.Ssid,32),-32} {v.Risk,-12} {string.Join("; ", v.Reasons)}");
+                        Console.WriteLine($"  {Trunc(n.Ssid,32),-32} {v.Risk,-12} {string.Join("; ", v.Reasons)}");
                 }
             }
 

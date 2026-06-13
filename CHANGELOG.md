@@ -22,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the safety net on. Until then, treat green local reads — not green CI — as the only verification.
 
 ### Fixed
+- **CLI `--evil-twin` overstated its coverage**: `EvilTwinDetector` has five heuristics, but four
+  (BSSID-mismatch, security-downgrade, open-impersonation, vendor-mismatch) gate on per-SSID trust
+  history populated via `RecordTrusted` — which the stateless CLI never calls. So `mwc scan
+  --evil-twin` only ever exercised the one history-free heuristic (same SSID advertising multiple
+  security configs), while its name and help implied full rogue-AP detection. The flag now states
+  its scope precisely ("stateless: same-SSID security-mismatch heuristic only") and the command
+  output prints a header noting that BSSID/vendor/downgrade history checks require the desktop app.
+  Detection capability is unchanged — the fix is honesty, so a security-conscious user does not draw
+  false confidence from a green CLI result.
 - **L.ActionClose missing accessor (XAML build break)**: five dialogs (About, ProfileManager,
   QrCode, ShortcutHelp, Troubleshooting) reference `{x:Static r:L.ActionClose}`, but `L` exposed no
   `ActionClose` member — only the resx key `Action_Close` ("Close") existed. Because `x:Static`
