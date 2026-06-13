@@ -62,6 +62,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private bool _hasMlo;
     [ObservableProperty] private bool _hasMesh;
     [ObservableProperty] private bool _hasPredictedSignal;
+    [ObservableProperty] private bool _hasLinkEstimate;
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -98,7 +99,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
-            HasMlo = HasMesh = HasPredictedSignal = false;
+            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = false;
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -146,11 +147,19 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ? $"~{predicted:F0} dBm  ({rssiHistory!.Count} samples)"
             : "-";
 
-        if (n.Rssi.HasValue)
+        // LinkRateEstimator は 802.11ax/be (Wi-Fi 6+) の HE/EHT MCS モデル。
+        // 旧世代 (Wi-Fi 5 以前) に適用すると QAM 上限・サブキャリア数の違いで
+        // スループットを大きく過大評価する (例: 802.11n を MCS13/4096-QAM と誤推定)。
+        // モデルが妥当な PHY のみ表示する — 実測の最大リンク速度は「Speed」行が担う。
+        // spatialStreams は受動スキャンから判らないため 2 を仮定し、ラベルに明示する。
+        bool phyModelApplies = n.Phy is PhyType.Dot11ax or PhyType.Dot11be or PhyType.Dot11bn;
+        HasLinkEstimate = n.Rssi.HasValue && phyModelApplies;
+        if (HasLinkEstimate)
         {
-            var le = _linkRate.Estimate(n.Rssi.Value,
-                channelWidthMhz: n.ChannelWidth > 0 ? n.ChannelWidth : 80);
-            LinkEstimateLabel = $"MCS {le.MaxMcs}  {le.PhyRateMbps} Mbps PHY  (~{le.EffectiveMbps} Mbps effective)  SNR {le.SnrDb} dB";
+            var le = _linkRate.Estimate(n.Rssi!.Value,
+                channelWidthMhz: n.ChannelWidth > 0 ? n.ChannelWidth : 80,
+                supports4096Qam: n.Phy is PhyType.Dot11be or PhyType.Dot11bn);
+            LinkEstimateLabel = $"MCS {le.MaxMcs}  {le.PhyRateMbps} Mbps PHY  (~{le.EffectiveMbps} Mbps effective, 2-stream est.)  SNR {le.SnrDb} dB";
         }
         else
         {

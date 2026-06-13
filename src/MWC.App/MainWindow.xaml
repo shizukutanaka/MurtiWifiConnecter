@@ -888,8 +888,9 @@
                                                Text="{Binding SelectedAdapter.Detail.SpeedLabel}"
                                                FontSize="11"/>
                                 </Grid>
-                                <!-- Link rate estimate -->
-                                <Grid Margin="0,4,0,4">
+                                <!-- Link rate estimate — Wi-Fi 6+ only (HE/EHT model); collapsed otherwise -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasLinkEstimate, Converter={StaticResource BoolToVis}}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>

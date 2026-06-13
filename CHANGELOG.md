@@ -22,6 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the safety net on. Until then, treat green local reads — not green CI — as the only verification.
 
 ### Fixed
+- **Link Estimate row overstated throughput for pre-Wi-Fi-6 networks**: the detail panel wired
+  `LinkRateEstimator` with its optimistic defaults (`spatialStreams=2`, `supports4096Qam=true`)
+  for *every* network, but the estimator is explicitly an 802.11ax/be (HE/EHT) MCS model. Applied
+  to an 802.11n AP at strong signal it returned MCS 13 / 4096-QAM at an assumed 80 MHz / 2 streams
+  — ~1490 Mbps PHY, roughly 10× the ~144 Mbps an 802.11n 20 MHz / 2-stream link can actually reach
+  — and presented it as a factual estimate. Now `supports4096Qam` is derived from the real PHY
+  (Wi-Fi 7/8 only) and the row is shown only for Wi-Fi 6+ networks where the model is valid;
+  it collapses otherwise (older networks still show the platform's actual max-rate in the "Speed"
+  row). The assumed 2 spatial streams — unknowable from a passive scan — is now stated in the
+  label ("2-stream est.") instead of being silent.
 - **CLI `--evil-twin` overstated its coverage**: `EvilTwinDetector` has five heuristics, but four
   (BSSID-mismatch, security-downgrade, open-impersonation, vendor-mismatch) gate on per-SSID trust
   history populated via `RecordTrusted` — which the stateless CLI never calls. So `mwc scan
