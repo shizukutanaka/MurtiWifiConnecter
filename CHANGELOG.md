@@ -9,7 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Known issues
+- **CI/CodeQL are dormant — manual activation required**: `ci.yml` and `codeql.yml` live under
+  `ci/github-workflows/`, which GitHub never executes (only `.github/workflows/` is run). As a
+  result the CI/CodeQL `README.md` badges are 404s and **no build or test has ever run on push or
+  PR** — the WPF/XAML build is currently unverified by automation. The workflows themselves are
+  correct (the `windows-latest` job builds + tests `MWC.ci.slnf`, which includes `MWC.App`, so it
+  would compile XAML). They cannot be relocated by an automated commit: GitHub rejects pushes that
+  touch `.github/workflows/` from an app without the `workflows` permission (`remote rejected …
+  without 'workflows' permission`). **A maintainer must run the steps in
+  `ci/github-workflows/README.md`** (copy both files into `.github/workflows/` and commit) to turn
+  the safety net on. Until then, treat green local reads — not green CI — as the only verification.
+
 ### Fixed
+- **L.ActionClose missing accessor (XAML build break)**: five dialogs (About, ProfileManager,
+  QrCode, ShortcutHelp, Troubleshooting) reference `{x:Static r:L.ActionClose}`, but `L` exposed no
+  `ActionClose` member — only the resx key `Action_Close` ("Close") existed. Because `x:Static`
+  resolves at XAML compile time, this fails the WPF build (MC3050). Added the accessor following the
+  established `ActionCancel => Get("Action_Cancel")` pattern. Surfaced by tracing every `r:L.X`
+  reference in XAML against `L.cs` members and resx keys; the reference graph is now clean in all
+  directions (resx↔resx consistent at 385 keys × 15 locales, XAML→L, L→resx, code→resx).
 - **Pin toggle bug**: "Pin Network" context menu item previously only pinned (never unpinned) and
   updated only the per-adapter `PinnedSsids` list, which is separate from the global
   `AppSettings.PinnedNetworks` list used by "Show Favorites First" sorting. Pinning now toggles
