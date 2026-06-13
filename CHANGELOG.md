@@ -20,8 +20,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without 'workflows' permission`). **A maintainer must run the steps in
   `ci/github-workflows/README.md`** (copy both files into `.github/workflows/` and commit) to turn
   the safety net on. Until then, treat green local reads — not green CI — as the only verification.
+- **TWT/rTWT IEs are not extracted by any scanner**: `WifiNetwork.TargetWakeTime` and
+  `RestrictedTwt` are never populated (no HE/EHT Capabilities IE parsing in the platform layer), so
+  `PowerSaveAdvisorService.Analyze()` cannot report confirmed per-AP TWT support. Until that
+  extraction exists, the detail panel's Power Saving row falls back to PHY-generation capability
+  (see Fixed). Restoring true per-AP detection requires parsing the HE/EHT Capabilities elements in
+  `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Power Saving row showed a constant false "Legacy"**: the detail panel called
+  `PowerSaveAdvisorService.Analyze()`, which keys entirely off `network.TargetWakeTime` /
+  `RestrictedTwt` — fields no scanner populates (they default `false`). Every AP, including real
+  Wi-Fi 7 hardware, therefore displayed "Legacy (DTIM/PSM)" as if it were an analysis result. The
+  row now keeps the service result primary (so it wins once IE extraction exists) but falls back to
+  PHY-generation capability when the service has no IE evidence: "TWT capable (Wi-Fi 6)" /
+  "rTWT capable (Wi-Fi 7)" / "Legacy". The "capable / up to ~X%" wording states what the generation
+  provides, not that the AP has it enabled — avoiding the same false-precision trap as the Link
+  Estimate fix.
 - **Link Estimate row overstated throughput for pre-Wi-Fi-6 networks**: the detail panel wired
   `LinkRateEstimator` with its optimistic defaults (`spatialStreams=2`, `supports4096Qam=true`)
   for *every* network, but the estimator is explicitly an 802.11ax/be (HE/EHT) MCS model. Applied

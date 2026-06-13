@@ -199,12 +199,24 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
               + (myGroup.HasFastTransition ? " · 802.11r" : "")
               + $"  ({myGroup.Confidence})";
 
+        // PowerSaveAdvisorService keys off network.TargetWakeTime / RestrictedTwt, but no
+        // scanner extracts those HE/EHT TWT IEs yet (they default false), so Analyze() would
+        // report "Legacy" for every AP — including real Wi-Fi 7 hardware. Keep the service call
+        // primary (it wins the moment a scanner populates the flags), but when it has no IE
+        // evidence, fall back to PHY-generation capability: individual TWT is part of 802.11ax
+        // (Wi-Fi 6), restricted TWT of 802.11be (Wi-Fi 7). "capable" states what the generation
+        // provides — not that this AP has it enabled.
         var ps = _powerSaveAdvisor.Analyze(n);
         PowerSaveLabel = ps.Tier switch
         {
             PowerSaveTier.Advanced => $"rTWT  (~{ps.EstimatedSavingPercent}% battery saving)",
             PowerSaveTier.Standard => $"TWT  (~{ps.EstimatedSavingPercent}% battery saving)",
-            _                      => "Legacy (DTIM/PSM)"
+            _ => n.Phy switch
+            {
+                PhyType.Dot11be or PhyType.Dot11bn => "rTWT capable (Wi-Fi 7) — up to ~34% saving",
+                PhyType.Dot11ax                    => "TWT capable (Wi-Fi 6) — up to ~20% saving",
+                _                                  => "Legacy (DTIM/PSM)"
+            }
         };
 
         VendorLabel  = n.VendorName ?? "";
