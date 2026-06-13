@@ -20,6 +20,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without 'workflows' permission`). **A maintainer must run the steps in
   `ci/github-workflows/README.md`** (copy both files into `.github/workflows/` and commit) to turn
   the safety net on. Until then, treat green local reads — not green CI — as the only verification.
+- **Beacon-IE enrichment is dormant in the shipped app**: `WindowsWifiService` enriches scan
+  results via `BeaconEnrichmentService`, but its `IBeaconIeProvider` defaults to
+  `NullBeaconIeProvider` and the real `WlanBssIeProvider` (raw `WlanGetNetworkBssList` P/Invoke) is
+  **deliberately not registered in DI** — its class doc requires on-hardware verification before
+  activation. Consequently `FastTransition` (802.11r), `NeighborReport` (802.11k), `BssLoad`, and
+  `MobilityDomain` are unpopulated in normal use, so the detail panel's **Roaming row defaults to
+  "Standard"** and **Mesh Fast-Transition is always false**, regardless of the AP's real
+  capability. Activation path (requires a real Windows machine): verify `WlanBssIeProvider` against
+  live hardware, register `IBeaconIeProvider → WlanBssIeProvider` in `App.xaml.cs` DI, then confirm
+  the enrichment fields populate. Not done here — this environment cannot run native Windows P/Invoke
+  and CI is dormant, so shipping it unverified would risk AccessViolations the author's gate exists
+  to prevent.
+- **802.11v (BSS Transition Management) is never parsed**: even with enrichment active,
+  `BssTransitionMgmt` is populated nowhere and `BeaconIeParser` does not read the Extended
+  Capabilities element (EID 127, bit 19). This makes `RoamingAdvisoryService`'s **Seamless and
+  Assisted tiers structurally unreachable** (both require 11v), capping the Roaming row at Fast or
+  Standard. Fix: parse the Extended Capabilities IE in `BeaconIeParser` and set `BssTransitionMgmt`
+  via `BeaconIeApplier`.
 - **TWT/rTWT IEs are not extracted by any scanner**: `WifiNetwork.TargetWakeTime` and
   `RestrictedTwt` are never populated (no HE/EHT Capabilities IE parsing in the platform layer), so
   `PowerSaveAdvisorService.Analyze()` cannot report confirmed per-AP TWT support. Until that
@@ -28,6 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Roaming row presented a generic constant as a per-AP measurement**: the "Standard" tier showed
+  `~250ms` (the `LegacyHandoverMs` literature default) as though it were this network's handover
+  time, and — because beacon-IE enrichment is dormant (see Known issues) — that branch fires for
+  essentially every AP. The no-evidence case now reads "Standard — no 802.11r/k/v detected" and the
+  handover figures across tiers are labeled "typical" rather than implying a measurement. Detection
+  capability is unchanged; this removes false precision and a false-negative implication.
 - **Power Saving row showed a constant false "Legacy"**: the detail panel called
   `PowerSaveAdvisorService.Analyze()`, which keys entirely off `network.TargetWakeTime` /
   `RestrictedTwt` — fields no scanner populates (they default `false`). Every AP, including real

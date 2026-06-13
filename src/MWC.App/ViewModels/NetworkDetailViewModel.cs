@@ -175,13 +175,19 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         var dist = _distEstimator.Estimate(n);
         DistanceLabel = dist.Confidence != DistanceConfidence.Unknown ? dist.Label : "-";
 
+        // Fast-roaming detection depends on beacon-IE enrichment (FastTransition / NeighborReport /
+        // BssTransitionMgmt). That enrichment is dormant in the shipped app — WlanBssIeProvider is
+        // deliberately unregistered pending on-hardware verification — so these flags are usually
+        // unset and the tier defaults to Standard. Roaming capability is NOT PHY-derivable, so there
+        // is no honest fallback signal; the labels therefore frame the no-evidence case as a
+        // non-detection and the handover figures as typical (literature) values, not measurements.
         var roaming = _roamAdvisor.Analyze(n);
         RoamingLabel = roaming.Tier switch
         {
             RoamingTier.Seamless => $"Seamless ({string.Join("/", roaming.SupportedStandards)})",
-            RoamingTier.Fast     => $"Fast (802.11r)  ~{roaming.EstimatedHandoverMs}ms",
+            RoamingTier.Fast     => $"Fast (802.11r) — ~{roaming.EstimatedHandoverMs}ms typical",
             RoamingTier.Assisted => "Assisted (802.11k/v)",
-            _                    => $"Standard  ~{roaming.EstimatedHandoverMs}ms"
+            _                    => $"Standard — no 802.11r/k/v detected (~{roaming.EstimatedHandoverMs}ms typical)"
         };
 
         var iReport = _interferenceAnalyzer.Analyze(n, visible);
