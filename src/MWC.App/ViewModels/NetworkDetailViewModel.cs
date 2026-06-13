@@ -50,6 +50,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _powerSaveLabel = "";
     [ObservableProperty] private string _linkEstimateLabel = "";
     [ObservableProperty] private string _mloLabel = "";
+    [ObservableProperty] private string _predictedSignalLabel = "";
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -73,7 +74,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
     public void Load(WifiNetwork? n,
                      IReadOnlyList<WifiNetwork>? allNetworks = null,
-                     TimeSpan? connectedDuration = null)
+                     TimeSpan? connectedDuration = null,
+                     IReadOnlyList<int>? rssiHistory = null)
     {
         if (n is null)
         {
@@ -81,7 +83,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             AuthLabel = CipherLabel = PhyLabel = BandLabel = VendorLabel = "";
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
-            LinkEstimateLabel = MloLabel = "";
+            LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -120,6 +122,18 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SignalLabel  = $"{n.SignalQuality}%"
                        + (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : "")
                        + "  " + BuildBar(n.SignalQuality);
+
+        if (rssiHistory is { Count: >= 3 })
+        {
+            var predicted = SignalQualityPredictor.PredictFromHistory(rssiHistory);
+            PredictedSignalLabel = predicted.HasValue
+                ? $"~{predicted:F0} dBm  ({rssiHistory.Count} samples)"
+                : "-";
+        }
+        else
+        {
+            PredictedSignalLabel = "-";
+        }
 
         if (n.Rssi.HasValue)
         {

@@ -77,7 +77,12 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     partial void OnSelectedChanged(NetworkItemViewModel? v)
     {
-        Detail.Load(v?.Source, SourceNetworks);
+        var rssiHistory = v is null ? null
+            : _history.GetHistory(v.Ssid)
+                       .Where(s => s.Rssi.HasValue)
+                       .Select(s => s.Rssi!.Value)
+                       .ToList();
+        Detail.Load(v?.Source, SourceNetworks, rssiHistory: rssiHistory);
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
@@ -181,7 +186,12 @@ public sealed partial class AdapterViewModel : ObservableObject
             var duration = _connectedSince.HasValue
                 ? DateTimeOffset.UtcNow - _connectedSince.Value
                 : (TimeSpan?)null;
-            Detail.Load(_selected?.Source, SourceNetworks, duration);
+            var selHistory = _selected is null ? null
+                : _history.GetHistory(_selected.Ssid)
+                           .Where(s => s.Rssi.HasValue)
+                           .Select(s => s.Rssi!.Value)
+                           .ToList();
+            Detail.Load(_selected?.Source, SourceNetworks, duration, selHistory);
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
         }

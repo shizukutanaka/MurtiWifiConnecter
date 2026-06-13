@@ -924,6 +924,18 @@
                                                FontSize="11"
                                                FontFamily="Cascadia Mono, Consolas, monospace"/>
                                 </Grid>
+                                <!-- Predicted signal (from history) -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailSignalTrend}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.PredictedSignalLabel}"
+                                               FontSize="11"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.PredictedSignalLabel}"/>
+                                </Grid>
                                 <!-- 状態 -->
                                 <Grid Margin="0,4,0,12">
                                     <Grid.ColumnDefinitions>

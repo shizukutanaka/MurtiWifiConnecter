@@ -393,6 +393,7 @@
   <data name="Detail_PowerSave"><value>توفير الطاقة</value></data>
   <data name="Detail_LinkEstimate"><value>تقدير الرابط</value></data>
   <data name="Detail_Mlo"><value>متعدد الروابط</value></data>
+  <data name="Detail_SignalTrend"><value>اتجاه الإشارة</value></data>
   <data name="Menu_DiagnosticExport"><value>تصدير تقرير الدعم…</value></data>
   <data name="Status_DiagnosticExported"><value>تم حفظ تقرير الدعم → {0}</value></data>
 </root>

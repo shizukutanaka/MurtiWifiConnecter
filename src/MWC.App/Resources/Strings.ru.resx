@@ -393,6 +393,7 @@
   <data name="Detail_PowerSave"><value>Энергосбережение</value></data>
   <data name="Detail_LinkEstimate"><value>Оценка канала</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
+  <data name="Detail_SignalTrend"><value>Тренд сигнала</value></data>
   <data name="Menu_DiagnosticExport"><value>Экспорт отчёта поддержки…</value></data>
   <data name="Status_DiagnosticExported"><value>Отчёт сохранён → {0}</value></data>
 </root>
