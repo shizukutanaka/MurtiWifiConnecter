@@ -133,6 +133,13 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandled;
         TaskScheduler.UnobservedTaskException      += OnTaskUnhandled;
 
+        // 言語適用: 保存された言語設定を UI カルチャへ反映する。これが無いと
+        // CurrentUICulture が OS カルチャのままになり、設定の言語セレクタが
+        // 事実上機能しない (選んでも表示言語が変わらない)。MainWindow 生成より
+        // 前に行う必要がある (resx は CurrentUICulture で解決されるため)。
+        // 言語変更は再起動で反映。
+        ApplyLanguage(Host.Services.GetRequiredService<SettingsService>().Current.Language);
+
         // テーマ適用
         var theme = Host.Services.GetRequiredService<ThemeService>();
         theme.Apply(Host.Services.GetRequiredService<SettingsService>().Current.Theme);
@@ -160,6 +167,41 @@ public partial class App : Application
             var wizard = Host.Services.GetRequiredService<FirstRunWizard>();
             wizard.Owner = win;
             wizard.ShowDialog();
+        }
+    }
+
+    /// <summary>
+    /// 保存された言語コード ("en"/"ja"/"ar" 等) を UI/フォーマットカルチャへ適用する。
+    /// RTL 言語 (アラビア語等) では全 FrameworkElement の既定 FlowDirection を右→左へ反転する。
+    /// FrameworkElement 生成前に呼ぶこと (OverrideMetadata は一度きり)。
+    /// </summary>
+    private static void ApplyLanguage(string? lang)
+    {
+        if (string.IsNullOrWhiteSpace(lang) ||
+            lang.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            return;   // OS カルチャに従う
+
+        System.Globalization.CultureInfo culture;
+        try { culture = System.Globalization.CultureInfo.GetCultureInfo(lang); }
+        catch (System.Globalization.CultureNotFoundException) { return; }
+
+        System.Globalization.CultureInfo.CurrentUICulture          = culture;
+        System.Globalization.CultureInfo.CurrentCulture            = culture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture   = culture;
+
+        // RTL 言語ではレイアウトを右→左へ反転 (これが無いと UI が鏡像でなく
+        // LTR のまま表示され、ラベル位置・整列が崩れる)。生成済み要素があると
+        // OverrideMetadata が例外を投げるため best-effort: 失敗時は LTR のまま。
+        if (culture.TextInfo.IsRightToLeft)
+        {
+            try
+            {
+                FrameworkElement.FlowDirectionProperty.OverrideMetadata(
+                    typeof(FrameworkElement),
+                    new FrameworkPropertyMetadata(FlowDirection.RightToLeft));
+            }
+            catch { /* 既に生成済み等 — LTR フォールバック */ }
         }
     }
 

@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Language selector did nothing; no RTL support despite shipping Arabic**: the `Language` setting
+  was defined, editable, and saved, but **never applied** — nothing set `CurrentUICulture` from it,
+  so `L.cs` resolved strings against the OS culture and selecting any of the 14 non-OS languages had
+  no visible effect. The app also shipped a full Arabic (RTL) locale with **zero `FlowDirection`
+  handling**, so Arabic would render in a left-to-right shell (mirrored labels, wrong alignment).
+  `App.OnStartup` now applies the saved language to the UI/format cultures before any window is
+  created, and for RTL cultures flips the default `FlowDirection` to right-to-left (guarded — best
+  effort, falls back to LTR). Language changes take effect on restart. Found by switching from a
+  code-correctness lens to a user-experience one: the resx tables were perfectly consistent, but the
+  translated app was never actually reachable by the user.
 - **Process-output deadlock on Linux and macOS scanners**: `NmcliWifiService` and
   `CoreWlanWifiService` redirected both stdout and stderr but drained them sequentially
   (`ReadToEndAsync(stdout)` to EOF, then stderr). If the child process writes more to stderr than
