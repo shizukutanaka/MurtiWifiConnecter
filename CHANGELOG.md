@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **SSIDs were written to disk logs in plaintext (location-history leak)**: connection, auto-reconnect,
+  and failover paths logged the raw SSID at Information/Warning level to the 7-day rolling Serilog
+  file. Since SSIDs are location-identifying (and the list outlives a "forget"), those logs were a
+  passive location trail on disk — and a user asked by support to "send your log file" would leak it,
+  defeating the diagnostic bundle's careful redaction. This contradicted the app's own PII stance:
+  `DiagnosticBundleService` masks SSIDs precisely because they are sensitive, but the everyday logs
+  did not. Extracted the masking into a shared `PiiMask.Ssid` helper (the bundle now delegates to it)
+  and applied it at every SSID log site, so persisted logs show e.g. `My****` instead of the full
+  name. (The diagnostic bundle's redaction was verified complete — it masks the connected SSID, OUI-
+  truncates MACs, scrubs IPv4/email/phone, and never emits a raw scan list.)
 - **Screen-reader announcements were silent**: `AccessibilityService.AnnounceConnectionStatus` /
   `AnnounceError` (fired on connect success/failure and SSID copy) wrote to a live-region TextBlock
   that was `Visibility="Collapsed"` — and collapsed elements are excluded from the UI Automation

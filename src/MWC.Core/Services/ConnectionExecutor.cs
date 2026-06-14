@@ -77,7 +77,7 @@ public sealed class ConnectionExecutor
             }
 
             // 2. 接続実行
-            _log.LogInformation("Connecting to {ssid} on adapter {id}", ssid, adapterId);
+            _log.LogInformation("Connecting to {ssid} on adapter {id}", PiiMask.Ssid(ssid), adapterId);
             var result = await _wifi.ConnectAsync(adapterId, ssid, ssid, to, ct).ConfigureAwait(false);
 
             // 3. 履歴記録
@@ -99,7 +99,7 @@ public sealed class ConnectionExecutor
             }
 
             _log.LogInformation("Connection {res}: {ssid} ({ms:F1}ms)",
-                result.Success ? "success" : $"failed ({result.Failure})", ssid, sw.Elapsed.TotalMilliseconds);
+                result.Success ? "success" : $"failed ({result.Failure})", PiiMask.Ssid(ssid), sw.Elapsed.TotalMilliseconds);
 
             return result;
         }
@@ -110,7 +110,7 @@ public sealed class ConnectionExecutor
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "ConnectAsync exception: {ssid}", ssid);
+            _log.LogError(ex, "ConnectAsync exception: {ssid}", PiiMask.Ssid(ssid));
             _history.RecordConnection(ssid, false);
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }

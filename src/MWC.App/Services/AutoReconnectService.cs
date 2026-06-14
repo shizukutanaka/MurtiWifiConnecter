@@ -92,7 +92,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
                 if (candidate is null) continue;
 
-                _log.LogInformation("AutoReconnect: trying {ssid}", candidate.Ssid);
+                _log.LogInformation("AutoReconnect: trying {ssid}", PiiMask.Ssid(candidate.Ssid));
                 var res = await _executor.ConnectAsync(
                     ev.AdapterId, candidate.Ssid, candidate.Auth,
                     "", TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);

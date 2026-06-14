@@ -286,7 +286,7 @@ public sealed partial class AdapterViewModel : ObservableObject
         }
         catch (System.Exception ex)
         {
-            _log.LogWarning(ex, "ConnectToSsid {ssid}", ssid);
+            _log.LogWarning(ex, "ConnectToSsid {ssid}", PiiMask.Ssid(ssid));
             return MWC.Core.Models.ConnectionResult.Fail(MWC.Core.Models.ConnectionFailure.OsError);
         }
     }

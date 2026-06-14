@@ -101,12 +101,7 @@ public sealed class DiagnosticBundleService
     }
 
     /// <summary>SSID を先頭 2 文字残してマスクする。</summary>
-    public static string MaskSsid(string ssid)
-    {
-        if (string.IsNullOrEmpty(ssid)) return "(empty)";
-        if (ssid.Length <= 2) return ssid[0] + "*";
-        return ssid.Substring(0, 2) + new string('*', Math.Min(ssid.Length - 2, 6));
-    }
+    public static string MaskSsid(string ssid) => PiiMask.Ssid(ssid);
 
     /// <summary>BSSID/MAC を OUI (上位 3 バイト) のみ残して伏字化する。</summary>
     public static string MaskMac(string mac)

@@ -156,7 +156,7 @@ public sealed class AdapterFailoverService : IDisposable
             if (target is null)
             {
                 _log.LogWarning("Failover target SSID {Ssid} not in range on adapter {Id}",
-                    targetSsid, failoverId);
+                    PiiMask.Ssid(targetSsid), failoverId);
                 return;
             }
 
@@ -172,7 +172,7 @@ public sealed class AdapterFailoverService : IDisposable
                     MWC.App.Resources.L.NotifyFailoverActivated(failoverAdapter.Name),
                     hasInternet: result.HasInternet, captive: result.BehindCaptivePortal);
                 _log.LogInformation("Failover successful: connected to {Ssid} via {Adapter}",
-                    targetSsid, failoverAdapter.Name);
+                    PiiMask.Ssid(targetSsid), failoverAdapter.Name);
             }
             else
             {
