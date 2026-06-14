@@ -58,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Linux scan corrupted any SSID ending in a backslash**: `NmcliWifiService.SplitTerse` split
+  nmcli `-t` output with `Regex.Split(line, "(?<!\\\\):")`. A single-backslash negative lookbehind
+  cannot count backslash parity, so a field ending in a literal `\` (nmcli-encoded as `\\`) made the
+  following separator look escaped — e.g. SSID `foo\` → `foo\\:<bssid>…` failed to split, merging
+  the SSID into the BSSID column and shifting every subsequent field (mode/channel/freq/signal/
+  security). Replaced the regex with an escaping-aware sequential scanner that consumes `\X` as a
+  literal `X` and treats only unescaped `:` as a separator (also folding in the unescape step). This
+  extends the earlier terse-colon fix to the escaped-backslash case; empty fields and column counts
+  are preserved.
 - **Wi-Fi QR codes corrupted any SSID/password ending in a special character**: `WifiUri.Parse`
   stripped the trailing terminator with `TrimEnd(';')`, which cannot distinguish the format's
   structural `;;` from an escaped `\;` at the end of the last field. A password like `secret;`

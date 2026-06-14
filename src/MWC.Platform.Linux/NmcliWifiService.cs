@@ -186,15 +186,38 @@ public sealed class NmcliWifiService : IWifiService
 
     // ── Private helpers ──────────────────────────────────────────────
 
-    // nmcli terse(-t)モードはフィールド内のコロンを \: にエスケープする。
+    // nmcli terse(-t)モードはフィールド内の ':' を '\:'、'\' を '\\' にエスケープする。
     // 単純な Split(':') では BSSID(AA:BB:...) が列にまたがり位置がズレる。
-    // 非エスケープのコロンのみで分割後、\: と \\ をアンエスケープする。
+    // 旧実装は Regex (?<!\\): を使っていたが、これは「値が '\' で終わる」場合に破綻する:
+    //   SSID "foo\" → エンコード "foo\\" → 区切りは "foo\\:..." となり、'\:' の lookbehind が
+    //   区切りコロンを「エスケープ済み」と誤認して分割せず、SSID と BSSID が結合する。
+    //   (lookbehind ではバックスラッシュの偶奇を数えられないため原理的に不可能。)
+    // バックスラッシュ状態を追う逐次スキャナに置き換え、'\X' を X として取り込み、
+    // 非エスケープの ':' のみを区切りとする。アンエスケープも同時に行う。
     private static string[] SplitTerse(string line)
     {
-        var cols = Regex.Split(line, @"(?<!\\):");
-        for (int i = 0; i < cols.Length; i++)
-            cols[i] = cols[i].Replace(@"\:", ":").Replace(@"\\", @"\");
-        return cols;
+        var cols = new List<string>();
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (c == '\\' && i + 1 < line.Length)
+            {
+                sb.Append(line[i + 1]);   // エスケープされた文字をそのまま取り込む
+                i++;
+            }
+            else if (c == ':')
+            {
+                cols.Add(sb.ToString());  // 非エスケープのコロン = フィールド区切り
+                sb.Clear();
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        cols.Add(sb.ToString());
+        return cols.ToArray();
     }
 
     private async Task<string> ResolveIface(Guid adapterId, CancellationToken ct)
