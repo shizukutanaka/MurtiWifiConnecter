@@ -248,8 +248,15 @@ public sealed class NmcliWifiService : IWifiService
         foreach (var a in args)
             proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
-        var stdout = await proc.StandardOutput.ReadToEndAsync(ct).ConfigureAwait(false);
-        var stderr = await proc.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
+        // Drain stdout and stderr concurrently. Reading them sequentially
+        // (stdout to EOF, then stderr) can deadlock: if nmcli writes more to
+        // stderr than the OS pipe buffer (~64KB) before closing stdout, it
+        // blocks on the stderr write while we await stdout that never ends.
+        // With ct often defaulted (no timeout), that hang would be permanent.
+        Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+        Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
+        string stdout = await stdoutTask.ConfigureAwait(false);
+        string stderr = await stderrTask.ConfigureAwait(false);
         await proc.WaitForExitAsync(ct).ConfigureAwait(false);
         return (proc.ExitCode, stdout, stderr);
     }

@@ -58,6 +58,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Process-output deadlock on Linux and macOS scanners**: `NmcliWifiService` and
+  `CoreWlanWifiService` redirected both stdout and stderr but drained them sequentially
+  (`ReadToEndAsync(stdout)` to EOF, then stderr). If the child process writes more to stderr than
+  the OS pipe buffer (~64KB) before closing stdout, it blocks on the stderr write while the awaiter
+  waits on stdout that never ends — a deadlock. Because callers pass `ct = default` (no timeout),
+  the hang would be permanent (UI thread parked on the scan). Both now start both reads first and
+  await them together so the pipes drain concurrently.
 - **Linux scan corrupted any SSID ending in a backslash**: `NmcliWifiService.SplitTerse` split
   nmcli `-t` output with `Regex.Split(line, "(?<!\\\\):")`. A single-backslash negative lookbehind
   cannot count backslash parity, so a field ending in a literal `\` (nmcli-encoded as `\\`) made the
