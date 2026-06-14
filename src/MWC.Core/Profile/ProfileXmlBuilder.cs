@@ -84,7 +84,11 @@ public static class ProfileXmlBuilder
 
         var security = new XElement(WlanNs + "security", authEnc);
 
-        // PMF(Protected Management Frames): WPA3 では required
+        // PMK caching (fast reconnect) for WPA3. NOTE: this is *not* PMF/802.11w —
+        // Protected Management Frames are mandatory for WPA3 and enforced automatically
+        // by Windows from the WPA3SAE/WPA3 auth type, so no explicit MFP element is needed.
+        // (Transition mode is intentionally excluded: it must remain MFP-optional so WPA2
+        // clients can still associate.)
         if (spec.Auth is AuthMethod.WPA3SAE or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192)
         {
             security.Add(new XElement(
