@@ -17,28 +17,37 @@ namespace MWC.App.Services;
 public static class AccessibilityService
 {
     /// <summary>
-    /// スクリーンリーダーへの接続状態変更通知。
-    /// VoiceOver (Mac) / Narrator (Win) に相当する Live Region。
+    /// スクリーンリーダーへの接続状態変更通知 (Narrator / NVDA)。
     /// </summary>
     public static void AnnounceConnectionStatus(string message)
-    {
-        // UIAutomation の LiveSetting を利用
-        // 実際のコントロールが必要なため、App.Current.MainWindow に隠し要素を持つ
-        if (Application.Current?.MainWindow is not Window w) return;
-        if (w.FindName("_srLiveRegion") is not TextBlock tb) return;
+        => RaiseNotification(message,
+               AutomationNotificationKind.ActionCompleted,
+               AutomationNotificationProcessing.MostRecent);
 
-        tb.Text = message;
-        // Polite: 現在の読み上げを中断しない
-        AutomationProperties.SetLiveSetting(tb, AutomationLiveSetting.Polite);
-    }
-
-    /// <summary>接続失敗等の緊急通知 (Assertive = 割り込み)</summary>
+    /// <summary>接続失敗等の緊急通知 (重要度高 = 割り込み)</summary>
     public static void AnnounceError(string message)
+        => RaiseNotification(message,
+               AutomationNotificationKind.ActionAborted,
+               AutomationNotificationProcessing.ImportantMostRecent);
+
+    // UIAutomation の通知イベントで直接読み上げさせる。
+    // 旧実装は Collapsed の TextBlock を Live Region にしていたが、Collapsed 要素は
+    // オートメーションツリーから除外されるため一切読み上げられなかった。
+    // RaiseNotificationEvent は要素の可視性に依存せず、ウィンドウのピアから発火できる
+    // (.NET Core 3.0+/Windows 10 1709+。未対応環境では no-op)。
+    private static void RaiseNotification(
+        string message,
+        AutomationNotificationKind kind,
+        AutomationNotificationProcessing processing)
     {
         if (Application.Current?.MainWindow is not Window w) return;
-        if (w.FindName("_srLiveRegion") is not TextBlock tb) return;
-        tb.Text = message;
-        AutomationProperties.SetLiveSetting(tb, AutomationLiveSetting.Assertive);
+        try
+        {
+            var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(w)
+                    ?? System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(w);
+            peer?.RaiseNotificationEvent(kind, processing, message, "MWC.Status");
+        }
+        catch { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
     }
 
     /// <summary>

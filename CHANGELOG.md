@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Screen-reader announcements were silent**: `AccessibilityService.AnnounceConnectionStatus` /
+  `AnnounceError` (fired on connect success/failure and SSID copy) wrote to a live-region TextBlock
+  that was `Visibility="Collapsed"` — and collapsed elements are excluded from the UI Automation
+  tree, so Narrator/NVDA never observed the text change and announced nothing. `InjectLiveRegion`
+  was also dead (never called). A blind user pressing Connect heard silence and could not tell
+  whether it worked. Rewrote both to use `AutomationPeer.RaiseNotificationEvent` (the robust
+  .NET Core 3+ API) from the window's peer, which announces independently of any element's
+  visibility (status → `ActionCompleted`/`MostRecent`, errors → `ActionAborted`/`ImportantMostRecent`;
+  best-effort, no-op when no screen reader is running). Found by asking not "does every control have
+  an AutomationProperties.Name?" (it does) but "can a blind user actually tell what happened?".
 - **Language selector did nothing; no RTL support despite shipping Arabic**: the `Language` setting
   was defined, editable, and saved, but **never applied** — nothing set `CurrentUICulture` from it,
   so `L.cs` resolved strings against the OS culture and selecting any of the 14 non-OS languages had
