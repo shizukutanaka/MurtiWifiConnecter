@@ -182,14 +182,24 @@ public sealed class CoreWlanWifiService : IWifiService
         foreach (var a in args)
             proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
-        // Drain stdout and stderr concurrently — sequential reads can deadlock if
-        // the child fills the stderr pipe buffer (~64KB) before stdout reaches EOF.
-        Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
-        Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
-        string stdout = await stdoutTask.ConfigureAwait(false);
-        string stderr = await stderrTask.ConfigureAwait(false);
-        await proc.WaitForExitAsync(ct).ConfigureAwait(false);
-        return (proc.ExitCode, stdout, stderr);
+        try
+        {
+            // Drain stdout and stderr concurrently — sequential reads can deadlock if
+            // the child fills the stderr pipe buffer (~64KB) before stdout reaches EOF.
+            Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+            Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
+            string stdout = await stdoutTask.ConfigureAwait(false);
+            string stderr = await stderrTask.ConfigureAwait(false);
+            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
+            return (proc.ExitCode, stdout, stderr);
+        }
+        catch (OperationCanceledException)
+        {
+            // Dispose() does not terminate a running child — kill it so a
+            // cancelled call does not leave an orphaned process behind.
+            try { if (!proc.HasExited) proc.Kill(); } catch { /* best effort */ }
+            throw;
+        }
     }
 
     public Task<bool> DeleteProfileAsync(

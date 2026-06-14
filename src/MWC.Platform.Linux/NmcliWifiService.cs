@@ -248,17 +248,27 @@ public sealed class NmcliWifiService : IWifiService
         foreach (var a in args)
             proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
-        // Drain stdout and stderr concurrently. Reading them sequentially
-        // (stdout to EOF, then stderr) can deadlock: if nmcli writes more to
-        // stderr than the OS pipe buffer (~64KB) before closing stdout, it
-        // blocks on the stderr write while we await stdout that never ends.
-        // With ct often defaulted (no timeout), that hang would be permanent.
-        Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
-        Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
-        string stdout = await stdoutTask.ConfigureAwait(false);
-        string stderr = await stderrTask.ConfigureAwait(false);
-        await proc.WaitForExitAsync(ct).ConfigureAwait(false);
-        return (proc.ExitCode, stdout, stderr);
+        try
+        {
+            // Drain stdout and stderr concurrently. Reading them sequentially
+            // (stdout to EOF, then stderr) can deadlock: if nmcli writes more to
+            // stderr than the OS pipe buffer (~64KB) before closing stdout, it
+            // blocks on the stderr write while we await stdout that never ends.
+            // With ct often defaulted (no timeout), that hang would be permanent.
+            Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+            Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
+            string stdout = await stdoutTask.ConfigureAwait(false);
+            string stderr = await stderrTask.ConfigureAwait(false);
+            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
+            return (proc.ExitCode, stdout, stderr);
+        }
+        catch (OperationCanceledException)
+        {
+            // Dispose() does not terminate a running child — kill it so a
+            // cancelled scan does not leave an orphaned nmcli process behind.
+            try { if (!proc.HasExited) proc.Kill(); } catch { /* best effort */ }
+            throw;
+        }
     }
 
     private static async Task<bool> CheckInternetAsync(CancellationToken ct)
