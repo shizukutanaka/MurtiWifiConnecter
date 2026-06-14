@@ -58,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Wi-Fi QR codes corrupted any SSID/password ending in a special character**: `WifiUri.Parse`
+  stripped the trailing terminator with `TrimEnd(';')`, which cannot distinguish the format's
+  structural `;;` from an escaped `\;` at the end of the last field. A password like `secret;`
+  (built as `…P:secret\;;;`) round-tripped to `secret\` — a silently wrong credential on scan.
+  Removed the trim and made the parse loop skip empty segments instead, so escaped trailing
+  specials survive. Added a regression test covering an SSID and password that both end in `;`.
 - **Roaming row presented a generic constant as a per-AP measurement**: the "Standard" tier showed
   `~250ms` (the `LegacyHandoverMs` literature default) as though it were this network's handover
   time, and — because beacon-IE enrichment is dormant (see Known issues) — that branch fires for

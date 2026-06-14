@@ -82,6 +82,24 @@ public class WifiUriTests
         WifiUri.Parse("").Should().BeNull();
         WifiUri.Parse("WIFI:T:WPA;;").Should().BeNull();  // SSID欠落
     }
+
+    [Fact]
+    public void Parse_RoundTrip_ValueEndingInEscapedSpecial()
+    {
+        // Regression: Parse used TrimEnd(';'), which stripped the escaped trailing
+        // "\;" from the last field along with the structural ";;" terminator,
+        // corrupting any password/SSID ending in a special character.
+        var src = new WifiProfileSpec
+        {
+            Ssid = "Net;",
+            Auth = AuthMethod.WPA2PSK,
+            Passphrase = "secret;"
+        };
+        var parsed = WifiUri.Parse(WifiUri.Build(src));
+        parsed.Should().NotBeNull();
+        parsed!.Ssid.Should().Be("Net;");
+        parsed.Passphrase.Should().Be("secret;");
+    }
 }
 
 public class WifiUriHighDensityTests
