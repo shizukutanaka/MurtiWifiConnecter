@@ -102,7 +102,7 @@ public class NetworkHistoryServiceTests
     public void LastConnectedLabel_JustNow_ReturnsLabel()
     {
         var e = new ConnectionHistoryEntry("X", DateTimeOffset.UtcNow, 1, 0);
-        e.LastConnectedLabel.Should().Be("たった今");
+        e.LastConnectedLabel.Should().Be("just now");
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class NetworkHistoryServiceTests
     {
         var e = new ConnectionHistoryEntry("X",
             DateTimeOffset.UtcNow.AddHours(-3), 1, 0);
-        e.LastConnectedLabel.Should().Contain("時間前");
+        e.LastConnectedLabel.Should().Contain("h ago");
     }
 }
 
@@ -173,11 +173,11 @@ public class ColorConsistencyTests
 public class HistoryLabelTests
 {
     [Theory]
-    [InlineData(0,   "たった今")]
-    [InlineData(-1,  "1分前")]
-    [InlineData(-59, "59分前")]
-    [InlineData(-60, "1時間前")]
-    [InlineData(-23, "23時間前")]
+    [InlineData(0,   "just now")]
+    [InlineData(-1,  "1m ago")]
+    [InlineData(-59, "59m ago")]
+    [InlineData(-60, "1h ago")]
+    [InlineData(-23, "23h ago")]
     public void LastConnectedLabel_TimeFormats(int minutesOffset, string contains)
     {
         DateTimeOffset at = minutesOffset == -60

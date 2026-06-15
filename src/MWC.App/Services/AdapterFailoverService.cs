@@ -42,6 +42,8 @@ public sealed class AdapterFailoverService : IDisposable
     private readonly Dictionary<Guid, string?> _lastState = new();
     // Adapters currently in failover mode (primary lost connectivity)
     private readonly HashSet<Guid> _activeFailovers = new();
+    // Adapters seen by at least one CheckAsync call (prevents false failover on cold start)
+    private readonly HashSet<Guid> _knownAdapters = new();
 
     private static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(30);
 
@@ -86,6 +88,9 @@ public sealed class AdapterFailoverService : IDisposable
                 var currentSsid   = adapter.ConnectedSsid;
                 var previousSsid  = _lastState.GetValueOrDefault(adapter.Id);
                 _lastState[adapter.Id] = currentSsid;
+
+                // 初回観測時はベースライン確立のみ。接続状態の変化判定はしない
+                if (_knownAdapters.Add(adapter.Id)) continue;
 
                 bool wasConnected  = previousSsid is not null;
                 bool isConnected   = currentSsid is not null;
