@@ -202,6 +202,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Connectivity probe could falsely report "no internet" after a network change (DNS staleness)**:
+  `HttpConnectivityChecker`'s static `HttpClient` used `HttpClientHandler` with no
+  `PooledConnectionLifetime`, so in a long-running session its pooled connections to
+  `www.msftconnecttest.com` never re-resolved DNS. After the machine changed networks, the probe
+  could keep dialing a stale IP, throw, and (via the catch) report `HasInternet=false` even when the
+  link was fine — surfacing a false "connected, no internet" to the user. Since this probe runs after
+  every connect and as the second half of the success check, it is higher-traffic than the update
+  check that had the same flaw. Switched to `SocketsHttpHandler` (which preserves the existing
+  `AllowAutoRedirect=false` captive-portal semantics, `UseCookies=false`, `UseProxy=false`) with
+  `PooledConnectionLifetime = 5 min`, matching the `AppUpdateService` fix. The CLI's
+  `QualityHistoryCommand` client was checked and left as-is — it is short-lived and `using`-disposed.
+
 - **Connect-completion continuations ran inline on the native WLAN notification thread**:
   `ConnectionWaiter` bridges the OS ACM `connection_complete`/disconnect notifications to a
   `Task` via `TaskCompletionSource`, but the TCS was created without

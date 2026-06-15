@@ -55,11 +55,16 @@ public sealed class HttpConnectivityChecker : IConnectivityChecker
 
     private static HttpClient CreateClient()
     {
-        var handler = new HttpClientHandler
+        // SocketsHttpHandler + PooledConnectionLifetime で DNS の鮮度を保つ。
+        // 長時間稼働セッションでプール接続が固定 IP に張り付くと、ネットワーク
+        // 変更後に msftconnecttest の旧 IP へ繋ぎ続けてプローブが失敗し、
+        // 実際は疎通があるのに「インターネット無し」と誤判定しうる。
+        var handler = new SocketsHttpHandler
         {
-            AllowAutoRedirect = false,
-            UseCookies = false,
-            UseProxy = false
+            AllowAutoRedirect        = false,
+            UseCookies               = false,
+            UseProxy                 = false,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
         };
         var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         c.DefaultRequestHeaders.Add("User-Agent", "MWC/1.0");
