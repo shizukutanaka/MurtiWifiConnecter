@@ -74,7 +74,7 @@ public sealed class NmcliWifiService : IWifiService
             ["-t", "-f", "SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY,IN-USE",
              "dev", "wifi", "list", "ifname", iface, "--rescan", "yes"], ct).ConfigureAwait(false);
 
-        var networks = new Dictionary<string, WifiNetwork>(StringComparer.Ordinal);
+        var networks = new Dictionary<string, ScanGroup>(StringComparer.Ordinal);
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -82,6 +82,10 @@ public sealed class NmcliWifiService : IWifiService
             if (cols.Length < 8) continue;
 
             var ssid     = cols[0].Trim();
+            // 隠し (空 SSID) ネットワークは契約上除外する (Windows 実装と一致)。
+            if (string.IsNullOrEmpty(ssid)) continue;
+
+            var bssid    = cols[1].Trim();
             var chan     = int.TryParse(cols[3], out var ch) ? ch : 0;
             var freq     = int.TryParse(Regex.Replace(cols[4], @"[^\d]", ""), out var f) ? f : 0;
             var signal   = int.TryParse(cols[6], out var s) ? s : 0;
@@ -93,30 +97,61 @@ public sealed class NmcliWifiService : IWifiService
             var phy      = band == WifiBand.Band6GHz ? PhyType.Dot11ax
                          : chan > 14                 ? PhyType.Dot11ac
                                                      : PhyType.Dot11n;
+            // 品質(0-100%) を概算 RSSI(-100..-30 dBm) に変換。
+            // signal-100 だと 0 dBm(非現実的に強い)になるため 0.7 係数で圧縮
+            // (RssiDistanceEstimator.QualityToRssi と一致)。
+            var rssi = (int)Math.Round(-100 + Math.Clamp(signal, 0, 100) * 0.7);
 
-            if (string.IsNullOrEmpty(ssid)) ssid = "<hidden>";
+            // SSID 単位で集約 (IWifiService.ScanAsync の契約)。同一 SSID が複数バンド/
+            // AP で見える場合は各 BSS を BssEntries に束ね、最強シグナルを代表にする。
+            if (!networks.TryGetValue(ssid, out var g))
+                networks[ssid] = g = new ScanGroup();
 
-            networks[ssid + cols[1]] = new WifiNetwork
+            g.Bss.Add(new BssInfo
             {
-                Ssid          = ssid,
-                Auth          = auth,
-                Band          = band,
-                Channel       = chan,
-                FrequencyMhz  = freq,
-                SignalQuality = signal,
-                Phy           = phy,
-                IsConnected   = inUse,
-                BssEntries    = new[]
+                Bssid        = bssid,
+                Rssi         = rssi,
+                Channel      = chan,
+                FrequencyMhz = freq,
+                Phy          = phy,
+            });
+            g.InUse |= inUse;
+            if (g.Representative is null || signal > g.BestSignal)
+            {
+                g.BestSignal = signal;
+                g.Representative = new WifiNetwork
                 {
-                    // 品質(0-100%) を概算 RSSI(-100..-30 dBm) に変換。
-                    // signal-100 だと 0 dBm(非現実的に強い)になるため 0.7 係数で圧縮
-                    // (RssiDistanceEstimator.QualityToRssi と一致)。
-                    new BssInfo { Bssid = cols[1].Trim(),
-                                  Rssi = (int)Math.Round(-100 + Math.Clamp(signal, 0, 100) * 0.7) }
-                }
-            };
+                    Ssid          = ssid,
+                    Auth          = auth,
+                    Band          = band,
+                    Channel       = chan,
+                    FrequencyMhz  = freq,
+                    SignalQuality = signal,
+                    Phy           = phy,
+                };
+            }
         }
-        return networks.Values.ToList();
+
+        var result = new List<WifiNetwork>(networks.Count);
+        foreach (var g in networks.Values)
+        {
+            if (g.Representative is null) continue;
+            result.Add(g.Representative with
+            {
+                IsConnected = g.InUse,
+                BssEntries  = g.Bss.ToArray(),
+            });
+        }
+        return result;
+    }
+
+    // SSID 単位のスキャン集約用の作業バッファ。
+    private sealed class ScanGroup
+    {
+        public WifiNetwork? Representative;
+        public int BestSignal = -1;
+        public bool InUse;
+        public readonly List<BssInfo> Bss = new();
     }
 
     public async Task<bool> RegisterProfileAsync(

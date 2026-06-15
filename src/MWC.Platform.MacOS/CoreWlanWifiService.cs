@@ -115,7 +115,10 @@ public sealed class CoreWlanWifiService : IWifiService
 
     private static IReadOnlyList<WifiNetwork> ParseAirportScan(string output)
     {
-        var results = new List<WifiNetwork>();
+        // SSID 単位で集約する (IWifiService.ScanAsync の契約: 1 SSID = 1 WifiNetwork)。
+        // airport は BSS 毎に 1 行出力するため、同一 SSID の複数バンド/AP は
+        // BssEntries に束ね、最強 RSSI の行を代表値とする。隠し SSID は除外。
+        var groups = new Dictionary<string, ScanGroup>(StringComparer.Ordinal);
         foreach (var line in output.Split('\n').Skip(1))  // ヘッダー行スキップ
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
@@ -124,6 +127,9 @@ public sealed class CoreWlanWifiService : IWifiService
             if (parts.Length < 5) continue;
 
             var ssid    = parts[0].Trim();
+            if (string.IsNullOrEmpty(ssid)) continue;   // 隠しネットワークは除外
+
+            var bssid   = parts[1].Trim();
             var rssi    = int.TryParse(parts[2], out var r) ? r : -80;
             var chanStr = parts[3].Trim();
             var chan    = int.TryParse(chanStr.Split(',')[0], out var c) ? c : 0;
@@ -133,18 +139,43 @@ public sealed class CoreWlanWifiService : IWifiService
                         : secStr.Contains("WPA")  ? AuthMethod.WPAPSK
                         : AuthMethod.Open;
             var band    = chan > 14 ? WifiBand.Band5GHz : WifiBand.Band2_4GHz;
+            var phy     = band == WifiBand.Band5GHz ? PhyType.Dot11ac : PhyType.Dot11n;
 
-            results.Add(new WifiNetwork
+            if (!groups.TryGetValue(ssid, out var g))
+                groups[ssid] = g = new ScanGroup();
+
+            g.Bss.Add(new BssInfo { Bssid = bssid, Rssi = rssi, Channel = chan, Phy = phy });
+            // 最強 RSSI の行を代表にする (RSSI は負値なので大きいほど強い)。
+            if (g.Representative is null || rssi > g.BestRssi)
             {
-                Ssid          = ssid,
-                Auth          = auth,
-                Band          = band,
-                Channel       = chan,
-                SignalQuality = Math.Clamp(100 + rssi, 0, 100),
-                Phy           = band == WifiBand.Band5GHz ? PhyType.Dot11ac : PhyType.Dot11n,
-            });
+                g.BestRssi = rssi;
+                g.Representative = new WifiNetwork
+                {
+                    Ssid          = ssid,
+                    Auth          = auth,
+                    Band          = band,
+                    Channel       = chan,
+                    SignalQuality = Math.Clamp(100 + rssi, 0, 100),
+                    Phy           = phy,
+                };
+            }
+        }
+
+        var results = new List<WifiNetwork>(groups.Count);
+        foreach (var g in groups.Values)
+        {
+            if (g.Representative is null) continue;
+            results.Add(g.Representative with { BssEntries = g.Bss.ToArray() });
         }
         return results;
+    }
+
+    // SSID 単位のスキャン集約用の作業バッファ。
+    private sealed class ScanGroup
+    {
+        public WifiNetwork? Representative;
+        public int BestRssi = int.MinValue;
+        public readonly List<BssInfo> Bss = new();
     }
 
     private static async Task<string> GetIfaceAsync(Guid id, CancellationToken ct)

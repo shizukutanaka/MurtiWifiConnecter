@@ -202,6 +202,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **`IWifiService.ScanAsync` had no uniqueness contract; Linux/macOS violated the one every
+  consumer assumes**: the shared App/Core layer treats SSID as a primary key —
+  `SignalHistoryService` stores one ring buffer per SSID, `NetworkFilterViewModel` de-dupes rows by
+  SSID, and `AdapterViewModel.RefreshAsync` builds `SourceNetworks.ToDictionary(n => n.Ssid)`. That
+  only holds if a scan returns at most one `WifiNetwork` per SSID, but 802.11 never makes SSID
+  unique: the same name is broadcast on 2.4/5/6 GHz and by every mesh node, and hidden networks all
+  carry an empty SSID. `WindowsWifiService` quietly satisfied the invariant (`GroupBy(Ssid)`, BSSes
+  aggregated into `BssEntries`, hidden dropped) — but the interface documented nothing, so the
+  invariant was invisible and unenforced. Auditing the other implementations against it:
+  `NmcliWifiService` (Linux) keyed its result map by **SSID+BSSID**, returning one row *per BSS* —
+  duplicate-SSID entries for multi-band/mesh networks and a separate `"<hidden>"` row per hidden AP;
+  `CoreWlanWifiService` (macOS) appended one row *per `airport` line* with no de-dup, no
+  `BssEntries`, and no hidden filtering. On those platforms the same network appeared 2-3× in the
+  CLI, `SignalHistoryService.Record` pushed multiple same-timestamp samples for one name into a
+  single buffer (corrupting the trend graph), and any `ToDictionary(n => n.Ssid)` over the result
+  would throw `ArgumentException`. Fixed by (1) documenting the one-`WifiNetwork`-per-SSID contract
+  on `IWifiService.ScanAsync` — BSSes aggregated into `BssEntries`, strongest-signal BSS as the
+  representative, hidden excluded — and (2) rewriting the Linux and macOS scanners to group by SSID,
+  aggregate every BSS into `BssEntries` (Linux now also carries channel/freq/phy per BSS; macOS now
+  populates `BssEntries` at all), pick the strongest BSS as the representative band/channel/signal,
+  and drop empty SSIDs — matching the Windows behavior the whole stack already depended on. Found by
+  asking "the code keys everything by SSID, but does the radio spec actually make SSID unique?".
+
 - **Notification log leaked SSIDs to disk (missed PII site)**: the prior pass masked SSIDs at every
   connection/auto-reconnect/failover log site, but `NotificationService.Show` still logged the full
   notification `title`/`text` at Information level — and the title embeds the raw SSID (e.g.

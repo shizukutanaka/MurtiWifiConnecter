@@ -16,7 +16,20 @@ public interface IWifiService
     /// <summary>無線アダプター列挙</summary>
     Task<IReadOnlyList<WifiAdapter>> GetAdaptersAsync(CancellationToken ct = default);
 
-    /// <summary>指定アダプターでスキャン実行→結果取得</summary>
+    /// <summary>
+    /// 指定アダプターでスキャン実行→結果取得。
+    ///
+    /// 契約: 結果は <b>SSID 単位で一意</b>であること。同一 SSID が複数バンド
+    /// (2.4/5/6GHz) や複数 AP (メッシュ) で観測される場合、それらの BSS は
+    /// 1 つの <see cref="WifiNetwork"/> の <see cref="WifiNetwork.BssEntries"/> に
+    /// 集約し、代表値 (band/channel/signal 等) は最強シグナルの BSS を採用する。
+    /// 隠し (空 SSID) ネットワークは結果に含めない。
+    ///
+    /// この一意性は <see cref="WifiNetwork.Ssid"/> をキーに扱う全消費側
+    /// (SignalHistoryService のリングバッファ、NetworkFilterViewModel の重複排除、
+    /// AdapterViewModel の差分更新 ToDictionary 等) が前提とする。BSS 単位の
+    /// 行を返すと重複キーで例外/履歴破損を招く。
+    /// </summary>
     Task<IReadOnlyList<WifiNetwork>> ScanAsync(Guid adapterId, CancellationToken ct = default);
 
     /// <summary>プロファイル登録(冪等)</summary>
