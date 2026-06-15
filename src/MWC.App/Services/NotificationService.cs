@@ -70,7 +70,10 @@ public sealed class NotificationService
 
     private void Show(string title, string text, ToolTipIcon icon)
     {
-        _log.LogInformation("Notification: {title} / {text}", title, text);
+        // タイトル/本文には SSID が埋め込まれているため(例: "Connected to MyWifi")、
+        // 永続ログには内容を出さず重要度のみ記録する。SSID の平文ログ化を防ぐ
+        // (DiagnosticBundle / 各接続ログと同じ PII 方針)。
+        _log.LogInformation("Notification shown (severity={icon})", icon);
         try
         {
             _tray?.ShowBalloonTip(3000,

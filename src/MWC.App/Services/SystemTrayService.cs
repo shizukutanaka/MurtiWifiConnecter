@@ -171,8 +171,17 @@ public sealed class SystemTrayService : IDisposable
             ? MWC.App.Resources.L.TrayNotConnected
             : MWC.App.Resources.L.TrayStatusConnected(ssid, signalQuality);
         _tray.Text = text.Length > 127 ? text[..127] : text;
+        // 旧アイコンを破棄してから差し替える (各 BuildIcon は独立した GDI ハンドルを
+        // 確保するため、破棄しないと更新の度に HICON がリークする)。
+        var old = _tray.Icon;
         _tray.Icon = BuildIcon(signalQuality, ssid is not null);
+        old?.Dispose();
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(
+        System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr handle);
 
     private static Icon BuildIcon(int quality, bool connected)
     {
@@ -191,7 +200,19 @@ public sealed class SystemTrayService : IDisposable
             using var br = new SolidBrush(color);
             g.FillRectangle(br, xs[i], 15 - heights[i], 3, heights[i]);
         }
-        return Icon.FromHandle(bmp.GetHicon());
+        // GetHicon() は所有権を移さない HICON を返す。Icon.FromHandle もハンドルを
+        // 所有しないため、独立したマネージドコピー (Clone) を作ってから元の
+        // ネイティブハンドルを解放することで GDI リークを防ぐ。
+        IntPtr hicon = bmp.GetHicon();
+        try
+        {
+            using var temp = Icon.FromHandle(hicon);
+            return (Icon)temp.Clone();
+        }
+        finally
+        {
+            DestroyIcon(hicon);
+        }
     }
 
     public void Dispose()
@@ -200,7 +221,9 @@ public sealed class SystemTrayService : IDisposable
         _disposed = true;
         _tray.Visible = false;
         _tray.ContextMenuStrip?.Dispose();
+        var icon = _tray.Icon;   // BuildIcon の Clone は破棄が必要
         _tray.Dispose();
+        icon?.Dispose();
     }
 }
 

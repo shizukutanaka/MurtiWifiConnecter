@@ -202,6 +202,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Notification log leaked SSIDs to disk (missed PII site)**: the prior pass masked SSIDs at every
+  connection/auto-reconnect/failover log site, but `NotificationService.Show` still logged the full
+  notification `title`/`text` at Information level — and the title embeds the raw SSID (e.g.
+  `NotifyConnectedTo(ssid)` → "Connected to MyHomeWifi"). So every connect/disconnect/failure toast
+  wrote a location-identifying SSID to the 7-day rolling Serilog file, defeating the same PII stance
+  the rest of the codebase enforces. Because the SSID is already baked into the localized string,
+  masking a substring is unreliable; the log now records only the notification severity
+  ("Notification shown (severity=Warning)"), keeping a diagnostic breadcrumb without the SSID.
+
+- **Tray icon leaked GDI handles**: `SystemTrayService.BuildIcon` returned
+  `Icon.FromHandle(bmp.GetHicon())` — `GetHicon()` allocates an unmanaged HICON that the managed
+  `Icon` does not own and that was never freed, and `UpdateStatus` overwrote `_tray.Icon` without
+  disposing the previous one. Each status refresh therefore leaked one GDI handle, which over a long
+  session marches toward the per-process 10 000-handle ceiling (UI rendering then fails). `BuildIcon`
+  now clones an independent managed `Icon` and frees the native handle via `DestroyIcon`,
+  `UpdateStatus` disposes the outgoing icon, and `Dispose` releases the final one. (The leak is
+  currently latent — `UpdateStatus`/`UpdateAdapterMenus` are not yet wired to any caller — but the
+  per-process constructor allocation leaked too, and the path is now safe if the tray menu is wired
+  up.)
+
 - **`AppUpdateService` static `HttpClient` caused DNS staleness**: the singleton `HttpClient` had
   no `SocketsHttpHandler.PooledConnectionLifetime`, so connections pooled indefinitely. In a long-
   running WPF session, a DNS change to `api.github.com` (CDN rotation, maintenance) would never be
