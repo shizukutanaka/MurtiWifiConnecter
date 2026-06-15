@@ -601,7 +601,8 @@
                                             <!-- セキュリティレベルインジケーター (色付き点) -->
                                             <Border Width="7" Height="7" CornerRadius="3.5"
                                                     VerticalAlignment="Center" Margin="0,0,5,0"
-                                                    ToolTip="{Binding SecurityBadgeLabel}">
+                                                    ToolTip="{Binding SecurityBadgeLabel}"
+                                                    AutomationProperties.Name="{Binding SecurityBadgeLabel}">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#F97316"/>
@@ -617,6 +618,10 @@
                                                             <DataTrigger Binding="{Binding SecurityLevel}"
                                                                          Value="{x:Static svc:SecurityLevel.Fair}">
                                                                 <Setter Property="Background" Value="#F59E0B"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Weak}">
+                                                                <Setter Property="Background" Value="#F97316"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SecurityLevel}"
                                                                          Value="{x:Static svc:SecurityLevel.Danger}">

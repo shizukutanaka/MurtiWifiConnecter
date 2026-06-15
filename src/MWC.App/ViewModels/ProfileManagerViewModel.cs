@@ -6,12 +6,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
+using MWC.Core.Services;
 
 namespace MWC.App.ViewModels;
 
 public sealed partial class ProfileManagerViewModel : ObservableObject
 {
-    private readonly IWifiService _wifi;
+    private readonly IWifiService          _wifi;
+    private readonly NetworkHistoryService _history;
     private Guid _adapterId;
 
     public ObservableCollection<ProfileItem> Profiles { get; } = new();
@@ -20,7 +22,11 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
     [ObservableProperty] private bool         _isBusy;
     [ObservableProperty] private string       _statusMessage = "";
 
-    public ProfileManagerViewModel(IWifiService wifi) => _wifi = wifi;
+    public ProfileManagerViewModel(IWifiService wifi, NetworkHistoryService history)
+    {
+        _wifi    = wifi;
+        _history = history;
+    }
 
     public async Task LoadAsync(Guid adapterId)
     {
@@ -45,6 +51,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
         bool ok = await _wifi.DeleteProfileAsync(_adapterId, ssid);
         if (ok)
         {
+            _history.Forget(ssid);
             Profiles.Remove(Selected);
             StatusMessage = MWC.App.Resources.L.StatusDeleted(ssid);
         }

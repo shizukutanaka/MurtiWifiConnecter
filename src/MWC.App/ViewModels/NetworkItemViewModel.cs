@@ -41,7 +41,8 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     }
 
     public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
-    public string SignalAutomationLabel => MWC.App.Resources.L.MainSignalStrength(Signal);
+    public string SignalAutomationLabel =>
+        $"{MWC.App.Resources.L.MainSignalStrength(Signal)} · {SecurityBadgeLabel}";
 
     // ── Pinned state ─────────────────────────────────────────────────
     [ObservableProperty] private bool _isPinned;
@@ -86,6 +87,7 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         OnPropertyChanged(nameof(SecurityLevel));
         OnPropertyChanged(nameof(SecurityBadgeLabel));
         OnPropertyChanged(nameof(SecurityTechLabel));
+        OnPropertyChanged(nameof(SignalAutomationLabel));
     }
 
     public string AuthLabel => Auth switch

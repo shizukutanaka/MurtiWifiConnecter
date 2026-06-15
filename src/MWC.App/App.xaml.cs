@@ -120,7 +120,8 @@ public partial class App : Application
                 s.AddSingleton<AutoReconnectService>();
                 s.AddSingleton<AdapterFailoverService>();
                 s.AddTransient<ProfileManagerViewModel>(sp => new ProfileManagerViewModel(
-                    sp.GetRequiredService<IWifiService>()));
+                    sp.GetRequiredService<IWifiService>(),
+                    sp.GetRequiredService<NetworkHistoryService>()));
 
                 // Views
                 s.AddSingleton<MainWindow>();
