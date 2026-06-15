@@ -24,7 +24,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ILogger<MainViewModel> _log;
     private readonly SignalHistoryService _history;
     private readonly OuiLookupService    _oui;
-    private readonly System.Timers.Timer _timer;
+    // DispatcherTimer を使う (System.Timers.Timer ではない): Tick は UI スレッドで発火し、
+    // await 後の継続も UI スレッドに戻るため、RefreshAsync が束縛済み ObservableCollection
+    // (SelectedAdapter.Networks) を安全に変更できる。ThreadPool タイマーだと
+    // SynchronizationContext が無く、コレクション変更が Dispatcher 外で起き
+    // NotSupportedException を投げて自動スキャンが無言で失敗していた。
+    private readonly System.Windows.Threading.DispatcherTimer _timer;
 
     public ObservableCollection<AdapterViewModel> Adapters { get; } = new();
 
@@ -58,9 +63,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Filter = filter;
         AdapterPreferences = adapterPrefs;
         _executor = executor;
-        _timer = new System.Timers.Timer(15_000) { AutoReset = true };
-        // Use SafeRunAsync to avoid unhandled exception from async void on ThreadPool timer
-        _timer.Elapsed += (_, _) => _ = AsyncEventHelper.SafeRunAsync(_log, "AutoScan", SafeRefresh);
+        _timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(15)
+        };
+        // Tick は UI スレッドで発火。SafeRunAsync で例外を捕捉し未観測例外を防ぐ。
+        _timer.Tick += (_, _) => _ = AsyncEventHelper.SafeRunAsync(_log, "AutoScan", SafeRefresh);
     }
 
     [RelayCommand]
@@ -182,21 +190,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>設定変更をランタイムに即適用(スキャン間隔等)</summary>
     public void ApplySettings(AppSettings settings)
     {
-        var intervalMs = settings.AutoScanIntervalSeconds * 1000;
-        if (intervalMs > 0)
+        var intervalSeconds = settings.AutoScanIntervalSeconds;
+        if (intervalSeconds > 0)
         {
-            _timer.Interval = intervalMs;
-            _timer.Enabled  = true;
+            _timer.Interval = TimeSpan.FromSeconds(intervalSeconds);
+            _timer.Start();
         }
         else
         {
-            _timer.Enabled = false;
+            _timer.Stop();
         }
     }
 
     public void Dispose()
     {
-        _timer.Stop(); _timer.Dispose();
+        // DispatcherTimer は IDisposable ではない。Stop() で Tick を止める。
+        _timer.Stop();
     }
 }
 

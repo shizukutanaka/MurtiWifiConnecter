@@ -202,6 +202,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Auto-scan silently stopped updating the network list whenever a network appeared or
+  disappeared**: `MainViewModel`'s 15-second rescan ran on a `System.Timers.Timer`, whose `Elapsed`
+  fires on a ThreadPool thread with no `SynchronizationContext`. `AdapterViewModel.RefreshAsync`
+  awaits `_wifi.ScanAsync(...)` without `ConfigureAwait`, so on the timer path the continuation
+  resumed on the ThreadPool thread — and then mutated `SelectedAdapter.Networks`, the
+  `ObservableCollection` bound to the main list (MainWindow.xaml). WPF forbids changing a
+  Dispatcher-bound collection from another thread, so `Networks.Add`/`RemoveAt` threw
+  `NotSupportedException`. The throw was swallowed by `SafeRefreshOne`'s per-adapter `catch` (logged
+  as a warning), so the failure was invisible. The trap was intermittent: a steady-state tick only
+  calls `NetworkItemViewModel.Update` (a `PropertyChanged`, which WPF marshals fine), so signal
+  numbers kept updating — but the moment the *set* of SSIDs changed (a network came or went), that
+  tick threw at the first `Add`/`RemoveAt`, aborting the rest of the refresh (status line, filter,
+  connection state) too. The interactive Refresh button worked because `[RelayCommand]` runs on the
+  UI thread, masking the bug. Fixed by switching the auto-scan to a `DispatcherTimer`, whose `Tick`
+  fires on the UI thread, so the post-`await` continuation marshals back to the Dispatcher and every
+  collection mutation is legal (the scan I/O itself still runs off-thread). Found by asking "which
+  thread does each `ObservableCollection` mutation actually run on?" rather than assuming MVVM put
+  them all on the UI thread. (`AllAdaptersOverviewViewModel` was audited too — it has no timer and
+  refreshes only via UI-thread commands, so it was never affected.)
+
 - **`IWifiService.ScanAsync` had no uniqueness contract; Linux/macOS violated the one every
   consumer assumes**: the shared App/Core layer treats SSID as a primary key —
   `SignalHistoryService` stores one ring buffer per SSID, `NetworkFilterViewModel` de-dupes rows by
