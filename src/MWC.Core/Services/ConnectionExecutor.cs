@@ -72,12 +72,20 @@ public sealed class ConnectionExecutor
         try
         {
             // 1. プロファイル登録
-            var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
-            var xml  = ProfileXmlBuilder.Build(spec);
-            if (!await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false))
+            // パスフレーズが空でPSK系認証の場合、既存保存プロファイルを再利用するためスキップ。
+            // (AutoReconnect / Failover パスが passphrase="" で呼ぶケースに対応)
+            bool needsPassphrase = auth is AuthMethod.WPAPSK or AuthMethod.WPA2PSK
+                                   or AuthMethod.WPA3SAE or AuthMethod.WPA3Transition or AuthMethod.WEP;
+            bool shouldRegister  = !needsPassphrase || !string.IsNullOrEmpty(passphrase);
+            if (shouldRegister)
             {
-                _history.RecordConnection(ssid, false);
-                return ConnectionResult.Fail(ConnectionFailure.OsError);
+                var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
+                var xml  = ProfileXmlBuilder.Build(spec);
+                if (!await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false))
+                {
+                    _history.RecordConnection(ssid, false);
+                    return ConnectionResult.Fail(ConnectionFailure.OsError);
+                }
             }
 
             // 2. 接続実行
