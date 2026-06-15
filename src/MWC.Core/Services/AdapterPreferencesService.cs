@@ -104,11 +104,11 @@ public sealed class AdapterPreferencesService
         => Save(Get(adapterId) with { ShowSecuredOnly = showSecuredOnly, ShowFavoritesFirst = showFavoritesFirst });
 
 
-    /// <summary>この子機で自動再接続が有効か(IsEnabled かつ PinnedSsids > 0)</summary>
+    /// <summary>この子機で自動再接続が有効か(IsEnabled かつ候補SSIDが1件以上設定されているか)</summary>
     public bool IsAutoReconnectEnabled(Guid adapterId)
     {
         var p = Get(adapterId);
-        return p.IsEnabled && p.PinnedSsids.Count > 0;
+        return p.IsEnabled && (p.PinnedSsids.Count > 0 || p.AutoConnectPriority.Count > 0);
     }
 
     /// <summary>
@@ -165,15 +165,18 @@ public sealed class AdapterPreferencesService
     public IReadOnlyList<string> GetPreferredNetworks(Guid adapterId)
         => Get(adapterId).AutoConnectPriority;
 
-    /// <summary>自動再接続の有効/無効を設定</summary>
+    /// <summary>自動再接続の有効/無効を設定。無効化時は両方の優先リストをクリアする。</summary>
     public void SetAutoReconnect(Guid adapterId, bool enabled)
     {
-        var p = Get(adapterId);
-        // IsEnabled は子機全体の有効化、ここでは PinnedSsids の有無で判定
-        // 明示的な AutoReconnect フラグが欲しい場合はレコードに追加が必要
-        // 暫定: enabled=false なら PinnedSsids をクリア、true なら何もしない
         if (!enabled)
-            Save(p with { AutoConnectPriority = Array.Empty<string>() });
+        {
+            var p = Get(adapterId);
+            Save(p with
+            {
+                AutoConnectPriority = Array.Empty<string>(),
+                PinnedSsids         = Array.Empty<string>()
+            });
+        }
     }
 
     private Dictionary<Guid, AdapterPreferences> Load()

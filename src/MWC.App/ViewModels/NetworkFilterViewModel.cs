@@ -103,15 +103,19 @@ public sealed partial class NetworkFilterViewModel : ObservableObject
             .ThenByDescending(n => n.Signal)
             .ToList();
 
-        // 差分更新
+        // 差分更新 (削除 → 挿入/移動の順で適用し、信号変化によるソート順変化も反映)
         for (int i = Filtered.Count - 1; i >= 0; i--)
             if (!result.Any(r => r.Ssid == Filtered[i].Ssid)) Filtered.RemoveAt(i);
         for (int i = 0; i < result.Count; i++)
         {
             var item = result[i];
-            var existing = Filtered.FirstOrDefault(f => f.Ssid == item.Ssid);
-            if (existing is null)
+            int curIdx = -1;
+            for (int j = 0; j < Filtered.Count; j++)
+                if (Filtered[j].Ssid == item.Ssid) { curIdx = j; break; }
+            if (curIdx < 0)
                 Filtered.Insert(Math.Min(i, Filtered.Count), item);
+            else if (curIdx != i)
+                Filtered.Move(curIdx, i);
         }
     }
 }

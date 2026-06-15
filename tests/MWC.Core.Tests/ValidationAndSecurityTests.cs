@@ -196,13 +196,26 @@ public class ConnectionExecutorConcurrencyTests
 
         public Task<bool> DisconnectAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult(true);
+
+        public Task<bool> DeleteProfileAsync(Guid id, string profileName, CancellationToken ct = default)
+            => Task.FromResult(true);
+
+        public Task<System.Collections.Generic.IReadOnlyList<string>> ListProfilesAsync(Guid id, CancellationToken ct = default)
+            => Task.FromResult<System.Collections.Generic.IReadOnlyList<string>>(Array.Empty<string>());
+
+        public async System.Collections.Generic.IAsyncEnumerable<MWC.Core.Abstractions.WifiEvent> SubscribeEventsAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        {
+            await System.Threading.Tasks.Task.CompletedTask;
+            yield break;
+        }
     }
 
     [Fact]
     public async Task ConnectAsync_ConcurrentSameAdapter_IsSerializedNotParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -227,7 +240,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_DifferentAdapters_CanRunInParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -256,7 +269,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_EmptyPassphrase_SkipsProfileRegistration_AndSucceeds(AuthMethod auth)
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 

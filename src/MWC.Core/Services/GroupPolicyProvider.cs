@@ -25,9 +25,9 @@ public sealed class GroupPolicyProvider
     private const string UserKeyPath  = @"SOFTWARE\MWC";
 
     // ── シングルトン ──────────────────────────────────────────────────
-    private static GroupPolicyProvider? _instance;
-    public  static GroupPolicyProvider  Instance =>
-        _instance ??= new GroupPolicyProvider();
+    private static readonly Lazy<GroupPolicyProvider> _lazy =
+        new(() => new GroupPolicyProvider());
+    public  static GroupPolicyProvider  Instance => _lazy.Value;
 
     // ── ポリシー値キャッシュ ──────────────────────────────────────────
     private readonly Dictionary<string, object?> _cache = new();

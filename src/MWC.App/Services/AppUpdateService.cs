@@ -16,7 +16,10 @@ public sealed class AppUpdateService
     private const string ApiUrl =
         "https://api.github.com/repos/shizukutanaka/MurtiWifiConnecter/releases/latest";
 
-    private static readonly HttpClient _http = new();
+    private static readonly HttpClient _http = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+    });
     private readonly ILogger<AppUpdateService> _log;
 
     static AppUpdateService()

@@ -202,6 +202,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **`AppUpdateService` static `HttpClient` caused DNS staleness**: the singleton `HttpClient` had
+  no `SocketsHttpHandler.PooledConnectionLifetime`, so connections pooled indefinitely. In a long-
+  running WPF session, a DNS change to `api.github.com` (CDN rotation, maintenance) would never be
+  picked up and update checks would silently fail against a stale resolved address. The handler now
+  sets `PooledConnectionLifetime = TimeSpan.FromMinutes(5)`, matching the Microsoft-recommended
+  pattern for long-lived `HttpClient` instances.
+
+- **`GroupPolicyProvider` singleton was thread-unsafe**: `_instance ??= new GroupPolicyProvider()`
+  without `volatile` is broken double-checked locking — C# memory model allows one thread to observe
+  a partially-constructed object through a data race. Replaced with
+  `Lazy<GroupPolicyProvider>(() => new(...))` whose `LazyThreadSafetyMode.ExecutionAndPublication`
+  default gives correct publication semantics at no extra cost.
+
+- **`AdapterPreferencesService.IsAutoReconnectEnabled` ignored `AutoConnectPriority`**: the method
+  returned `IsEnabled && PinnedSsids.Count > 0`, but `PickBestSsid` tries `AutoConnectPriority`
+  first. An adapter configured with only `AutoConnectPriority` (the UI's "Preferred Networks" list)
+  — never `PinnedSsids` — would have `IsAutoReconnectEnabled` return false even though `PickBestSsid`
+  would return a candidate, silently skipping auto-reconnect. Fixed to check both lists.
+  Simultaneously fixed `SetAutoReconnect(false)` which cleared only `AutoConnectPriority` (comment
+  said `PinnedSsids`) and contradicted `IsAutoReconnectEnabled` — now clears both.
+
+- **`NetworkFilterViewModel.ApplyFilter` did not reorder on signal change**: the diff-update loop
+  removed stale items and inserted new ones but never moved existing items to their new sort position.
+  If network A's signal fell below B's between scans, the list kept showing A first — the user's
+  "strongest-first" order froze at the first scan. Added a `Move(curIdx, i)` step so each item is
+  positioned correctly after every filter pass.
+
+- **Test compile errors in `ValidationAndSecurityTests.cs`**: `SlowFakeWifi` implemented only 5 of
+  `IWifiService`'s 8 members, leaving `DeleteProfileAsync`, `ListProfilesAsync`, and
+  `SubscribeEventsAsync` unimplemented (CS0535). Added stub implementations. Also,
+  `new NetworkHistoryService()` was called without its required `ILogger` constructor argument
+  (CS1503); fixed to pass `NullLogger<NetworkHistoryService>.Instance`.
+
 - **HideNetwork was a no-op**: The "Hide this network" context menu item only set a status
   message and never modified `AppSettings.HiddenNetworks`, so the filter never excluded anything.
   `SettingsService` now has `HideNetwork()` and `UnhideNetwork()` helpers. `MainWindowCommands`
