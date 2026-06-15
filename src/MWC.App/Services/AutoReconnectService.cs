@@ -63,6 +63,10 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
             try
             {
+                // ユーザーが DisconnectAsync ボタンで切断した場合はスキップ
+                if (_executor.WasRecentlyDisconnectedByUser(ev.AdapterId, TimeSpan.FromSeconds(15)))
+                    continue;
+
                 var adapters = await _wifi.GetAdaptersAsync(ct).ConfigureAwait(false);
                 var disconnected = adapters
                     .FirstOrDefault(a => a.Id == ev.AdapterId && a.ConnectedSsid is null);

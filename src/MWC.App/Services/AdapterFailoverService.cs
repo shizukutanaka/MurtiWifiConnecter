@@ -93,6 +93,14 @@ public sealed class AdapterFailoverService : IDisposable
                 // Primary went from connected → disconnected
                 if (wasConnected && !isConnected && !_activeFailovers.Contains(adapter.Id))
                 {
+                    // ユーザー操作による意図的な切断はフェイルオーバーの対象外
+                    if (_executor.WasRecentlyDisconnectedByUser(adapter.Id, TimeSpan.FromSeconds(45)))
+                    {
+                        _log.LogInformation(
+                            "Failover suppressed: adapter {Id} ({Name}) was intentionally disconnected by user",
+                            adapter.Id, adapter.Name);
+                        continue;
+                    }
                     _log.LogInformation(
                         "Failover triggered: adapter {Id} ({Name}) lost connection",
                         adapter.Id, adapter.Name);

@@ -34,6 +34,10 @@ public sealed class ConnectionExecutor
     // アダプターごとの排他ロック(並列接続によるドライバー不整合を防止)
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim>
         _perAdapterLocks = new();
+    // ユーザーが意図的に切断したアダプターと時刻を記録
+    // AutoReconnect / Failover が誤って再接続しないよう使う
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, DateTimeOffset>
+        _userDisconnects = new();
 
     public ConnectionExecutor(
         IWifiService wifi,
@@ -119,10 +123,11 @@ public sealed class ConnectionExecutor
     }
 
     /// <summary>
-    /// 切断 + 履歴更新。
+    /// 切断 + 履歴更新。ユーザー起因の切断として記録し、自動再接続を抑制する。
     /// </summary>
     public async Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
     {
+        _userDisconnects[adapterId] = DateTimeOffset.UtcNow;
         try
         {
             return await _wifi.DisconnectAsync(adapterId, ct).ConfigureAwait(false);
@@ -133,4 +138,12 @@ public sealed class ConnectionExecutor
             return false;
         }
     }
+
+    /// <summary>
+    /// 指定アダプターがユーザー操作により切断されてから <paramref name="within"/> 以内か確認。
+    /// true なら AutoReconnect / Failover はスキップすべき。
+    /// </summary>
+    public bool WasRecentlyDisconnectedByUser(Guid adapterId, TimeSpan within)
+        => _userDisconnects.TryGetValue(adapterId, out var t)
+           && DateTimeOffset.UtcNow - t <= within;
 }
