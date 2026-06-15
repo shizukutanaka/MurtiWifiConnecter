@@ -183,8 +183,8 @@ public class ConnectionExecutorConcurrencyTests
             => Task.FromResult<System.Collections.Generic.IReadOnlyList<WifiNetwork>>(
                 Array.Empty<WifiNetwork>());
 
-        public Task RegisterProfileAsync(Guid id, string xml, bool ow, CancellationToken ct = default)
-            => Task.CompletedTask;
+        public Task<bool> RegisterProfileAsync(Guid id, string xml, bool ow, CancellationToken ct = default)
+            => Task.FromResult(true);
 
         public async Task<ConnectionResult> ConnectAsync(
             Guid id, string ssid, string profile, TimeSpan timeout, CancellationToken ct = default)
@@ -245,5 +245,24 @@ public class ConnectionExecutorConcurrencyTests
         t1.Result.Should().NotBeNull();
         t2.Result.Should().NotBeNull();
         wifi.ConnectCount.Should().BeGreaterOrEqualTo(2);
+    }
+
+    // Regression: auto-reconnect passes passphrase="" — must succeed via existing profile
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK)]
+    [InlineData(AuthMethod.WPA3SAE)]
+    [InlineData(AuthMethod.WPA3Transition)]
+    [InlineData(AuthMethod.WPAPSK)]
+    public async Task ConnectAsync_EmptyPassphrase_SkipsProfileRegistration_AndSucceeds(AuthMethod auth)
+    {
+        var wifi = new SlowFakeWifi();
+        var hist = new NetworkHistoryService();
+        var exec = new ConnectionExecutor(
+            wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
+
+        var result = await exec.ConnectAsync(Guid.NewGuid(), "SavedNetwork", auth, passphrase: "");
+
+        result.Success.Should().BeTrue(
+            because: "empty passphrase means reuse existing OS profile, not a new connect");
     }
 }
