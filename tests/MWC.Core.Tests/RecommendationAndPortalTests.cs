@@ -248,7 +248,7 @@ public class CaptivePortalServiceTests
 
         decision.RequiresAuth.Should().BeFalse();
         decision.PortalUrl.Should().BeNull();
-        decision.Message.Should().Contain("接続済み");
+        decision.Message.Should().Contain("connected");
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class CaptivePortalServiceTests
 
         decision.RequiresAuth.Should().BeTrue();
         decision.PortalUrl.Should().BeNull();
-        decision.Message.Should().Contain("ブラウザ");
+        decision.Message.Should().Contain("browser");
     }
 
     [Fact]
@@ -289,15 +289,15 @@ public class CaptivePortalServiceTests
 
         var desc = _svc.DescribeSession(state);
 
-        desc.Should().Contain("30 分");
+        desc.Should().Contain("30m");
         desc.Should().Contain("50 MB");
-        desc.Should().Contain("延長可能");
+        desc.Should().Contain("extendable");
     }
 
     [Fact]
     public void DescribeSession_NotCaptive_ReturnsAuthenticated()
     {
         var state = new CaptivePortalService.CaptivePortalState { Captive = false };
-        _svc.DescribeSession(state).Should().Be("認証済み");
+        _svc.DescribeSession(state).Should().Be("Authenticated");
     }
 }

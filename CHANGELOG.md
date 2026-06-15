@@ -202,6 +202,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **The `MWC.Core.Tests` assembly did not compile, so no test ever ran**: two breakages had
+  accumulated and, because CI is dormant, went unnoticed. (1) `NetworkHistoryService` and
+  `AdapterPreferencesService` gained a required `ILogger` constructor parameter (added for the
+  silent-catch logging fix), but ~67 `new NetworkHistoryService()` / `new AdapterPreferencesService()`
+  call sites across the test project were never updated — a hard `CS7036`. Made the logger parameter
+  optional (`ILogger<T>? log = null`, falling back to `NullLogger`), which fixes every call site at
+  once and is backward-compatible (DI still injects the real logger; the few sites already passing
+  `NullLogger` still work). (2) `HighDensityScenarioTests` referenced `AdapterPreferences.Label`,
+  which does not exist (the property is `CustomLabel`) — fixed. With the assembly compiling again, a
+  long tail of **stale assertions surfaced**: ~40 assertions across 16 test files still expected the
+  Japanese Core strings that an earlier pass had converted to English (e.g. `NetworkQualityResult`
+  "タイムアウト"→"Timeout"/"不良"→"Poor", `SecurityAdvisoryService` "ダウングレード"→"downgrade",
+  `DiagnosticBundleService` headers, `CaptivePortalService`, `ChannelAdvisorService`,
+  `RoamingAdvisoryService`, `HandoverPredictor`, `SignalIconService`, `SecurityBadgeService`,
+  `HealthCheckService` PII labels, etc.). Each was realigned to the exact current English output;
+  genuinely-Japanese services and test-input echoes were left untouched. This is the kind of rot a
+  dormant CI hides — the suite looked like 514 passing tests but compiled to zero.
+
 - **Estimator constructors could silently produce `NaN` from degenerate parameters**: `RssiDistanceEstimator`
   validates its constructor (`pathLossExponent <= 0` throws), but its two siblings in the same
   Core/SDK estimator family did not, despite each having a divide-by-zero. `KalmanRssiFilter` with

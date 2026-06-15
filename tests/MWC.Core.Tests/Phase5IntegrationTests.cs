@@ -113,7 +113,7 @@ public class ExportServicePhase5Tests : IDisposable
         var txt = System.IO.File.ReadAllText(path);
         txt.Should().Contain("Wi-Fi 7");
         txt.Should().Contain("6 GHz");
-        txt.Should().Contain("接続中");
+        txt.Should().Contain("Connected");
     }
 }
 

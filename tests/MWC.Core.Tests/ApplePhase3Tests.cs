@@ -41,7 +41,7 @@ public class NetworkQualityServiceTests
     {
         var r = new NetworkQualityResult(999, 999, 999, 100,
             QualityGrade.Poor, DateTimeOffset.UtcNow);
-        r.LatencyLabel.Should().Contain("タイムアウト");
+        r.LatencyLabel.Should().Contain("Timeout");
     }
 
     [Fact]
@@ -163,8 +163,8 @@ public class ColorConsistencyTests
         // 強い信号ほど「安全」な緑系、弱いほど赤系
         var strong = SecurityBadgeService.GetSignalLabel(90);
         var weak   = SecurityBadgeService.GetSignalLabel(10);
-        strong.Should().Be("優良");
-        weak.Should().Be("弱い");
+        strong.Should().Be("Excellent");
+        weak.Should().Be("Weak");
         strong.Should().NotBe(weak);
     }
 }

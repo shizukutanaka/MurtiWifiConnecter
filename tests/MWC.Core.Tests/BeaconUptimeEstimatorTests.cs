@@ -71,6 +71,6 @@ public class BeaconUptimeEstimatorTests
     [Fact]
     public void ToLabel_Null_Unknown()
     {
-        BeaconUptimeEstimator.ToLabel(null).Should().Be("不明");
+        BeaconUptimeEstimator.ToLabel(null).Should().Be("Unknown");
     }
 }

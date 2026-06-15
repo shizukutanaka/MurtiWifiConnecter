@@ -134,15 +134,15 @@ public class HighDensityAdapterPrefsTests
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
 
-        svc.Get(id).Label.Should().BeNullOrEmpty();
+        svc.Get(id).CustomLabel.Should().BeNullOrEmpty();
 
         svc.SetLabel(id, "ホーム用ドングル");
-        svc.Get(id).Label.Should().Be("ホーム用ドングル");
+        svc.Get(id).CustomLabel.Should().Be("ホーム用ドングル");
 
         svc.SetLabel(id, "Office Dongle");
-        svc.Get(id).Label.Should().Be("Office Dongle");
-        svc.Get(id).Label.Should().NotBe("ホーム用ドングル");
-        svc.Get(id).Label.Length.Should().Be("Office Dongle".Length);
+        svc.Get(id).CustomLabel.Should().Be("Office Dongle");
+        svc.Get(id).CustomLabel.Should().NotBe("ホーム用ドングル");
+        svc.Get(id).CustomLabel.Length.Should().Be("Office Dongle".Length);
     }
 }
 

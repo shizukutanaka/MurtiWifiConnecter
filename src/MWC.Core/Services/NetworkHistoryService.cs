@@ -32,10 +32,11 @@ public sealed class NetworkHistoryService
     // 読み取り(_lock)をブロックしないようにする。
     private readonly object _saveLock = new();
 
-    /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。</summary>
-    public NetworkHistoryService(ILogger<NetworkHistoryService> log)
+    /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。
+    /// logger 省略時は NullLogger を使う (テスト容易性のため)。</summary>
+    public NetworkHistoryService(ILogger<NetworkHistoryService>? log = null)
     {
-        _log = log;
+        _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance;
         _entries = Load();
     }
 

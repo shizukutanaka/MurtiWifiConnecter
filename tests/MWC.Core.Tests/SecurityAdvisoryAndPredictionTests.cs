@@ -36,7 +36,7 @@ public class SecurityAdvisoryServiceTests
         var dragonblood = advisories.First(a => a.Code == "MWC-SEC-001");
         dragonblood.Severity.Should().Be(AdvisorySeverity.Warning);
         dragonblood.Reference.Should().Contain("Dragonblood");
-        dragonblood.Detail.Should().Contain("ダウングレード");
+        dragonblood.Detail.Should().Contain("downgrade");
     }
 
     [Fact]

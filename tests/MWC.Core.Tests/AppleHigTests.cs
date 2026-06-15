@@ -32,7 +32,7 @@ public class SecurityBadgeServiceTests
     [Fact]
     public void GetBadge_Open_LabelWarning()
         => SecurityBadgeService.GetBadge(AuthMethod.Open).Label
-           .Should().Contain("暗号化なし");
+           .Should().Contain("No Encryption");
 
     [Theory]
     [InlineData(100, "優良")]
@@ -84,7 +84,7 @@ public class TroubleshootingHelperTests
     {
         var a = TroubleshootingHelper.GetAdvice(
             ConnectionFailure.BadCredentials, AuthMethod.WPA2Enterprise);
-        a.Title.Should().Contain("企業");
+        a.Title.Should().Contain("Enterprise");
     }
 
     [Fact]

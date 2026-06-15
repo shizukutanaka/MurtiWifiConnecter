@@ -98,8 +98,8 @@ public class QosAdvisoryServiceTests
     public void Reason_MentionsWmmState()
     {
         For(AppClass.RealtimeGaming, BufferbloatGrade.A, null).Reason
-            .Should().Contain("WMM 無効");
+            .Should().Contain("WMM disabled");
         For(AppClass.RealtimeGaming, BufferbloatGrade.A, Wmm()).Reason
-            .Should().Contain("WMM 有効");
+            .Should().Contain("WMM active");
     }
 }

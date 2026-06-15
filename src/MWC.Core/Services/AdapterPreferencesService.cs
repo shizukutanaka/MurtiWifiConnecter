@@ -33,10 +33,11 @@ public sealed class AdapterPreferencesService
     // ディスク書き込み直列化用。_lock とは分離し、I/O 中に読み取りをブロックしない。
     private readonly object _saveLock = new();
 
-    /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。</summary>
-    public AdapterPreferencesService(ILogger<AdapterPreferencesService> log)
+    /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。
+    /// logger 省略時は NullLogger を使う (テスト容易性のため)。</summary>
+    public AdapterPreferencesService(ILogger<AdapterPreferencesService>? log = null)
     {
-        _log = log;
+        _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AdapterPreferencesService>.Instance;
         _store = Load();
     }
 

@@ -111,7 +111,7 @@ public class RssiDistanceEstimatorTests
     public void Label_FormatsWithRange()
     {
         var e = _svc.Estimate(-60, 2442);
-        e.Label.Should().Contain("約");
+        e.Label.Should().Contain("~");
         e.Label.Should().Contain("m");
     }
 }

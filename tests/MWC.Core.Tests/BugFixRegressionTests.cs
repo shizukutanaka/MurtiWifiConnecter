@@ -23,9 +23,9 @@ public class NetworkQualityRegressionTests
         // success=0 でも 999を返し、クラッシュしない
         var result = new NetworkQualityResult(999, 999, 999, 100,
             QualityGrade.Poor, DateTimeOffset.UtcNow);
-        result.LatencyLabel.Should().Contain("タイムアウト");
+        result.LatencyLabel.Should().Contain("Timeout");
         result.PacketLossPct.Should().Be(100);
-        result.GradeLabel.Should().Be("不良");
+        result.GradeLabel.Should().Be("Poor");
     }
 
     [Fact]

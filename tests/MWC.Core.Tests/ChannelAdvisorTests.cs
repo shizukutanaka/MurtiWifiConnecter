@@ -90,7 +90,7 @@ public class ChannelAdvisorServiceTests
 
         advice.Recommended.Should().Be(20, "高密度では20MHzが非重複チャネルを最大化");
         advice.IsOptimal.Should().BeFalse();
-        advice.Reason.Should().Contain("高密度");
+        advice.Reason.Should().Contain("High-density");
     }
 
     [Fact]
@@ -144,15 +144,15 @@ public class ChannelAdvisorServiceTests
     public void DescribeBandChoice_Weak6GHz_WarnsAboutWalls()
     {
         var desc = _svc.DescribeBandChoice(Net(WifiBand.Band6GHz, 25));
-        desc.Should().Contain("6GHz");
-        desc.Should().Contain("弱い");
+        desc.Should().Contain("6 GHz");
+        desc.Should().Contain("weak");
     }
 
     [Fact]
     public void DescribeBandChoice_OverlappingChannel_WarnsInterference()
     {
         var desc = _svc.DescribeBandChoice(Net(WifiBand.Band2_4GHz, 70, channel: 3, width: 20));
-        desc.Should().Contain("干渉");
+        desc.Should().Contain("interference");
     }
 
     [Fact]

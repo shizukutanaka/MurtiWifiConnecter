@@ -147,7 +147,7 @@ public class SignalIconServiceTests
     public void AccessibleLabel_ContainsNonColorInfo()
     {
         var label = SignalIconService.AccessibleLabel(70);
-        label.Should().Contain("強い");
+        label.Should().Contain("Good");
         label.Should().Contain("3/4");
         label.Should().Contain("70%");
         // 色名は含まない (色覚に依存しない)
@@ -189,10 +189,10 @@ public class RecommendationExplainabilityTests
         var explanation = _engine.Explain(score);
 
         explanation.Summary.Should().NotBeNullOrEmpty();
-        explanation.ProfileReason.Should().Contain("セキュリティ");
+        explanation.ProfileReason.Should().Contain("security");
         explanation.Contributions.Should().HaveCount(4);
         // Secure プロファイルではセキュリティの重みが最大
-        explanation.Contributions.First().Dimension.Should().Be("セキュリティ");
+        explanation.Contributions.First().Dimension.Should().Be("Security");
     }
 
     [Fact]

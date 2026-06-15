@@ -59,7 +59,7 @@ public class HandoverPredictorTests
 
         rec.ShouldHandover.Should().BeFalse();
         rec.Urgency.Should().Be(HandoverUrgency.Low);
-        rec.Reason.Should().Contain("候補なし");
+        rec.Reason.Should().Contain("candidate");
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class HandoverPredictorTests
 
         verdict.IsFlapping.Should().BeTrue();
         verdict.RecentHandovers.Should().BeGreaterOrEqualTo(3);
-        verdict.Detail.Should().Contain("往復");
+        verdict.Detail.Should().Contain("back-and-forth");
     }
 
     [Fact]

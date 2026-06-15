@@ -22,7 +22,7 @@ public class DiagnosticBundleServiceTests
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().StartWith("My");
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().NotContain("Home");
         DiagnosticBundleService.MaskSsid("AB").Should().Be("A*");
-        DiagnosticBundleService.MaskSsid("").Should().Be("(空)");
+        DiagnosticBundleService.MaskSsid("").Should().Be("(empty)");
     }
 
     [Fact]
@@ -79,11 +79,11 @@ public class DiagnosticBundleServiceTests
 
         var md = _svc.Build(ctx);
 
-        md.Should().Contain("# MWC 診断バンドル");
+        md.Should().Contain("# MWC Diagnostic Bundle");
         md.Should().Contain("3.11.0");
         md.Should().Contain("Intel AX211");
-        md.Should().Contain("## ヘルス");
-        md.Should().Contain("## 品質計測");
+        md.Should().Contain("## Health");
+        md.Should().Contain("## Quality Measurement");
         md.Should().Contain("Timeout");
     }
 
@@ -112,7 +112,7 @@ public class DiagnosticBundleServiceTests
             UserNote = "私のIPは 10.0.0.5 でメールは me@example.com です"
         });
 
-        md.Should().Contain("## 補足");
+        md.Should().Contain("## Notes");
         md.Should().NotContain("10.0.0.5");
         md.Should().NotContain("me@example.com");
     }
@@ -121,7 +121,7 @@ public class DiagnosticBundleServiceTests
     public void Build_NoAdapters_StillValid()
     {
         var md = _svc.Build(new DiagnosticContext());
-        md.Should().Contain("(検出なし)");
+        md.Should().Contain("(none detected)");
     }
 
     [Fact]

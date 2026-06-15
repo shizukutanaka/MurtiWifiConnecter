@@ -120,7 +120,7 @@ public class RoamingAdvisoryServiceTests
     public void DescribeRoaming_Seamless_MentionsVoip()
     {
         var desc = _svc.DescribeRoaming(Net(ft: true, k: true, v: true));
-        desc.Should().Contain("シームレス");
+        desc.Should().Contain("Seamless");
         desc.Should().Contain("VoIP");
         desc.Should().Contain("13ms");
     }
@@ -129,8 +129,8 @@ public class RoamingAdvisoryServiceTests
     public void DescribeRoaming_Standard_MentionsInterruption()
     {
         var desc = _svc.DescribeRoaming(Net());
-        desc.Should().Contain("標準");
-        desc.Should().Contain("中断");
+        desc.Should().Contain("Standard");
+        desc.Should().Contain("interruption");
     }
 
     [Fact]
