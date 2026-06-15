@@ -83,6 +83,34 @@ public class SignalHistoryServiceTests
         sut.Clear("A");
         sut.GetHistory("A").Should().BeEmpty();
     }
+
+    [Fact]
+    public void Record_EvictsOldestSsid_WhenOverCapacity()
+    {
+        // 上限2件: 3つ目の SSID を記録すると最も古い更新の SSID が退去する。
+        // LastAt を確実に区別するため記録間に微小スリープを挟む。
+        var sut = new SignalHistoryService(maxSamples: 10, maxSsids: 2);
+        sut.Record(new[] { MakeNet("Old", 10) });   // 最古の更新
+        System.Threading.Thread.Sleep(10);
+        sut.Record(new[] { MakeNet("Mid", 20) });
+        System.Threading.Thread.Sleep(10);
+        sut.Record(new[] { MakeNet("New", 30) });   // ここで "Old" が退去
+
+        sut.GetHistory("Old").Should().BeEmpty(because: "oldest SSID is evicted past the cap");
+        sut.GetHistory("Mid").Should().HaveCount(1);
+        sut.GetHistory("New").Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Prune_RemovesEmptiedBuffersFromDictionary()
+    {
+        var sut = new SignalHistoryService(maxSamples: 10);
+        sut.Record(new[] { MakeNet("Stale", 40) });
+        // 全サンプルが olderThan より古いので空になり辞書から消える
+        System.Threading.Thread.Sleep(5);
+        sut.Prune(TimeSpan.Zero);
+        sut.GetHistory("Stale").Should().BeEmpty();
+    }
 }
 
 // ───── ExportService ─────
