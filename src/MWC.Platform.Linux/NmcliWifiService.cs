@@ -165,8 +165,12 @@ public sealed class NmcliWifiService : IWifiService
             profileXml, @"<keyMaterial>([^<]+)</keyMaterial>");
 
         if (!ssidMatch.Success) return false;
-        var ssid = ssidMatch.Groups[1].Value;
-        var pass = keyMatch.Success ? keyMatch.Groups[1].Value : "";
+        // XML 実体参照をデコードする。ProfileXmlBuilder は XElement で値を組むため、
+        // SSID/パスフレーズに含まれる '&' '<' '>' (いずれも正当な WPA-PSK 文字) は
+        // '&amp;' '&lt;' '&gt;' へエンコードされている。デコードせず nmcli へ渡すと
+        // 例えば "a&b" が "a&amp;b" のまま PSK になり認証に失敗する。
+        var ssid = System.Net.WebUtility.HtmlDecode(ssidMatch.Groups[1].Value);
+        var pass = keyMatch.Success ? System.Net.WebUtility.HtmlDecode(keyMatch.Groups[1].Value) : "";
 
         // nmcli connection add で登録(既存があれば modify)
         if (overwrite)

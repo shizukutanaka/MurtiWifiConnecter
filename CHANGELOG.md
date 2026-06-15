@@ -202,6 +202,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Linux: passwords containing `&`, `<`, or `>` silently failed to connect (XML-decode gap at a
+  trust boundary)**: `NmcliWifiService.RegisterProfileAsync` regex-extracts the SSID and PSK out of
+  the Windows-format profile XML and passes them to `nmcli`, but never XML-decoded them. Because
+  `ProfileXmlBuilder` builds the XML with `XElement` (mandated, to prevent injection), a passphrase
+  like `a&b` is entity-encoded as `a&amp;b` in `<keyMaterial>` — and the regex `([^<]+)` captures the
+  *encoded* form (`&lt;` contains no literal `<`), so `nmcli` received `a&amp;b` as the key. Every
+  one of `&`, `<`, `>` is a legal WPA-PSK ASCII character, so ordinary passwords produced a wrong key
+  and a `BadCredentials`-style failure with no hint why. Fixed by `WebUtility.HtmlDecode`-ing the
+  extracted SSID and PSK (a no-op for keys without special characters; round-trips correctly even for
+  a literal `&amp;` typed by the user). Found via a trust-boundary audit — "every SSID/BSSID is
+  attacker-broadcast input; where does an untrusted or machine-encoded string reach a sink without
+  being decoded/escaped?" — which also *verified* the adjacent process invocations are safe: both
+  `NmcliWifiService` and `CoreWlanWifiService` spawn with `UseShellExecute=false` and
+  `ProcessStartInfo.ArgumentList` (no shell), so SSID shell-metacharacters (`;`, `|`, `$()`) cannot
+  inject commands, and `ProfileXmlBuilder`'s `XElement` construction makes the XML side injection-safe.
+
 - **Auto-scan silently stopped updating the network list whenever a network appeared or
   disappeared**: `MainViewModel`'s 15-second rescan ran on a `System.Timers.Timer`, whose `Elapsed`
   fires on a ThreadPool thread with no `SynchronizationContext`. `AdapterViewModel.RefreshAsync`
