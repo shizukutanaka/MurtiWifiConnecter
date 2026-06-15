@@ -58,6 +58,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WindowsWifiService` / `BeaconIeParser`.
 
 ### Fixed
+- **Auto-reconnect and failover silently failed for every secured (PSK) network**: the most
+  consequential bug of the session. `AutoReconnectService` and `AdapterFailoverService` re-connect
+  with `passphrase=""` (they hold no saved key — the OS does), but `ConnectionExecutor.ConnectAsync`
+  unconditionally rebuilt the profile XML via `ProfileXmlBuilder.Build`, which **requires** a non-empty
+  passphrase for WPA/WPA2/WPA3/WEP and throws `ArgumentException` — caught and mapped to
+  `ConnectionFailure.OsError` before `WlanConnect` was ever called. So the headline "Apple-style
+  auto-join" feature was inert for every password-protected network. Fixed by skipping profile
+  registration when the auth method needs a passphrase but none was supplied, reusing the existing
+  saved OS profile; user-initiated connects (passphrase present) register as before. Regression test
+  added across WPA2PSK/WPA3SAE/WPA3Transition/WPAPSK. Found by asking "what value does ConnectAsync
+  actually receive when the *automatic* paths call it?" rather than reading the happy path.
+- **Auto-reconnect and failover fought the user's intent**: clicking Disconnect dropped the link, then
+  the background services treated that as an outage and reconnected (or failed over to the backup
+  adapter) within seconds — the user could not stay disconnected. `ConnectionExecutor.DisconnectAsync`
+  now timestamps user-initiated disconnects and both services consult `WasRecentlyDisconnectedByUser`
+  (15 s / 45 s windows) before acting.
+- **Background reconnect/failover failures were invisible**: both services called `NotifyConnected`
+  on success but only logged failures, so a user whose automatic recovery failed saw nothing. They now
+  call `NotifyFailed` on the unsuccessful branch, consistent with the interactive connect paths.
+- **Failover had a cold-start blind spot and a self-race**: if an adapter dropped between app launch
+  and the first 30 s poll, `_lastState` was empty so `wasConnected` was false and the event was missed;
+  the first `CheckAsync` now only seeds baseline state. A long `ActivateFailoverAsync` could also let
+  the next timer tick re-enter `CheckAsync` and race the unsynchronised state sets — guarded with a
+  non-blocking `SemaphoreSlim(1,1)`. On exit the failover timer is now stopped before host teardown
+  (symmetric with the AutoReconnect drain) so no callback races a disposed `IWifiService`.
+- **"Forget network" left the history entry behind**: `ProfileManagerViewModel.DeleteAsync` deleted the
+  Windows WLAN profile but not the `NetworkHistoryService` entry, so `AutoReconnectService` could
+  resurface a just-forgotten SSID via `GetRecentSsids`. It now calls `_history.Forget(ssid)` on success.
+- **Weak-security networks were visually indistinguishable; security level unspoken**: the security-dot
+  `Style` had triggers for Excellent/Good/Fair/Danger but **not `Weak`** (WPA/TKIP), so those fell
+  through to the default orange with no intent — and the dot exposed no `AutomationProperties.Name`, so
+  screen-reader users got color only. Added the explicit `Weak` trigger and an automation name, and
+  folded the security label into each list item's spoken text ("Signal 65% · Legacy Encryption").
+- **`SignalHistoryService` leaked memory across locations**: `Record` added a ~5 KB ring buffer per
+  distinct SSID on every scan and nothing ever evicted them (`Prune` was dead code and only trimmed
+  *within* a buffer), so a roaming laptop accumulated a buffer for every SSID it had ever seen. Added a
+  256-SSID LRU cap (evict least-recently-updated on overflow) and made `Prune` drop emptied buffers
+  from the dictionary.
 - **SSIDs were written to disk logs in plaintext (location-history leak)**: connection, auto-reconnect,
   and failover paths logged the raw SSID at Information/Warning level to the 7-day rolling Serilog
   file. Since SSIDs are location-identifying (and the list outlives a "forget"), those logs were a
