@@ -24,7 +24,12 @@ internal sealed class ConnectionWaiter : IDisposable
     private readonly Guid _adapterId;
     private readonly string _ssid;
     private readonly ILogger _log;
-    private readonly TaskCompletionSource<ConnectionOutcome> _tcs = new();
+    // RunContinuationsAsynchronously 必須: TrySetResult はネイティブ WLAN 通知の
+    // コールバックスレッドから呼ばれる。これが無いと WaitAsync の await 以降
+    // (疎通確認の HTTP プローブや waiter の Dispose) が通知スレッド上で同期実行され、
+    // 以降の WLAN 通知配信を遅延/デッドロックさせうる。
+    private readonly TaskCompletionSource<ConnectionOutcome> _tcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly EventHandler<NetworkStateChangedEventArgs> _handler;
     private bool _disposed;
 

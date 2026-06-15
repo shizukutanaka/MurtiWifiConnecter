@@ -202,6 +202,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Connect-completion continuations ran inline on the native WLAN notification thread**:
+  `ConnectionWaiter` bridges the OS ACM `connection_complete`/disconnect notifications to a
+  `Task` via `TaskCompletionSource`, but the TCS was created without
+  `TaskCreationOptions.RunContinuationsAsynchronously`. `TrySetResult` is invoked from the native
+  `NativeWifi.NetworkStateChanged` callback thread, so everything chained after
+  `await waiter.WaitAsync(...)` in `WindowsWifiService.ConnectAsync` — the `IConnectivityChecker`
+  HTTP probe and the waiter's own `Dispose` (which unsubscribes from the native event) — executed
+  synchronously on that callback thread, where it can stall or deadlock delivery of subsequent WLAN
+  notifications. Set `RunContinuationsAsynchronously` so the continuation hops to the thread pool,
+  the textbook fix for an event-to-task bridge. The disconnect/reason-code classification was left
+  untouched: it is an explicitly simplified placeholder whose behavior depends on native event
+  timing that cannot be verified without Windows hardware, and this change is correct regardless of
+  it. (`AnimationHelper`'s TCS was audited and intentionally left as-is: its `Completed` event fires
+  on the UI thread, where its continuation belongs.)
+
 - **Linux: passwords containing `&`, `<`, or `>` silently failed to connect (XML-decode gap at a
   trust boundary)**: `NmcliWifiService.RegisterProfileAsync` regex-extracts the SSID and PSK out of
   the Windows-format profile XML and passes them to `nmcli`, but never XML-decoded them. Because
