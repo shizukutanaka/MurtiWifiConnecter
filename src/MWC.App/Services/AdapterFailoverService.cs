@@ -37,6 +37,8 @@ public sealed class AdapterFailoverService : IDisposable
     private readonly ILogger<AdapterFailoverService> _log;
 
     private Timer?  _timer;
+    // 1 つ前の CheckAsync がまだ走っているときは新しい起動をスキップする
+    private readonly SemaphoreSlim _checkGuard = new(1, 1);
 
     // Adapter GUID → last known connected SSID (null = not connected)
     private readonly Dictionary<Guid, string?> _lastState = new();
@@ -70,10 +72,15 @@ public sealed class AdapterFailoverService : IDisposable
 
     public void Stop() => _timer?.Change(Timeout.Infinite, 0);
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _checkGuard.Dispose();
+    }
 
     private async Task CheckAsync()
     {
+        if (!await _checkGuard.WaitAsync(0).ConfigureAwait(false)) return;
         try
         {
             var adapters = await _wifi.GetAdaptersAsync().ConfigureAwait(false);
@@ -129,6 +136,10 @@ public sealed class AdapterFailoverService : IDisposable
         catch (Exception ex)
         {
             _log.LogWarning(ex, "AdapterFailoverService.CheckAsync failed");
+        }
+        finally
+        {
+            _checkGuard.Release();
         }
     }
 
