@@ -208,6 +208,10 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // バックグラウンドタイマーをまず停止し、Host 破棄中に CheckAsync が
+        // 破棄済みの _wifi を触る競合を防ぐ (AutoReconnect と対称に明示停止する)。
+        Host?.Services.GetService<AdapterFailoverService>()?.Stop();
+
         // 監視ループの完了を待ってから破棄 (WatchAsync は ConfigureAwait(false) のためデッドロックしない)
         var autoReconnect = Host?.Services.GetService<AutoReconnectService>();
         if (autoReconnect is not null)
