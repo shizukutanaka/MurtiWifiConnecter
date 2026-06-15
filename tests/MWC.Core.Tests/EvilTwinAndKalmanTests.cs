@@ -218,6 +218,22 @@ public class KalmanRssiFilterTests
         // 高プロセスノイズの方が新しい値に速く反応
         responsive.Current!.Value.Should().BeGreaterThan(sluggish.Current!.Value);
     }
+
+    [Theory]
+    [InlineData(0.0)]    // R=0 は収束後にゲイン 0/0 = NaN を生む
+    [InlineData(-1.0)]
+    public void Ctor_NonPositiveMeasurementNoise_Throws(double r)
+    {
+        var act = () => new KalmanRssiFilter(measurementNoise: r);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Ctor_NegativeProcessNoise_Throws()
+    {
+        var act = () => new KalmanRssiFilter(processNoise: -0.1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }
 
 // ══════════════════════════════════════════════════════════════

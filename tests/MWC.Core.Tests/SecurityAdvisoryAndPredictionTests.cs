@@ -249,6 +249,24 @@ public class SignalQualityPredictorTests
         // fast の方が新しい値 (-40) に近い
         fast.Predict()!.Value.Should().BeGreaterThan(slow.Predict()!.Value);
     }
+
+    [Fact]
+    public void Ctor_ZeroWeightSum_Throws()
+    {
+        // 重み合計0だと正規化で 0/0 = NaN が全予測に伝播する
+        var act = () => new SignalQualityPredictor(wFast: 0, wMid: 0, wSlow: 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData(0.0)]    // alpha は (0,1] 範囲外不可
+    [InlineData(1.5)]
+    [InlineData(-0.1)]
+    public void Ctor_AlphaOutOfRange_Throws(double alpha)
+    {
+        var act = () => new SignalQualityPredictor(alphaFast: alpha);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }
 
 // ══════════════════════════════════════════════════════════════

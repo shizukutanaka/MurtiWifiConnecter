@@ -202,6 +202,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkItemViewModel.IsPinned` for all source items on every filter pass so the indicator
   stays current after scans. 3 new i18n keys × 15 locales.
 
+- **Estimator constructors could silently produce `NaN` from degenerate parameters**: `RssiDistanceEstimator`
+  validates its constructor (`pathLossExponent <= 0` throws), but its two siblings in the same
+  Core/SDK estimator family did not, despite each having a divide-by-zero. `KalmanRssiFilter` with
+  `measurementNoise <= 0` converges to a Kalman gain of `0/0 = NaN` (R is the gain denominator);
+  `SignalQualityPredictor` with all-zero linear-combination weights normalizes via `0/0 = NaN`, which
+  then propagates into every prediction and silently into UI/SDK consumers. No shipping caller passes
+  such values, but these are public API surface (the project ships an SDK), so a third-party consumer
+  could trip them. Added matching `ArgumentOutOfRangeException` guards (`KalmanRssiFilter`: `Q >= 0`,
+  `R > 0`; `SignalQualityPredictor`: alphas in `(0, 1]`, weights `>= 0` with a positive sum),
+  consistent with `RssiDistanceEstimator`, plus regression tests for each guard.
+
 - **Connectivity probe could falsely report "no internet" after a network change (DNS staleness)**:
   `HttpConnectivityChecker`'s static `HttpClient` used `HttpClientHandler` with no
   `PooledConnectionLifetime`, so in a long-running session its pooled connections to

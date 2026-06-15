@@ -44,8 +44,25 @@ public sealed class SignalQualityPredictor
         double alphaFast = 0.6, double alphaMid = 0.3, double alphaSlow = 0.1,
         double wFast = 0.5, double wMid = 0.3, double wSlow = 0.2)
     {
-        _alphaFast = alphaFast; _alphaMid = alphaMid; _alphaSlow = alphaSlow;
+        // EMA 係数 alpha は (0,1] 範囲。範囲外だと平滑化が発散/破綻する。
+        static void CheckAlpha(double a, string name)
+        {
+            if (a is <= 0 or > 1)
+                throw new ArgumentOutOfRangeException(name, "EMA coefficient alpha must be in (0, 1].");
+        }
+        CheckAlpha(alphaFast, nameof(alphaFast));
+        CheckAlpha(alphaMid,  nameof(alphaMid));
+        CheckAlpha(alphaSlow, nameof(alphaSlow));
+
+        // 重みは非負かつ合計>0。合計0だと正規化で 0/0 = NaN が全予測に伝播する。
+        if (wFast < 0 || wMid < 0 || wSlow < 0)
+            throw new ArgumentOutOfRangeException(nameof(wFast), "Linear-combination weights must be >= 0.");
         var sum = wFast + wMid + wSlow;
+        if (sum <= 0)
+            throw new ArgumentOutOfRangeException(nameof(wFast),
+                "At least one linear-combination weight must be > 0.");
+
+        _alphaFast = alphaFast; _alphaMid = alphaMid; _alphaSlow = alphaSlow;
         _wFast = wFast / sum; _wMid = wMid / sum; _wSlow = wSlow / sum;
     }
 
