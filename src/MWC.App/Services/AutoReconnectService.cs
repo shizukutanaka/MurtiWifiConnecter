@@ -103,6 +103,8 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
                 if (res.Success)
                     _notify.NotifyConnected(candidate.Ssid, res.HasInternet, res.BehindCaptivePortal);
+                else
+                    _notify.NotifyFailed(candidate.Ssid, res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown);
             }
             catch (OperationCanceledException) { return; }
             catch (Exception ex) { _log.LogWarning(ex, "AutoReconnect error"); }

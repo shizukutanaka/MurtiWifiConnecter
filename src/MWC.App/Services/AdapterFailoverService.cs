@@ -201,6 +201,7 @@ public sealed class AdapterFailoverService : IDisposable
             else
             {
                 _log.LogWarning("Failover connection failed: {Failure}", result.Failure);
+                _notify.NotifyFailed(targetSsid, result.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown);
             }
         }
         catch (Exception ex)
