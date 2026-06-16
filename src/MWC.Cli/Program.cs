@@ -69,6 +69,7 @@ public static partial class Program
         sc.AddSingleton<NetworkQualityService>();
         sc.AddSingleton<OuiLookupService>();
         sc.AddSingleton<AdapterPreferencesService>();
+        sc.AddSingleton<ConnectionExecutor>();
         return sc.BuildServiceProvider();
     }
 
@@ -287,24 +288,23 @@ public static partial class Program
 
         cmd.SetHandler(async (string s, string? p, AuthMethod a, string? af, int to, bool h) =>
         {
-            var svc  = sp.GetRequiredService<IWifiService>();
-            var hist = sp.GetRequiredService<NetworkHistoryService>();
-            var ad   = await Resolve(svc, af);
+            var svc      = sp.GetRequiredService<IWifiService>();
+            var executor = sp.GetRequiredService<ConnectionExecutor>();
+            var ad       = await Resolve(svc, af);
             if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
-            string xml;
-            try { xml = ProfileXmlBuilder.Build(new(){ Ssid=s, Auth=a, Passphrase=p, NonBroadcast=h }); }
+            // spec を先に検証: 不正な場合は接続前に分かりやすいエラーを出す。
+            // executor 内でも同じ Build を呼ぶが、エラーが ConnectionResult.OsError に吸収されるため
+            // ここで早期エラーを返す。
+            var spec = new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+            try { ProfileXmlBuilder.Build(spec); }
             catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
-            if (!await svc.RegisterProfileAsync(ad.Id, xml, true))
-                { Err("profile registration failed"); Environment.Exit(ExitCode.ProfileError); return; }
-
+            // executor 経由で接続 (セマフォ・OTel・履歴記録を一元管理)
             ConnectionResult res;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(to + 5));
-            try { res = await svc.ConnectAsync(ad.Id, s, s, TimeSpan.FromSeconds(to), cts.Token); }
+            try { res = await executor.ConnectAsync(ad.Id, spec, TimeSpan.FromSeconds(to), cts.Token); }
             catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(ExitCode.ConnectionFailed); return; }
-
-            hist.RecordConnection(s, res.Success);
 
             if (res.Success)
             {

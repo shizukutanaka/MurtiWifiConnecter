@@ -49,12 +49,11 @@ public sealed class ConnectionExecutor
 
     /// <summary>
     /// 接続実行(プロファイル登録 → ConnectAsync → 履歴記録の一連フロー)。
+    /// NonBroadcast などのすべての接続パラメータを <see cref="WifiProfileSpec"/> で渡す。
     /// </summary>
     public async Task<ConnectionResult> ConnectAsync(
         Guid adapterId,
-        string ssid,
-        AuthMethod auth,
-        string passphrase = "",
+        WifiProfileSpec spec,
         TimeSpan? timeout = null,
         CancellationToken ct = default)
     {
@@ -64,9 +63,9 @@ public sealed class ConnectionExecutor
         {
         var to = timeout ?? TimeSpan.FromSeconds(25);
         MwcActivity.ConnectAttempts.Add(1,
-            new System.Collections.Generic.KeyValuePair<string,object?>("wifi.auth", auth.ToString()));
+            new System.Collections.Generic.KeyValuePair<string,object?>("wifi.auth", spec.Auth.ToString()));
 
-        using var activity = MwcActivity.StartConnectActivity(ssid, auth.ToString());
+        using var activity = MwcActivity.StartConnectActivity(spec.Ssid, spec.Auth.ToString());
         var sw = Stopwatch.StartNew();
 
         try
@@ -74,26 +73,25 @@ public sealed class ConnectionExecutor
             // 1. プロファイル登録
             // パスフレーズが空でPSK系認証の場合、既存保存プロファイルを再利用するためスキップ。
             // (AutoReconnect / Failover パスが passphrase="" で呼ぶケースに対応)
-            bool needsPassphrase = auth is AuthMethod.WPAPSK or AuthMethod.WPA2PSK
+            bool needsPassphrase = spec.Auth is AuthMethod.WPAPSK or AuthMethod.WPA2PSK
                                    or AuthMethod.WPA3SAE or AuthMethod.WPA3Transition or AuthMethod.WEP;
-            bool shouldRegister  = !needsPassphrase || !string.IsNullOrEmpty(passphrase);
+            bool shouldRegister  = !needsPassphrase || !string.IsNullOrEmpty(spec.Passphrase);
             if (shouldRegister)
             {
-                var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
-                var xml  = ProfileXmlBuilder.Build(spec);
+                var xml = ProfileXmlBuilder.Build(spec);
                 if (!await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false))
                 {
-                    _history.RecordConnection(ssid, false);
+                    _history.RecordConnection(spec.Ssid, false);
                     return ConnectionResult.Fail(ConnectionFailure.OsError);
                 }
             }
 
             // 2. 接続実行
-            _log.LogInformation("Connecting to {ssid} on adapter {id}", PiiMask.Ssid(ssid), adapterId);
-            var result = await _wifi.ConnectAsync(adapterId, ssid, ssid, to, ct).ConfigureAwait(false);
+            _log.LogInformation("Connecting to {ssid} on adapter {id}", PiiMask.Ssid(spec.Ssid), adapterId);
+            var result = await _wifi.ConnectAsync(adapterId, spec.Ssid, spec.Ssid, to, ct).ConfigureAwait(false);
 
             // 3. 履歴記録
-            _history.RecordConnection(ssid, result.Success);
+            _history.RecordConnection(spec.Ssid, result.Success);
 
             sw.Stop();
             MwcActivity.ConnectDurationMs.Record(sw.Elapsed.TotalMilliseconds);
@@ -111,24 +109,38 @@ public sealed class ConnectionExecutor
             }
 
             _log.LogInformation("Connection {res}: {ssid} ({ms:F1}ms)",
-                result.Success ? "success" : $"failed ({result.Failure})", PiiMask.Ssid(ssid), sw.Elapsed.TotalMilliseconds);
+                result.Success ? "success" : $"failed ({result.Failure})", PiiMask.Ssid(spec.Ssid), sw.Elapsed.TotalMilliseconds);
 
             return result;
         }
         catch (OperationCanceledException)
         {
-            _history.RecordConnection(ssid, false);
+            _history.RecordConnection(spec.Ssid, false);
             throw;
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "ConnectAsync exception: {ssid}", PiiMask.Ssid(ssid));
-            _history.RecordConnection(ssid, false);
+            _log.LogError(ex, "ConnectAsync exception: {ssid}", PiiMask.Ssid(spec.Ssid));
+            _history.RecordConnection(spec.Ssid, false);
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }
         }
         finally { _lock.Release(); }
     }
+
+    /// <summary>
+    /// 便利オーバーロード: SSID/Auth/Passphrase で接続。NonBroadcast 等が不要な場合に使用。
+    /// </summary>
+    public Task<ConnectionResult> ConnectAsync(
+        Guid adapterId,
+        string ssid,
+        AuthMethod auth,
+        string passphrase = "",
+        TimeSpan? timeout = null,
+        CancellationToken ct = default)
+        => ConnectAsync(adapterId,
+            new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase },
+            timeout, ct);
 
     /// <summary>
     /// 切断 + 履歴更新。ユーザー起因の切断として記録し、自動再接続を抑制する。

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using MWC.Core.Abstractions;
@@ -44,8 +45,9 @@ internal static class MultiAdapterCommand
 
         cmd.SetHandler(async (string[] specs, string? pw) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ads = await svc.GetAdaptersAsync();
+            var svc      = sp.GetRequiredService<IWifiService>();
+            var executor = sp.GetRequiredService<ConnectionExecutor>();
+            var ads      = await svc.GetAdaptersAsync();
             pw ??= Environment.GetEnvironmentVariable("PW") ?? "";
 
             var tasks = new List<Task<(string adapter, string ssid, bool ok, string? error)>>();
@@ -65,7 +67,7 @@ internal static class MultiAdapterCommand
                     continue;
                 }
 
-                tasks.Add(ConnectOneAsync(svc, ad.Id, adName, ssid, pw));
+                tasks.Add(ConnectOneAsync(svc, executor, ad.Id, adName, ssid, pw));
             }
 
             var results = await Task.WhenAll(tasks);
@@ -85,10 +87,12 @@ internal static class MultiAdapterCommand
     }
 
     private static async Task<(string, string, bool, string?)> ConnectOneAsync(
-        IWifiService svc, Guid adapterId, string adName, string ssid, string passphrase)
+        IWifiService svc, ConnectionExecutor executor,
+        Guid adapterId, string adName, string ssid, string passphrase)
     {
         try
         {
+            // スキャンで認証方式を取得
             var nets = await svc.ScanAsync(adapterId);
             var net  = nets.FirstOrDefault(n => n.Ssid == ssid);
             if (net is null) return (adName, ssid, false, "SSID not found");
@@ -99,16 +103,17 @@ internal static class MultiAdapterCommand
                 Auth       = net.Auth,
                 Passphrase = passphrase
             };
-            var xml = MWC.Core.Profile.ProfileXmlBuilder.Build(spec);
-            if (!await svc.RegisterProfileAsync(adapterId, xml, overwrite: true))
-                return (adName, ssid, false, "profile registration failed");
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(25));
-            var res = await svc.ConnectAsync(adapterId, ssid, ssid,
-                TimeSpan.FromSeconds(20), cts.Token);
+            // executor 経由で接続 (セマフォ・OTel・履歴記録を一元管理)
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var res = await executor.ConnectAsync(adapterId, spec, TimeSpan.FromSeconds(20), cts.Token);
 
             return res.Success
                 ? (adName, ssid, true,  null)
                 : (adName, ssid, false, res.Failure?.ToString() ?? "failed");
+        }
+        catch (OperationCanceledException)
+        {
+            return (adName, ssid, false, "timed out");
         }
         catch (Exception ex)
         {

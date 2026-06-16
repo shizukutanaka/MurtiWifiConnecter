@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace MWC.App.Services;
@@ -24,6 +25,8 @@ public sealed class SettingsService
     };
 
     private readonly ILogger<SettingsService> _log;
+    // ディスク書き込み直列化用。UI スレッドをブロックしないよう Task.Run + lock の組み合わせ。
+    private readonly object _saveLock = new();
     private AppSettings _current;
 
     public AppSettings Current => _current;
@@ -61,15 +64,24 @@ public sealed class SettingsService
 
     public void Save(AppSettings settings)
     {
-        _current = settings;
-        try
+        _current = settings;           // UI スレッドで即時反映
+        _ = Task.Run(() => Persist(settings));  // ディスク書き込みはバックグラウンドへ
+    }
+
+    private void Persist(AppSettings settings)
+    {
+        lock (_saveLock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            var tmp = ConfigPath + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Opts));
-            File.Move(tmp, ConfigPath, overwrite: true);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
+                var tmp = ConfigPath + ".tmp";
+                File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Opts));
+                File.Move(tmp, ConfigPath, overwrite: true);
+            }
+            catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
         }
-        catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
     }
 
     private AppSettings Load()

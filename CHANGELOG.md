@@ -383,6 +383,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Japanese to English, following the Core-layer-uses-English principle established in this
   release series. The advisory panel in the detail pane now renders language-neutral text.
 
+- **`SettingsService.Save` blocked the UI thread with synchronous disk I/O**: `TogglePin`,
+  `HideNetwork`, `UnhideNetwork`, and the Settings-dialog save all call `SettingsService.Save`,
+  which did `File.WriteAllText` + `File.Move` synchronously on the calling (UI) thread. On a slow
+  or network-backed `%LocalAppData%`, this stalls the WPF Dispatcher for the duration of the write,
+  making the UI visibly freeze. The in-memory update (`_current = settings`) stays synchronous so
+  the UI reflects the change immediately, but the disk write is now offloaded to `Task.Run` +
+  `_saveLock` (matching the `NetworkHistoryService` / `AdapterPreferencesService` dual-lock pattern),
+  so the Dispatcher is never blocked. Serialisation is preserved: rapid sequential saves queue behind
+  the lock and the final snapshot always wins.
+
+- **`ConnectionExecutor.ConnectAsync` could not convey `NonBroadcast` (hidden-network flag)**:
+  the method signature `(adapterId, ssid, auth, passphrase, timeout, ct)` had no parameter for
+  `WifiProfileSpec.NonBroadcast`, so callers that needed to connect to a hidden network were forced
+  to bypass the executor entirely — losing per-adapter semaphore locking, OpenTelemetry tracing,
+  PII-masked logging, and the `shouldRegister` passphrase-skip optimisation. Added a primary
+  `ConnectAsync(Guid, WifiProfileSpec, TimeSpan?, CancellationToken)` overload that accepts the full
+  spec (and therefore any current or future spec field); the existing six-parameter overload becomes
+  a convenience wrapper that constructs a minimal spec and delegates. All seven existing callers
+  continue to compile without changes.
+
+- **CLI `connect` and `multi connect` bypassed `ConnectionExecutor`**: both commands called
+  `svc.RegisterProfileAsync` + `svc.ConnectAsync` directly, missing the per-adapter semaphore (race
+  with a concurrent desktop-app or CLI invocation), OpenTelemetry activity recording, PII-masked
+  logging, and — critically for `multi connect` — history recording (`NetworkHistoryService.
+  RecordConnection` was never called from `ConnectOneAsync`, so parallel multi-adapter sessions left
+  no trace in the history file). Both commands now resolve `ConnectionExecutor` from DI
+  (`ConnectionExecutor` registered in CLI `BuildServices`) and route through it. `BuildConnect`
+  validates the profile spec early (fast `ProfileXmlBuilder.Build` smoke-test) to preserve the
+  descriptive `InvalidInput` exit code, then delegates the full connection flow to the executor.
+  `MultiAdapterCommand.ConnectOneAsync` scans to discover the auth method, then passes the
+  resulting `WifiProfileSpec` to the executor — the manual `RegisterProfileAsync` call is gone and
+  history is recorded automatically inside the executor.
+
 ### Added
 - **詳細パネル大拡張 (9 サービス統合)**: `NetworkDetailViewModel.Load()` に 8 つの新行を追加し、
   Core 層の未使用サービスを一挙に公開。
