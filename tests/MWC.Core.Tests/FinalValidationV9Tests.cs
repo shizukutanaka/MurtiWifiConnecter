@@ -50,6 +50,19 @@ public class ConnectionExecutorIntegrationV2Tests
             DisconnectCalled++;
             return Task.FromResult(true);
         }
+
+        public Task<bool> DeleteProfileAsync(Guid adapterId, string profileName, System.Threading.CancellationToken ct = default)
+            => Task.FromResult(true);
+
+        public Task<System.Collections.Generic.IReadOnlyList<string>> ListProfilesAsync(Guid adapterId, System.Threading.CancellationToken ct = default)
+            => Task.FromResult<System.Collections.Generic.IReadOnlyList<string>>(Array.Empty<string>());
+
+        public async System.Collections.Generic.IAsyncEnumerable<MWC.Core.Abstractions.WifiEvent> SubscribeEventsAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] System.Threading.CancellationToken ct = default)
+        {
+            await Task.CompletedTask.ConfigureAwait(false);
+            yield break;
+        }
     }
 
     private (ConnectionExecutor, FakeWifi, NetworkHistoryService) Build()

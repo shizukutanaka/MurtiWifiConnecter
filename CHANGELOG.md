@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`FakeWifi` in `FinalValidationV9Tests.cs` was missing three `IWifiService` methods — compile
+  error**: `IWifiService` declares 8 methods (`GetAdaptersAsync`, `ScanAsync`,
+  `RegisterProfileAsync`, `ConnectAsync`, `DisconnectAsync`, `DeleteProfileAsync`,
+  `ListProfilesAsync`, `SubscribeEventsAsync`), but the private `FakeWifi` class inside
+  `ConnectionExecutorIntegrationV2Tests` only implemented five. A concrete class that partially
+  implements an interface is a compile error in C# — the entire test assembly would fail to build.
+  Added the three missing stub implementations (`DeleteProfileAsync` → `true`,
+  `ListProfilesAsync` → empty list, `SubscribeEventsAsync` → empty async enumerable) to match
+  the pattern in `SlowFakeWifi` (`ValidationAndSecurityTests.cs`) and `FakeWifiService` in
+  `Fakes/`.
 - **`EapTls_EmptyServerNames` / `EapTls_WithServerNames` tests called `.Descendants()` on a
   `string` (`BugFixRegressionTests.cs`)**: `ProfileXmlBuilder.Build` returns a `string`, and
   `string` has no `.Descendants(XName)` method — this was a compile error that would prevent the
