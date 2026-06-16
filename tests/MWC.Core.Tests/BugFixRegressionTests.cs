@@ -179,6 +179,18 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-30)]
+    public void GetStats_NonPositiveDays_Throws(int days)
+    {
+        var svc = new NetworkHistoryService();
+        svc.Invoking(s => s.GetStats(days))
+           .Should().Throw<ArgumentOutOfRangeException>()
+           .WithParameterName("days");
+    }
+
+    [Theory]
     [InlineData(0,    "just now")]
     [InlineData(-2,   "2m ago")]
     [InlineData(-90,  "1h ago")]

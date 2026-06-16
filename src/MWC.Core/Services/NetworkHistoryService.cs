@@ -103,6 +103,7 @@ public sealed class NetworkHistoryService
     /// <summary>指定日数分の接続統計を返す</summary>
     public NetworkStatsSummary GetStats(int days = 30)
     {
+        if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days), days, "days must be positive");
         var since = DateTimeOffset.UtcNow.AddDays(-days);
         List<ConnectionHistoryEntry> recent;
         lock (_lock) { recent = _entries.Where(e => e.LastConnected >= since).ToList(); }
