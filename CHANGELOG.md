@@ -837,6 +837,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a UI-thread-safe `WifiNetwork` snapshot; the disconnect callback runs `DisconnectCommand` via
   `Dispatcher.Invoke`.
 
+- **`PiiMask.Ssid` truncated 2-character SSIDs to 1 visible character**: the earlier path
+  `if (ssid.Length <= 2) return ssid[0] + "*"` showed only the first character for 2-char SSIDs
+  (e.g. "AB" → "A\*", identical to a 1-char SSID). Fixed to keep `Math.Min(2, length)` chars always,
+  then append a star indicator: "A" → "A\*", "AB" → "AB\*", "ABC" → "AB\*", "MyWiFi" → "My\*\*\*\*".
+  8 regression cases added.
+
+- **`ExportService` string-returning overloads were missing, making `ExportServiceTests` unable to
+  compile**: `ExportService` is a `static` class, but tests called `new ExportService()` (can't
+  instantiate a static class) and single-argument instance methods `ToCsv(IEnumerable)`,
+  `ToJson(IEnumerable)`, `ToTxt(IEnumerable)` that did not exist — only file-writing
+  `ToCsv(..., string path)` overloads did. Added string-returning overloads for all three formats:
+  `ToCsv`/`ToJson`/`ToTxt` each return a `string` and the existing file-writing overloads now
+  delegate to them. `ToJson(IEnumerable)` returns a bare JSON array `[...]` (simpler, no timestamp
+  wrapper); the file overload wraps in `ExportPayload` with `ScannedAt` as before. Tests updated to
+  use `ExportService.Method()` (static calls).
+
+- **`SignalHistoryServiceTests` called a completely different API than `SignalHistoryService` exposes**:
+  tests used `AddSignal(Guid adapterId, string ssid, int rssi)`, `GetHistory(Guid, string)`,
+  `GetAverageRssi(Guid, string)`, `Clear(Guid, string)` — none of which exist. The service API is
+  `Record(IEnumerable<WifiNetwork>)` for bulk recording, `GetHistory(string ssid)` keyed by SSID only
+  (no per-adapter split), `Clear(string ssid)`, and `ClearAll()`. `SignalSample` fields are `At`/
+  `Quality`/`Rssi` (not `Timestamp`). All 5 test cases rewritten against the real API.
+
+- **`PerAdapterPreferencesTests` called `SetPreferred` (doesn't exist) and used wrong type names**:
+  `SetPreferred` → `SetAutoConnectPriority`; `AdapterPreference` (singular) → `AdapterPreferences`
+  (plural, the correct record name); property `PreferredSsids` → `AutoConnectPriority`;
+  `IsAutoReconnectEnabled` default is `false` (requires SSIDs configured), not `true`;
+  `PickBestSsid` is case-sensitive, so `PickBestSsid("homenet")` against priority `["HomeNet"]`
+  returns `null`, not `"HomeNet"`. Full test class rewritten to match the actual service API.
+
+- **`NetworkHistoryService.GetStats(days ≤ 0)` silently returned all-zeros**: `AddDays(-0)` = now
+  (all recent entries pass `>= now`, which is vacuously false), and `AddDays(-(-n))` = future (all
+  entries filtered out), so any non-positive `days` argument produced a `NetworkStatsSummary` with
+  zeroed counts rather than signalling a bad call. Added `ArgumentOutOfRangeException` guard at the
+  entry point; a `[Theory]` regression test covers `0`, `-1`, and `-30`.
+
 ## [3.11.0] - 2026-05-13
 
 ### 省電力分析・OUI ベンダー照合 (ADR-0024)
