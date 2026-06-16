@@ -3,9 +3,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using MWC.App.Services;
+using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
+using NSubstitute;
 using Xunit;
 
 namespace MWC.Core.Tests;
@@ -282,5 +285,74 @@ public class AppUpdateServiceTests
 
         await Task.WhenAll(t1, t2, t3);
         // クラッシュしなければ OK
+    }
+}
+
+/// <summary>
+/// ConnectionExecutor の shouldRegister 最適化を回帰防止。
+/// PSK系 + パスフレーズ空 → RegisterProfileAsync をスキップ(既存保存プロファイル再利用)。
+/// この保証が崩れると AutoReconnect / AdapterFailover / トレイ接続が
+/// 保存されたパスワードを空文字列で上書きする。
+/// </summary>
+public class ConnectionExecutorShouldRegisterTests
+{
+    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        wifi.RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+        wifi.ConnectAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ConnectionResult.Ok("Net", true, false)));
+
+        var executor = new ConnectionExecutor(
+            wifi, new NetworkHistoryService(),
+            NullLogger<ConnectionExecutor>.Instance);
+        return (executor, wifi);
+    }
+
+    /// <summary>
+    /// PSK系でパスフレーズが空 → 登録スキップ。
+    /// PSK系でパスフレーズあり → 登録実行。
+    /// Open/OWE はパスフレーズ不要だが初回プロファイル登録は行う。
+    /// </summary>
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK,        "",        false)]
+    [InlineData(AuthMethod.WPAPSK,         "",        false)]
+    [InlineData(AuthMethod.WPA3SAE,        "",        false)]
+    [InlineData(AuthMethod.WPA3Transition, "",        false)]
+    [InlineData(AuthMethod.WEP,            "",        false)]
+    [InlineData(AuthMethod.WPA2PSK,        "pass123", true)]
+    [InlineData(AuthMethod.Open,           "",        true)]
+    [InlineData(AuthMethod.OWE,            "",        true)]
+    public async Task RegisterProfileAsync_CalledOrSkipped(
+        AuthMethod auth, string passphrase, bool expectRegistration)
+    {
+        var (executor, wifi) = Build();
+
+        await executor.ConnectAsync(Guid.NewGuid(), "Net", auth, passphrase);
+
+        if (expectRegistration)
+            await wifi.Received(1).RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), true, Arg.Any<CancellationToken>());
+        else
+            await wifi.DidNotReceive().RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task EmptyPassphrase_PSK_ConnectIsStillInvoked()
+    {
+        // プロファイル登録スキップ後も実接続呼び出しは行われること
+        var (executor, wifi) = Build();
+        var adapterId = Guid.NewGuid();
+
+        var result = await executor.ConnectAsync(adapterId, "Net", AuthMethod.WPA2PSK, "");
+
+        await wifi.Received(1).ConnectAsync(
+            adapterId, "Net", "Net", Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>());
+        result.Success.Should().BeTrue();
     }
 }

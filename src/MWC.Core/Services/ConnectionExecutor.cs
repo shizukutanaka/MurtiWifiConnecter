@@ -11,20 +11,24 @@ namespace MWC.Core.Services;
 
 /// <summary>
 /// IWifiService.ConnectAsync の単一エントリポイント。
-/// プロジェクト内 4箇所に散在していた接続フローを統一。
+/// プロジェクト内に散在していた接続フローを統一。
 ///
 /// 責務:
 ///   - WifiProfileSpec → XML 変換
 ///   - プロファイル登録 (オーバーライト)
+///     ただし PSK 系でパスフレーズが空の場合は既存保存プロファイルを再利用するためスキップ
 ///   - 実接続 + タイムアウト
 ///   - History 自動記録
-///   - 構造化ログ
+///   - 構造化ログ / OTel
 ///
-/// 4箇所の呼出元:
-///   - MainViewModel.AdapterViewModel.ConnectAsync
-///   - AdapterConnectExtension.ConnectWithAppleFlowAsync (内部呼出)
+/// 呼出元:
+///   - AdapterViewModel.ConnectAsync / ConnectToSsidAsync
+///   - AdapterConnectExtension.ConnectWithAppleFlowAsync
 ///   - AutoReconnectService.WatchAsync
-///   - AllAdaptersOverviewViewModel.ConnectBestAsync
+///   - AdapterFailoverService.ConnectAsync
+///   - AllAdaptersOverviewViewModel.AdapterPanelViewModel.ConnectPreferredAsync
+///   - MultiAdapterCommand.ConnectOneAsync (CLI)
+///   - MainWindow.UpdateTray (トレイメニュー接続)
 /// </summary>
 public sealed class ConnectionExecutor
 {

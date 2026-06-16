@@ -278,9 +278,12 @@ public sealed partial class AdapterViewModel : ObservableObject
     {
         try
         {
+            // 実際のネットワーク認証方式を使用し、テレメトリの精度と正確性を保つ。
+            // 既存プロファイル利用時はパスフレーズ空 + PSK系認証 → executor がプロファイル再登録をスキップ。
+            var auth = SourceNetworks.FirstOrDefault(n => n.Ssid == ssid)?.Auth
+                       ?? MWC.Core.Models.AuthMethod.WPA2PSK;
             var res = await _executor.ConnectAsync(
-                _adapter.Id, ssid, MWC.Core.Models.AuthMethod.WPA2PSK,
-                "", timeout, ct);
+                _adapter.Id, ssid, auth, "", timeout, ct);
             await RefreshAsync();
             return res;
         }
