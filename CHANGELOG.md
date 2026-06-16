@@ -880,6 +880,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never executed — Enterprise credential failures produced a generic "Wrong Password" message
   (no mention of DOMAIN\\username or certificate expiry). Fixed by moving the guarded arm first.
 
+- **`SecurityBadgeService.GetBadge` misclassified `WPA3Enterprise` as WPA2-level security**:
+  `WPA3Enterprise` was grouped with `WPA2PSK` and `WPA2Enterprise` at `SecurityLevel.Good` with
+  `TechLabel = "WPA2"`. WPA3-Enterprise mandates PMF (Protected Management Frames) and uses
+  WPA3 EAP authentication — it is a WPA3-family protocol and should be `Excellent`. Moved
+  `WPA3Enterprise` into the `WPA3SAE or WPA3Enterprise192` arm (`Excellent`, `TechLabel="WPA3"`).
+
 - **CS0101 duplicate class names across test files** (7 fixes across 4 files):
   `SignalHistoryServiceTests`, `ExportServiceTests`, `EhtCapabilityTests`,
   `TroubleshootingHelperTests`, and `Hotspot20ServiceTests` each appeared in two files in the

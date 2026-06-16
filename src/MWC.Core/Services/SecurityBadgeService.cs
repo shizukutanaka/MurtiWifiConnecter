@@ -15,11 +15,11 @@ public static class SecurityBadgeService
 {
     public static SecurityBadge GetBadge(AuthMethod auth) => auth switch
     {
-        AuthMethod.WPA3SAE or AuthMethod.WPA3Enterprise192
+        AuthMethod.WPA3SAE or AuthMethod.WPA3Enterprise192 or AuthMethod.WPA3Enterprise
             => new SecurityBadge("Maximum Security", SecurityLevel.Excellent, "WPA3"),
         AuthMethod.WPA3Transition
             => new SecurityBadge("High Security", SecurityLevel.Good, "WPA3/2"),
-        AuthMethod.WPA2PSK or AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
+        AuthMethod.WPA2PSK or AuthMethod.WPA2Enterprise
             => new SecurityBadge("Secured", SecurityLevel.Good, "WPA2"),
         AuthMethod.OWE
             => new SecurityBadge("Encrypted", SecurityLevel.Fair, "OWE"),
