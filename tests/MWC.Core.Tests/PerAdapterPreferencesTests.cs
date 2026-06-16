@@ -66,7 +66,7 @@ public class PerAdapterPreferencesServiceTests
         svc.AddPreferred(id, "A");
         svc.AddPreferred(id, "B");
         svc.SetAutoConnectPriority(id, new[] { "X", "Y", "Z" });
-        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(new[] { "X", "Y", "Z" });
+        svc.GetPreferredNetworks(id).Should().ContainInOrder("X", "Y", "Z").And.HaveCount(3);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class PerAdapterPreferencesServiceTests
         var id  = Guid.NewGuid();
         svc.SetAutoConnectPriority(id, new[] { "A", "B", "C" });
         svc.MoveUp(id, "C");
-        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(new[] { "A", "C", "B" });
+        svc.GetPreferredNetworks(id).Should().ContainInOrder("A", "C", "B");
     }
 
     [Fact]
