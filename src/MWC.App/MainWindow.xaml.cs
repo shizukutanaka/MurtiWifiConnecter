@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
     private AppUpdateService?         _updater;
     private JumpListService?          _jumpList;
     private NetworkHistoryService?    _history;
+    private SystemTrayService?        _tray;
 
     public MainWindow()
     {
@@ -48,7 +50,10 @@ public partial class MainWindow : Window
             // (ここで二重購読すると前面化処理が 2 回走るため購読しない)
 
             if (DataContext is not MainViewModel vm) return;
+            _tray = svc.GetService<SystemTrayService>();
             await vm.LoadCommand.ExecuteAsync(null);
+            vm.PropertyChanged += OnViewModelPropertyChanged;
+            UpdateTray(vm);
             UpdateJumpList(vm);
             CheckForUpdatesAsync(vm).Forget();
         }
@@ -61,7 +66,11 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        if (DataContext is MainViewModel vm) vm.Dispose();
+        if (DataContext is MainViewModel vm)
+        {
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+            vm.Dispose();
+        }
     }
 
     private async Task CheckForUpdatesAsync(MainViewModel vm)
@@ -247,6 +256,57 @@ public partial class MainWindow : Window
         => ChannelCanvas.BandFilter = WifiBand.Band5GHz;
     private void OnBandSelect6(object sender, RoutedEventArgs e)
         => ChannelCanvas.BandFilter = WifiBand.Band6GHz;
+
+    // ── トレイ更新 ────────────────────────────────────
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // IsScanning が false に戻った = スキャン完了 → トレイ同期
+        if (e.PropertyName == nameof(MainViewModel.IsScanning) &&
+            sender is MainViewModel vm && !vm.IsScanning)
+        {
+            UpdateTray(vm);
+        }
+    }
+
+    private void UpdateTray(MainViewModel vm)
+    {
+        if (_tray is null) return;
+        var executor = App.Host.Services.GetService<ConnectionExecutor>();
+        if (executor is null) return;
+
+        // UI スレッドでスナップショットを取得 (ObservableCollection は UI スレッド専用)
+        var models = vm.Adapters
+            .Select(a => new AdapterMenuModel(a.Id, a.Name, a.Description, a.ConnectedSsid, a.SourceNetworks))
+            .ToList();
+        // WifiNetwork record は不変なのでスナップショットはスレッドセーフ
+        var networkSnapshot = vm.Adapters.ToDictionary(
+            a => a.Id,
+            a => (IReadOnlyList<WifiNetwork>)a.SourceNetworks.ToList());
+
+        _tray.UpdateAdapterMenus(
+            models,
+            async (adapterId, ssid) =>
+            {
+                // WinForms スレッドからの呼び出し。スナップショットを参照してスレッドセーフに接続
+                if (!networkSnapshot.TryGetValue(adapterId, out var nets)) return;
+                var net = nets.FirstOrDefault(n => n.Ssid == ssid && n.HasProfile);
+                if (net is null) return;
+                await executor.ConnectAsync(adapterId, ssid, net.Auth, "", TimeSpan.FromSeconds(20));
+                // 接続完了後、UI スレッドでトレイを再同期
+                Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
+            },
+            async (adapterId) =>
+            {
+                // DisconnectCommand は UI スレッドで実行
+                var ad = Dispatcher.Invoke(() => vm.Adapters.FirstOrDefault(a => a.Id == adapterId));
+                if (ad is null) return;
+                await ad.DisconnectCommand.ExecuteAsync(null);
+                Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
+            });
+
+        if (vm.SelectedAdapter is { } sel)
+            _tray.UpdateStatus(sel.ConnectedSsid, sel.CurrentSignal);
+    }
 
     // ── JumpList更新 ──────────────────────────────────
     private void UpdateJumpList(MainViewModel vm)

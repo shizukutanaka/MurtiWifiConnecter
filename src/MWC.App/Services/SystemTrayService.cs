@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
-using MWC.Core.Abstractions;
 using MWC.Core.Models;
 
 namespace MWC.App.Services;
@@ -29,17 +28,15 @@ namespace MWC.App.Services;
 public sealed class SystemTrayService : IDisposable
 {
     private readonly NotifyIcon                  _tray;
-    private readonly IWifiService                _wifi;
     private readonly Dispatcher                  _dispatcher;
     private readonly ILogger<SystemTrayService>  _log;
     private bool _disposed;
 
     public event Action? RequestOpenMainWindow;
 
-    public SystemTrayService(IWifiService wifi, Dispatcher dispatcher,
-        ILogger<SystemTrayService> log)
+    public SystemTrayService(Dispatcher dispatcher, ILogger<SystemTrayService> log)
     {
-        _wifi = wifi; _dispatcher = dispatcher; _log = log;
+        _dispatcher = dispatcher; _log = log;
 
         _tray = new NotifyIcon
         {
