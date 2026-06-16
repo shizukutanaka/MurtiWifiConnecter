@@ -45,7 +45,7 @@ public class HighDensityProfileXmlTests
         {
             Ssid = "Corp",
             Auth = AuthMethod.WPA3Enterprise,
-            EapType = EapType.PEAP,
+            EapType = EapType.PEAP_MSCHAPv2,
             Username = "user@corp.com",
             Password = "secret",
             ServerNames = new[] { "radius.corp.com" }
