@@ -50,10 +50,10 @@ public class WifiProfileValidatorTests
     [Fact]
     public void ValidateSsid_MultibyteSsid_ChecksByBytes()
     {
-        // "日本語" = 9 bytes UTF-8 × 3 = 27 bytes — OK
+        // "日本語ネットワーク" = 9 chars × 3 bytes UTF-8 = 27 bytes — OK
         WifiProfileValidator.IsValidSsid("日本語ネットワーク").Should().BeTrue();
-        // 11文字 × 3 = 33 bytes — NG
-        WifiProfileValidator.IsValidSsid("日本語ネットワークXXX").Should().BeFalse();
+        // "日本語ネットワーク日本" = 11 chars × 3 bytes = 33 bytes > 32 — NG
+        WifiProfileValidator.IsValidSsid("日本語ネットワーク日本").Should().BeFalse();
     }
 
     // ── Passphrase 検証 ────────────────────────────────────

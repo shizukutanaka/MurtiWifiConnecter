@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`ValidateSsid_MultibyteSsid_ChecksByBytes` test had a wrong string literal — assertion would
+  fail**: The test aimed to verify that an SSID exceeding 32 UTF-8 bytes is rejected, but used
+  `"日本語ネットワークXXX"` (9 × 3-byte Japanese chars + 3 × 1-byte ASCII = 30 bytes), which is
+  *within* the 32-byte limit. `IsValidSsid` returned `true`, making the `Should().BeFalse()`
+  assertion fail. The comment said "11文字 × 3 = 33 bytes" but the string only had 9 Japanese
+  characters. Fixed by replacing the test string with `"日本語ネットワーク日本"` (11 three-byte
+  characters × 3 bytes = 33 bytes > 32), which is correctly rejected by the validator.
 - **`WiFi7MloTests.cs` was missing all using directives and namespace declaration — compile
   error**: The file contained two test classes (`EhtCapabilityMloIntegrationTests` and
   `FrozenDictionaryRegulatoryTests`) but had no `using` statements for `Xunit`, `FluentAssertions`,
