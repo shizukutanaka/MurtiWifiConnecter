@@ -101,12 +101,12 @@ public partial class App : Application
                 s.AddSingleton<MainWindowCommands>(sp => new MainWindowCommands(
                     sp.GetRequiredService<IWifiService>(),
                     sp.GetRequiredService<NotificationService>(),
-                    sp.GetRequiredService<NetworkHistoryService>(),
                     sp.GetRequiredService<NetworkQualityService>(),
                     sp.GetRequiredService<SettingsService>(),
                     sp.GetRequiredService<ThemeService>(),
                     sp.GetRequiredService<ErrorHandlerService>(),
                     sp.GetRequiredService<KeyboardShortcutService>(),
+                    sp.GetRequiredService<ConnectionExecutor>(),
                     sp));
                 s.AddSingleton<NetworkQualityService>();
                 s.AddTransient<AllAdaptersOverviewViewModel>(sp =>

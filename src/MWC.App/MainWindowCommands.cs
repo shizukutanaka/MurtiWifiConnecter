@@ -28,28 +28,29 @@ public sealed class MainWindowCommands
 {
     private readonly IWifiService              _wifi;
     private readonly NotificationService       _notify;
-    private readonly NetworkHistoryService     _history;
     private readonly NetworkQualityService     _quality;
     private readonly SettingsService           _settings;
     private readonly ThemeService              _theme;
     private readonly ErrorHandlerService       _errors;
     private readonly KeyboardShortcutService   _shortcuts;
+    private readonly ConnectionExecutor        _executor;
     private readonly IServiceProvider          _services;
 
     public MainWindowCommands(
         IWifiService wifi,
         NotificationService notify,
-        NetworkHistoryService history,
         NetworkQualityService quality,
         SettingsService settings,
         ThemeService theme,
         ErrorHandlerService errors,
         KeyboardShortcutService shortcuts,
+        ConnectionExecutor executor,
         IServiceProvider services)
     {
-        _wifi = wifi; _notify = notify; _history = history;
+        _wifi = wifi; _notify = notify;
         _quality = quality; _settings = settings; _theme = theme;
-        _errors = errors; _shortcuts = shortcuts; _services = services;
+        _errors = errors; _shortcuts = shortcuts; _executor = executor;
+        _services = services;
     }
 
     /// <summary>
@@ -72,8 +73,8 @@ public sealed class MainWindowCommands
         if (vm.SelectedAdapter is null) return false;
 
         await AdapterConnectExtension.ConnectWithAppleFlowAsync(
-            vm.SelectedAdapter, _wifi, net.Ssid, passphrase, net.Auth,
-            _notify, _history, owner: owner);
+            vm.SelectedAdapter, _executor, net.Ssid, passphrase, net.Auth,
+            _notify, owner: owner);
 
         bool success = vm.SelectedAdapter.ConnectedSsid == net.Ssid;
         if (success)

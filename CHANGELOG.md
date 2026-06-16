@@ -78,6 +78,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   break — `PluginHost` was the sole offender. Found by asking "with ImplicitUsings disabled and CI
   dormant, does the platform-agnostic core actually compile, or do we only assume it does?".
 
+### Changed
+- **The primary interactive Connect path now goes through `ConnectionExecutor` (single
+  entry-point principle), as its own doc already claimed**: `AdapterConnectExtension.
+  ConnectWithAppleFlowAsync` — the flow behind the main window's Connect button — built the
+  profile XML and called `IWifiService.RegisterProfileAsync` + `ConnectAsync` directly, bypassing
+  the executor that `CLAUDE.md` and the executor's own class doc designate as the one place all
+  connects flow through (the doc even *listed* this method as a caller, which was false). As a
+  result the most important, most-observed connect path in the app **missed the per-adapter
+  `SemaphoreSlim`** — so a user pressing Connect while `AutoReconnectService` or
+  `AdapterFailoverService` was mid-connect on the same adapter could issue two overlapping
+  `WlanConnect` calls to one radio (the exact driver-level race the executor's lock exists to
+  prevent) — and also missed the executor's OpenTelemetry activity/metrics and PII-masked
+  structured logging. Rewrote `RunConnectionAsync` to call `executor.ConnectAsync(adapterId, ssid,
+  auth, passphrase, 25s, ct)` (which does register + connect + history + semaphore + tracing in one
+  guarded call); the old "Register"/"Authenticate" progress steps collapse into the single executor
+  call while the cosmetic IP/Internet steps are preserved. Removed the now-duplicate
+  `history.RecordConnection` calls (the executor records history, so keeping them would double-count
+  every interactive connect), which in turn let `MainWindowCommands` drop its now-unused
+  `NetworkHistoryService` dependency. Note: because `Directory.Build.props` sets
+  `TreatWarningsAsErrors=true`, that leftover field would itself have been a CS0414 build error —
+  another sign the solution has not been compiling.
+
 ### Fixed
 - **`MainWindowCommands.MeasureQualityAsync` would not compile (CS1061)**: it called
   `_quality.MeasureAsync().AsTask()`, but `NetworkQualityService.MeasureAsync` returns
