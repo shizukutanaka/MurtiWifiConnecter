@@ -67,10 +67,10 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_OpenNetwork_InfoLevel()
+    public void Analyze_OpenNetwork_WarningLevel()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.Open));
-        advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Info);
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Warning);
     }
 
     [Fact]

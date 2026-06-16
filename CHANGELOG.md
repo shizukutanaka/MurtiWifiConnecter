@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`Analyze_OpenNetwork_InfoLevel` test asserted wrong severity for the open-network advisory
+  (MWC-SEC-005)**: `SecurityAdvisoryService` has always emitted `AdvisorySeverity.Warning` for
+  unencrypted networks (the implementation comment explicitly says "Warning rather than Critical"),
+  but the test checked for `AdvisorySeverity.Info`. The test would have failed on every run. Fixed
+  by correcting the assertion to `Warning` and renaming the test to
+  `Analyze_OpenNetwork_WarningLevel`.
+- **`DifferentAdapters_HaveSeparatePreferences` test used weak `ContainSingle` assertions
+  (`PerAdapterPreferencesTests.cs`)**: `ContainSingle("Home")` in FluentAssertions treats the
+  string argument as the failure message (the `because` parameter), NOT as the expected element
+  value — it only asserts the collection has exactly one element; "Home" was silently discarded.
+  Fixed with `.ContainSingle().Which.Should().Be("Home")` / `.Be("Office")` to actually verify
+  element values.
+- **`FrequencyMhz_IsDerivableFromChannel` property test used wrong 6 GHz frequency formula
+  (`PropertyBasedTests.cs`)**: the test asserted `5950 + (c.Channel - 1) * 5` (gives 5950 MHz for
+  channel 1 — invalid), but IEEE 802.11ax defines the formula as `5950 + channel * 5` (channel 1 =
+  5955 MHz, channel 233 = 7115 MHz). Consistent with `SixGhzChannelHelper.ChannelToFreqMhz` and
+  `RegulatoryDomainService.GetAvailable6GHzChannels`. Fixed by removing the `- 1` offset.
+
 ### Known issues
 - **CI/CodeQL are dormant — manual activation required**: `ci.yml` and `codeql.yml` live under
   `ci/github-workflows/`, which GitHub never executes (only `.github/workflows/` is run). As a
