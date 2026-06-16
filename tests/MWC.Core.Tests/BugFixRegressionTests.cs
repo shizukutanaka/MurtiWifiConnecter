@@ -144,6 +144,38 @@ public class NetworkHistoryAdvancedTests
         svc.GetRecentSsids().Should().BeEmpty();
     }
 
+    [Fact]
+    public void GetStats_ReturnsCorrectAggregates()
+    {
+        var svc = new NetworkHistoryService();
+        // "Alpha": 3 successes, 1 failure
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", false);
+        // "Beta": 1 success, 1 failure
+        svc.RecordConnection("Beta", true);
+        svc.RecordConnection("Beta", false);
+
+        var stats = svc.GetStats(30);
+
+        stats.TotalConnects.Should().Be(4,   "Alpha×3 + Beta×1");
+        stats.TotalFails.Should().Be(2,      "Alpha×1 + Beta×1");
+        stats.UniqueNetworks.Should().Be(2);
+        stats.TopSsid.Should().Be("Alpha",   "most frequent");
+        stats.SuccessRate.Should().BeApproximately(4.0 / 6.0, 0.001);
+    }
+
+    [Fact]
+    public void GetStats_ZeroHistory_SuccessRateIsOne()
+    {
+        var svc   = new NetworkHistoryService();
+        var stats = svc.GetStats(30);
+        stats.TotalConnects.Should().Be(0);
+        stats.TotalFails.Should().Be(0);
+        stats.SuccessRate.Should().Be(1.0, "no data → 100% (not 0/0)");
+    }
+
     [Theory]
     [InlineData(0,    "just now")]
     [InlineData(-2,   "2m ago")]
