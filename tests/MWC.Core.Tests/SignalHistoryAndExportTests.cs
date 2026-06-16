@@ -113,7 +113,6 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_ProducesValidCsv()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("Home",   AuthMethod.WPA3SAE,  90, WifiBand.Band5GHz),
@@ -121,7 +120,7 @@ public class ExportServiceTests
             MakeNetwork("Free",   AuthMethod.Open,     50, WifiBand.Band2_4GHz),
         };
 
-        var csv = svc.ToCsv(nets);
+        var csv = ExportService.ToCsv(nets);
 
         csv.Should().NotBeNullOrEmpty();
         csv.Should().Contain("Home");
@@ -136,19 +135,18 @@ public class ExportServiceTests
     [Fact]
     public void ExportJson_ProducesValidJson()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("JsonNet", AuthMethod.WPA2PSK, 80, WifiBand.Band5GHz),
         };
 
-        var json = svc.ToJson(nets);
+        var json = ExportService.ToJson(nets);
 
         json.Should().NotBeNullOrEmpty();
         json.Should().Contain("JsonNet");
         json.Should().Contain("[");
         json.Should().Contain("]");
-        // JSON として最低限の構造
+        // JSON として最低限の構造 (bare array)
         json.Trim().Should().StartWith("[");
         json.Trim().Should().EndWith("]");
     }
@@ -156,13 +154,12 @@ public class ExportServiceTests
     [Fact]
     public void ExportTxt_ProducesReadableText()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("TxtNet", AuthMethod.WPA3SAE, 85, WifiBand.Band6GHz),
         };
 
-        var txt = svc.ToTxt(nets);
+        var txt = ExportService.ToTxt(nets);
 
         txt.Should().NotBeNullOrEmpty();
         txt.Should().Contain("TxtNet");
@@ -172,8 +169,7 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_EmptyList_ReturnsHeaderOnly()
     {
-        var svc = new ExportService();
-        var csv = svc.ToCsv(Array.Empty<WifiNetwork>());
+        var csv = ExportService.ToCsv(Array.Empty<WifiNetwork>());
 
         csv.Should().NotBeNullOrEmpty("header row must always be present");
         // 少なくともヘッダーが出力される
@@ -185,13 +181,12 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_EscapesCommaInSsid()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("Coffee, Shop", AuthMethod.Open, 60, WifiBand.Band2_4GHz),
         };
 
-        var csv = svc.ToCsv(nets);
+        var csv = ExportService.ToCsv(nets);
 
         csv.Should().NotBeNullOrEmpty();
         // SSID内のカンマは適切にエスケープ/クォートされる

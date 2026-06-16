@@ -28,19 +28,17 @@ public static class ExportService
     };
 
     // ───── CSV ─────
-    public static void ToCsv(IEnumerable<WifiNetwork> networks, string path)
+    public static string ToCsv(IEnumerable<WifiNetwork> networks)
     {
         ArgumentNullException.ThrowIfNull(networks);
-        using var w = new StreamWriter(path, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-        // ヘッダ
-        w.WriteLine("SSID,BSSID(1st),Signal(%),RSSI(dBm),Band,Channel,ChannelWidth(MHz)," +
-                    "PHY,Auth,Cipher,MaxSpeed(Mbps),Vendor,Connected,HasProfile,ScannedAt");
-
+        var sb = new StringBuilder();
+        sb.AppendLine("SSID,BSSID(1st),Signal(%),RSSI(dBm),Band,Channel,ChannelWidth(MHz)," +
+                      "PHY,Auth,Cipher,MaxSpeed(Mbps),Vendor,Connected,HasProfile,ScannedAt");
         var at = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         foreach (var n in networks)
         {
             var bssid = n.BssEntries.Count > 0 ? n.BssEntries[0].Bssid : "";
-            w.WriteLine(string.Join(",",
+            sb.AppendLine(string.Join(",",
                 CsvEscape(n.Ssid),
                 CsvEscape(bssid),
                 n.SignalQuality,
@@ -57,24 +55,32 @@ public static class ExportService
                 n.HasProfile,
                 at));
         }
+        return sb.ToString();
+    }
+
+    public static void ToCsv(IEnumerable<WifiNetwork> networks, string path)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        File.WriteAllText(path, ToCsv(networks), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
     }
 
     // ───── JSON ─────
+    public static string ToJson(IEnumerable<WifiNetwork> networks)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        return JsonSerializer.Serialize(new List<WifiNetwork>(networks), JsonOptions);
+    }
+
     public static void ToJson(IEnumerable<WifiNetwork> networks, string path)
     {
         ArgumentNullException.ThrowIfNull(networks);
-        var payload = new ExportPayload
-        {
-            ScannedAt = DateTimeOffset.UtcNow,
-            Networks = new List<WifiNetwork>(networks)
-        };
-        File.WriteAllText(path,
-            JsonSerializer.Serialize(payload, JsonOptions),
-            Encoding.UTF8);
+        var nets = new List<WifiNetwork>(networks);
+        var payload = new ExportPayload { ScannedAt = DateTimeOffset.UtcNow, Networks = nets };
+        File.WriteAllText(path, JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8);
     }
 
     // ───── TXT ─────
-    public static void ToText(IEnumerable<WifiNetwork> networks, string path)
+    public static string ToTxt(IEnumerable<WifiNetwork> networks)
     {
         ArgumentNullException.ThrowIfNull(networks);
         var sb = new StringBuilder();
@@ -108,7 +114,13 @@ public static class ExportService
         }
         sb.AppendLine(new string('─', 72));
         sb.AppendLine($"Total: {i - 1} networks");
-        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        return sb.ToString();
+    }
+
+    public static void ToText(IEnumerable<WifiNetwork> networks, string path)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        File.WriteAllText(path, ToTxt(networks), Encoding.UTF8);
     }
 
     // ───── helpers ─────
