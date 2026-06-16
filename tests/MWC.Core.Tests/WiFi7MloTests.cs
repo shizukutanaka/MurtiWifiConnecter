@@ -1,5 +1,5 @@
 
-public class EhtCapabilityTests
+public class EhtCapabilityMloIntegrationTests
 {
     [Fact]
     public void EhtCapability_4096Qam_320MHz_IsHighestThroughput()

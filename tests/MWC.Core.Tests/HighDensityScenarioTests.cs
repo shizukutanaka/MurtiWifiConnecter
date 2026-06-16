@@ -690,36 +690,29 @@ public class BssInfoModelTests
     }
 }
 
-public class TroubleshootingHelperTests
+public class TroubleshootingHelperBasicTests
 {
-    private readonly TroubleshootingHelper _svc = new();
-
     [Theory]
-    [InlineData(ConnectionFailure.BadCredentials,      true)]
-    [InlineData(ConnectionFailure.NotInRange,          true)]
-    [InlineData(ConnectionFailure.Timeout,             true)]
-    [InlineData(ConnectionFailure.AdapterDisabled,     true)]
-    [InlineData(ConnectionFailure.InsufficientPrivilege, true)]
-    [InlineData(ConnectionFailure.Unknown,             true)]
-    public void GetAdvice_AllFailures_ReturnsNonEmptyAdvice(ConnectionFailure f, bool _)
+    [InlineData(ConnectionFailure.BadCredentials)]
+    [InlineData(ConnectionFailure.NotInRange)]
+    [InlineData(ConnectionFailure.Timeout)]
+    [InlineData(ConnectionFailure.AdapterDisabled)]
+    [InlineData(ConnectionFailure.InsufficientPrivilege)]
+    [InlineData(ConnectionFailure.Unknown)]
+    public void GetAdvice_AllFailures_ReturnsNonEmptyAdvice(ConnectionFailure f)
     {
-        var advice = _svc.GetAdvice(f);
-        advice.Should().NotBeNullOrEmpty();
-        advice.Should().HaveCountGreaterThan(0);
-        advice.Should().AllSatisfy(a =>
-        {
-            a.Title.Should().NotBeNullOrEmpty();
-            a.Detail.Should().NotBeNullOrEmpty();
-        });
+        var advice = TroubleshootingHelper.GetAdvice(f, AuthMethod.WPA2PSK);
+        advice.Title.Should().NotBeNullOrEmpty();
+        advice.Steps.Should().NotBeEmpty();
     }
 
     [Fact]
     public void GetAdvice_BadCredentials_HasPasswordHint()
     {
-        var advice = _svc.GetAdvice(ConnectionFailure.BadCredentials);
-        var flat = string.Join(" ", advice.Select(a => a.Title + " " + a.Detail));
+        var advice = TroubleshootingHelper.GetAdvice(ConnectionFailure.BadCredentials, AuthMethod.WPA2PSK);
+        var flat = string.Join(" ", advice.Steps);
         flat.Should().NotBeNullOrEmpty();
-        advice.Count.Should().BeGreaterThan(0);
+        advice.Steps.Length.Should().BeGreaterThan(0);
     }
 }
 
@@ -756,7 +749,7 @@ public class OweSelectionServiceTests2
     }
 }
 
-public class Hotspot20ServiceTests
+public class Hotspot20ServiceBasicTests
 {
     private readonly Hotspot20Service _svc = new();
 

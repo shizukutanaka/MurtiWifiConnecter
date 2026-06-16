@@ -92,9 +92,9 @@ public class SignalHistoryServiceAdditionalTests
 }
 
 // ════════════════════════════════════════════════
-//  ExportService 高密度テスト
+//  ExportService 文字列出力テスト
 // ════════════════════════════════════════════════
-public class ExportServiceTests
+public class ExportServiceStringOutputTests
 {
     private static WifiNetwork MakeNetwork(string ssid, AuthMethod auth, int signal, WifiBand band) =>
         new()
