@@ -37,7 +37,7 @@ public class EvilTwinDetectorTests
         var verdict = detector.Analyze(evil, all);
 
         verdict.IsSuspect.Should().BeTrue();
-        verdict.Reasons.Should().Contain(r => r.Contains("セキュリティ設定が混在"));
+        verdict.Reasons.Should().Contain(r => r.Contains("different security configurations"));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class EvilTwinDetectorTests
         var verdict = detector.Analyze(downgraded, new[] { downgraded });
 
         verdict.IsSuspect.Should().BeTrue();
-        verdict.Reasons.Should().Contain(r => r.Contains("降格") || r.Contains("なりすまし"));
+        verdict.Reasons.Should().Contain(r => r.Contains("downgrade") || r.Contains("impersonation"));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class EvilTwinDetectorTests
         var verdict = detector.Analyze(fake, new[] { fake });
 
         verdict.IsSuspect.Should().BeTrue();
-        verdict.Reasons.Should().Contain(r => r.Contains("なりすまし"));
+        verdict.Reasons.Should().Contain(r => r.Contains("impersonation"));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class EvilTwinDetectorTests
         var different = Net("Office", AuthMethod.WPA2PSK, "99:88:77:11:22:33");
         var verdict = detector.Analyze(different, new[] { different });
 
-        verdict.Reasons.Should().Contain(r => r.Contains("OUI") || r.Contains("ベンダー"));
+        verdict.Reasons.Should().Contain(r => r.Contains("OUI") || r.Contains("vendor"));
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class EvilTwinDetectorTests
         };
         var verdict = detector.Analyze(net, new[] { net });
         // 既知ベンダー・既知BSSIDなので疑いなし
-        verdict.Reasons.Should().NotContain(r => r.Contains("ベンダー"));
+        verdict.Reasons.Should().NotContain(r => r.Contains("vendor"));
     }
 
 }

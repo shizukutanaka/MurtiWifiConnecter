@@ -79,6 +79,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dormant, does the platform-agnostic core actually compile, or do we only assume it does?".
 
 ### Fixed
+- **`MainWindowCommands.MeasureQualityAsync` would not compile (CS1061)**: it called
+  `_quality.MeasureAsync().AsTask()`, but `NetworkQualityService.MeasureAsync` returns
+  `Task<NetworkQualityResult>` — and `Task<T>` has no `AsTask()` method (that is on `ValueTask<T>`).
+  `ErrorHandlerService.TryAsync` already takes a `Func<Task<T>>`, so the call just needed
+  `() => _quality.MeasureAsync()`. Another App-layer compile break that the dormant CI hid (the WPF
+  project has never built on push). Removed the spurious `.AsTask()`.
+- **`NetworkQualityService.MeasureAsync` had an inconsistent, misleading cancellation contract**:
+  the ping loop began each iteration with `if (ct.IsCancellationRequested) break;` — a silent exit
+  that returned a *partial* result as if it were a real measurement, and (because the tail
+  `lost += samples - hits.Count - lost` counts never-attempted pings as lost) reported an inflated
+  packet-loss percentage for a run the user cancelled. Meanwhile the very next line,
+  `await Task.Delay(200, ct)`, *throws* `OperationCanceledException` on cancellation — so the same
+  method honored cancellation two different ways depending on which statement observed it, and the
+  CLI's `OperationCanceledException → "Measurement cancelled."` handler only fired for one of them.
+  Replaced the silent `break` with `ct.ThrowIfCancellationRequested()` so cancellation is uniformly
+  propagated as an exception (no bogus partial result), and added a `catch (OperationCanceledException)
+  { throw; }` ahead of the best-effort `catch { lost++; }` so a future ct-aware ping overload cannot
+  have its cancellation swallowed as a "lost packet". No test exercised this path (it does live pings).
+- **Five clusters of stale Japanese test assertions would fail the moment the suite ran**: the prior
+  English-conversion sweep of Core service outputs missed several assertions, invisible because the
+  test assembly had not compiled (and CI is dormant). Each was realigned to the exact current English
+  output: `BugFixRegressionTests.GradeLabel_MatchesLatencyAndLoss` (`優良/良好/普通/不良` →
+  `Excellent/Good/Fair/Poor` against `NetworkQualityResult.GradeLabel`); `AppleHigTests.
+  GetSignalLabel_ReturnsHumanLabel` (`優良/良好/普通/弱い/圏外` → `Excellent/Good/Fair/Weak/None`);
+  `BeaconUptimeEstimatorTests.ToLabel_HumanReadable` (`2日/3時間/15分` → `2d/3h/15m`);
+  `EvilTwinAndKalmanTests` four reason checks (`セキュリティ設定が混在/降格/なりすまし/ベンダー` →
+  `different security configurations/downgrade/impersonation/vendor`); and
+  `AppleHigTests.GetAdvice_BadCredentials_MentionsPassword` (`パスワード` → `password` against the
+  now-English `TroubleshootingHelper` steps). Two of these were not mere format mismatches but
+  silently-passing **false-positive** tests: `EvilTwin`'s `NotContain("ベンダー")` could never observe
+  the English "vendor" reason so it passed vacuously (would not catch a real vendor-mismatch
+  regression) — retargeted to "vendor"; and `BugFixRegressionTests.LastConnectedLabel_TimeLabels` had
+  been weakened to a bare `NotBeNullOrWhiteSpace()` with its `expected` parameter (`たった今/2分前/…`)
+  dead — restored to a real `Should().Be(...)` against the English labels (`just now/2m ago/1h ago/
+  7h ago`), whose boundaries are deterministic. Removed a dead `|| "同一チャネル"` operand from a
+  Handover interference check (source emits English "co-channel"). Found by a project-wide scan for
+  Japanese literals appearing as *asserted values* (not `because:` reasons or test-input echoes).
 - **Auto-reconnect and failover silently failed for every secured (PSK) network**: the most
   consequential bug of the session. `AutoReconnectService` and `AdapterFailoverService` re-connect
   with `passphrase=""` (they hold no saved key — the OS does), but `ConnectionExecutor.ConnectAsync`

@@ -161,7 +161,7 @@ public sealed class MainWindowCommands
     public async Task<string> MeasureQualityAsync(string statusMessage)
     {
         var result = await _errors.TryAsync(
-            () => _quality.MeasureAsync().AsTask(),
+            () => _quality.MeasureAsync(),
             MWC.App.Resources.L.Get("Quality_Op"));
         if (result.IsCancelled) return MWC.App.Resources.L.Get("Quality_Cancelled");
         if (!result.Success)    return result.ErrorMessage ?? MWC.App.Resources.L.Get("Quality_Failed");

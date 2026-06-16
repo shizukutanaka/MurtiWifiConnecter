@@ -153,7 +153,7 @@ public class InterferenceAnalyzerTests
         var report = _svc.Analyze(target, all);
 
         report.Score.Should().BeLessThan(80);
-        report.Factors.Should().Contain(f => f.Contains("co-channel") || f.Contains("同一チャネル"));
+        report.Factors.Should().Contain(f => f.Contains("co-channel"));
     }
 
     [Fact]

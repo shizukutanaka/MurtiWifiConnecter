@@ -36,7 +36,11 @@ public sealed class NetworkQualityService
 
         for (int i = 0; i < samples; i++)
         {
-            if (ct.IsCancellationRequested) break;
+            // キャンセルは一貫して OperationCanceledException で伝播させる。
+            // (旧実装は break で部分結果を返し、未計測分を「ロスト」に数えて
+            //  パケットロス率を水増しした誤った計測値を正常結果として返していた。
+            //  下の Task.Delay(ct) は OCE を投げるため、ループ先頭も throw に揃える。)
+            ct.ThrowIfCancellationRequested();
             try
             {
                 var r = await ping.SendPingAsync(host, 1500).ConfigureAwait(false);
@@ -45,6 +49,7 @@ public sealed class NetworkQualityService
                 else
                     lost++;
             }
+            catch (OperationCanceledException) { throw; }
             catch { lost++; }
             if (i < samples - 1) await Task.Delay(200, ct).ConfigureAwait(false);
         }

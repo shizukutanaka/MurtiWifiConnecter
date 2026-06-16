@@ -59,9 +59,9 @@ public class BeaconUptimeEstimatorTests
     }
 
     [Theory]
-    [InlineData(2.0, 0, 0, "2日")]
-    [InlineData(0, 3, 0, "3時間")]
-    [InlineData(0, 0, 15, "15分")]
+    [InlineData(2.0, 0, 0, "2d")]
+    [InlineData(0, 3, 0, "3h")]
+    [InlineData(0, 0, 15, "15m")]
     public void ToLabel_HumanReadable(double days, int hours, int minutes, string expectedFragment)
     {
         var t = TimeSpan.FromDays(days) + TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);

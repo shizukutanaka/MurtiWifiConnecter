@@ -35,12 +35,12 @@ public class SecurityBadgeServiceTests
            .Should().Contain("No Encryption");
 
     [Theory]
-    [InlineData(100, "優良")]
-    [InlineData(80,  "優良")]
-    [InlineData(60,  "良好")]
-    [InlineData(35,  "普通")]
-    [InlineData(1,   "弱い")]
-    [InlineData(0,   "圏外")]
+    [InlineData(100, "Excellent")]
+    [InlineData(80,  "Excellent")]
+    [InlineData(60,  "Good")]
+    [InlineData(35,  "Fair")]
+    [InlineData(1,   "Weak")]
+    [InlineData(0,   "None")]
     public void GetSignalLabel_ReturnsHumanLabel(int quality, string expected)
         => SecurityBadgeService.GetSignalLabel(quality).Should().Be(expected);
 
@@ -76,7 +76,7 @@ public class TroubleshootingHelperTests
     {
         var a = TroubleshootingHelper.GetAdvice(ConnectionFailure.BadCredentials, AuthMethod.WPA2PSK);
         // 解決手順にパスワード関連の言及があること
-        System.Array.Exists(a.Steps, s => s.Contains("パスワード")).Should().BeTrue();
+        System.Array.Exists(a.Steps, s => s.Contains("password")).Should().BeTrue();
     }
 
     [Fact]

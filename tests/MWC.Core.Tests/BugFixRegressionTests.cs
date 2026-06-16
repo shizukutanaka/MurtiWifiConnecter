@@ -41,10 +41,10 @@ public class NetworkQualityRegressionTests
     }
 
     [Theory]
-    [InlineData(10,  0,  "優良")]
-    [InlineData(40,  1,  "良好")]
-    [InlineData(80,  4,  "普通")]
-    [InlineData(999, 100,"不良")]
+    [InlineData(10,  0,  "Excellent")]
+    [InlineData(40,  1,  "Good")]
+    [InlineData(80,  4,  "Fair")]
+    [InlineData(999, 100,"Poor")]
     public void GradeLabel_MatchesLatencyAndLoss(int ms, double loss, string expectedGrade)
     {
         QualityGrade grade = ms >= 999 || loss >= 20 ? QualityGrade.Poor :
@@ -142,18 +142,17 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Theory]
-    [InlineData(0,    "たった今")]
-    [InlineData(-2,   "2分前")]
-    [InlineData(-90,  "1時間前")]
-    [InlineData(-168, "7時間前")]
+    [InlineData(0,    "just now")]
+    [InlineData(-2,   "2m ago")]
+    [InlineData(-90,  "1h ago")]
+    [InlineData(-168, "7h ago")]
     public void LastConnectedLabel_TimeLabels(int minutesAgo, string expected)
     {
         var at = minutesAgo == -90 ? DateTimeOffset.UtcNow.AddHours(-1.5)
                : minutesAgo == -168 ? DateTimeOffset.UtcNow.AddHours(-7)
                : DateTimeOffset.UtcNow.AddMinutes(minutesAgo);
         var e = new ConnectionHistoryEntry("X", at, 1, 0);
-        // おおよその一致を確認(秒の誤差を許容)
-        e.LastConnectedLabel.Should().NotBeNullOrWhiteSpace();
+        e.LastConnectedLabel.Should().Be(expected);
     }
 }
 
