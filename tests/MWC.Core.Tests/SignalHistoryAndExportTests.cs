@@ -205,47 +205,47 @@ public class ExportServiceTests
 // ════════════════════════════════════════════════
 public class SecurityBadgeServiceAdvancedTests
 {
+    // SecurityBadgeService is a static class — no instantiation.
+    // SecurityBadge fields: Label, Level, TechLabel (no Auth/IsModern/Description).
+    // SecurityLevel enum: Excellent, Good, Fair, Weak, Danger (no Critical).
     [Theory]
-    [InlineData(AuthMethod.WPA3SAE,           SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA3Enterprise192, SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA3Enterprise,    SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA2Enterprise,    SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.WPA2PSK,           SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.OWE,               SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak,      false)]
-    [InlineData(AuthMethod.WEP,               SecurityLevel.Critical,  false)]
-    [InlineData(AuthMethod.Open,              SecurityLevel.Critical,  false)]
-    public void GetLevel_CorrectLevel_AndIsModern(AuthMethod auth, SecurityLevel expected, bool modern)
+    [InlineData(AuthMethod.WPA3SAE,           SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA3Enterprise192, SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA3Enterprise,    SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA2Enterprise,    SecurityLevel.Good)]
+    [InlineData(AuthMethod.WPA2PSK,           SecurityLevel.Good)]
+    [InlineData(AuthMethod.OWE,               SecurityLevel.Fair)]
+    [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak)]
+    [InlineData(AuthMethod.WEP,               SecurityLevel.Danger)]
+    [InlineData(AuthMethod.Open,              SecurityLevel.Danger)]
+    public void GetBadge_CorrectLevel(AuthMethod auth, SecurityLevel expected)
     {
-        var svc = new SecurityBadgeService();
-        var level = svc.GetLevel(auth);
-        var badge = svc.GetBadge(auth);
+        var badge = SecurityBadgeService.GetBadge(auth);
 
-        level.Should().Be(expected);
         badge.Level.Should().Be(expected);
-        badge.Auth.Should().Be(auth);
-        badge.IsModern.Should().Be(modern);
         badge.Label.Should().NotBeNullOrEmpty("every auth method must have a label");
+        badge.TechLabel.Should().NotBeNullOrEmpty("every auth method must have a tech label");
     }
 
     [Fact]
     public void GetBadge_AllAuthMethods_HaveNonEmptyLabels()
     {
-        var svc = new SecurityBadgeService();
         foreach (var auth in Enum.GetValues<AuthMethod>())
         {
-            var badge = svc.GetBadge(auth);
+            var badge = SecurityBadgeService.GetBadge(auth);
             badge.Label.Should().NotBeNullOrEmpty(because: $"{auth} must have a label");
-            badge.Description.Should().NotBeNullOrEmpty(because: $"{auth} must have a description");
+            badge.TechLabel.Should().NotBeNullOrEmpty(because: $"{auth} must have a tech label");
         }
     }
 
     [Fact]
     public void SecurityLevel_Ordering_IsCorrect()
     {
-        // Excellent > Good > Weak > Critical
-        ((int)SecurityLevel.Excellent).Should().BeGreaterThan((int)SecurityLevel.Good);
-        ((int)SecurityLevel.Good).Should().BeGreaterThan((int)SecurityLevel.Weak);
-        ((int)SecurityLevel.Weak).Should().BeGreaterThan((int)SecurityLevel.Critical);
+        // Enum is ordered best→worst: Excellent(0) < Good(1) < Fair(2) < Weak(3) < Danger(4)
+        // Lower ordinal = higher security (used by UI color logic: ≤Good=green, ≥Weak=red).
+        ((int)SecurityLevel.Excellent).Should().BeLessThan((int)SecurityLevel.Good);
+        ((int)SecurityLevel.Good).Should().BeLessThan((int)SecurityLevel.Fair);
+        ((int)SecurityLevel.Fair).Should().BeLessThan((int)SecurityLevel.Weak);
+        ((int)SecurityLevel.Weak).Should().BeLessThan((int)SecurityLevel.Danger);
     }
 }
