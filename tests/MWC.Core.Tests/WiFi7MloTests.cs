@@ -1,3 +1,9 @@
+using FluentAssertions;
+using MWC.Core.Models;
+using MWC.Core.Services;
+using Xunit;
+
+namespace MWC.Core.Tests;
 
 public class EhtCapabilityMloIntegrationTests
 {

@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`WiFi7MloTests.cs` was missing all using directives and namespace declaration — compile
+  error**: The file contained two test classes (`EhtCapabilityMloIntegrationTests` and
+  `FrozenDictionaryRegulatoryTests`) but had no `using` statements for `Xunit`, `FluentAssertions`,
+  `MWC.Core.Models`, or `MWC.Core.Services`, and no `namespace MWC.Core.Tests;` declaration.
+  Because the project-level implicit usings only cover `System.*` namespaces, all referenced types
+  were unresolved — CS0246 errors for every type and attribute in the file. Added the four missing
+  `using` directives and the `namespace` declaration to match the pattern of every other test file
+  in the project.
 - **`FakeWifi` in `FinalValidationV9Tests.cs` was missing three `IWifiService` methods — compile
   error**: `IWifiService` declares 8 methods (`GetAdaptersAsync`, `ScanAsync`,
   `RegisterProfileAsync`, `ConnectAsync`, `DisconnectAsync`, `DeleteProfileAsync`,
