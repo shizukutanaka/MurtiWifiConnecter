@@ -519,3 +519,35 @@ public class ProfileXmlBuilderEapTlsRegressionTests
         serverNames!.Value.Should().Be("radius.example.com;backup.example.com");
     }
 }
+
+// ═══════════════════════════════════════════════
+//  PiiMask 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// PiiMask.Ssid は「先頭 2 文字残し + 残りをアスタリスク(最大6)」の契約を満たすこと。
+/// 以前は length ≤ 2 のケースで ssid[0] のみ返し、2 文字目を誤って隠していた。
+/// </summary>
+public class PiiMaskSsidTests
+{
+    [Theory]
+    [InlineData(null,          "(empty)")]
+    [InlineData("",            "(empty)")]
+    [InlineData("A",           "A*")]        // 1 char: show it, always append 1 star
+    [InlineData("AB",          "AB*")]       // 2 chars: keep both (was "A*" — bug fixed)
+    [InlineData("ABC",         "AB*")]       // 3 chars: keep 2, mask 1
+    [InlineData("MyWiFi",     "My****")]    // 6 chars: keep 2, mask 4
+    [InlineData("HomeNetwork", "Ho******")] // 11 chars: keep 2, mask 6 (cap)
+    [InlineData("XY",          "XY*")]      // regression: must NOT be "X*"
+    public void Ssid_MasksCorrectly(string? input, string expected)
+        => PiiMask.Ssid(input).Should().Be(expected);
+
+    [Fact]
+    public void Ssid_LongSsid_MasksAtMostSixChars()
+    {
+        var result = PiiMask.Ssid("ABCDEFGHIJKLMNOP");  // 16 chars
+        result.Should().StartWith("AB");
+        result.Should().EndWith("******");
+        result.Length.Should().Be(8, "2 kept + 6 stars cap");
+    }
+}

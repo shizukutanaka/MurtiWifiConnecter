@@ -17,7 +17,8 @@ public static class PiiMask
     public static string Ssid(string? ssid)
     {
         if (string.IsNullOrEmpty(ssid)) return "(empty)";
-        if (ssid.Length <= 2) return ssid[0] + "*";
-        return ssid.Substring(0, 2) + new string('*', Math.Min(ssid.Length - 2, 6));
+        int keep   = Math.Min(2, ssid.Length);
+        int hidden = ssid.Length - keep;
+        return ssid.Substring(0, keep) + new string('*', hidden > 0 ? Math.Min(hidden, 6) : 1);
     }
 }
