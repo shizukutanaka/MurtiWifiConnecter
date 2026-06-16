@@ -10,9 +10,9 @@ using Xunit;
 namespace MWC.Core.Tests;
 
 // ════════════════════════════════════════════════
-//  SignalHistoryService 高密度テスト
+//  SignalHistoryService 追加テスト
 // ════════════════════════════════════════════════
-public class SignalHistoryServiceTests
+public class SignalHistoryServiceAdditionalTests
 {
     private static WifiNetwork MakeNet(string ssid, int quality, int? rssi = null) =>
         new() { Ssid = ssid, SignalQuality = quality, Rssi = rssi };
