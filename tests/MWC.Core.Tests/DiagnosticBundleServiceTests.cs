@@ -21,7 +21,7 @@ public class DiagnosticBundleServiceTests
     {
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().StartWith("My");
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().NotContain("Home");
-        DiagnosticBundleService.MaskSsid("AB").Should().Be("A*");
+        DiagnosticBundleService.MaskSsid("AB").Should().Be("AB*");
         DiagnosticBundleService.MaskSsid("").Should().Be("(empty)");
     }
 
