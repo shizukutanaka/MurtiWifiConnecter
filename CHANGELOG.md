@@ -118,7 +118,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Replaced the silent `break` with `ct.ThrowIfCancellationRequested()` so cancellation is uniformly
   propagated as an exception (no bogus partial result), and added a `catch (OperationCanceledException)
   { throw; }` ahead of the best-effort `catch { lost++; }` so a future ct-aware ping overload cannot
-  have its cancellation swallowed as a "lost packet". No test exercised this path (it does live pings).
+  have its cancellation swallowed as a "lost packet". Also removed the now-dead
+  `lost += samples - hits.Count - lost` tail line: with no early `break`, the loop always either
+  completes all `samples` (each iteration adds exactly one to `hits` or `lost`) or throws, so that
+  expression was provably `0` — and keeping it would silently resurrect the inflated-loss bug if a
+  `break` were ever reintroduced. No test exercised this path (it does live pings).
 - **Five clusters of stale Japanese test assertions would fail the moment the suite ran**: the prior
   English-conversion sweep of Core service outputs missed several assertions, invisible because the
   test assembly had not compiled (and CI is dormant). Each was realigned to the exact current English

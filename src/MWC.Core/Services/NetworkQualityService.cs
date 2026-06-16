@@ -54,9 +54,8 @@ public sealed class NetworkQualityService
             if (i < samples - 1) await Task.Delay(200, ct).ConfigureAwait(false);
         }
 
-        // 計測できなかった分を lost に加算
-        lost += (samples - hits.Count - lost);
-
+        // ループは全 samples 回完走するか例外で抜けるかのいずれかで、各反復は
+        // 必ず hits か lost を 1 つ増やす。よって完走時は hits.Count + lost == samples。
         int avg = hits.Count > 0 ? (int)Math.Round(hits.Average(x => (double)x)) : 999;
         int min = hits.Count > 0 ? hits.Min() : 999;
         int max = hits.Count > 0 ? hits.Max() : 999;
