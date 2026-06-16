@@ -53,8 +53,8 @@ public class PerAdapterPreferencesServiceTests
         svc.AddPreferred(id1, "Home");
         svc.AddPreferred(id2, "Office");
 
-        svc.GetPreferredNetworks(id1).Should().ContainSingle("Home");
-        svc.GetPreferredNetworks(id2).Should().ContainSingle("Office");
+        svc.GetPreferredNetworks(id1).Should().ContainSingle().Which.Should().Be("Home");
+        svc.GetPreferredNetworks(id2).Should().ContainSingle().Which.Should().Be("Office");
         svc.GetPreferredNetworks(id1).Should().NotContain("Office");
     }
 
