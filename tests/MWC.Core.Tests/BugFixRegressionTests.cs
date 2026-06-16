@@ -404,6 +404,76 @@ public class ConnectionExecutorShouldRegisterTests
 }
 
 // ═══════════════════════════════════════════════
+//  ConnectionExecutor ユーザー切断抑制テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// DisconnectAsync がユーザー切断タイムスタンプを記録し、
+/// WasRecentlyDisconnectedByUser が正しい true/false を返すことを確認。
+/// これが壊れると AutoReconnect がユーザーの切断意図を無視して再接続する。
+/// </summary>
+public class ConnectionExecutorDisconnectInhibitTests
+{
+    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        wifi.DisconnectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+        return (new ConnectionExecutor(
+            wifi, new NetworkHistoryService(),
+            NullLogger<ConnectionExecutor>.Instance), wifi);
+    }
+
+    [Fact]
+    public async Task AfterDisconnect_WasRecentlyDisconnectedByUser_ReturnsTrue()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        await executor.DisconnectAsync(id);
+
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.FromSeconds(15))
+            .Should().BeTrue("timestamp was just recorded");
+    }
+
+    [Fact]
+    public void WithoutDisconnect_WasRecentlyDisconnectedByUser_ReturnsFalse()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.FromSeconds(15))
+            .Should().BeFalse("no disconnect was recorded for this adapter");
+    }
+
+    [Fact]
+    public async Task DifferentAdapter_NotInhibited()
+    {
+        var (executor, _) = Build();
+        var idA = Guid.NewGuid();
+        var idB = Guid.NewGuid();
+
+        await executor.DisconnectAsync(idA);
+
+        executor.WasRecentlyDisconnectedByUser(idB, TimeSpan.FromSeconds(15))
+            .Should().BeFalse("only adapter A was disconnected");
+    }
+
+    [Fact]
+    public async Task ZeroWindow_AlwaysReturnsFalse()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        await executor.DisconnectAsync(id);
+
+        // TimeSpan.Zero window: only exact timestamp match passes (effectively never)
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.Zero)
+            .Should().BeFalse("zero-length window closes immediately");
+    }
+}
+
+// ═══════════════════════════════════════════════
 //  ProfileXmlBuilder EAP-TLS 回帰テスト
 // ═══════════════════════════════════════════════
 
