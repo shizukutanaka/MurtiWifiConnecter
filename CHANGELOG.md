@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`EapTls_EmptyServerNames` / `EapTls_WithServerNames` tests called `.Descendants()` on a
+  `string` (`BugFixRegressionTests.cs`)**: `ProfileXmlBuilder.Build` returns a `string`, and
+  `string` has no `.Descendants(XName)` method — this was a compile error that would prevent the
+  entire test assembly from building. `ProfileXmlBuilderTests.cs` correctly calls
+  `XDocument.Parse(xml)` first; the EAP-TLS regression tests missed that step. Fixed by renaming
+  the local variable to `xmlStr`, parsing with `XDocument.Parse(xmlStr)` to `doc`, then calling
+  `doc.Descendants(...)`.
 - **`Analyze_OpenNetwork_InfoLevel` test asserted wrong severity for the open-network advisory
   (MWC-SEC-005)**: `SecurityAdvisoryService` has always emitted `AdvisorySeverity.Warning` for
   unencrypted networks (the implementation comment explicitly says "Warning rather than Critical"),

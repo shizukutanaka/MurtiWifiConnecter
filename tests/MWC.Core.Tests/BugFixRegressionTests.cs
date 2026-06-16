@@ -490,7 +490,7 @@ public class ProfileXmlBuilderEapTlsRegressionTests
     [Fact]
     public void EapTls_EmptyServerNames_ProducesEmptyElementNotException()
     {
-        var xml = ProfileXmlBuilder.Build(new WifiProfileSpec
+        var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
         {
             Ssid        = "Corp",
             Auth        = AuthMethod.WPA2Enterprise,
@@ -498,7 +498,8 @@ public class ProfileXmlBuilderEapTlsRegressionTests
             ServerNames = Array.Empty<string>(),
         });
 
-        var serverNames = xml.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        var doc = XDocument.Parse(xmlStr);
+        var serverNames = doc.Descendants(EtNs + "ServerNames").FirstOrDefault();
         serverNames.Should().NotBeNull("ServerNames element must always be present");
         serverNames!.Value.Should().BeEmpty("empty array → empty string, not null or semicolons");
     }
@@ -506,7 +507,7 @@ public class ProfileXmlBuilderEapTlsRegressionTests
     [Fact]
     public void EapTls_WithServerNames_JoinedBySemicolon()
     {
-        var xml = ProfileXmlBuilder.Build(new WifiProfileSpec
+        var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
         {
             Ssid        = "Corp",
             Auth        = AuthMethod.WPA2Enterprise,
@@ -514,7 +515,8 @@ public class ProfileXmlBuilderEapTlsRegressionTests
             ServerNames = new[] { "radius.example.com", "backup.example.com" },
         });
 
-        var serverNames = xml.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        var doc = XDocument.Parse(xmlStr);
+        var serverNames = doc.Descendants(EtNs + "ServerNames").FirstOrDefault();
         serverNames.Should().NotBeNull();
         serverNames!.Value.Should().Be("radius.example.com;backup.example.com");
     }
