@@ -63,17 +63,17 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
             try
             {
-                // ユーザーが DisconnectAsync ボタンで切断した場合はスキップ
+                // 安い同期チェックを先に実行し、不要な非同期 API 呼び出しを防止する。
+                // ① ユーザーが DisconnectAsync で明示的に切断した場合はスキップ
                 if (_executor.WasRecentlyDisconnectedByUser(ev.AdapterId, TimeSpan.FromSeconds(15)))
                     continue;
+                // ② このアダプターで自動再接続が無効なら GetAdaptersAsync を呼ばずにスキップ
+                if (!_adapterPrefs.IsAutoReconnectEnabled(ev.AdapterId)) continue;
 
                 var adapters = await _wifi.GetAdaptersAsync(ct).ConfigureAwait(false);
                 var disconnected = adapters
                     .FirstOrDefault(a => a.Id == ev.AdapterId && a.ConnectedSsid is null);
                 if (disconnected is null) continue;  // 再接続済み or 別アダプター
-
-                // このアダプタで自動再接続が無効なら何もしない
-                if (!_adapterPrefs.IsAutoReconnectEnabled(ev.AdapterId)) continue;
 
                 var scan = await _wifi.ScanAsync(ev.AdapterId, ct).ConfigureAwait(false);
 
