@@ -14,6 +14,19 @@ public static class TroubleshootingHelper
     {
         return failure switch
         {
+            // Guarded cases must precede unguarded cases for the same discriminant.
+            ConnectionFailure.BadCredentials when auth == AuthMethod.WPA2Enterprise
+                or auth == AuthMethod.WPA3Enterprise => new TroubleshootingAdvice(
+                Title:   "Enterprise Authentication Failed",
+                Reason:  "The username or password is incorrect.",
+                Steps:
+                [
+                    "Verify your credentials with the network administrator",
+                    "If a domain is required, enter it as DOMAIN\\username",
+                    "Ask your administrator whether the certificate has expired"
+                ],
+                Icon: "🏢"),
+
             ConnectionFailure.BadCredentials => new TroubleshootingAdvice(
                 Title:   "Wrong Password",
                 Reason:  "The password you entered does not match the access point.",
@@ -68,18 +81,6 @@ public static class TroubleshootingHelper
                     "Or sign in with an administrator account and try again"
                 ],
                 Icon: "🔒"),
-
-            ConnectionFailure.BadCredentials when auth == AuthMethod.WPA2Enterprise
-                or auth == AuthMethod.WPA3Enterprise => new TroubleshootingAdvice(
-                Title:   "Enterprise Authentication Failed",
-                Reason:  "The username or password is incorrect.",
-                Steps:
-                [
-                    "Verify your credentials with the network administrator",
-                    "If a domain is required, enter it as DOMAIN\\username",
-                    "Ask your administrator whether the certificate has expired"
-                ],
-                Icon: "🏢"),
 
             _ => new TroubleshootingAdvice(
                 Title:   "Connection Failed",

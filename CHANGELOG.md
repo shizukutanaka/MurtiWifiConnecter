@@ -873,6 +873,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zeroed counts rather than signalling a bad call. Added `ArgumentOutOfRangeException` guard at the
   entry point; a `[Theory]` regression test covers `0`, `-1`, and `-30`.
 
+- **`TroubleshootingHelper.GetAdvice` Enterprise guard was dead code**: in the switch expression
+  the unguarded `ConnectionFailure.BadCredentials` arm appeared before the guarded
+  `ConnectionFailure.BadCredentials when auth == WPA2Enterprise or WPA3Enterprise` arm. Because
+  C# switch expressions evaluate top-to-bottom and the first match wins, the Enterprise branch
+  never executed — Enterprise credential failures produced a generic "Wrong Password" message
+  (no mention of DOMAIN\\username or certificate expiry). Fixed by moving the guarded arm first.
+
+- **CS0101 duplicate class names across test files** (7 fixes across 4 files):
+  `SignalHistoryServiceTests`, `ExportServiceTests`, `EhtCapabilityTests`,
+  `TroubleshootingHelperTests`, and `Hotspot20ServiceTests` each appeared in two files in the
+  same `MWC.Core.Tests` namespace, causing build-breaking CS0101 errors. The secondary copies
+  were renamed (`SignalHistoryServiceAdditionalTests`, `ExportServiceStringOutputTests`,
+  `EhtCapabilityMloIntegrationTests`, `TroubleshootingHelperBasicTests`,
+  `Hotspot20ServiceBasicTests`). The `TroubleshootingHelperTests` copy in
+  `HighDensityScenarioTests.cs` also had API errors (static class instantiated, wrong arg
+  count, non-existent `Detail`/`Count` members) fixed simultaneously.
+
 ## [3.11.0] - 2026-05-13
 
 ### 省電力分析・OUI ベンダー照合 (ADR-0024)
