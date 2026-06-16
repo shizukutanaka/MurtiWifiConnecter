@@ -14,83 +14,80 @@ namespace MWC.Core.Tests;
 // ════════════════════════════════════════════════
 public class SignalHistoryServiceTests
 {
+    private static WifiNetwork MakeNet(string ssid, int quality, int? rssi = null) =>
+        new() { Ssid = ssid, SignalQuality = quality, Rssi = rssi };
+
     [Fact]
-    public void AddSignal_Then_GetHistory_ReturnsChronological()
+    public void Record_Then_GetHistory_ReturnsNewestFirst()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
 
-        svc.AddSignal(id, "TestNet", -50);
-        svc.AddSignal(id, "TestNet", -60);
-        svc.AddSignal(id, "TestNet", -45);
+        svc.Record(new[] { MakeNet("TestNet", 50, -70) });
+        svc.Record(new[] { MakeNet("TestNet", 60, -60) });
+        svc.Record(new[] { MakeNet("TestNet", 55, -65) });
 
-        var history = svc.GetHistory(id, "TestNet");
+        var history = svc.GetHistory("TestNet");
 
         history.Should().NotBeEmpty();
-        history.Count.Should().BeGreaterOrEqualTo(3);
+        history.Count.Should().Be(3);
+        // newest-first ordering
+        history[0].At.Should().BeOnOrAfter(history[1].At);
         history.Should().AllSatisfy(h =>
         {
-            h.Rssi.Should().BeLessOrEqualTo(0, "RSSI must be negative dBm");
-            h.Rssi.Should().BeGreaterThan(-120);
-            h.Timestamp.Should().BeBefore(DateTimeOffset.UtcNow.AddSeconds(1));
+            h.Quality.Should().BeInRange(0, 100);
+            h.At.Should().BeBefore(DateTimeOffset.UtcNow.AddSeconds(1));
         });
     }
 
     [Fact]
-    public void GetHistory_UnknownAdapter_ReturnsEmpty()
+    public void GetHistory_UnknownSsid_ReturnsEmpty()
     {
         var svc = new SignalHistoryService();
-        var history = svc.GetHistory(Guid.NewGuid(), "Ghost");
+        var history = svc.GetHistory("Ghost");
 
         history.Should().NotBeNull();
-        history.Should().BeEmpty("unknown adapter has no signal history");
+        history.Should().BeEmpty("unknown SSID has no signal history");
     }
 
     [Fact]
-    public void AddSignal_MultipleAdapters_AreSeparated()
+    public void Record_MultipleSsids_AreSeparated()
     {
         var svc = new SignalHistoryService();
-        var id1 = Guid.NewGuid();
-        var id2 = Guid.NewGuid();
+        svc.Record(new[] { MakeNet("Net1", 55, -55), MakeNet("Net2", 70, -45) });
 
-        svc.AddSignal(id1, "Net1", -55);
-        svc.AddSignal(id2, "Net1", -70);
-
-        var h1 = svc.GetHistory(id1, "Net1");
-        var h2 = svc.GetHistory(id2, "Net1");
+        var h1 = svc.GetHistory("Net1");
+        var h2 = svc.GetHistory("Net2");
 
         h1.Should().NotBeEmpty();
         h2.Should().NotBeEmpty();
-        // アダプター毎に独立
-        h1.Average(h => h.Rssi).Should().NotBe(h2.Average(h => h.Rssi));
+        h1[0].Quality.Should().NotBe(h2[0].Quality, "different SSIDs have separate histories");
     }
 
     [Fact]
     public void Clear_RemovesHistory()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
-        svc.AddSignal(id, "ClearNet", -60);
+        svc.Record(new[] { MakeNet("ClearNet", 60, -60) });
 
-        svc.Clear(id, "ClearNet");
-        var history = svc.GetHistory(id, "ClearNet");
+        svc.Clear("ClearNet");
+        var history = svc.GetHistory("ClearNet");
 
         history.Should().BeEmpty("cleared history must be empty");
     }
 
     [Fact]
-    public void GetAverageRssi_MultiplePoints_IsCorrect()
+    public void Record_MultiplePoints_AverageQualityIsCorrect()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
-        svc.AddSignal(id, "AvgNet", -60);
-        svc.AddSignal(id, "AvgNet", -40);
+        svc.Record(new[] { MakeNet("AvgNet", 60, -60) });
+        svc.Record(new[] { MakeNet("AvgNet", 40, -40) });
 
-        var avg = svc.GetAverageRssi(id, "AvgNet");
+        var history = svc.GetHistory("AvgNet");
 
-        avg.Should().HaveValue();
-        avg!.Value.Should().BeApproximately(-50.0, 1.0);
-        avg.Value.Should().BeInRange(-120, 0);
+        history.Should().HaveCount(2);
+        var avgQuality = history.Average(h => h.Quality);
+        avgQuality.Should().BeApproximately(50.0, 1.0);
+        history.Should().AllSatisfy(h => h.Quality.Should().BeInRange(0, 100));
     }
 }
 
