@@ -57,6 +57,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (see Fixed). Restoring true per-AP detection requires parsing the HE/EHT Capabilities elements in
   `WindowsWifiService` / `BeaconIeParser`.
 
+### Removed
+- **Deleted `PluginHost` — dead code that broke the `MWC.Core` build and was a credential-theft
+  attack surface**: `src/MWC.Core/Services/PluginHost.cs` (a MEF-based host that loads arbitrary
+  unsigned DLLs from the user-writable `%AppData%/MWC/plugins/` and runs them in-process) failed to
+  compile and was never wired into DI — referenced only by its own tests. Two independent breaks:
+  (1) it used bare `CancellationToken` on four methods with **no `using System.Threading;`**, and
+  `MWC.Core` sets `<ImplicitUsings>disable</ImplicitUsings>`, so the type never resolved (CS0246);
+  (2) it depended on the entire `System.Composition` (MEF2) package family (`ContainerConfiguration`,
+  `[Export]`, `[MetadataAttribute]`, `GetExports`) which **is not referenced** by the csproj. Because
+  CI is dormant and there is no local SDK, these were invisible — but a C# assembly compiles as one
+  unit, so a single broken file fails the whole of `MWC.Core`, and every downstream project (App, CLI,
+  tests) depends on Core, meaning **nothing in the solution actually built**. Rather than activate it
+  (which would mean adding ~5 MEF NuGet packages to make dead code run), it was deleted: loading
+  unsigned third-party DLLs in-process into an app that holds Wi-Fi credentials via DPAPI is a
+  code-execution / credential-theft attack surface (any process or malware running as the user can
+  drop a DLL in that path), and a generic plugin system directly contradicts CLAUDE.md's "Wi-Fi に
+  集中 / no flashy features" charter. Removed the file and its three `PluginHostTests`. A full
+  missing-`using` audit of the rest of `MWC.Core` (LINQ, Tasks, Generic, Threading) found no other
+  break — `PluginHost` was the sole offender. Found by asking "with ImplicitUsings disabled and CI
+  dormant, does the platform-agnostic core actually compile, or do we only assume it does?".
+
 ### Fixed
 - **Auto-reconnect and failover silently failed for every secured (PSK) network**: the most
   consequential bug of the session. `AutoReconnectService` and `AdapterFailoverService` re-connect

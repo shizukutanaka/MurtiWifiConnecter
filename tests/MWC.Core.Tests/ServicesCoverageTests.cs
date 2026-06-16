@@ -218,43 +218,6 @@ public class Hotspot20ServiceTests
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PluginHost
-// ═══════════════════════════════════════════════════════════════
-public class PluginHostTests
-{
-    [Fact]
-    public void PluginHost_EmptyDirectory_HasZeroPlugins()
-    {
-        var tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-        System.IO.Directory.CreateDirectory(tmp);
-        try
-        {
-            var host = new PluginHost(tmp);
-            host.LoadPlugins();
-            host.Plugins.Should().BeEmpty();
-            host.Plugins.Count.Should().Be(0);
-        }
-        finally { System.IO.Directory.Delete(tmp, true); }
-    }
-
-    [Fact]
-    public async Task PluginHost_NonExistentDirectory_LoadsGracefully()
-    {
-        var host = new PluginHost("/nonexistent/path/to/plugins");
-        var act  = () => { host.LoadPlugins(); return Task.CompletedTask; };
-        await act.Should().NotThrowAsync();
-        host.Plugins.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task PluginHost_Dispose_DoesNotThrow()
-    {
-        var host = new PluginHost(System.IO.Path.GetTempPath());
-        await host.DisposeAsync();
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
 //  WifiDirectService
 // ═══════════════════════════════════════════════════════════════
 public class WifiDirectServiceTests
