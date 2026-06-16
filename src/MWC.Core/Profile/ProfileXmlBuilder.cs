@@ -240,7 +240,7 @@ public static class ProfileXmlBuilder
         var serverValidation = new XElement(EtNs + "ServerValidation",
             new XElement(EtNs + "DisableUserPromptForServerValidation", "false"),
             new XElement(EtNs + "ServerNames",
-                string.Join(";", spec.ServerNames)));
+                spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
             serverValidation.Add(new XElement(EtNs + "TrustedRootCA", thumb));
 

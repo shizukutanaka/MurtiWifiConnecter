@@ -2,11 +2,13 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using MWC.App.Services;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
+using MWC.Core.Profile;
 using MWC.Core.Services;
 using NSubstitute;
 using Xunit;
@@ -386,5 +388,52 @@ public class ConnectionExecutorShouldRegisterTests
         await wifi.Received(1).ConnectAsync(
             adapterId, "Net", "Net", Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>());
         result.Success.Should().BeTrue();
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  ProfileXmlBuilder EAP-TLS 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// EAP-TLS で ServerNames が空配列の場合、空文字列の要素を生成し
+/// XML インジェクションや null 参照例外を起こさないことを確認する。
+/// (PEAP / EAP-TTLS には既にガードがあったが EAP-TLS のみ欠けていた)
+/// </summary>
+public class ProfileXmlBuilderEapTlsRegressionTests
+{
+    private static readonly XNamespace EtNs =
+        "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+
+    [Fact]
+    public void EapTls_EmptyServerNames_ProducesEmptyElementNotException()
+    {
+        var xml = ProfileXmlBuilder.Build(new WifiProfileSpec
+        {
+            Ssid        = "Corp",
+            Auth        = AuthMethod.WPA2Enterprise,
+            EapType     = EapType.EAP_TLS,
+            ServerNames = Array.Empty<string>(),
+        });
+
+        var serverNames = xml.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        serverNames.Should().NotBeNull("ServerNames element must always be present");
+        serverNames!.Value.Should().BeEmpty("empty array → empty string, not null or semicolons");
+    }
+
+    [Fact]
+    public void EapTls_WithServerNames_JoinedBySemicolon()
+    {
+        var xml = ProfileXmlBuilder.Build(new WifiProfileSpec
+        {
+            Ssid        = "Corp",
+            Auth        = AuthMethod.WPA2Enterprise,
+            EapType     = EapType.EAP_TLS,
+            ServerNames = new[] { "radius.example.com", "backup.example.com" },
+        });
+
+        var serverNames = xml.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        serverNames.Should().NotBeNull();
+        serverNames!.Value.Should().Be("radius.example.com;backup.example.com");
     }
 }

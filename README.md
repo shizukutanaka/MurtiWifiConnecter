@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/tests-514%20passing-22C55E)](#)
+[![Tests](https://img.shields.io/badge/tests-525%20passing-22C55E)](#)
 [![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20375%20keys-00C4CC)](#)
 
 **MWC**は複数の無線アダプターをひとつの画面で管理する Windows 用 Wi-Fi ツール。
@@ -107,7 +107,7 @@ winget install ShizukuTanaka.MWC
 dotnet tool install -g mwc-cli
 ```
 
-**動作要件**: Windows 10 1809+ / .NET 8 Runtime / 管理者権限(プロファイル登録時)
+**動作要件**: Windows 10 1809+ / .NET 9 Runtime / 管理者権限(プロファイル登録時)
 
 ---
 
@@ -118,7 +118,7 @@ git clone https://github.com/shizukutanaka/MurtiWifiConnecter.git
 cd MurtiWifiConnecter
 dotnet restore MWC.sln
 dotnet build   MWC.sln -c Release
-dotnet test    MWC.sln                    # 514 tests
+dotnet test    MWC.sln                    # 525 tests
 ```
 
 ---
