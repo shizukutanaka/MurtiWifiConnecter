@@ -807,6 +807,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MWC.ci.slnf`: windows-latest でビルド不能な `MWC.Platform.MacOS`(net9.0-macos)
   を除外した CI 用ソリューションフィルター。
 
+### Fixed (2026-06-16 batch)
+- **`ProfileXmlBuilder.BuildEapTlsConfig` — empty `ServerNames` produced a malformed element**:
+  PEAP and EAP-TTLS already guarded `spec.ServerNames is { Length: > 0 }` before `string.Join`,
+  but EAP-TLS called `string.Join(";", spec.ServerNames)` unconditionally.
+  With `WifiProfileSpec.ServerNames` defaulting to `Array.Empty<string>()` the element became
+  `<ServerNames></ServerNames>`, which Windows may reject. Fixed to use the same pattern as the
+  other two paths; two regression tests added (empty array → empty value, multi-value →
+  semicolon-joined).
+
+- **`AdapterViewModel.ConnectToSsidAsync` hardcoded `AuthMethod.WPA2PSK`**: the tray/quick-connect
+  path that connects to an existing profile looked up the real SSID but manufactured the auth method
+  as a constant. For Open or OWE networks this made `ConnectionExecutor.shouldRegister` think a
+  profile registration was needed (because non-PSK auth always sets `shouldRegister=true`) and
+  tried to register a WPA2PSK profile for a genuinely Open AP. Fixed to look up `SourceNetworks`
+  for the actual auth, falling back to WPA2PSK only when the SSID is not in the current scan.
+
+- **`SystemTrayService` held an unused `IWifiService` field (CS0414 latent build error)**:
+  the constructor accepted and stored `IWifiService wifi` but `_wifi` was never read — a warning
+  that `TreatWarningsAsErrors=true` would promote to a build error. Removed the field and parameter;
+  `App.xaml.cs` DI factory updated accordingly.
+
+- **Tray menus were static after startup (connect/disconnect callbacks never wired)**:
+  `SystemTrayService.UpdateAdapterMenus` and `UpdateStatus` existed but were called nowhere after
+  the initial `Show()`. The menus listed the adapters from startup and never refreshed.
+  `MainWindow` now subscribes `vm.PropertyChanged` after load and calls `UpdateTray` whenever
+  `IsScanning` flips to `false` (i.e. after every refresh), keeping the tray in sync with the
+  actual adapter/SSID state. The tray connect callback routes through `ConnectionExecutor` using
+  a UI-thread-safe `WifiNetwork` snapshot; the disconnect callback runs `DisconnectCommand` via
+  `Dispatcher.Invoke`.
+
 ## [3.11.0] - 2026-05-13
 
 ### 省電力分析・OUI ベンダー照合 (ADR-0024)
