@@ -44,12 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enrichment fields populate. Not done here — this environment cannot run native Windows P/Invoke and
   CI is dormant, so shipping it unverified would risk AccessViolations the author's gate exists to
   prevent.
-- **802.11v (BSS Transition Management) is never parsed**: even with enrichment active,
-  `BssTransitionMgmt` is populated nowhere and `BeaconIeParser` does not read the Extended
-  Capabilities element (EID 127, bit 19). This makes `RoamingAdvisoryService`'s **Seamless and
-  Assisted tiers structurally unreachable** (both require 11v), capping the Roaming row at Fast or
-  Standard. Fix: parse the Extended Capabilities IE in `BeaconIeParser` and set `BssTransitionMgmt`
-  via `BeaconIeApplier`.
+- **802.11v BSS Transition Management parsing is implemented but enrichment is still dormant**: the
+  Extended Capabilities IE (EID 127, bit 19) is now parsed by `BeaconIeParser` and propagated via
+  `BeaconIeApplier`, so `BssTransitionMgmt` will be populated correctly once `WlanBssIeProvider`
+  is activated. Until then, `RoamingAdvisoryService`'s **Seamless and Assisted tiers remain
+  unreachable at runtime** — the parser logic is correct and tested, but the raw IE data never
+  reaches it (see Beacon-IE enrichment known issue above for activation steps).
 - **TWT/rTWT IEs are not extracted by any scanner**: `WifiNetwork.TargetWakeTime` and
   `RestrictedTwt` are never populated (no HE/EHT Capabilities IE parsing in the platform layer), so
   `PowerSaveAdvisorService.Analyze()` cannot report confirmed per-AP TWT support. Until that
@@ -879,6 +879,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   C# switch expressions evaluate top-to-bottom and the first match wins, the Enterprise branch
   never executed — Enterprise credential failures produced a generic "Wrong Password" message
   (no mention of DOMAIN\\username or certificate expiry). Fixed by moving the guarded arm first.
+
+- **`BeaconIeParser` did not parse Extended Capabilities IE (EID 127), leaving `BssTransitionMgmt`
+  (802.11v) always false**: Added parsing of EID 127 at byte 3 bit 19 as specified by IEEE
+  802.11-2020 §9.4.2.27. `BeaconIeApplier.WithBeaconIe` now propagates the flag to
+  `WifiNetwork.BssTransitionMgmt`, which is consumed by `RoamingAdvisoryService` to unlock the
+  Seamless and Assisted roaming tiers. Three regression tests added: bit set, bit clear, and
+  truncated IE (length < 3). The path remains dormant until `WlanBssIeProvider` is activated
+  (see Known Issues).
 
 - **`SecurityBadgeService.GetBadge` misclassified `WPA3Enterprise` as WPA2-level security**:
   `WPA3Enterprise` was grouped with `WPA2PSK` and `WPA2Enterprise` at `SecurityLevel.Good` with

@@ -157,4 +157,31 @@ public class BeaconIeParserTests
         s.SupportsWmm.Should().BeFalse();
         s.PresentElementIds.Should().Contain((byte)221);
     }
+
+    [Fact]
+    public void ExtendedCapabilities_Bit19_SetsBssTransitionMgmt()
+    {
+        // EID 127, Length=3, body[0]=0x00, body[1]=0x00, body[2]=0x08 (bit 3 = bit 19 overall)
+        var stream = new List<byte> { 127, 3, 0x00, 0x00, 0x08 };
+        var s = BeaconIeParser.Parse(stream.ToArray());
+        s.BssTransitionMgmt.Should().BeTrue("bit 19 of Extended Capabilities = BSS Transition (802.11v)");
+    }
+
+    [Fact]
+    public void ExtendedCapabilities_Bit19_Clear_DoesNotSetBssTransitionMgmt()
+    {
+        // EID 127, Length=3, body[2]=0x00 (bit 3 not set)
+        var stream = new List<byte> { 127, 3, 0x00, 0x00, 0x00 };
+        var s = BeaconIeParser.Parse(stream.ToArray());
+        s.BssTransitionMgmt.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExtendedCapabilities_TooShort_DoesNotSetBssTransitionMgmt()
+    {
+        // EID 127, Length=2 (< 3), no body[2] to read
+        var stream = new List<byte> { 127, 2, 0xFF, 0xFF };
+        var s = BeaconIeParser.Parse(stream.ToArray());
+        s.BssTransitionMgmt.Should().BeFalse("Short ExtCap IE must not set flag");
+    }
 }

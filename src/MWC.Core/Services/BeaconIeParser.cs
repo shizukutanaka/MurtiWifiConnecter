@@ -32,6 +32,7 @@ public static class BeaconIeParser
         CountryInfo? country = null;
         TpcReport? tpc = null;
         var presentIds = new List<byte>();
+        bool bssTransitionMgmt = false;
 
         int i = 0;
         while (i + 2 <= data.Length)
@@ -75,6 +76,12 @@ public static class BeaconIeParser
                     tpc = TpcReportParser.Parse(data.Slice(i, 2 + len));
                     break;
 
+                // EID 127: Extended Capabilities (IEEE 802.11-2020 §9.4.2.27)
+                // Bit 19 = BSS Transition (802.11v) = byte[2] bit 3
+                case ExtendedCapabilitiesId when len >= 3:
+                    bssTransitionMgmt = (body[2] & 0x08) != 0;
+                    break;
+
                 case VendorSpecificId:
                     DecodeVendorSpecific(body, ref wmm, ref wmmQosInfo);
                     break;
@@ -84,18 +91,20 @@ public static class BeaconIeParser
         }
 
         return new BeaconIeSummary(
-            Neighbors:       neighbors ?? EmptyNeighbors,
-            RnrNeighbors:    rnr ?? EmptyRnr,
-            BssLoad:         bssLoad,
-            MobilityDomain:  mobilityDomain,
-            Wmm:             wmm,
-            WmmQosInfo:      wmmQosInfo,
-            Country:         country,
-            Tpc:             tpc,
-            PresentElementIds: presentIds);
+            Neighbors:          neighbors ?? EmptyNeighbors,
+            RnrNeighbors:       rnr ?? EmptyRnr,
+            BssLoad:            bssLoad,
+            MobilityDomain:     mobilityDomain,
+            Wmm:                wmm,
+            WmmQosInfo:         wmmQosInfo,
+            Country:            country,
+            Tpc:                tpc,
+            BssTransitionMgmt:  bssTransitionMgmt,
+            PresentElementIds:  presentIds);
     }
 
     // ── 個別要素デコーダ (本体スライスのみを受け取る) ─────────────────
+    private const byte ExtendedCapabilitiesId = 127;
     private const byte VendorSpecificId = 221;
     private static readonly byte[] WmmOui = { 0x00, 0x50, 0xF2 };
     private static readonly IReadOnlyList<NeighborApInfo> EmptyNeighbors = Array.Empty<NeighborApInfo>();
@@ -200,6 +209,7 @@ public sealed record BeaconIeSummary(
     byte?                         WmmQosInfo,
     CountryInfo?                  Country,
     TpcReport?                    Tpc,
+    bool                          BssTransitionMgmt,
     IReadOnlyList<byte>           PresentElementIds)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>

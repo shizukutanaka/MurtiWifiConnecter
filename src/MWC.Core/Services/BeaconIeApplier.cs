@@ -22,8 +22,9 @@ public static class BeaconIeApplier
         return network with
         {
             // ローミング能力 (既存 true は維持)
-            FastTransition = network.FastTransition || summary.SupportsFastTransition,
-            NeighborReport = network.NeighborReport || summary.HasNeighborReport,
+            FastTransition   = network.FastTransition   || summary.SupportsFastTransition,
+            NeighborReport   = network.NeighborReport   || summary.HasNeighborReport,
+            BssTransitionMgmt = network.BssTransitionMgmt || summary.BssTransitionMgmt,
 
             // 先頭 BSS へ BssLoad / MDID を補完 (各々未設定の場合のみ)
             BssEntries = BackfillFirstBss(network.BssEntries, summary.BssLoad, summary.MobilityDomain?.Mdid),

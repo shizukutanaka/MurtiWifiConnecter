@@ -12,7 +12,7 @@ namespace MWC.Core.Tests;
 public class BeaconIeApplierTests
 {
     private static BeaconIeSummary Summary(
-        bool ft = false, bool nr = false, BssLoad? bssLoad = null)
+        bool ft = false, bool nr = false, BssLoad? bssLoad = null, bool bssTrans = false)
     {
         var neighbors = nr
             ? (System.Collections.Generic.IReadOnlyList<NeighborApInfo>)
@@ -21,15 +21,16 @@ public class BeaconIeApplierTests
         var md = ft ? new MobilityDomainInfo(0x1234, false, false) : null;
 
         return new BeaconIeSummary(
-            Neighbors: neighbors,
-            RnrNeighbors: Array.Empty<RnrNeighborAp>(),
-            BssLoad: bssLoad,
-            MobilityDomain: md,
-            Wmm: null,
-            WmmQosInfo: null,
-            Country: null,
-            Tpc: null,
-            PresentElementIds: Array.Empty<byte>());
+            Neighbors:          neighbors,
+            RnrNeighbors:       Array.Empty<RnrNeighborAp>(),
+            BssLoad:            bssLoad,
+            MobilityDomain:     md,
+            Wmm:                null,
+            WmmQosInfo:         null,
+            Country:            null,
+            Tpc:                null,
+            BssTransitionMgmt:  bssTrans,
+            PresentElementIds:  Array.Empty<byte>());
     }
 
     private static WifiNetwork BaseNet(params BssInfo[] entries)
@@ -105,5 +106,20 @@ public class BeaconIeApplierTests
         var original = BaseNet();
         original.WithBeaconIe(Summary(ft: true));
         original.FastTransition.Should().BeFalse("元インスタンスは不変");
+    }
+
+    [Fact]
+    public void AppliesBssTransitionMgmt_WhenTrue()
+    {
+        var net = BaseNet().WithBeaconIe(Summary(bssTrans: true));
+        net.BssTransitionMgmt.Should().BeTrue("802.11v capability from Extended Capabilities IE");
+    }
+
+    [Fact]
+    public void DoesNotClearExistingBssTransitionMgmt()
+    {
+        var net = (BaseNet() with { BssTransitionMgmt = true })
+                  .WithBeaconIe(Summary(bssTrans: false));
+        net.BssTransitionMgmt.Should().BeTrue("既存 true は IE 要約で打ち消さない");
     }
 }
