@@ -486,7 +486,7 @@ public class AccessibilityAuditTests
     [Theory]
     [InlineData("#E6E8EB", "#0F1115", false, WcagLevel.AAA)]   // Dark: fg on bg
     [InlineData("#E6E8EB", "#00C4CC", false, WcagLevel.Fail)]  // fg on accent (低コントラスト)
-    [InlineData("#001518", "#00C4CC", false, WcagLevel.AA)]    // accentText on accent
+    [InlineData("#001518", "#00C4CC", false, WcagLevel.AAA)]   // accentText on accent (~8.7:1 ≥ 7.0 AAA)
     [InlineData("#ECEFF4", "#2E3440", true,  WcagLevel.AAA)]   // Nord: fg on bg (大テキスト)
     public void EvaluateContrast_MwcThemePairs(
         string fg, string bg, bool large, WcagLevel expected)

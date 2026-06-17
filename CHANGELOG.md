@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`EvaluateContrast_MwcThemePairs` had wrong expected WCAG level for dark-text-on-teal pair —
+  assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected
+  `WcagLevel.AA`, but the computed WCAG contrast ratio between near-black #001518 and the teal
+  accent #00C4CC is ≈8.71:1, which exceeds the AAA threshold of 7.0:1 for normal text. The
+  `EvaluateContrast` method would therefore return `WcagLevel.AAA`, making the `.Be(WcagLevel.AA)`
+  assertion fail. Fixed by updating the expected level to `WcagLevel.AAA`.
 - **`ValidateSsid_MultibyteSsid_ChecksByBytes` test had a wrong string literal — assertion would
   fail**: The test aimed to verify that an SSID exceeding 32 UTF-8 bytes is rejected, but used
   `"日本語ネットワークXXX"` (9 × 3-byte Japanese chars + 3 × 1-byte ASCII = 30 bytes), which is
