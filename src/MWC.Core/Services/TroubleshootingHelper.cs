@@ -16,7 +16,7 @@ public static class TroubleshootingHelper
         {
             // Guarded cases must precede unguarded cases for the same discriminant.
             ConnectionFailure.BadCredentials when auth == AuthMethod.WPA2Enterprise
-                or auth == AuthMethod.WPA3Enterprise => new TroubleshootingAdvice(
+                || auth == AuthMethod.WPA3Enterprise => new TroubleshootingAdvice(
                 Title:   "Enterprise Authentication Failed",
                 Reason:  "The username or password is incorrect.",
                 Steps:
