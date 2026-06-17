@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **GitHub Actions CI workflow** (`ci.yml`): Windows job builds the full solution (excluding
+  `MWC.Platform.MacOS` which requires macOS) and runs `MWC.Core.Tests` with coverage; Ubuntu job
+  builds `MWC.Core`, `MWC.Platform.Linux`, and cross-platform projects to catch Linux regressions
+  early. Triggered on push/PR to `main`/`master` and all `claude/**`, `feature/**`, `fix/**`
+  branches.
+- **GitHub Actions CodeQL workflow** (`codeql.yml`): weekly C# SAST scan on `windows-latest`
+  using `github/codeql-action@v3` with manual build mode.
+- **Solution filter files** (`MWC.ci-win.slnf`, `MWC.ci-linux.slnf`): allow CI to build the
+  appropriate project subset per platform without requiring MAUI/mobile workloads.
+
 ### Fixed
 - **`EvaluateContrast_MwcThemePairs` had wrong expected WCAG level for dark-text-on-teal pair —
   assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected

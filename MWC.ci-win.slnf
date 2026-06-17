@@ -1,0 +1,17 @@
+{
+  "solution": {
+    "path": "MWC.sln",
+    "projects": [
+      "src\\MWC.Core\\MWC.Core.csproj",
+      "src\\MWC.Platform.Windows\\MWC.Platform.Windows.csproj",
+      "src\\MWC.Platform.Android\\MWC.Platform.Android.csproj",
+      "src\\MWC.Platform.iOS\\MWC.Platform.iOS.csproj",
+      "src\\MWC.App\\MWC.App.csproj",
+      "src\\MWC.Cli\\MWC.Cli.csproj",
+      "src\\MWC.PSModule\\MWC.PSModule.csproj",
+      "sdk\\MWC.SDK.csproj",
+      "benchmarks\\MWC.Benchmarks.csproj",
+      "tests\\MWC.Core.Tests\\MWC.Core.Tests.csproj"
+    ]
+  }
+}
