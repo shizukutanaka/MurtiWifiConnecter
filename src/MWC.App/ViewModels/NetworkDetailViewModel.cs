@@ -269,7 +269,9 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
     private static string BuildBar(int q)
     {
-        int f = q / 10;
+        // Clamp to [0,10]: an out-of-range signal value would make one of the
+        // new string(...) lengths negative → ArgumentOutOfRangeException.
+        int f = Math.Clamp(q / 10, 0, 10);
         return "[" + new string('█', f) + new string('░', 10 - f) + "]";
     }
 

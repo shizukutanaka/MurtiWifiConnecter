@@ -138,7 +138,9 @@ public static class ExportService
 
     private static string BuildBar(int quality)
     {
-        int filled = (int)Math.Round(quality / 10.0);
+        // Clamp to [0,10]: SignalQuality is an unbounded int, and an out-of-range
+        // value would make one of the new string(...) lengths negative → throw.
+        int filled = Math.Clamp((int)Math.Round(quality / 10.0), 0, 10);
         return "[" + new string('█', filled) + new string('░', 10 - filled) + "]";
     }
 

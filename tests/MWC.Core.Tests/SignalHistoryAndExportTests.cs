@@ -190,6 +190,23 @@ public class ExportServiceStringOutputTests
         csv.Should().Contain("Coffee");
         csv.Should().Contain("Shop");
     }
+
+    [Theory]
+    [InlineData(-50)]   // 負値: filled が負 → new string(..) が throw していた
+    [InlineData(0)]
+    [InlineData(100)]
+    [InlineData(150)]   // 100 超: 10 - filled が負 → throw していた
+    public void ExportTxt_OutOfRangeSignal_DoesNotThrow(int signal)
+    {
+        // SignalQuality は境界検証のない int。範囲外でも TXT の信号バーが
+        // ArgumentOutOfRangeException を投げず描画できること (BuildBar の clamp)。
+        var nets = new[] { MakeNetwork("Edge", AuthMethod.WPA2PSK, signal, WifiBand.Band5GHz) };
+
+        var act = () => ExportService.ToTxt(nets);
+
+        act.Should().NotThrow();
+        ExportService.ToTxt(nets).Should().Contain("Edge");
+    }
 }
 
 // ════════════════════════════════════════════════
