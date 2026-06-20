@@ -96,11 +96,10 @@ public sealed record WifiProfileSpec
             if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
                 return ProfileValidation.Fail("PEAP needs username+password");
         }
-        if (EapType == Models.EapType.EAP_TLS)
-        {
-            if (string.IsNullOrEmpty(ClientCertThumbprint))
-                return ProfileValidation.Fail("EAP-TLS needs client cert");
-        }
+        // EAP-TLS: ClientCertThumbprint is accepted as metadata but Windows WLAN profile XML
+        // does not support specifying a client cert by thumbprint — SimpleCertSelection is used
+        // and Windows auto-selects from the user cert store at connection time. No validation
+        // error is raised here; a missing thumbprint means auto-selection without a hint.
         if (EapType == Models.EapType.EAP_TTLS)
         {
             if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))

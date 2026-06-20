@@ -235,6 +235,10 @@ public static class ProfileXmlBuilder
                 new XElement(MsPeapNs + "PeapExtensions")));
     }
 
+    // Windows WLAN profile XML does not expose a way to pin a client cert by thumbprint.
+    // SimpleCertSelection instructs Windows to auto-select from the user cert store using
+    // the Client Authentication EKU filter. spec.ClientCertThumbprint is preserved in the
+    // spec for UI display/logging only and cannot be embedded here.
     private static XElement BuildEapTlsConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(EtNs + "ServerValidation",
