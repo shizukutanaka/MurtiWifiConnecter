@@ -75,8 +75,13 @@ public static class ProfileXmlBuilder
 
         var authEnc = new XElement(WlanNs + "authEncryption",
             new XElement(WlanNs + "authentication", auth),
-            new XElement(WlanNs + "encryption", enc),
-            new XElement(WlanNs + "useOneX", useOneX ? "true" : "false"));
+            new XElement(WlanNs + "encryption", enc));
+
+        // useOneX は 802.1X (Enterprise) のときだけ出力する。PSK/Open/OWE/WEP では
+        // 要素自体を省略する (Windows は不在を false と解釈する)。これは Windows の
+        // 実プロファイル慣行およびゴールデンテスト (WPAPSK は useOneX なし) と一致する。
+        if (useOneX)
+            authEnc.Add(new XElement(WlanNs + "useOneX", "true"));
 
         // WPA3-Transitionは追加要素 (v4 スキーマの transitionMode 要素)
         if (spec.Auth == AuthMethod.WPA3Transition)

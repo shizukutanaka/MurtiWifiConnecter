@@ -21,6 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`ProfileXmlBuilder` always emitted `<useOneX>false</useOneX>` for PSK profiles — malformed
+  profile + failing golden test**: `BuildMsm` unconditionally added a `useOneX` element to
+  `authEncryption`, so WPA/WPA2/WPA3-Personal (and Open/OWE/WEP) profiles got
+  `<useOneX>false</useOneX>`. The `WPAPSK_LegacyAuth_CorrectXml` golden test requires
+  `useOneX` to be **absent** for PSK (`Descendants("useOneX").Should().BeEmpty()`), so this test
+  was failing — undetected because the test suite is Windows-only and CI is dormant. Fixed by only
+  adding `<useOneX>true</useOneX>` for 802.1X/Enterprise auth; the element is omitted otherwise
+  (Windows treats absence as false). The three Enterprise `useOneX == "true"` golden tests are
+  unaffected.
 - **Localization — 67 missing keys in all 14 locale `.resx` files**: `Strings.resx` (neutral) had
   453 keys but every locale file had only 386; 67 new keys added since v2.5.0 were never propagated.
   All 14 locale files now contain the full set (English fallback text for translators to override).
