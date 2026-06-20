@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Automation;
-using System.Windows.Controls;
 
 namespace MWC.App.Services;
 
@@ -48,22 +47,6 @@ public static class AccessibilityService
             peer?.RaiseNotificationEvent(kind, processing, message, "MWC.Status");
         }
         catch { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
-    }
-
-    /// <summary>
-    /// ウィンドウに非表示の Live Region TextBlock を注入。
-    /// OnLoaded で一度だけ呼ぶ。
-    /// </summary>
-    public static void InjectLiveRegion(Panel container)
-    {
-        var tb = new TextBlock
-        {
-            Name       = "_srLiveRegion",
-            Visibility = Visibility.Collapsed,
-            IsTabStop  = false
-        };
-        AutomationProperties.SetLiveSetting(tb, AutomationLiveSetting.Polite);
-        container.Children.Add(tb);
     }
 
     /// <summary>
