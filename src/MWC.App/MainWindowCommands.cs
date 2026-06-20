@@ -159,7 +159,7 @@ public sealed class MainWindowCommands
             : result.ErrorMessage ?? MWC.App.Resources.L.Get("Status_Failed");
     }
 
-    public async Task<string> MeasureQualityAsync(string statusMessage)
+    public async Task<string> MeasureQualityAsync()
     {
         var result = await _errors.TryAsync(
             () => _quality.MeasureAsync(),

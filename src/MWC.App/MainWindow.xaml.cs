@@ -107,7 +107,7 @@ public partial class MainWindow : Window
                 case (Key.E,      ModifierKeys.Control):
                     vm.StatusMessage = await _cmd.ExportAsync(vm, "csv"); e.Handled = true; break;
                 case (Key.K,      ModifierKeys.Control):
-                    vm.StatusMessage = await _cmd.MeasureQualityAsync(vm.StatusMessage);
+                    vm.StatusMessage = await _cmd.MeasureQualityAsync();
                     e.Handled = true; break;
                 case (Key.OemComma, ModifierKeys.Control):
                     _cmd.ShowSettings(this, vm); e.Handled = true; break;
@@ -192,7 +192,7 @@ public partial class MainWindow : Window
         {
             if (DataContext is not MainViewModel vm || _cmd is null) return;
             vm.StatusMessage = L.Get("Status_Scanning");
-            vm.StatusMessage = await _cmd.MeasureQualityAsync(vm.StatusMessage);
+            vm.StatusMessage = await _cmd.MeasureQualityAsync();
         });
     }
 

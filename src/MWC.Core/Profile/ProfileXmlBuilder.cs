@@ -173,8 +173,10 @@ public static class ProfileXmlBuilder
 
     private static XElement BuildWepKey(string key)
     {
-        // 16進(10/26/32桁)= networkKey、平文 = passPhrase
-        bool isHex = key.Length is 10 or 26 or 32 &&
+        // 16進(10/26桁)= networkKey、平文(5/13文字)= passPhrase
+        // ※ WifiProfileValidator は 5/13 ASCII or 10/26 hex のみ許可するため、
+        //   32 桁 hex は Build() 到達前に拒否される。
+        bool isHex = key.Length is 10 or 26 &&
                      System.Linq.Enumerable.All(key, c =>
                          c is (>= '0' and <= '9') or (>= 'a' and <= 'f') or (>= 'A' and <= 'F'));
         return new XElement(WlanNs + "sharedKey",

@@ -266,8 +266,9 @@ public class ProfileXmlBuilderTests
     }
 
     [Theory]
-    [InlineData("abc")]      // 3 chars — invalid length
-    [InlineData("abcdefg")]  // 7 chars — invalid length
+    [InlineData("abc")]                                  // 3 chars — invalid length
+    [InlineData("abcdefg")]                              // 7 chars — invalid length
+    [InlineData("01234567890123456789012345678901")]      // 32 hex — not a valid WEP length
     public void Wep_InvalidLengthKey_Rejected(string key)
     {
         var act = () => ProfileXmlBuilder.Build(new()
@@ -275,6 +276,28 @@ public class ProfileXmlBuilderTests
             Ssid = "LegacyWep", Auth = AuthMethod.WEP, Passphrase = key
         });
         act.Should().Throw<System.ArgumentException>();
+    }
+
+    [Fact]
+    public void Wep_13CharAsciiKey_Accepted()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "LegacyWep", Auth = AuthMethod.WEP, Passphrase = "abcdefghijklm"
+        });
+        var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+        XDocument.Parse(xml).Descendants(ns + "keyType").Single().Value.Should().Be("passPhrase");
+    }
+
+    [Fact]
+    public void Wep_26HexKey_Accepted_AsNetworkKey()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "LegacyWep", Auth = AuthMethod.WEP, Passphrase = "0123456789abcdef01234567ab"
+        });
+        var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+        XDocument.Parse(xml).Descendants(ns + "keyType").Single().Value.Should().Be("networkKey");
     }
 
     [Fact]
