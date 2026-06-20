@@ -645,4 +645,10 @@
   <data name="Cipher_TKIP"><value>TKIP</value></data>
   <data name="Cipher_AES"><value>AES (CCMP)</value></data>
   <data name="Cipher_GCMP256"><value>GCMP-256</value></data>
+
+  <data name="Interference_Factor_CoChannel"><value>{0} AP(s) on channel {1} — co-channel interference</value></data>
+  <data name="Interference_Factor_Adjacent"><value>{0} adjacent-channel AP(s) — adjacent-channel interference (2.4 GHz)</value></data>
+  <data name="Interference_Factor_Bluetooth"><value>2.4 GHz shares spectrum with Bluetooth/Zigbee — co-existence risk</value></data>
+  <data name="Interference_Rec_24GHz"><value>High interference. Consider switching to 5 GHz/6 GHz. If staying on 2.4 GHz, prefer channels 1, 6, or 11.</value></data>
+  <data name="Interference_Rec_5or6GHz"><value>Co-channel congestion detected. Consider a different channel or move to 6 GHz.</value></data>
 </root>

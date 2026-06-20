@@ -153,7 +153,7 @@ public class InterferenceAnalyzerTests
         var report = _svc.Analyze(target, all);
 
         report.Score.Should().BeLessThan(80);
-        report.Factors.Should().Contain(f => f.Contains("co-channel"));
+        report.Factors.Should().Contain(f => f.Kind == InterferenceFactorKind.CoChannel);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class InterferenceAnalyzerTests
         var target = Net(WifiBand.Band2_4GHz, 6);
         var report = _svc.Analyze(target, new[] { target });
 
-        report.Factors.Should().Contain(f => f.Contains("Bluetooth") || f.Contains("CTI"));
+        report.Factors.Should().Contain(f => f.Kind == InterferenceFactorKind.BluetoothCoexistence);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public class InterferenceAnalyzerTests
 
         var report = _svc.Analyze(target, all);
 
-        report.Recommendation.Should().Contain("5GHz");
+        report.Recommendation.Should().Be(InterferenceRecommendationKind.SwitchBand);
     }
 
     [Fact]

@@ -481,6 +481,22 @@ public static class L
                   ScoreDimensionLabel(top.Dimension),
                   (int)Math.Round(top.Score));
 
+    // ─── Interference factor / recommendation labels ──────────────────
+    public static string InterferenceFactorLabel(InterferenceFactor factor) => factor.Kind switch
+    {
+        InterferenceFactorKind.CoChannel         => Format("Interference_Factor_CoChannel", factor.Count, factor.Channel),
+        InterferenceFactorKind.AdjacentChannel   => Format("Interference_Factor_Adjacent",  factor.Count),
+        _                                        => Get("Interference_Factor_Bluetooth"),
+    };
+
+    public static string InterferenceRecommendationLabel(InterferenceRecommendationKind rec, WifiBand band)
+        => rec switch
+        {
+            InterferenceRecommendationKind.SwitchBand    => Get("Interference_Rec_24GHz"),
+            InterferenceRecommendationKind.SwitchChannel => Get("Interference_Rec_5or6GHz"),
+            _                                            => "",
+        };
+
     // ─── MLO reliability tier labels ─────────────────────────────────
     public static string MloReliabilityLabel(MloReliability tier) => tier switch
     {
