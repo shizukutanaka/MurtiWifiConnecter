@@ -37,6 +37,7 @@ public partial class FirstRunWizard : Window
     {
         _page = idx;
         var pages = BuildPages();
+        int lastPage = pages.Length - 1;
         var (icon, title, body, hint) = pages[idx];
 
         // ページコンテンツ生成
@@ -92,7 +93,7 @@ public partial class FirstRunWizard : Window
 
         // ナビゲーション
         BackBtn.Visibility = idx > 0 ? Visibility.Visible : Visibility.Collapsed;
-        NextBtn.Content    = idx == BuildPages().Length - 1 ? MWC.App.Resources.L.Get("Wizard_Start") : MWC.App.Resources.L.Get("Wizard_Next");
+        NextBtn.Content    = idx == lastPage ? MWC.App.Resources.L.Get("Wizard_Start") : MWC.App.Resources.L.Get("Wizard_Next");
     }
 
     private void OnNext(object sender, RoutedEventArgs e)

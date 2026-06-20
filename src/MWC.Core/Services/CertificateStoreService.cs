@@ -68,7 +68,7 @@ public sealed class CertificateStoreService
 
             return cert is null ? null : FromCertificate(cert);
         }
-        catch { return null; }
+        catch (CryptographicException) { return null; }
     }
 
     /// <summary>

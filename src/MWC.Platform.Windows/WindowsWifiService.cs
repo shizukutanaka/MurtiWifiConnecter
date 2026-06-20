@@ -141,8 +141,6 @@ public sealed class WindowsWifiService : IWifiService
         }
     }
 
-    private BssInfo[] BuildBssMap_Empty() => Array.Empty<BssInfo>();
-
     private Dictionary<string, BssInfo[]> BuildBssMap(Guid adapterId)
     {
         var map = new Dictionary<string, List<BssInfo>>(StringComparer.Ordinal);
