@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Win32;
 
@@ -30,7 +31,7 @@ public sealed class GroupPolicyProvider
     public  static GroupPolicyProvider  Instance => _lazy.Value;
 
     // ── ポリシー値キャッシュ ──────────────────────────────────────────
-    private readonly Dictionary<string, object?> _cache = new();
+    private readonly ConcurrentDictionary<string, object?> _cache = new();
 
     // ── ポリシー定義 ─────────────────────────────────────────────────
 
@@ -117,20 +118,10 @@ public sealed class GroupPolicyProvider
     }
 
     private int? GetDword(string name)
-    {
-        if (_cache.TryGetValue(name, out var cached)) return cached as int?;
-        var val = ReadValue(name);
-        _cache[name] = val;
-        return val as int?;
-    }
+        => _cache.GetOrAdd(name, static k => ReadValue(k)) as int?;
 
     private string? GetString(string name)
-    {
-        if (_cache.TryGetValue("str_" + name, out var cached)) return cached as string;
-        var val = ReadStringValue(name);
-        _cache["str_" + name] = val;
-        return val;
-    }
+        => _cache.GetOrAdd("str_" + name, static k => ReadStringValue(k[4..])) as string;
 
     private static object? ReadValue(string name)
     {
