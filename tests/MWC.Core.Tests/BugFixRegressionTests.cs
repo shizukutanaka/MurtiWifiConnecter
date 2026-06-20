@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -682,5 +683,90 @@ public class WildcardHostnameRegressionTests
         var res  = svc.ValidateRadiusCert(der, "radius.example.com");
         res.Summary.Should().NotBe("Hostname mismatch",
             "exact CN match must not return hostname mismatch");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  JumpListService.EscapeArg 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// JumpListService.EscapeArg は Windows C-runtime quoting rules (MSDN "Parsing C
+/// Command-Line Arguments") に従い SSID を安全にシェル引数化する。
+/// 以前は $"connect \"{ssid}\"" で直接埋め込んでいたため、ダブルクォートを
+/// 含む SSID で引数インジェクションが可能だった。修正後はバックスラッシュ
+/// エスケープを適用し、末尾バックスラッシュの二重化も正しく行う。
+/// </summary>
+public class JumpListEscapeArgTests
+{
+    private static string Escape(string ssid)
+    {
+        var method = typeof(JumpListService).GetMethod(
+            "EscapeArg", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return (string)method.Invoke(null, [ssid])!;
+    }
+
+    [Fact]
+    public void SimpleSsid_IsWrappedInDoubleQuotes()
+        => Escape("HomeWifi").Should().Be("\"HomeWifi\"");
+
+    [Fact]
+    public void EmptySsid_ReturnsEmptyQuotedPair()
+        => Escape("").Should().Be("\"\"");
+
+    [Fact]
+    public void SsidWithSpace_SpacePreservedInsideQuotes()
+        => Escape("My WiFi").Should().Be("\"My WiFi\"");
+
+    [Fact]
+    public void SsidWithDoubleQuote_QuoteIsBackslashEscaped()
+    {
+        // SSID: foo"bar  →  "foo\"bar"
+        Escape("foo\"bar").Should().Be("\"foo\\\"bar\"");
+    }
+
+    [Fact]
+    public void SsidWithTrailingBackslash_BackslashIsDoubled()
+    {
+        // SSID: foo\  →  "foo\\"
+        // Without doubling, "foo\" would be parsed as "foo" + leftover " (injection)
+        Escape("foo\\").Should().Be("\"foo\\\\\"");
+    }
+
+    [Fact]
+    public void SsidWithBackslashBeforeQuote_BothEscaped()
+    {
+        // SSID: foo\"bar  →  "foo\\\"bar"
+        // The backslash before a quote must itself be doubled, then the quote escaped
+        Escape("foo\\\"bar").Should().Be("\"foo\\\\\\\"bar\"");
+    }
+
+    [Fact]
+    public void SsidWithMultipleTrailingBackslashes_AllDoubled()
+    {
+        // SSID: foo\\  (two trailing backslashes) →  "foo\\\\"
+        Escape("foo\\\\").Should().Be("\"foo\\\\\\\\\"");
+    }
+
+    [Fact]
+    public void InjectionAttempt_DoubleQuoteInSsid_CannotBreakOutOfToken()
+    {
+        // Old code: $"connect \"{ssid}\""
+        // With ssid = evil" --inject, old result: connect "evil" --inject"
+        //   Windows C-runtime parses this as TWO tokens → injection succeeds.
+        // New code: connect "evil\" --inject"
+        //   Windows C-runtime parses as ONE token: evil" --inject → injection prevented.
+        var maliciousSsid = "evil\" --inject";
+        var escaped       = Escape(maliciousSsid);
+
+        // Must start and end with the outer delimiter quotes
+        escaped.Should().StartWith("\"");
+        escaped.Should().EndWith("\"");
+        // The embedded double-quote must be preceded by a backslash
+        escaped.Should().Contain("\\\"", "double quote inside an argument must be escaped");
+        // Old naive quoting is what we're guarding against
+        var insecureOldResult = $"\"{maliciousSsid}\"";
+        escaped.Should().NotBe(insecureOldResult,
+            "naive quoting without escaping is vulnerable to argument injection");
     }
 }
