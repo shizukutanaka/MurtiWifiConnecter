@@ -391,6 +391,20 @@ public static class L
     public static string CongestionOverloadedTooltip(int pct) => Format("Congestion_OverloadedTooltip", pct);
     public static string CongestionBusyTooltip(int pct)       => Format("Congestion_BusyTooltip", pct);
 
+    // ─── Security advisory titles (localized) ─────────────────────────
+    public static string LocalizeAdvisoryTitle(string code) => code switch
+    {
+        "MWC-SEC-001" => Get("Advisory_SEC001_Title"),
+        "MWC-SEC-002" => Get("Advisory_SEC002_Title"),
+        "MWC-SEC-003" => Get("Advisory_SEC003_Title"),
+        "MWC-SEC-004" => Get("Advisory_SEC004_Title"),
+        "MWC-SEC-005" => Get("Advisory_SEC005_Title"),
+        "MWC-SEC-006" => Get("Advisory_SEC006_Title"),
+        "MWC-SEC-007" => Get("Advisory_SEC007_Title"),
+        "MWC-SEC-100" => Get("Advisory_SEC100_Title"),
+        _             => code
+    };
+
     // ─── Troubleshooting dialog (localized) ───────────────────────────
     public static MWC.Core.Services.TroubleshootingAdvice GetTroubleshootingAdvice(
         MWC.Core.Models.ConnectionFailure failure,

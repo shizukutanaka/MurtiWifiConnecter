@@ -119,10 +119,10 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         PhyLabel     = n.Phy.ToGenerationLabel();
         BandLabel    = n.Band switch
         {
-            WifiBand.Band2_4GHz => "2.4 GHz",
-            WifiBand.Band5GHz   => "5 GHz",
-            WifiBand.Band6GHz   => "6 GHz (Wi-Fi 6E/7)",
-            _ => "Unknown"
+            WifiBand.Band2_4GHz => L.Get("Band_2_4"),
+            WifiBand.Band5GHz   => L.Get("Band_5"),
+            WifiBand.Band6GHz   => L.Get("Band_6"),
+            _                   => L.Get("Band_Unknown")
         };
         IsDfs = DfsChannelHelper.IsDfsChannel(n);
         ChannelLabel = n.Channel > 0
@@ -232,23 +232,23 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
         // セキュリティ勧告 + Evil Twin 検査 + スティッキークライアント検査
         var advisories = _secAdvisor.Analyze(n)
-            .Select(a => new SecurityAdvisoryItem(a.Title, a.Severity))
+            .Select(a => new SecurityAdvisoryItem(L.LocalizeAdvisoryTitle(a.Code), a.Severity))
             .ToList();
 
         var twin = _evilTwin.Analyze(n, visible);
         if (twin.Risk == EvilTwinRisk.HighRisk)
             advisories.Insert(0, new SecurityAdvisoryItem(
-                "Evil Twin: High Risk — multiple spoofing indicators detected",
+                L.Get("Advisory_EvilTwin_HighRisk"),
                 AdvisorySeverity.Critical));
         else if (twin.Risk == EvilTwinRisk.Suspicious)
             advisories.Insert(0, new SecurityAdvisoryItem(
-                "Evil Twin: Suspicious — possible rogue AP with same SSID",
+                L.Get("Advisory_EvilTwin_Suspicious"),
                 AdvisorySeverity.Warning));
 
         if (n.IsConnected && n.Rssi.HasValue && connectedDuration.HasValue &&
             _handover.IsStickyClient(n.Rssi.Value, connectedDuration.Value))
             advisories.Add(new SecurityAdvisoryItem(
-                "Sticky Client: Signal too weak — consider moving closer or reconnecting",
+                L.Get("Advisory_StickyClient"),
                 AdvisorySeverity.Warning));
 
         SecurityAdvisories = advisories;

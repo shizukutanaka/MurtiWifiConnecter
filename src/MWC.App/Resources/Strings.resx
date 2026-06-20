@@ -436,4 +436,16 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Trouble_Unknown_Title"><value>Connection Failed</value></data>
   <data name="Trouble_Unknown_Reason"><value>An unexpected error occurred.</value></data>
   <data name="Trouble_Unknown_Steps"><value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value></data>
+  <data name="Band_Unknown"><value>Unknown</value></data>
+  <data name="Advisory_SEC001_Title"><value>WPA3 Transition Mode Detected</value></data>
+  <data name="Advisory_SEC002_Title"><value>Protected Management Frames Disabled</value></data>
+  <data name="Advisory_SEC003_Title"><value>WEP Is Broken</value></data>
+  <data name="Advisory_SEC004_Title"><value>WPA (TKIP) Is Deprecated</value></data>
+  <data name="Advisory_SEC005_Title"><value>Unencrypted Network</value></data>
+  <data name="Advisory_SEC006_Title"><value>FragAttacks Mitigation</value></data>
+  <data name="Advisory_SEC007_Title"><value>WPS Enabled</value></data>
+  <data name="Advisory_SEC100_Title"><value>Hardened Security Configuration</value></data>
+  <data name="Advisory_EvilTwin_HighRisk"><value>Evil Twin: High Risk — multiple spoofing indicators detected</value></data>
+  <data name="Advisory_EvilTwin_Suspicious"><value>Evil Twin: Suspicious — possible rogue AP with same SSID</value></data>
+  <data name="Advisory_StickyClient"><value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value></data>
 </root>
