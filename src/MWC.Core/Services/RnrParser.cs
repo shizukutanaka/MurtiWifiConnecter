@@ -66,6 +66,10 @@ public static class RnrParser
 
             pos += NeighborInfoLen;
 
+            // tbttInfoLen == 0 は不正 (802.11 最小1バイト)。
+            // 0 のまま進むと後続の Neighbor AP Info 解析がずれるため停止する。
+            if (tbttInfoLen == 0) break;
+
             // TBTT Info Set: tbttCount エントリ × tbttInfoLen バイト
             for (int t = 0; t < tbttCount; t++)
             {
