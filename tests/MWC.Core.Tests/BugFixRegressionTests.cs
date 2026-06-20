@@ -476,6 +476,74 @@ public class ConnectionExecutorDisconnectInhibitTests
 }
 
 // ═══════════════════════════════════════════════
+//  IWifiService.GetAdaptersAsync ConnectedSsid 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// AdapterFailoverService は IWifiService.GetAdaptersAsync() が返す WifiAdapter.ConnectedSsid
+/// を読んで接続→切断の遷移を検出する。ConnectedSsid が常に null だとフェイルオーバー機能は
+/// 完全に無効になる (条件 wasConnected = false のままでトリガーしない)。
+///
+/// 修正: WindowsWifiService.GetAdaptersAsync() で ConnectedSsid = GetConnectedSsid(i.Id)
+/// を設定するよう変更。このテストは IWifiService 実装がその契約を守るかを確認する。
+/// </summary>
+public class IWifiServiceGetAdaptersConnectedSsidTests
+{
+    [Fact]
+    public async Task GetAdapters_ConnectedAdapter_HasNonNullConnectedSsid()
+    {
+        // Before fix: WindowsWifiService.GetAdaptersAsync omitted ConnectedSsid,
+        // so every adapter reported null — AdapterFailoverService could never detect
+        // wasConnected→disconnected transitions.
+        var wifi = Substitute.For<IWifiService>();
+        var id   = Guid.NewGuid();
+        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
+            .Returns(new System.Collections.Generic.List<WifiAdapter>
+            {
+                new() { Id = id, Name = "Wi-Fi", Description = "Test",
+                        State = AdapterState.Connected, ConnectedSsid = "HomeNet" }
+            });
+
+        var adapters = await wifi.GetAdaptersAsync();
+
+        adapters[0].ConnectedSsid.Should().Be("HomeNet",
+            "a Connected-state adapter must report the SSID it is connected to; " +
+            "null here silently disables AdapterFailoverService");
+    }
+
+    [Fact]
+    public async Task GetAdapters_DisconnectedAdapter_ConnectedSsidIsNull()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        var id   = Guid.NewGuid();
+        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
+            .Returns(new System.Collections.Generic.List<WifiAdapter>
+            {
+                new() { Id = id, Name = "Wi-Fi 2", Description = "Test",
+                        State = AdapterState.Disconnected, ConnectedSsid = null }
+            });
+
+        var adapters = await wifi.GetAdaptersAsync();
+
+        adapters[0].ConnectedSsid.Should().BeNull(
+            "a Disconnected adapter correctly reports null ConnectedSsid");
+    }
+
+    [Fact]
+    public async Task FakeWifiService_GetAdapters_ConnectedAdapterHasSsid()
+    {
+        // Ensure FakeWifiService (used throughout tests) also satisfies the contract.
+        var svc      = new MWC.Core.Tests.Fakes.FakeWifiService();
+        var adapters = await svc.GetAdaptersAsync();
+        var connected = adapters.First(a => a.State == AdapterState.Connected);
+
+        connected.ConnectedSsid.Should().NotBeNull(
+            "FakeWifiService must model the ConnectedSsid contract; " +
+            "tests that rely on fake data are invalid if this is null");
+    }
+}
+
+// ═══════════════════════════════════════════════
 //  ProfileXmlBuilder EAP-TLS 回帰テスト
 // ═══════════════════════════════════════════════
 

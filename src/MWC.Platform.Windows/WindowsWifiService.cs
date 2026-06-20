@@ -44,10 +44,14 @@ public sealed class WindowsWifiService : IWifiService
             var list = NativeWifi.EnumerateInterfaces()
                 .Select(i => new WifiAdapter
                 {
-                    Id          = i.Id,
-                    Name        = i.Description ?? i.Id.ToString(),
-                    Description = i.Description ?? "",
-                    State       = MapState(i.State)
+                    Id            = i.Id,
+                    Name          = i.Description ?? i.Id.ToString(),
+                    Description   = i.Description ?? "",
+                    State         = MapState(i.State),
+                    // ConnectedSsid must be set here; AdapterFailoverService reads it
+                    // to detect link-loss transitions. Without this, currentSsid is
+                    // always null and the failover trigger never fires.
+                    ConnectedSsid = GetConnectedSsid(i.Id)
                 })
                 .ToList();
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(list);
