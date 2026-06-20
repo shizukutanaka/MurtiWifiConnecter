@@ -409,6 +409,40 @@ public static class L
         _             => code
     };
 
+    // ─── Recommendation engine labels (localized) ────────────────────
+    public static string RecommendationGradeLabel(RecommendationGrade grade) => grade switch
+    {
+        RecommendationGrade.Excellent => Get("Rec_Grade_Excellent"),
+        RecommendationGrade.Good      => Get("Rec_Grade_Good"),
+        RecommendationGrade.Fair      => Get("Rec_Grade_Fair"),
+        _                             => Get("Rec_Grade_Poor"),
+    };
+
+    public static string UsageProfileDesc(UsageProfile profile) => profile switch
+    {
+        UsageProfile.Realtime   => Get("Rec_Profile_Realtime"),
+        UsageProfile.Secure     => Get("Rec_Profile_Secure"),
+        UsageProfile.Throughput => Get("Rec_Profile_Throughput"),
+        _                       => Get("Rec_Profile_General"),
+    };
+
+    public static string ScoreDimensionLabel(string dimension) => dimension switch
+    {
+        "Security"        => Get("Rec_Dim_Security"),
+        "Roaming"         => Get("Rec_Dim_Roaming"),
+        "Band / Channel"  => Get("Rec_Dim_Channel"),
+        "Signal Strength" => Get("Rec_Dim_Signal"),
+        _                 => dimension,
+    };
+
+    public static string BuildRecommendationSummary(NetworkScore score, DimensionContribution top)
+        => Format("Rec_Summary",
+                  (int)Math.Round(score.Total),
+                  RecommendationGradeLabel(score.Grade),
+                  UsageProfileDesc(score.Profile),
+                  ScoreDimensionLabel(top.Dimension),
+                  (int)Math.Round(top.Score));
+
     // ─── Troubleshooting dialog (localized) ───────────────────────────
     public static MWC.Core.Services.TroubleshootingAdvice GetTroubleshootingAdvice(
         MWC.Core.Models.ConnectionFailure failure,

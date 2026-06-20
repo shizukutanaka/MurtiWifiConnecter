@@ -255,7 +255,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         SecurityAdvisories = advisories;
         var score = _recEngine.Score(n);
         RecommendationScore   = Math.Round(score.Total, 0);
-        RecommendationSummary = _recEngine.Explain(score).Summary;
+        var explanation = _recEngine.Explain(score);
+        RecommendationSummary = L.BuildRecommendationSummary(score, explanation.Contributions[0]);
 
         BssRows = n.BssEntries
             .Select(b => new BssDetailRow(

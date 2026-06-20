@@ -593,4 +593,18 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Trouble_Unknown_Title" xml:space="preserve">
     <value>Connection Failed</value>
   </data>
+
+  <data name="Rec_Grade_Poor"><value>Poor</value></data>
+  <data name="Rec_Grade_Fair"><value>Fair</value></data>
+  <data name="Rec_Grade_Good"><value>Good</value></data>
+  <data name="Rec_Grade_Excellent"><value>Excellent</value></data>
+  <data name="Rec_Profile_General"><value>Balanced across all dimensions</value></data>
+  <data name="Rec_Profile_Realtime"><value>Optimised for real-time communication (VoIP/video)</value></data>
+  <data name="Rec_Profile_Secure"><value>Optimised for confidential use</value></data>
+  <data name="Rec_Profile_Throughput"><value>Optimised for bulk transfer</value></data>
+  <data name="Rec_Dim_Security"><value>Security</value></data>
+  <data name="Rec_Dim_Roaming"><value>Roaming</value></data>
+  <data name="Rec_Dim_Channel"><value>Band / Channel</value></data>
+  <data name="Rec_Dim_Signal"><value>Signal Strength</value></data>
+  <data name="Rec_Summary"><value>Overall score {0}/100 ({1}). {2}. Top factor: &quot;{3}&quot; (score {4}).</value></data>
 </root>
