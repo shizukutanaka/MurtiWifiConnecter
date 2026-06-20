@@ -294,6 +294,28 @@ public class RegulatoryDomainTests
         region.Has6GHz.Should().BeFalse();
         _svc.GetAvailable6GHzChannels("ZZ").Should().BeEmpty();
     }
+
+    /// <summary>
+    /// Regression: MaxChannelWidth used wrong spans (+64/32/16/8) that didn't account for
+    /// 6 GHz channels being 4 steps apart. Correct spans are 4*(N/20 - 1):
+    ///   320 MHz: 4*(16-1) = 60  (was 64 → ch 173 returned 160 instead of 320)
+    ///   160 MHz: 4*(8-1)  = 28  (was 32)
+    ///    80 MHz: 4*(4-1)  = 12  (was 16 → ch 221 returned 40 instead of 80)
+    ///    40 MHz: 4*(2-1)  =  4  (was  8 → ch 229 returned 20 instead of 40)
+    /// </summary>
+    [Theory]
+    [InlineData(173, 320)]  // 173+60=233 ≤ 233 → 320; old: 173+64=237 > 234 → 160 (wrong)
+    [InlineData(193, 160)]  // 193+60=253 > 233, 193+28=221 ≤ 233 → 160
+    [InlineData(221,  80)]  // 221+28=249 > 233, 221+12=233 ≤ 233 → 80;  old: 221+16=237 > 234 → 40 (wrong)
+    [InlineData(229,  40)]  // 229+12=241 > 233, 229+4=233 ≤ 233  → 40;  old: 229+8=237  > 234 → 20 (wrong)
+    [InlineData(233,  20)]  // no span fits → 20
+    public void MaxChannelWidth_US_RegressionCases(int channel, int expectedMhz)
+    {
+        var channels = _svc.GetAvailable6GHzChannels("US");
+        var info = channels.First(c => c.Channel == channel);
+        info.MaxWidthMhz.Should().Be(expectedMhz,
+            $"ch {channel} US full-band (maxChannel=233): span = 4*(N/20 - 1) sub-channel steps");
+    }
 }
 
 public class OweSelectionTests

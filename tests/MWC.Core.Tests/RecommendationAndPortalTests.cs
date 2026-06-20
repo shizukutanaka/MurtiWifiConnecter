@@ -300,4 +300,36 @@ public class CaptivePortalServiceTests
         var state = new CaptivePortalService.CaptivePortalState { Captive = false };
         _svc.DescribeSession(state).Should().Be("Authenticated");
     }
+
+    [Fact]
+    public void ParseApiResponse_CaptiveKeyInsideStringValue_NotMisidentified()
+    {
+        // Before fix (ad-hoc string scanner): a URL whose text contains "captive"
+        // could confuse the substring-based parser and flip the captive field.
+        // After fix (JsonDocument.Parse): key-matching is structural, not substring-based.
+        var json = """
+            {
+              "captive": false,
+              "user-portal-url": "https://example.com/login?redirect=captive: true"
+            }
+            """;
+        var state = _svc.ParseApiResponse(json);
+
+        state.Captive.Should().BeFalse(
+            "the word 'captive' inside a string value must not override the actual key");
+        state.UserPortalUrl.Should().Be("https://example.com/login?redirect=captive: true");
+    }
+
+    [Fact]
+    public void ParseApiResponse_EscapedQuotesInUrl_ParsedCorrectly()
+    {
+        // Before fix: the custom string extractor mishandled escaped quotes (\"),
+        // truncating the URL at the first \".
+        var json = """{"captive": true, "user-portal-url": "https://example.com/?q=\"test\""}""";
+        var state = _svc.ParseApiResponse(json);
+
+        state.Captive.Should().BeTrue();
+        state.UserPortalUrl.Should().NotBeNull();
+        state.UserPortalUrl!.Should().Contain("test");
+    }
 }

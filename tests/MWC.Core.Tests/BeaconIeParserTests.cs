@@ -184,4 +184,31 @@ public class BeaconIeParserTests
         var s = BeaconIeParser.Parse(stream.ToArray());
         s.BssTransitionMgmt.Should().BeFalse("Short ExtCap IE must not set flag");
     }
+
+    [Fact]
+    public void Rnr_TbttInfoLenZero_ProducesNoSpuriousNeighbors()
+    {
+        // Before fix (DecodeRnr): tbttInfoLen=0 left pos unchanged in the inner for-loop.
+        // The outer while then re-read the next bytes as another Neighbor AP Info header,
+        // producing a spurious Is6GHz RnrNeighborAp (opClass=131, channel=7) from the
+        // crafted body below.
+        // After fix: break on tbttInfoLen==0 → RnrNeighbors empty, parsing continues.
+        var rnrBody = new byte[]
+        {
+            0x00, 0x00,        // Neighbor AP Info: tbttInfoLen=0 (invalid)
+            0x00, 0x06,        // without fix: re-read as info=0x0600 → tbttInfoLen=3, tbttCount=1
+            0x00, 0x83, 0x07,  // without fix: TBTT entry → opClass=131 (6GHz!), channel=7
+        };
+        var stream = new List<byte> { 201, (byte)rnrBody.Length };
+        stream.AddRange(rnrBody);
+        // BSS Load after the RNR to confirm subsequent parsing is unaffected.
+        stream.AddRange(new byte[] { 11, 5, 0x0A, 0x00, 50, 0x00, 0x00 }); // StationCount=10
+
+        var s = BeaconIeParser.Parse(stream.ToArray());
+
+        s.RnrNeighbors.Should().BeEmpty(
+            "tbttInfoLen=0 is malformed — no RNR entries should be produced");
+        s.BssLoad.Should().NotBeNull("BSS Load element after the malformed RNR must still be parsed");
+        s.BssLoad!.StationCount.Should().Be(10);
+    }
 }

@@ -86,6 +86,30 @@ public class RnrParserTests
         RnrParser.Parse(new byte[] { 201, 10, 0x00, 0x00, 0x01, 0x09 })
                  .Should().BeEmpty();
     }
+
+    [Fact]
+    public void MalformedEntry_TbttInfoLenZero_DoesNotProduceSpuriousEntries()
+    {
+        // Before fix: tbttInfoLen=0 caused the inner for-loop (pos += 0) to not advance pos.
+        // The outer while then re-read bytes at the same offset as a new Neighbor AP Info header.
+        // The crafted body below is designed so that without the fix, the re-parsed header
+        // (0x00,0x06 → info=0x0600, tbttInfoLen=3, tbttCount=1) produces a spurious
+        // Is6GHz RnrNeighborAp entry (opClass=131, channel=7).
+        // After fix: break on tbttInfoLen==0 → result is empty, no exception.
+        var body = new byte[]
+        {
+            0x00, 0x00,        // Neighbor AP Info: tbttInfoLen=0 (bits 9-15), tbttCount=1
+            0x00, 0x06,        // without fix: re-read as info=0x0600 → tbttInfoLen=3, tbttCount=1
+            0x00, 0x83, 0x07,  // without fix: TBTT entry → opClass=131 (6GHz!), channel=7
+        };
+        var element = new byte[] { 201, (byte)body.Length }
+            .AppendRange(body);
+
+        var result = RnrParser.Parse(element);
+
+        result.Should().BeEmpty(
+            "tbttInfoLen=0 is invalid; subsequent bytes must not be mis-parsed as TBTT entries");
+    }
 }
 
 // ── helper ──────────────────────────────────────────────────────────────
