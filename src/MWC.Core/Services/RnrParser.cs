@@ -53,7 +53,7 @@ public static class RnrParser
         return result;
     }
 
-    private static void ParseRnrBody(ReadOnlySpan<byte> body, List<RnrNeighborAp> result)
+    internal static void ParseRnrBody(ReadOnlySpan<byte> body, List<RnrNeighborAp> result)
     {
         int pos = 0;
         while (pos + NeighborInfoLen <= body.Length)

@@ -63,7 +63,7 @@ public static class BeaconIeParser
                     break;
 
                 case RnrParser.RnrElementId:
-                    DecodeRnr(body, rnr ??= new());
+                    RnrParser.ParseRnrBody(body, rnr ??= new());
                     break;
 
                 case CountryInfoParser.CountryElementId
@@ -135,35 +135,6 @@ public static class BeaconIeParser
             StationCount:               (ushort)(b[0] | (b[1] << 8)),
             ChannelUtilization:         b[2],
             AvailableAdmissionCapacity: (ushort)(b[3] | (b[4] << 8)));
-
-    private static void DecodeRnr(ReadOnlySpan<byte> body, List<RnrNeighborAp> result)
-    {
-        int pos = 0;
-        while (pos + 2 <= body.Length)
-        {
-            int info        = body[pos] | (body[pos + 1] << 8);
-            int tbttCount   = (info & 0x000F) + 1;
-            int tbttInfoLen = (info >> 9) & 0x7F;
-            pos += 2;
-
-            // tbttInfoLen == 0 は不正 (802.11 最小1バイト)。
-            // 0 のまま進むと pos が動かず無限ループになるため停止する。
-            if (tbttInfoLen == 0) break;
-
-            for (int t = 0; t < tbttCount; t++)
-            {
-                if (pos + tbttInfoLen > body.Length) return;
-                if (tbttInfoLen >= 3)
-                {
-                    byte opClass = body[pos + 1];
-                    byte channel = body[pos + 2];
-                    string? bssid = tbttInfoLen >= 9 ? FormatBssid(body.Slice(pos + 3, 6)) : null;
-                    result.Add(new RnrNeighborAp(opClass, channel, bssid));
-                }
-                pos += tbttInfoLen;
-            }
-        }
-    }
 
     private static void DecodeVendorSpecific(
         ReadOnlySpan<byte> b, ref WmmParameters? wmm, ref byte? wmmQosInfo)

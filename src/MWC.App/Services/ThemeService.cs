@@ -10,7 +10,7 @@ namespace MWC.App.Services;
 /// ダーク/ライト/システム テーマ切替。
 /// ResourceDictionary を差し替えることで全 Window に即時反映。
 /// </summary>
-public sealed class ThemeService
+public sealed class ThemeService : IDisposable
 {
     private const string DarkUri        = "/MWC.App;component/Themes/Dark.xaml";
     private const string LightUri       = "/MWC.App;component/Themes/Light.xaml";
@@ -83,6 +83,9 @@ public sealed class ThemeService
         if (e.Category == UserPreferenceCategory.General && _current == AppTheme.System)
             Application.Current?.Dispatcher.Invoke(() => Apply(AppTheme.System));
     }
+
+    public void Dispose()
+        => SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 
     private static bool IsWindowsDarkMode()
     {
