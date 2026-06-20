@@ -245,7 +245,9 @@ public static partial class Program
                 foreach (var n in enriched.OrderByDescending(x => x.SignalQuality))
                 {
                     var r = analyzer.Analyze(n, enriched);
-                    var factor = r.Factors.Count > 0 ? r.Factors[0] : r.Recommendation;
+                    var factor = r.Factors.Count > 0
+                        ? CliHelpers.InterferenceFactorLabel(r.Factors[0])
+                        : CliHelpers.InterferenceRecommendationLabel(r.Recommendation);
                     Console.WriteLine($"{Trunc(n.Ssid,32),-32} {n.Channel,3} {BandLabel(n.Band),4} {r.Level,-10} {r.Score,5}  {Trunc(factor, 50)}");
                 }
             }
