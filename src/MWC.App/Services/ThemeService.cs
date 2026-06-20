@@ -63,8 +63,7 @@ public sealed class ThemeService
         var merged = Application.Current.Resources.MergedDictionaries;
         for (int i = merged.Count - 1; i >= 0; i--)
         {
-            var src = merged[i].Source?.ToString() ?? "";
-            if (src.Contains("/Themes/Dark") || src.Contains("/Themes/Light"))
+            if (merged[i].Source?.ToString().Contains("/Themes/") == true)
                 merged.RemoveAt(i);
         }
         merged.Add(newDict);
