@@ -173,7 +173,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
         IsConnecting = true;
         try
         {
-            StatusMessage = MWC.App.Resources.L.Format("Progress_Connecting");
+            StatusMessage = MWC.App.Resources.L.Get("Progress_Connecting");
             var net = SourceNetworks.FirstOrDefault(n => n.Ssid == best);
             if (net is null) { StatusMessage = MWC.App.Resources.L.Get("Status_PriorityOutOfRange"); return; }
             var res = await _executor.ConnectAsync(
