@@ -144,7 +144,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             : null;
         HasPredictedSignal = predicted.HasValue;
         PredictedSignalLabel = predicted.HasValue
-            ? $"~{predicted:F0} dBm  ({rssiHistory!.Count} samples)"
+            ? L.Format("Detail_PredictedSignal", $"{predicted:F0}", rssiHistory!.Count)
             : "-";
 
         // LinkRateEstimator は 802.11ax/be (Wi-Fi 6+) の HE/EHT MCS モデル。
@@ -159,7 +159,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             var le = _linkRate.Estimate(n.Rssi!.Value,
                 channelWidthMhz: n.ChannelWidth > 0 ? n.ChannelWidth : 80,
                 supports4096Qam: n.Phy is PhyType.Dot11be or PhyType.Dot11bn);
-            LinkEstimateLabel = $"MCS {le.MaxMcs}  {le.PhyRateMbps} Mbps PHY  (~{le.EffectiveMbps} Mbps effective, 2-stream est.)  SNR {le.SnrDb} dB";
+            LinkEstimateLabel = L.Format("Detail_LinkEstimate_Format", le.MaxMcs, le.PhyRateMbps, le.EffectiveMbps, le.SnrDb);
         }
         else
         {
@@ -169,11 +169,14 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         var mlo = _mloAnalyzer.Analyze(n);
         HasMlo = mlo.IsMlo;
         MloLabel = mlo.IsMlo
-            ? $"{mlo.LinkCount} links  ({FormatBands(mlo.Bands)})  {mlo.AggregatedMbps:F0} Mbps aggregate  ({mlo.ReliabilityTier})"
+            ? L.Format("Detail_Mlo_Format", mlo.LinkCount, FormatBands(mlo.Bands),
+                       $"{mlo.AggregatedMbps:F0}", L.MloReliabilityLabel(mlo.ReliabilityTier))
             : "-";
 
         var dist = _distEstimator.Estimate(n);
-        DistanceLabel = dist.Confidence != DistanceConfidence.Unknown ? dist.Label : "-";
+        DistanceLabel = dist.Confidence != DistanceConfidence.Unknown
+            ? L.Format("Detail_DistanceLabel", $"{dist.Meters:0.#}", $"{dist.MinMeters:0.#}", $"{dist.MaxMeters:0.#}")
+            : "-";
 
         // Fast-roaming detection depends on beacon-IE enrichment (FastTransition / NeighborReport /
         // BssTransitionMgmt). That enrichment is dormant in the shipped app — WlanBssIeProvider is

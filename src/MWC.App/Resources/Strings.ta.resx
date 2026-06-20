@@ -607,4 +607,12 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Rec_Dim_Channel"><value>Band / Channel</value></data>
   <data name="Rec_Dim_Signal"><value>Signal Strength</value></data>
   <data name="Rec_Summary"><value>Overall score {0}/100 ({1}). {2}. Top factor: &quot;{3}&quot; (score {4}).</value></data>
+
+  <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
+  <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
+  <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
+  <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
+  <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
+  <data name="Detail_DistanceLabel"><value>~{0} m ({1}–{2} m)</value></data>
 </root>

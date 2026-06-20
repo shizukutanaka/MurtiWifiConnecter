@@ -443,6 +443,14 @@ public static class L
                   ScoreDimensionLabel(top.Dimension),
                   (int)Math.Round(top.Score));
 
+    // ─── MLO reliability tier labels ─────────────────────────────────
+    public static string MloReliabilityLabel(MloReliability tier) => tier switch
+    {
+        MloReliability.TripleLink => Get("Mlo_Reliability_TripleLink"),
+        MloReliability.DualLink   => Get("Mlo_Reliability_DualLink"),
+        _                         => Get("Mlo_Reliability_SingleLink"),
+    };
+
     // ─── Troubleshooting dialog (localized) ───────────────────────────
     public static MWC.Core.Services.TroubleshootingAdvice GetTroubleshootingAdvice(
         MWC.Core.Models.ConnectionFailure failure,
