@@ -233,7 +233,12 @@ public partial class MainWindow : Window
         await AsyncEventHelper.SafeRunAsync(null, "OnAdapterRefreshClick", async () =>
         {
             var ad = GetAdapterFromMenu(sender);
-            if (ad is not null) await ad.RefreshAsync();
+            if (ad is null) return;
+            await ad.RefreshAsync();
+            // After a manual per-adapter refresh, re-sort/filter if this is the active adapter.
+            // SafeRefresh() normally does this for the timer path, but context-menu refresh bypasses it.
+            if (DataContext is MainViewModel vm && ad == vm.SelectedAdapter)
+                vm.Filter.ReapplyFilter();
         });
     }
 
