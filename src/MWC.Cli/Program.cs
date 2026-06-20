@@ -117,10 +117,12 @@ public static partial class Program
                 Console.WriteLine($"{"#",2}  {"Name",-18}  {"State",-12}  {"Connected SSID",-30}  {"Signal",6}  PHY");
                 Console.WriteLine(new string('-', 90));
                 int i = 1;
+                int connectedCount = 0;
                 foreach (var a in ads)
                 {
                     var nets = await svc.ScanAsync(a.Id);
                     var conn = nets.FirstOrDefault(n => n.IsConnected);
+                    if (conn is not null) connectedCount++;
                     var phy  = conn?.Phy.ToShortLabel() ?? "";
                     var ssid = conn?.Ssid ?? "(not connected)";
                     var sig  = conn != null ? $"{conn.SignalQuality}%" : "-";
@@ -128,8 +130,6 @@ public static partial class Program
                     i++;
                 }
                 Console.WriteLine();
-                int connectedCount = 0;
-                foreach (var a in ads) if ((await svc.ScanAsync(a.Id)).Any(n => n.IsConnected)) connectedCount++;
                 Console.WriteLine($"{connectedCount} / {ads.Count} adapters connected");
             }
             else
