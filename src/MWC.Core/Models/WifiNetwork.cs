@@ -238,9 +238,9 @@ public sealed record WiFi7Capability
 
 public static class MloExtensions
 {
-    /// <summary>MLO リンクの集約スループット上限を推定 (Mbps)</summary>
+    /// <summary>MLO リンクの集約スループット上限を推定 (Mbps、MCS13 理論値ベース)</summary>
     public static int EstimatedAggregatedSpeedMbps(
-        this IReadOnlyList<MloLink> links, int mcsIndex = 13)
+        this IReadOnlyList<MloLink> links)
     {
         // 帯域幅→空間ストリーム1本のMCS13理論値 (近似)
         static int BwToMbps(int chanWidthMhz) => chanWidthMhz switch

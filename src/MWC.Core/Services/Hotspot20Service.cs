@@ -22,11 +22,7 @@ public sealed class Hotspot20Service
 {
     // ── Public API ───────────────────────────────────────────────────
 
-    /// <summary>
-    /// スキャン結果から Passpoint 対応 AP を識別して返す。
-    /// Passpoint AP は RSN IE に特定 OUI (00:50:F2:04) を含む。
-    /// </summary>
-    /// <summary>スキャン結果から Passpoint (Hotspot 2.0) 対応 AP のみを返す。</summary>
+    /// <summary>スキャン結果から Passpoint (Hotspot 2.0) 対応 AP のみを返す。Passpoint AP は RSN IE に特定 OUI (00:50:F2:04) を含む。</summary>
     public IReadOnlyList<WifiNetwork> FilterPasspointNetworks(
         IReadOnlyList<WifiNetwork> networks)
         => networks.Where(n => n.IsPasspoint).ToList();
@@ -111,11 +107,3 @@ public sealed record CarrierPasspointPreset(
     bool                  UseEapSim,
     IReadOnlyList<string> RadiusServers);
 
-/// <summary>WifiNetwork への Passpoint 拡張</summary>
-public static class WifiNetworkPasspointExtensions
-{
-    /// <summary>Passpoint AP かどうか(Interworking bit により判定)</summary>
-    public static bool IsPasspoint(this WifiNetwork network)
-        => network.Auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
-           && network.BssEntries.Any(b => b.HasInterworkingElement);
-}
