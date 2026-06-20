@@ -22,11 +22,7 @@ namespace MWC.Core.Services;
 /// </summary>
 public sealed class OweSelectionService
 {
-    /// <summary>
-    /// スキャン結果から Open/OWE ペアを検出し、OWE 優先に並べ替えた一覧を返す。
-    /// OWE AP が存在する Open AP はリストから除外(透過的統合)。
-    /// </summary>
-    /// <summary>OWE AP が存在する Open AP を非表示にして OWE 優先リストを返す。</summary>
+    /// <summary>OWE AP が存在する Open AP を非表示にして OWE 優先リストを返す。同名 Open AP はリストから除外し透過的統合を実現する。</summary>
     public IReadOnlyList<WifiNetwork> ApplyOwePreference(
         IReadOnlyList<WifiNetwork> networks)
     {
@@ -43,25 +39,12 @@ public sealed class OweSelectionService
             if (net.Auth == AuthMethod.Open && oweSsids.Contains(net.Ssid))
                 continue;
 
-            // OWE AP の表示名に "Enhanced" バッジを付ける(UI 用メタデータ)
-            if (net.Auth == AuthMethod.OWE)
-            {
-                result.Add(net with { });  // OWE をそのまま追加(フラグは VendorName に追記可)
-            }
-            else
-            {
-                result.Add(net);
-            }
+            result.Add(net);
         }
         return result;
     }
 
-    /// <summary>
-    /// OWE 移行モードの AP かどうかを判定。
-    /// 移行モード: Open SSID に対応する OWE SSID が異なる場合もある
-    ///   (例: "FreeWifi" ↔ "FreeWifi_OWE" の組み合わせ)。
-    /// </summary>
-    /// <summary>Open AP と OWE AP が同一の BSS (OWE Transition Mode) かどうかを判定する。</summary>
+    /// <summary>Open AP と OWE AP が同一の BSS (OWE Transition Mode) かどうかを判定する。移行モードでは Open SSID に対応する OWE SSID が異なる場合もある ("FreeWifi" ↔ "FreeWifi_OWE")。</summary>
     public bool IsOweTransitionPair(WifiNetwork open, WifiNetwork owe)
     {
         if (open.Auth != AuthMethod.Open) return false;
@@ -75,11 +58,7 @@ public sealed class OweSelectionService
         return openBssids.Overlaps(oweBssids);
     }
 
-    /// <summary>
-    /// OWE 自動接続のプロファイル仕様を生成。
-    /// Open AP への接続要求を OWE に自動昇格する。
-    /// </summary>
-    /// <summary>OWE 自動接続のプロファイル仕様を生成する。</summary>
+    /// <summary>OWE 自動接続のプロファイル仕様を生成する。Open AP への接続要求を OWE に自動昇格する。</summary>
     public WifiProfileSpec BuildOweSpec(string ssid)
         => new() { Ssid = ssid, Auth = AuthMethod.OWE };
 
