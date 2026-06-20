@@ -151,7 +151,7 @@ public sealed class AdapterFailoverService : IDisposable
         {
             // Guard against ObjectDisposedException if Dispose() races with this finally block.
             try { _checkGuard.Release(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) { _log.LogDebug(ex, "Semaphore already disposed during shutdown — expected"); }
         }
     }
 

@@ -6,12 +6,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using MWC.App.Resources;
 using MWC.App.Services;
 using MWC.App.ViewModels;
 using MWC.App.Views;
 using MWC.Core.Models;
-
-using MWC.App.Resources;
 namespace MWC.App;
 
 /// <summary>
@@ -83,7 +83,7 @@ public partial class MainWindow : Window
             if (r.HasUpdate)
                 Dispatcher.Invoke(() => vm.StatusMessage = MWC.App.Resources.L.Format("Status_UpdateAvailable", r.LatestVersion));
         }
-        catch { /* バックグラウンド更新の失敗は静かに */ }
+        catch (Exception ex) { Log.Debug(ex, "Background update check failed"); }
     }
 
     // ── キーボードショートカット ──────────────────────

@@ -201,7 +201,7 @@ public partial class App : Application
                     typeof(FrameworkElement),
                     new FrameworkPropertyMetadata(FlowDirection.RightToLeft));
             }
-            catch { /* 既に生成済み等 — LTR フォールバック */ }
+            catch (Exception ex) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
         }
     }
 
