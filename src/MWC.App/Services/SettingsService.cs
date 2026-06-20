@@ -27,6 +27,9 @@ public sealed class SettingsService
     private readonly ILogger<SettingsService> _log;
     // ディスク書き込み直列化用。UI スレッドをブロックしないよう Task.Run + lock の組み合わせ。
     private readonly object _saveLock = new();
+    // 書き込み順序保証: Save が連続して呼ばれた場合、古いスナップショットが新しい
+    // スナップショットを上書きしないようシーケンス番号で最新の書き込みのみ実行する。
+    private long _saveSeq;
     private AppSettings _current;
 
     public AppSettings Current => _current;
@@ -65,13 +68,16 @@ public sealed class SettingsService
     public void Save(AppSettings settings)
     {
         _current = settings;           // UI スレッドで即時反映
-        _ = Task.Run(() => Persist(settings));  // ディスク書き込みはバックグラウンドへ
+        var seq = System.Threading.Interlocked.Increment(ref _saveSeq);
+        _ = Task.Run(() => Persist(settings, seq));  // ディスク書き込みはバックグラウンドへ
     }
 
-    private void Persist(AppSettings settings)
+    private void Persist(AppSettings settings, long seq)
     {
         lock (_saveLock)
         {
+            // 後続の Save がある場合はこのスナップショットをスキップする
+            if (System.Threading.Volatile.Read(ref _saveSeq) != seq) return;
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
