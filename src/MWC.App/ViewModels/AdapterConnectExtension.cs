@@ -66,7 +66,7 @@ public static class AdapterConnectExtension
             await Task.Delay(500);
             progress.Close();
 
-            var advice  = TroubleshootingHelper.GetAdvice(result.Failure ?? ConnectionFailure.Unknown, auth);
+            var advice  = MWC.App.Resources.L.GetTroubleshootingAdvice(result.Failure ?? ConnectionFailure.Unknown, auth);
             var trouble = new TroubleshootingDialog(ssid, advice) { Owner = owner };
             trouble.ShowDialog();
 

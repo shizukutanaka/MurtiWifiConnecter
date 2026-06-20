@@ -390,4 +390,34 @@ public static class L
     // ─── Channel congestion tooltips ──────────────────────────────────
     public static string CongestionOverloadedTooltip(int pct) => Format("Congestion_OverloadedTooltip", pct);
     public static string CongestionBusyTooltip(int pct)       => Format("Congestion_BusyTooltip", pct);
+
+    // ─── Troubleshooting dialog (localized) ───────────────────────────
+    public static MWC.Core.Services.TroubleshootingAdvice GetTroubleshootingAdvice(
+        MWC.Core.Models.ConnectionFailure failure,
+        MWC.Core.Models.AuthMethod auth)
+    {
+        bool isEnterprise = auth is MWC.Core.Models.AuthMethod.WPA2Enterprise
+                                 or MWC.Core.Models.AuthMethod.WPA3Enterprise;
+        var (prefix, icon) = failure switch
+        {
+            MWC.Core.Models.ConnectionFailure.BadCredentials when isEnterprise
+                => ("Trouble_BadCredentialsEnt", "🏢"),
+            MWC.Core.Models.ConnectionFailure.BadCredentials
+                => ("Trouble_BadCredentials", "🔑"),
+            MWC.Core.Models.ConnectionFailure.Timeout
+                => ("Trouble_Timeout", "⏱"),
+            MWC.Core.Models.ConnectionFailure.NotInRange
+                => ("Trouble_NotInRange", "📡"),
+            MWC.Core.Models.ConnectionFailure.AdapterDisabled
+                => ("Trouble_AdapterDisabled", "📵"),
+            MWC.Core.Models.ConnectionFailure.InsufficientPrivilege
+                => ("Trouble_InsufficientPrivilege", "🔒"),
+            _ => ("Trouble_Unknown", "❓")
+        };
+        return new MWC.Core.Services.TroubleshootingAdvice(
+            Title:  Get($"{prefix}_Title"),
+            Reason: Get($"{prefix}_Reason"),
+            Steps:  Get($"{prefix}_Steps").Split('|'),
+            Icon:   icon);
+    }
 }

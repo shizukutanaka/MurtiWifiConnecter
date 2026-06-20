@@ -414,4 +414,25 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Menu_DiagnosticExport"><value>Export Support Report…</value></data>
   <data name="Status_DiagnosticExported"><value>Support report saved → {0}</value></data>
   <data name="Status_Exported"><value>Export → {0}</value></data>
+  <data name="Trouble_BadCredentialsEnt_Title"><value>Enterprise Authentication Failed</value></data>
+  <data name="Trouble_BadCredentialsEnt_Reason"><value>The username or password is incorrect.</value></data>
+  <data name="Trouble_BadCredentialsEnt_Steps"><value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value></data>
+  <data name="Trouble_BadCredentials_Title"><value>Wrong Password</value></data>
+  <data name="Trouble_BadCredentials_Reason"><value>The password you entered does not match the access point.</value></data>
+  <data name="Trouble_BadCredentials_Steps"><value>Double-check the password (case-sensitive)|Try the password printed on the router label or in its manual|If you recently changed the password, enter the new one</value></data>
+  <data name="Trouble_Timeout_Title"><value>Connection Timed Out</value></data>
+  <data name="Trouble_Timeout_Reason"><value>The access point did not respond.</value></data>
+  <data name="Trouble_Timeout_Steps"><value>Make sure the access point (router) is powered on|Move closer to the access point|Restart the router (power off for 10 seconds, then on)|Check whether other devices can connect from the same location</value></data>
+  <data name="Trouble_NotInRange_Title"><value>Network Not Found</value></data>
+  <data name="Trouble_NotInRange_Reason"><value>The selected network is not reachable from your current location.</value></data>
+  <data name="Trouble_NotInRange_Steps"><value>Move closer to the access point and try again|Check that the access point is powered on|Use the Rescan button to search for networks again</value></data>
+  <data name="Trouble_AdapterDisabled_Title"><value>Wi-Fi Adapter Disabled</value></data>
+  <data name="Trouble_AdapterDisabled_Reason"><value>The Wi-Fi adapter on your PC is turned off.</value></data>
+  <data name="Trouble_AdapterDisabled_Steps"><value>Press the Airplane mode key on your keyboard to turn it off|Go to Windows Settings → Network → Wi-Fi and turn it on|Check in Device Manager that the Wi-Fi adapter is enabled</value></data>
+  <data name="Trouble_InsufficientPrivilege_Title"><value>Administrator Privileges Required</value></data>
+  <data name="Trouble_InsufficientPrivilege_Reason"><value>Adding a network profile requires administrator privileges.</value></data>
+  <data name="Trouble_InsufficientPrivilege_Steps"><value>Right-click MWC and choose Run as administrator|Or sign in with an administrator account and try again</value></data>
+  <data name="Trouble_Unknown_Title"><value>Connection Failed</value></data>
+  <data name="Trouble_Unknown_Reason"><value>An unexpected error occurred.</value></data>
+  <data name="Trouble_Unknown_Steps"><value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value></data>
 </root>
