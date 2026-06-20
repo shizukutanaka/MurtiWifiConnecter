@@ -53,8 +53,7 @@ public sealed class AccessibilityAuditService
     /// <summary>
     /// テーマのカラートークンペアを一括検証。
     /// </summary>
-    public IReadOnlyList<ContrastResult> AuditThemePairs(
-        IEnumerable<ColorPair> pairs, bool includeAaaCheck = true)
+    public IReadOnlyList<ContrastResult> AuditThemePairs(IEnumerable<ColorPair> pairs)
         => pairs
             .Select(p => EvaluateContrast(p.Foreground, p.Background, p.IsLargeText))
             .ToList();
