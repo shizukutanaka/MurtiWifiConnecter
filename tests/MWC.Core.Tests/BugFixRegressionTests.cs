@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -551,5 +553,66 @@ public class PiiMaskSsidTests
         result.Should().StartWith("AB");
         result.Should().EndWith("******");
         result.Length.Should().Be(8, "2 kept + 6 stars cap");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  CertificateStoreService ワイルドカード回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// MatchesHostname の RFC 6125 §6.4.3 準拠を回帰防止する。
+/// *.example.com は foo.example.com に一致するが、
+/// deep.sub.example.com (多段サブドメイン) には一致してはならない。
+///
+/// ValidateRadiusCert を通じて検証:
+///   - 一致する場合 → 証明書チェーン検証に進む (自己署名のため Summary ≠ "Hostname mismatch")
+///   - 一致しない場合 → 早期リターン (Summary == "Hostname mismatch")
+/// </summary>
+public class WildcardHostnameRegressionTests
+{
+    private static byte[] MakeWildcardCert(string cn)
+    {
+        using var rsa = RSA.Create(2048);
+        var req = new CertificateRequest(
+            $"CN={cn}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using var cert = req.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(30));
+        return cert.RawData;
+    }
+
+    [Fact]
+    public void Wildcard_SingleLevel_Matches()
+    {
+        // *.example.com should match foo.example.com
+        var der  = MakeWildcardCert("*.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "foo.example.com");
+        // Self-signed cert fails chain but NOT due to hostname mismatch
+        res.Summary.Should().NotBe("Hostname mismatch",
+            "*.example.com must match the single-label foo.example.com");
+    }
+
+    [Fact]
+    public void Wildcard_MultiLevel_DoesNotMatch()
+    {
+        // *.example.com must NOT match deep.sub.example.com (RFC 6125 §6.4.3)
+        var der  = MakeWildcardCert("*.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "deep.sub.example.com");
+        res.Summary.Should().Be("Hostname mismatch",
+            "*.example.com must not match the multi-label deep.sub.example.com");
+        res.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExactMatch_Works()
+    {
+        var der  = MakeWildcardCert("radius.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "radius.example.com");
+        res.Summary.Should().NotBe("Hostname mismatch",
+            "exact CN match must not return hostname mismatch");
     }
 }
