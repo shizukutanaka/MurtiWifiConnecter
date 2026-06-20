@@ -18,14 +18,13 @@ namespace MWC.App.Services;
 ///   3. プロファイルが保存済みなら自動接続を試みる
 ///   4. 失敗してもトースト通知のみ。UI をブロックしない
 ///
-/// 設定: SettingsService.Current.AutoReconnect で on/off
+/// 設定: AdapterPreferencesService.IsAutoReconnectEnabled() で per-adapter 制御
 /// </summary>
 public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 {
     private readonly IWifiService          _wifi;
     private readonly NetworkHistoryService     _history;
     private readonly NotificationService        _notify;
-    private readonly SettingsService            _settings;
     private readonly AdapterPreferencesService  _adapterPrefs;
     private readonly ConnectionExecutor         _executor;
     private readonly ILogger<AutoReconnectService> _log;
@@ -38,13 +37,12 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
         IWifiService wifi,
         NetworkHistoryService history,
         NotificationService notify,
-        SettingsService settings,
         AdapterPreferencesService adapterPrefs,
         ConnectionExecutor executor,
         ILogger<AutoReconnectService> log)
     {
         _wifi = wifi; _history = history; _notify = notify;
-        _settings = settings; _adapterPrefs = adapterPrefs;
+        _adapterPrefs = adapterPrefs;
         _executor = executor; _log = log;
     }
 
