@@ -414,6 +414,7 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Menu_DiagnosticExport"><value>Export Support Report…</value></data>
   <data name="Status_DiagnosticExported"><value>Support report saved → {0}</value></data>
   <data name="Status_Exported"><value>Export → {0}</value></data>
+  <data name="Tray_NetworkItem"><value>{0}  ({1}%)</value></data>
   <data name="Trouble_BadCredentialsEnt_Title"><value>Enterprise Authentication Failed</value></data>
   <data name="Trouble_BadCredentialsEnt_Reason"><value>The username or password is incorrect.</value></data>
   <data name="Trouble_BadCredentialsEnt_Steps"><value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value></data>

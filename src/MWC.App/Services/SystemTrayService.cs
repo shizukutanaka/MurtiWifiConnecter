@@ -100,7 +100,8 @@ public sealed class SystemTrayService : IDisposable
                                          .ThenByDescending(x => x.SignalQuality))
             {
                 if (n++ >= 8) break;
-                var item = new ToolStripMenuItem($"{net.Ssid}  ({net.SignalQuality}%)")
+                var item = new ToolStripMenuItem(
+                    MWC.App.Resources.L.Format("Tray_NetworkItem", net.Ssid, net.SignalQuality))
                 {
                     Checked      = net.IsConnected,
                     CheckOnClick = false
@@ -167,7 +168,8 @@ public sealed class SystemTrayService : IDisposable
         var text = ssid is null
             ? MWC.App.Resources.L.TrayNotConnected
             : MWC.App.Resources.L.TrayStatusConnected(ssid, signalQuality);
-        _tray.Text = text.Length > 127 ? text[..127] : text;
+        // WinForms NotifyIcon.Text throws ArgumentException above 63 chars.
+        _tray.Text = text.Length > 63 ? text[..63] : text;
         // 旧アイコンを破棄してから差し替える (各 BuildIcon は独立した GDI ハンドルを
         // 確保するため、破棄しないと更新の度に HICON がリークする)。
         var old = _tray.Icon;
