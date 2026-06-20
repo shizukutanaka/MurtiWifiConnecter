@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **Accessibility — pinned-SSID list had no screen-reader name**: a full audit of every
+  interactive control across all 15 XAML views found one gap against the "AutomationProperties.Name
+  on all interactive elements" rule — the `PinnedList` ListBox in `AdapterPreferencesDialog`. Added
+  an `Adapter_Pinned_ListAutomation` key and bound it; the app now has 100% accessible-name
+  coverage on nameless interactive controls.
+- **i18n (ja) — 81 user-facing strings showed English in the Japanese UI**: keys added during the
+  locale-sync work carried English fallback values in every locale, including `ja` (the project's
+  authoring language). Translated all 81 to natural Japanese in `Strings.ja.resx` — troubleshooting
+  Titles/Reasons/Steps, security-advisory titles, roaming/power-save/mesh detail labels,
+  recommendation grade/profile/dimension labels, MLO tiers, interference factors/advice, and
+  connection-failure reasons. Technical terms and format placeholders preserved; only brand/legal
+  strings left as-is.
 - **`ProfileXmlBuilder` always emitted `<useOneX>false</useOneX>` for PSK profiles — malformed
   profile + failing golden test**: `BuildMsm` unconditionally added a `useOneX` element to
   `authEncryption`, so WPA/WPA2/WPA3-Personal (and Open/OWE/WEP) profiles got
