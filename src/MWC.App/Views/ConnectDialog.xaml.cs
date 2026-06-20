@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using MWC.App.Resources;
 using MWC.Core.Models;
 using MWC.Core.Services;
 
@@ -19,8 +20,8 @@ public partial class ConnectDialog : Window
         InitializeComponent();
         _auth = auth;
         SsidLabel.Text = ssid;
-        AuthLabel.Text = SecurityBadgeService.GetBadge(auth).Label
-                       + $"  ({SecurityBadgeService.GetBadge(auth).TechLabel})";
+        var badge = SecurityBadgeService.GetBadge(auth);
+        AuthLabel.Text = L.SecurityLevelLabel(badge.Level) + $"  ({badge.TechLabel})";
 
         bool needsPassword = auth is not (AuthMethod.Open or AuthMethod.OWE);
         PasswordPanel.Visibility = needsPassword ? Visibility.Visible : Visibility.Collapsed;

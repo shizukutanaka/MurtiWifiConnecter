@@ -114,7 +114,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         IsConnected = n.IsConnected;
         HasProfile  = n.HasProfile;
 
-        AuthLabel    = n.Auth.ToString();
+        AuthLabel    = L.AuthCompact(n.Auth);
         CipherLabel  = n.Cipher.ToString();
         PhyLabel     = n.Phy.ToGenerationLabel();
         BandLabel    = n.Band switch
