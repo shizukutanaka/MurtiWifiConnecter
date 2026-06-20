@@ -70,7 +70,6 @@ public sealed class KeyboardShortcutService
     {
         foreach (var s in Shortcuts)
         {
-            var key = $"{s.Modifiers}+{s.Key}";
             if (commandMap.TryGetValue(s.Title, out var cmd))
                 yield return new KeyBinding(cmd, s.Key, s.Modifiers);
         }
