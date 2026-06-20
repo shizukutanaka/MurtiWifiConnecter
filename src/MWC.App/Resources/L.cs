@@ -319,6 +319,16 @@ public static class L
     public static string CertPickerExpiryFormat(string date, int days)
         => Format("CertPicker_ExpiryFormat", date, days);
 
+    // ─── Cipher type labels ──────────────────────────────────────────────
+    public static string CipherLabel(CipherType cipher) => cipher switch
+    {
+        CipherType.WEP     => Get("Cipher_WEP"),
+        CipherType.TKIP    => Get("Cipher_TKIP"),
+        CipherType.AES     => Get("Cipher_AES"),
+        CipherType.GCMP256 => Get("Cipher_GCMP256"),
+        _                  => Get("Cipher_None"),
+    };
+
     // ─── PHY generation labels ───────────────────────────────────────────
     public static string PhyGenerationLabel(PhyType phy) => phy switch
     {

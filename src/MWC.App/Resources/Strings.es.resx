@@ -639,4 +639,10 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Phy_Short_be"><value>Wi-Fi 7</value></data>
   <data name="Phy_Short_bn"><value>Wi-Fi 8</value></data>
   <data name="Phy_Short_Unknown"><value>?</value></data>
+
+  <data name="Cipher_None"><value>None</value></data>
+  <data name="Cipher_WEP"><value>WEP</value></data>
+  <data name="Cipher_TKIP"><value>TKIP</value></data>
+  <data name="Cipher_AES"><value>AES (CCMP)</value></data>
+  <data name="Cipher_GCMP256"><value>GCMP-256</value></data>
 </root>
