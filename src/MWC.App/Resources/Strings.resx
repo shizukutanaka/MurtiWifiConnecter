@@ -186,6 +186,10 @@
   <data name="About_Version"><value>Version {0}</value></data>
   <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
   <data name="Status_ConnectedTo_Short"><value>Connected: {0}</value></data>
+  <data name="Status_ConnectedWithDuration"><value>→ {0}  ({1})</value></data>
+  <data name="Status_ConnectedNoTimer"><value>→ {0}</value></data>
+  <data name="Duration_HoursMinutes"><value>{0}h {1:D2}m</value></data>
+  <data name="Duration_Minutes"><value>{0}m</value></data>
   <data name="Tray_Connected"><value>✓ {0}  ({1})</value></data>
   <data name="Jump_ConnectedSsid"><value>✓ {0}</value></data>
   <data name="Confirm_DeleteMessage"><value>Delete profile for {0}?</value></data>

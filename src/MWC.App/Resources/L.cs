@@ -88,6 +88,15 @@ public static class L
     public static string StatusNetworksFound(int count)   => Format("Status_NetworksFound", count);
     public static string StatusProfileCount(int count)    => Format("Status_ProfileCount", count);
 
+    public static string StatusConnectedWithDuration(string ssid, System.TimeSpan elapsed)
+    {
+        var dur = elapsed.TotalHours >= 1
+            ? Format("Duration_HoursMinutes", (int)elapsed.TotalHours, elapsed.Minutes)
+            : Format("Duration_Minutes", (int)elapsed.TotalMinutes);
+        return Format("Status_ConnectedWithDuration", ssid, dur);
+    }
+    public static string StatusConnectedNoTimer(string ssid) => Format("Status_ConnectedNoTimer", ssid);
+
     // ─── Settings dialog ─────────────────────────────────────────────
     public static string SettingsTitle             => Get("Settings_Title");
     public static string SettingsDialogAutomation  => Get("Settings_DialogAutomation");

@@ -36,11 +36,8 @@ public sealed partial class AdapterViewModel : ObservableObject
     public string ConnectionStatusLabel =>
         ConnectedSsid is null ? MWC.App.Resources.L.LabelNotConnected
         : _connectedSince.HasValue
-            ? $"→ {ConnectedSsid}  ({FormatDuration(DateTimeOffset.UtcNow - _connectedSince.Value)})"
-            : $"→ {ConnectedSsid}";
-
-    private static string FormatDuration(TimeSpan e) =>
-        e.TotalHours >= 1 ? $"{(int)e.TotalHours}h {e.Minutes:D2}m" : $"{(int)e.TotalMinutes}m";
+            ? MWC.App.Resources.L.StatusConnectedWithDuration(ConnectedSsid, DateTimeOffset.UtcNow - _connectedSince.Value)
+            : MWC.App.Resources.L.StatusConnectedNoTimer(ConnectedSsid);
 
     /// <summary>ツールバー接続状態テキスト (resx 経由でローカライズ済み)</summary>
     public string ToolbarStatusText =>

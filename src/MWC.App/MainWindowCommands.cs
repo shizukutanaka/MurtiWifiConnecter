@@ -155,7 +155,7 @@ public sealed class MainWindowCommands
         }, MWC.App.Resources.L.Get("Export_Op"), $"format={format}");
 
         return result.Success
-            ? $"Export → {result.Value}"
+            ? MWC.App.Resources.L.Format("Status_Exported", result.Value)
             : result.ErrorMessage ?? MWC.App.Resources.L.Get("Status_Failed");
     }
 
