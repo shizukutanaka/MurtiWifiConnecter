@@ -116,7 +116,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
         AuthLabel    = L.AuthCompact(n.Auth);
         CipherLabel  = n.Cipher.ToString();
-        PhyLabel     = n.Phy.ToGenerationLabel();
+        PhyLabel     = L.PhyGenerationLabel(n.Phy);
         BandLabel    = n.Band switch
         {
             WifiBand.Band2_4GHz => L.Get("Band_2_4"),
@@ -267,7 +267,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
                 b.Rssi,
                 b.Channel,
                 b.FrequencyMhz > 0 ? $"{b.FrequencyMhz} MHz" : ChannelToFreq(b.Channel, n.Band),
-                b.Phy.ToShortLabel(),
+                L.PhyShortLabel(b.Phy),
                 b.ChannelWidth > 0 ? $"{b.ChannelWidth} MHz" : "-"))
             .ToList();
     }

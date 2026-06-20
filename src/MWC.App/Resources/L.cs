@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Resources;
+using MWC.Core.Models;
 using MWC.Core.Services;
 
 namespace MWC.App.Resources;
@@ -317,6 +318,33 @@ public static class L
     // ─── CertificatePickerDialog ──────────────────────────────────────
     public static string CertPickerExpiryFormat(string date, int days)
         => Format("CertPicker_ExpiryFormat", date, days);
+
+    // ─── PHY generation labels ───────────────────────────────────────────
+    public static string PhyGenerationLabel(PhyType phy) => phy switch
+    {
+        PhyType.Dot11b  => Get("Phy_Gen_b"),
+        PhyType.Dot11a  => Get("Phy_Gen_a"),
+        PhyType.Dot11g  => Get("Phy_Gen_g"),
+        PhyType.Dot11n  => Get("Phy_Gen_n"),
+        PhyType.Dot11ac => Get("Phy_Gen_ac"),
+        PhyType.Dot11ax => Get("Phy_Gen_ax"),
+        PhyType.Dot11be => Get("Phy_Gen_be"),
+        PhyType.Dot11bn => Get("Phy_Gen_bn"),
+        _               => Get("Phy_Gen_Unknown"),
+    };
+
+    public static string PhyShortLabel(PhyType phy) => phy switch
+    {
+        PhyType.Dot11b  => Get("Phy_Short_b"),
+        PhyType.Dot11a  => Get("Phy_Short_a"),
+        PhyType.Dot11g  => Get("Phy_Short_g"),
+        PhyType.Dot11n  => Get("Phy_Short_n"),
+        PhyType.Dot11ac => Get("Phy_Short_ac"),
+        PhyType.Dot11ax => Get("Phy_Short_ax"),
+        PhyType.Dot11be => Get("Phy_Short_be"),
+        PhyType.Dot11bn => Get("Phy_Short_bn"),
+        _               => Get("Phy_Short_Unknown"),
+    };
 
     // ─── Compact auth / band labels (network list column display) ────────
     public static string AuthCompact(MWC.Core.Models.AuthMethod auth) => auth switch

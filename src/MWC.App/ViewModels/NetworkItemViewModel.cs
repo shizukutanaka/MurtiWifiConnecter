@@ -36,7 +36,7 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         Auth        = n.Auth;
         IsConnected = n.IsConnected;
         HasProfile  = n.HasProfile;
-        PhyLabel    = n.Phy.ToShortLabel();
+        PhyLabel    = MWC.App.Resources.L.PhyShortLabel(n.Phy);
         VendorLabel = n.VendorName ?? "";
         OnPropertyChanged(nameof(BandLabel));
         OnPropertyChanged(nameof(IsDfs));

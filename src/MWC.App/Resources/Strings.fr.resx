@@ -620,4 +620,23 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
   <data name="Detail_DistanceLabel"><value>~{0} m ({1}–{2} m)</value></data>
+
+  <data name="Phy_Gen_b"><value>Wi-Fi 1 (802.11b)</value></data>
+  <data name="Phy_Gen_a"><value>Wi-Fi 2 (802.11a)</value></data>
+  <data name="Phy_Gen_g"><value>Wi-Fi 3 (802.11g)</value></data>
+  <data name="Phy_Gen_n"><value>Wi-Fi 4 (802.11n)</value></data>
+  <data name="Phy_Gen_ac"><value>Wi-Fi 5 (802.11ac)</value></data>
+  <data name="Phy_Gen_ax"><value>Wi-Fi 6/6E (802.11ax)</value></data>
+  <data name="Phy_Gen_be"><value>Wi-Fi 7 (802.11be)</value></data>
+  <data name="Phy_Gen_bn"><value>Wi-Fi 8 (802.11bn — Preview)</value></data>
+  <data name="Phy_Gen_Unknown"><value>Unknown</value></data>
+  <data name="Phy_Short_b"><value>Wi-Fi 1</value></data>
+  <data name="Phy_Short_a"><value>Wi-Fi 2</value></data>
+  <data name="Phy_Short_g"><value>Wi-Fi 3</value></data>
+  <data name="Phy_Short_n"><value>Wi-Fi 4</value></data>
+  <data name="Phy_Short_ac"><value>Wi-Fi 5</value></data>
+  <data name="Phy_Short_ax"><value>Wi-Fi 6/6E</value></data>
+  <data name="Phy_Short_be"><value>Wi-Fi 7</value></data>
+  <data name="Phy_Short_bn"><value>Wi-Fi 8</value></data>
+  <data name="Phy_Short_Unknown"><value>?</value></data>
 </root>
