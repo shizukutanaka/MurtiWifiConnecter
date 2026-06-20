@@ -184,26 +184,27 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         var roaming = _roamAdvisor.Analyze(n);
         RoamingLabel = roaming.Tier switch
         {
-            RoamingTier.Seamless => $"Seamless ({string.Join("/", roaming.SupportedStandards)})",
-            RoamingTier.Fast     => $"Fast (802.11r) — ~{roaming.EstimatedHandoverMs}ms typical",
-            RoamingTier.Assisted => "Assisted (802.11k/v)",
-            _                    => $"Standard — no 802.11r/k/v detected (~{roaming.EstimatedHandoverMs}ms typical)"
+            RoamingTier.Seamless => L.Format("Detail_Roaming_Seamless", string.Join("/", roaming.SupportedStandards)),
+            RoamingTier.Fast     => L.Format("Detail_Roaming_Fast", roaming.EstimatedHandoverMs),
+            RoamingTier.Assisted => L.Get("Detail_Roaming_Assisted"),
+            _                    => L.Format("Detail_Roaming_Standard", roaming.EstimatedHandoverMs)
         };
 
         var iReport = _interferenceAnalyzer.Analyze(n, visible);
         InterferenceLabel = iReport.Level == InterferenceLevel.Low
-            ? $"Low  ({iReport.Score}/100)"
-            : $"{iReport.Level}  ({iReport.Score}/100)  — {iReport.Factors.FirstOrDefault() ?? iReport.Recommendation}";
+            ? L.Format("Detail_Interference_Low", iReport.Score)
+            : L.Format("Detail_Interference_Other", iReport.Level, iReport.Score,
+                       iReport.Factors.FirstOrDefault() ?? iReport.Recommendation);
 
         var meshGroups = _meshDetector.Detect(visible);
         var myGroup = meshGroups.FirstOrDefault(g =>
             string.Equals(g.Ssid, n.Ssid, StringComparison.Ordinal));
         HasMesh = myGroup is not null;
         MeshLabel = myGroup is null ? "-"
-            : $"{myGroup.NodeCount} nodes"
-              + (myGroup.IsTriBand ? " · Tri-band" : myGroup.Has6GHz ? " · 6 GHz" : "")
-              + (myGroup.HasFastTransition ? " · 802.11r" : "")
-              + $"  ({myGroup.Confidence})";
+            : L.Format("Detail_Mesh_NodeCount", myGroup.NodeCount)
+              + (myGroup.IsTriBand ? L.Get("Detail_Mesh_TriBand") : myGroup.Has6GHz ? L.Get("Detail_Mesh_6GHz") : "")
+              + (myGroup.HasFastTransition ? L.Get("Detail_Mesh_FastTransition") : "")
+              + L.Format("Detail_Mesh_Confidence", myGroup.Confidence);
 
         // PowerSaveAdvisorService keys off network.TargetWakeTime / RestrictedTwt, but no
         // scanner extracts those HE/EHT TWT IEs yet (they default false), so Analyze() would
@@ -215,13 +216,13 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         var ps = _powerSaveAdvisor.Analyze(n);
         PowerSaveLabel = ps.Tier switch
         {
-            PowerSaveTier.Advanced => $"rTWT  (~{ps.EstimatedSavingPercent}% battery saving)",
-            PowerSaveTier.Standard => $"TWT  (~{ps.EstimatedSavingPercent}% battery saving)",
+            PowerSaveTier.Advanced => L.Format("Detail_PowerSave_Advanced", ps.EstimatedSavingPercent),
+            PowerSaveTier.Standard => L.Format("Detail_PowerSave_Standard", ps.EstimatedSavingPercent),
             _ => n.Phy switch
             {
-                PhyType.Dot11be or PhyType.Dot11bn => "rTWT capable (Wi-Fi 7) — up to ~34% saving",
-                PhyType.Dot11ax                    => "TWT capable (Wi-Fi 6) — up to ~20% saving",
-                _                                  => "Legacy (DTIM/PSM)"
+                PhyType.Dot11be or PhyType.Dot11bn => L.Get("Detail_PowerSave_WiFi7Cap"),
+                PhyType.Dot11ax                    => L.Get("Detail_PowerSave_WiFi6Cap"),
+                _                                  => L.Get("Detail_PowerSave_Legacy")
             }
         };
 

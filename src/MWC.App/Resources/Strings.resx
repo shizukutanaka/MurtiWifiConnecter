@@ -448,4 +448,20 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Advisory_EvilTwin_HighRisk"><value>Evil Twin: High Risk — multiple spoofing indicators detected</value></data>
   <data name="Advisory_EvilTwin_Suspicious"><value>Evil Twin: Suspicious — possible rogue AP with same SSID</value></data>
   <data name="Advisory_StickyClient"><value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value></data>
+  <data name="Detail_Roaming_Seamless"><value>Seamless ({0})</value></data>
+  <data name="Detail_Roaming_Fast"><value>Fast (802.11r) — ~{0}ms typical</value></data>
+  <data name="Detail_Roaming_Assisted"><value>Assisted (802.11k/v)</value></data>
+  <data name="Detail_Roaming_Standard"><value>Standard — no 802.11r/k/v detected (~{0}ms typical)</value></data>
+  <data name="Detail_Interference_Low"><value>Low  ({0}/100)</value></data>
+  <data name="Detail_Interference_Other"><value>{0}  ({1}/100)  — {2}</value></data>
+  <data name="Detail_Mesh_NodeCount"><value>{0} nodes</value></data>
+  <data name="Detail_Mesh_TriBand"><value> · Tri-band</value></data>
+  <data name="Detail_Mesh_6GHz"><value> · 6 GHz</value></data>
+  <data name="Detail_Mesh_FastTransition"><value> · 802.11r</value></data>
+  <data name="Detail_Mesh_Confidence"><value>  ({0})</value></data>
+  <data name="Detail_PowerSave_Advanced"><value>rTWT  (~{0}% battery saving)</value></data>
+  <data name="Detail_PowerSave_Standard"><value>TWT  (~{0}% battery saving)</value></data>
+  <data name="Detail_PowerSave_WiFi7Cap"><value>rTWT capable (Wi-Fi 7) — up to ~34% saving</value></data>
+  <data name="Detail_PowerSave_WiFi6Cap"><value>TWT capable (Wi-Fi 6) — up to ~20% saving</value></data>
+  <data name="Detail_PowerSave_Legacy"><value>Legacy (DTIM/PSM)</value></data>
 </root>
