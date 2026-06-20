@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ManagedNativeWifi;
+using Microsoft.Extensions.Logging;
 
 namespace MWC.Platform.Windows;
 
@@ -16,16 +17,20 @@ using ChannelBandwidth = ManagedNativeWifi.ChannelBandwidth;
 internal static class NetworkStateChangedEventHandlerBridge
 {
     private static readonly List<Action<object?, NetworkStateChangedEventArgs>> _subs = new();
+    private static bool _registered;
 
-    static NetworkStateChangedEventHandlerBridge()
+    private static void EnsureRegistered(ILogger? log)
     {
-        // ManagedNativeWifi の NetworkStateChanged を購読
-        // 版差異がある場合はここを修正
+        if (_registered) return;
         try
         {
             NativeWifi.NetworkStateChanged += OnNativeChanged;
+            _registered = true;
         }
-        catch { /* イベントが存在しない版では無視 */ }
+        catch (Exception ex)
+        {
+            log?.LogDebug(ex, "NativeWifi.NetworkStateChanged unavailable in this ManagedNativeWifi version");
+        }
     }
 
     private static void OnNativeChanged(object? sender, NetworkStateChangedEventArgs e)
@@ -34,9 +39,13 @@ internal static class NetworkStateChangedEventHandlerBridge
             foreach (var sub in _subs) sub(sender, e);
     }
 
-    public static void Subscribe(Action<object?, NetworkStateChangedEventArgs> handler)
+    public static void Subscribe(Action<object?, NetworkStateChangedEventArgs> handler, ILogger? log = null)
     {
-        lock (_subs) _subs.Add(handler);
+        lock (_subs)
+        {
+            EnsureRegistered(log);
+            _subs.Add(handler);
+        }
     }
 
     public static void Unsubscribe(Action<object?, NetworkStateChangedEventArgs> handler)

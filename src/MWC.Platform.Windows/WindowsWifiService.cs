@@ -263,7 +263,7 @@ public sealed class WindowsWifiService : IWifiService
 
         // ManagedNativeWifi が NetworkStateChanged を公開している場合のみ購読
         // (バージョンによりイベント名が異なるため型で安全に判定)
-        NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged);
+        NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged, _log);
         try
         {
             await foreach (var ev in ch.Reader.ReadAllAsync(ct))
@@ -285,7 +285,7 @@ public sealed class WindowsWifiService : IWifiService
                 .FirstOrDefault(n => n.Interface.Id == adapterId)
                 ?.Ssid.ToString();
         }
-        catch { return null; }
+        catch (Exception ex) { _log.LogDebug(ex, "GetConnectedSsid failed for adapter {Id}", adapterId); return null; }
     }
 
     private static AdapterState MapState(InterfaceState s) => s switch
