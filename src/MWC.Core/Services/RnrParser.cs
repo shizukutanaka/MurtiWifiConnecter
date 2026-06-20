@@ -29,7 +29,6 @@ public static class RnrParser
 {
     public const byte RnrElementId    = 201;
     private const int NeighborInfoLen = 2;   // Neighbor AP Info フィールド長
-    private const int MinTbttLen      = 7;   // Offset(1) + OpClass(1) + Channel(1) + BSSID(6) - 2 = minimum for BSSID
 
     /// <summary>
     /// 802.11 情報要素列から RNR 要素をすべて解析し、

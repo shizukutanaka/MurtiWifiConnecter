@@ -199,7 +199,7 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            using var waiter = new ConnectionWaiter(adapterId, ssid, _log);
+            using var waiter = new ConnectionWaiter(adapterId, _log);
             bool req = NativeWifi.ConnectNetwork(adapterId, profileName, BssType.Any);
             if (!req) return ConnectionResult.Fail(ConnectionFailure.ProfileRejected);
 

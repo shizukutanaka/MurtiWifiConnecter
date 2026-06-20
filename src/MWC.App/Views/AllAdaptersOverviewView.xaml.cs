@@ -54,7 +54,7 @@ public partial class AllAdaptersOverviewView : Window
 
                 var res = await _executor.ConnectAsync(
                     panel.Id, net.Ssid, net.Auth, passphrase,
-                    TimeSpan.FromSeconds(25));
+                    TimeSpan.FromSeconds(25), progress.CancellationToken);
 
                 if (res.Success)
                 {

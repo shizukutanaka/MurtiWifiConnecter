@@ -22,7 +22,6 @@ internal enum ConnectionOutcome
 internal sealed class ConnectionWaiter : IDisposable
 {
     private readonly Guid _adapterId;
-    private readonly string _ssid;
     private readonly ILogger _log;
     // RunContinuationsAsynchronously 必須: TrySetResult はネイティブ WLAN 通知の
     // コールバックスレッドから呼ばれる。これが無いと WaitAsync の await 以降
@@ -33,10 +32,9 @@ internal sealed class ConnectionWaiter : IDisposable
     private readonly EventHandler<NetworkStateChangedEventArgs> _handler;
     private bool _disposed;
 
-    public ConnectionWaiter(Guid adapterId, string ssid, ILogger log)
+    public ConnectionWaiter(Guid adapterId, ILogger log)
     {
         _adapterId = adapterId;
-        _ssid = ssid;
         _log = log;
 
         _handler = (sender, e) =>
