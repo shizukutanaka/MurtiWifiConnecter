@@ -159,9 +159,10 @@ public sealed class NetworkHistoryService
             var json = File.ReadAllText(HistoryPath);
             return JsonSerializer.Deserialize<List<ConnectionHistoryEntry>>(json) ?? new();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
             // 破損ファイルは黙って上書きせず .corrupt に退避(復旧/調査可能にする)。
+            _log.LogWarning(ex, "History file corrupted, moved to {Path}.corrupt", HistoryPath);
             try { File.Move(HistoryPath, HistoryPath + ".corrupt", overwrite: true); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }

@@ -182,10 +182,15 @@ public sealed class CertificateStoreService
     {
         if (string.Equals(cn, expected, StringComparison.OrdinalIgnoreCase)) return true;
         // ワイルドカード: *.example.com
+        // RFC 6125 §6.4.3: ワイルドカードは単一の DNS ラベルのみに一致する。
+        // "*.example.com" は "foo.example.com" に一致するが "a.b.example.com" には一致しない。
         if (cn.StartsWith("*."))
         {
             var suffix = cn[1..];  // .example.com
-            return expected.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
+            if (!expected.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return false;
+            // ワイルドカード部分 (suffix を除いた先頭) がドットを含まないことを確認
+            var label = expected[..^suffix.Length];
+            return label.Length > 0 && !label.Contains('.');
         }
         return false;
     }
