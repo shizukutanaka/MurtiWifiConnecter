@@ -397,4 +397,205 @@
   <data name="Menu_DiagnosticExport"><value>Экспорт отчёта поддержки…</value></data>
   <data name="Status_DiagnosticExported"><value>Отчёт сохранён → {0}</value></data>
   <data name="Status_Exported"><value>Экспорт → {0}</value></data>
+  <data name="Advisory_EvilTwin_HighRisk" xml:space="preserve">
+    <value>Evil Twin: High Risk — multiple spoofing indicators detected</value>
+  </data>
+  <data name="Advisory_EvilTwin_Suspicious" xml:space="preserve">
+    <value>Evil Twin: Suspicious — possible rogue AP with same SSID</value>
+  </data>
+  <data name="Advisory_SEC001_Title" xml:space="preserve">
+    <value>WPA3 Transition Mode Detected</value>
+  </data>
+  <data name="Advisory_SEC002_Title" xml:space="preserve">
+    <value>Protected Management Frames Disabled</value>
+  </data>
+  <data name="Advisory_SEC003_Title" xml:space="preserve">
+    <value>WEP Is Broken</value>
+  </data>
+  <data name="Advisory_SEC004_Title" xml:space="preserve">
+    <value>WPA (TKIP) Is Deprecated</value>
+  </data>
+  <data name="Advisory_SEC005_Title" xml:space="preserve">
+    <value>Unencrypted Network</value>
+  </data>
+  <data name="Advisory_SEC006_Title" xml:space="preserve">
+    <value>FragAttacks Mitigation</value>
+  </data>
+  <data name="Advisory_SEC007_Title" xml:space="preserve">
+    <value>WPS Enabled</value>
+  </data>
+  <data name="Advisory_SEC100_Title" xml:space="preserve">
+    <value>Hardened Security Configuration</value>
+  </data>
+  <data name="Advisory_StickyClient" xml:space="preserve">
+    <value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value>
+  </data>
+  <data name="Auth_Compact_OWE" xml:space="preserve">
+    <value>OWE</value>
+  </data>
+  <data name="Auth_Compact_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Auth_Compact_WEP" xml:space="preserve">
+    <value>WEP</value>
+  </data>
+  <data name="Auth_Compact_WPA" xml:space="preserve">
+    <value>WPA</value>
+  </data>
+  <data name="Auth_Compact_WPA2" xml:space="preserve">
+    <value>WPA2</value>
+  </data>
+  <data name="Auth_Compact_WPA23" xml:space="preserve">
+    <value>WPA2/3</value>
+  </data>
+  <data name="Auth_Compact_WPA2Ent" xml:space="preserve">
+    <value>WPA2 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3" xml:space="preserve">
+    <value>WPA3</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent" xml:space="preserve">
+    <value>WPA3 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent192" xml:space="preserve">
+    <value>WPA3 Ent192</value>
+  </data>
+  <data name="Band_Compact_2_4" xml:space="preserve">
+    <value>2.4G</value>
+  </data>
+  <data name="Band_Compact_5" xml:space="preserve">
+    <value>5G</value>
+  </data>
+  <data name="Band_Compact_6" xml:space="preserve">
+    <value>6G</value>
+  </data>
+  <data name="Band_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Detail_Interference_Low" xml:space="preserve">
+    <value>Low  ({0}/100)</value>
+  </data>
+  <data name="Detail_Interference_Other" xml:space="preserve">
+    <value>{0}  ({1}/100)  — {2}</value>
+  </data>
+  <data name="Detail_Mesh_6GHz" xml:space="preserve">
+    <value> · 6 GHz</value>
+  </data>
+  <data name="Detail_Mesh_Confidence" xml:space="preserve">
+    <value>  ({0})</value>
+  </data>
+  <data name="Detail_Mesh_FastTransition" xml:space="preserve">
+    <value> · 802.11r</value>
+  </data>
+  <data name="Detail_Mesh_NodeCount" xml:space="preserve">
+    <value>{0} nodes</value>
+  </data>
+  <data name="Detail_Mesh_TriBand" xml:space="preserve">
+    <value> · Tri-band</value>
+  </data>
+  <data name="Detail_PowerSave_Advanced" xml:space="preserve">
+    <value>rTWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_Legacy" xml:space="preserve">
+    <value>Legacy (DTIM/PSM)</value>
+  </data>
+  <data name="Detail_PowerSave_Standard" xml:space="preserve">
+    <value>TWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi6Cap" xml:space="preserve">
+    <value>TWT capable (Wi-Fi 6) — up to ~20% saving</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi7Cap" xml:space="preserve">
+    <value>rTWT capable (Wi-Fi 7) — up to ~34% saving</value>
+  </data>
+  <data name="Detail_Roaming_Assisted" xml:space="preserve">
+    <value>Assisted (802.11k/v)</value>
+  </data>
+  <data name="Detail_Roaming_Fast" xml:space="preserve">
+    <value>Fast (802.11r) — ~{0}ms typical</value>
+  </data>
+  <data name="Detail_Roaming_Seamless" xml:space="preserve">
+    <value>Seamless ({0})</value>
+  </data>
+  <data name="Detail_Roaming_Standard" xml:space="preserve">
+    <value>Standard — no 802.11r/k/v detected (~{0}ms typical)</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0}h {1:D2}m</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="Status_ConnectedNoTimer" xml:space="preserve">
+    <value>→ {0}</value>
+  </data>
+  <data name="Status_ConnectedWithDuration" xml:space="preserve">
+    <value>→ {0}  ({1})</value>
+  </data>
+  <data name="Tray_NetworkItem" xml:space="preserve">
+    <value>{0}  ({1}%)</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Reason" xml:space="preserve">
+    <value>The Wi-Fi adapter on your PC is turned off.</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Steps" xml:space="preserve">
+    <value>Press the Airplane mode key on your keyboard to turn it off|Go to Windows Settings → Network → Wi-Fi and turn it on|Check in Device Manager that the Wi-Fi adapter is enabled</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Title" xml:space="preserve">
+    <value>Wi-Fi Adapter Disabled</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Reason" xml:space="preserve">
+    <value>The username or password is incorrect.</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Steps" xml:space="preserve">
+    <value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Title" xml:space="preserve">
+    <value>Enterprise Authentication Failed</value>
+  </data>
+  <data name="Trouble_BadCredentials_Reason" xml:space="preserve">
+    <value>The password you entered does not match the access point.</value>
+  </data>
+  <data name="Trouble_BadCredentials_Steps" xml:space="preserve">
+    <value>Double-check the password (case-sensitive)|Try the password printed on the router label or in its manual|If you recently changed the password, enter the new one</value>
+  </data>
+  <data name="Trouble_BadCredentials_Title" xml:space="preserve">
+    <value>Wrong Password</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Reason" xml:space="preserve">
+    <value>Adding a network profile requires administrator privileges.</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Steps" xml:space="preserve">
+    <value>Right-click MWC and choose Run as administrator|Or sign in with an administrator account and try again</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Title" xml:space="preserve">
+    <value>Administrator Privileges Required</value>
+  </data>
+  <data name="Trouble_NotInRange_Reason" xml:space="preserve">
+    <value>The selected network is not reachable from your current location.</value>
+  </data>
+  <data name="Trouble_NotInRange_Steps" xml:space="preserve">
+    <value>Move closer to the access point and try again|Check that the access point is powered on|Use the Rescan button to search for networks again</value>
+  </data>
+  <data name="Trouble_NotInRange_Title" xml:space="preserve">
+    <value>Network Not Found</value>
+  </data>
+  <data name="Trouble_Timeout_Reason" xml:space="preserve">
+    <value>The access point did not respond.</value>
+  </data>
+  <data name="Trouble_Timeout_Steps" xml:space="preserve">
+    <value>Make sure the access point (router) is powered on|Move closer to the access point|Restart the router (power off for 10 seconds, then on)|Check whether other devices can connect from the same location</value>
+  </data>
+  <data name="Trouble_Timeout_Title" xml:space="preserve">
+    <value>Connection Timed Out</value>
+  </data>
+  <data name="Trouble_Unknown_Reason" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="Trouble_Unknown_Steps" xml:space="preserve">
+    <value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value>
+  </data>
+  <data name="Trouble_Unknown_Title" xml:space="preserve">
+    <value>Connection Failed</value>
+  </data>
 </root>
