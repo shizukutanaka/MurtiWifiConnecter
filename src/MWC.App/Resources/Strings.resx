@@ -25,6 +25,16 @@
   <data name="Auth_WPA2PSK"><value>WPA2 Personal</value></data>
   <data name="Auth_WPA3SAE"><value>WPA3 Personal</value></data>
   <data name="Auth_Enterprise"><value>Enterprise</value></data>
+  <data name="Auth_Compact_Open"><value>Open</value></data>
+  <data name="Auth_Compact_OWE"><value>OWE</value></data>
+  <data name="Auth_Compact_WEP"><value>WEP</value></data>
+  <data name="Auth_Compact_WPA"><value>WPA</value></data>
+  <data name="Auth_Compact_WPA2"><value>WPA2</value></data>
+  <data name="Auth_Compact_WPA23"><value>WPA2/3</value></data>
+  <data name="Auth_Compact_WPA3"><value>WPA3</value></data>
+  <data name="Auth_Compact_WPA2Ent"><value>WPA2 Ent</value></data>
+  <data name="Auth_Compact_WPA3Ent"><value>WPA3 Ent</value></data>
+  <data name="Auth_Compact_WPA3Ent192"><value>WPA3 Ent192</value></data>
   <data name="Failure_BadCredentials"><value>Wrong passphrase</value></data>
   <data name="Failure_Timeout"><value>Connection timed out</value></data>
   <data name="Failure_NotInRange"><value>Network out of range</value></data>
@@ -50,6 +60,9 @@
   <data name="Band_2_4"><value>2.4 GHz</value></data>
   <data name="Band_5"><value>5 GHz</value></data>
   <data name="Band_6"><value>6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Band_Compact_2_4"><value>2.4G</value></data>
+  <data name="Band_Compact_5"><value>5G</value></data>
+  <data name="Band_Compact_6"><value>6G</value></data>
   <data name="Status_Tray_NotConnected"><value>MWC — Not connected</value></data>
   <data name="Status_Copied"><value>コピー: {0}</value></data>
   <data name="Status_Disconnected"><value>切断: {0}</value></data>

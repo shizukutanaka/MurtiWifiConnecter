@@ -305,6 +305,30 @@ public static class L
     public static string CertPickerExpiryFormat(string date, int days)
         => Format("CertPicker_ExpiryFormat", date, days);
 
+    // ─── Compact auth / band labels (network list column display) ────────
+    public static string AuthCompact(MWC.Core.Models.AuthMethod auth) => auth switch
+    {
+        MWC.Core.Models.AuthMethod.Open              => Get("Auth_Compact_Open"),
+        MWC.Core.Models.AuthMethod.OWE               => Get("Auth_Compact_OWE"),
+        MWC.Core.Models.AuthMethod.WEP               => Get("Auth_Compact_WEP"),
+        MWC.Core.Models.AuthMethod.WPA3SAE           => Get("Auth_Compact_WPA3"),
+        MWC.Core.Models.AuthMethod.WPA3Transition    => Get("Auth_Compact_WPA23"),
+        MWC.Core.Models.AuthMethod.WPA2PSK           => Get("Auth_Compact_WPA2"),
+        MWC.Core.Models.AuthMethod.WPA2Enterprise    => Get("Auth_Compact_WPA2Ent"),
+        MWC.Core.Models.AuthMethod.WPA3Enterprise    => Get("Auth_Compact_WPA3Ent"),
+        MWC.Core.Models.AuthMethod.WPA3Enterprise192 => Get("Auth_Compact_WPA3Ent192"),
+        MWC.Core.Models.AuthMethod.WPAPSK            => Get("Auth_Compact_WPA"),
+        _                                            => auth.ToString()
+    };
+
+    public static string BandCompact(MWC.Core.Models.WifiBand band) => band switch
+    {
+        MWC.Core.Models.WifiBand.Band2_4GHz => Get("Band_Compact_2_4"),
+        MWC.Core.Models.WifiBand.Band5GHz   => Get("Band_Compact_5"),
+        MWC.Core.Models.WifiBand.Band6GHz   => Get("Band_Compact_6"),
+        _                                   => "?"
+    };
+
     // ─── Security badge labels ────────────────────────────────────────
     public static string SecurityLevelLabel(MWC.Core.Services.SecurityLevel level) => level switch
     {

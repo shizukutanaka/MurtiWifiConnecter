@@ -38,6 +38,8 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         HasProfile  = n.HasProfile;
         PhyLabel    = n.Phy.ToShortLabel();
         VendorLabel = n.VendorName ?? "";
+        OnPropertyChanged(nameof(BandLabel));
+        OnPropertyChanged(nameof(IsDfs));
     }
 
     public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
@@ -84,30 +86,13 @@ public sealed partial class NetworkItemViewModel : ObservableObject
     partial void OnSignalChanged(int value) => OnPropertyChanged(nameof(SignalAutomationLabel));
     partial void OnAuthChanged(AuthMethod value)
     {
+        OnPropertyChanged(nameof(AuthLabel));
         OnPropertyChanged(nameof(SecurityLevel));
         OnPropertyChanged(nameof(SecurityBadgeLabel));
         OnPropertyChanged(nameof(SecurityTechLabel));
         OnPropertyChanged(nameof(SignalAutomationLabel));
     }
 
-    public string AuthLabel => Auth switch
-    {
-        AuthMethod.Open              => "Open",
-        AuthMethod.OWE               => "OWE",
-        AuthMethod.WEP               => "WEP",
-        AuthMethod.WPA3SAE           => "WPA3",
-        AuthMethod.WPA3Transition    => "WPA2/3",
-        AuthMethod.WPA2PSK           => "WPA2",
-        AuthMethod.WPA2Enterprise    => "WPA2 Ent",
-        AuthMethod.WPA3Enterprise    => "WPA3 Ent",
-        AuthMethod.WPA3Enterprise192 => "WPA3 Ent192",
-        _ => Auth.ToString()
-    };
-    public string BandLabel => Source.Band switch
-    {
-        WifiBand.Band2_4GHz => "2.4G",
-        WifiBand.Band5GHz   => "5G",
-        WifiBand.Band6GHz   => "6G",
-        _ => "?"
-    };
+    public string AuthLabel => MWC.App.Resources.L.AuthCompact(Auth);
+    public string BandLabel => MWC.App.Resources.L.BandCompact(Source.Band);
 }

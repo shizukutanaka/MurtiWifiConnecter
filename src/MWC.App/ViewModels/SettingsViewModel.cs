@@ -87,6 +87,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsExpertMode));
         OnPropertyChanged(nameof(ThemeIndex));
         OnPropertyChanged(nameof(Language));
+        OnPropertyChanged(nameof(AutoScanInterval));
+        OnPropertyChanged(nameof(ScanOnStartup));
+        OnPropertyChanged(nameof(ShowNotifications));
     }
 
     [RelayCommand]
