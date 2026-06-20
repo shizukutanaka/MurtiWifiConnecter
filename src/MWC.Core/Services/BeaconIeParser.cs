@@ -146,6 +146,10 @@ public static class BeaconIeParser
             int tbttInfoLen = (info >> 9) & 0x7F;
             pos += 2;
 
+            // tbttInfoLen == 0 は不正 (802.11 最小1バイト)。
+            // 0 のまま進むと pos が動かず無限ループになるため停止する。
+            if (tbttInfoLen == 0) break;
+
             for (int t = 0; t < tbttCount; t++)
             {
                 if (pos + tbttInfoLen > body.Length) return;

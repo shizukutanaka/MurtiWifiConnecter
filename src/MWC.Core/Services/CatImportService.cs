@@ -66,18 +66,10 @@ public sealed class CatImportService
     /// </summary>
     public WifiProfileSpec BuildEduroamSpec(CatProfile profile)
     {
-        var auth = profile.EapType switch
-        {
-            EapType.EAP_TLS         => AuthMethod.WPA2Enterprise,
-            EapType.PEAP_MSCHAPv2   => AuthMethod.WPA2Enterprise,
-            EapType.EAP_TTLS        => AuthMethod.WPA2Enterprise,
-            _                       => AuthMethod.WPA2Enterprise
-        };
-
         return new WifiProfileSpec
         {
             Ssid                    = profile.Ssid,
-            Auth                    = auth,
+            Auth                    = AuthMethod.WPA2Enterprise,
             EapType                 = profile.EapType,
             Username                = profile.AnonymousIdentity,   // 匿名ユーザー名
             ServerNames             = profile.ServerNames.ToArray(),
