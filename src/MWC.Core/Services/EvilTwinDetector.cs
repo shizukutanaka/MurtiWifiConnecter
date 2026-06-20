@@ -99,17 +99,13 @@ public sealed class EvilTwinDetector
         }
 
         // 3. 既知のセキュリティ設定からの降格 (WPA3 → Open 等)
+        // Note: "appearing as open" is the most severe downgrade case and is fully
+        // covered here — a separate check would double-count it as two reasons.
         if (_knownAuth.TryGetValue(ssid, out var trustedAuth))
         {
             if (IsSecurityDowngrade(trustedAuth, network.Auth))
                 reasons.Add($"Security downgrade detected: known {trustedAuth} vs current {network.Auth}");
         }
-
-        // 4. オープンネットワークで既知の暗号化 SSID を名乗る
-        if (network.Auth == AuthMethod.Open &&
-            _knownAuth.TryGetValue(ssid, out var auth2) &&
-            auth2 != AuthMethod.Open)
-            reasons.Add("Known encrypted network appearing as open (strong indication of spoofing/impersonation)");
 
         // 5. ベンダー (OUI) 照合 — 既知と異なるベンダーの機器
         if (_knownVendors.TryGetValue(ssid, out var knownVendors) && knownVendors.Count > 0)
