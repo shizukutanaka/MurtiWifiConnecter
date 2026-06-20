@@ -189,9 +189,9 @@ public sealed class AdapterPreferencesService
             var list = JsonSerializer.Deserialize<List<AdapterPreferences>>(json);
             return list?.ToDictionary(p => p.AdapterId) ?? new();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // 破損ファイルは黙って上書きせず .corrupt に退避。
+            _log.LogWarning(ex, "Adapter prefs file corrupted, moved to {Path}.corrupt", ConfigPath);
             try { File.Move(ConfigPath, ConfigPath + ".corrupt", overwrite: true); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
