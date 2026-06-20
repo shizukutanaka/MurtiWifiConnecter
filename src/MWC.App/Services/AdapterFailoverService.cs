@@ -92,9 +92,9 @@ public sealed class AdapterFailoverService : IDisposable
         try { acquired = await _checkGuard.WaitAsync(0).ConfigureAwait(false); }
         catch (ObjectDisposedException) { return; }
         if (!acquired) return;
-        var ct = _cts.Token;
         try
         {
+            var ct = _cts.Token;
             var adapters = await _wifi.GetAdaptersAsync(ct).ConfigureAwait(false);
             var adapterMap = adapters.ToDictionary(a => a.Id);
 
@@ -138,7 +138,7 @@ public sealed class AdapterFailoverService : IDisposable
                     _activeFailovers.Remove(adapter.Id);
                     _log.LogInformation(
                         "Failover resolved: primary adapter {Id} ({Name}) reconnected to {Ssid}",
-                        adapter.Id, adapter.Name, currentSsid);
+                        adapter.Id, adapter.Name, PiiMask.Ssid(currentSsid));
                     _notify.NotifyConnected(
                         MWC.App.Resources.L.NotifyFailoverRestored(adapter.Name),
                         hasInternet: true, captive: false);
@@ -186,7 +186,7 @@ public sealed class AdapterFailoverService : IDisposable
 
         _log.LogInformation(
             "Activating failover: {Primary} → {Failover} SSID={Ssid}",
-            primary.Name, failoverAdapter.Name, targetSsid);
+            primary.Name, failoverAdapter.Name, PiiMask.Ssid(targetSsid));
 
         try
         {

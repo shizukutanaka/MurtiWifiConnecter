@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
+using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
 
 namespace MWC.App.Services;
 
@@ -87,6 +88,3 @@ public sealed class NotificationService
         }
     }
 }
-
-// System.Windows.Forms 型エイリアス
-using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
