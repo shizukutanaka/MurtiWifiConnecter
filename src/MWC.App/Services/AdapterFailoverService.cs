@@ -37,6 +37,9 @@ public sealed class AdapterFailoverService : IDisposable
     private readonly ILogger<AdapterFailoverService> _log;
 
     private Timer?  _timer;
+    // Stop()/Dispose() 時に進行中の GetAdaptersAsync/ScanAsync/ConnectAsync を速やかにキャンセルする。
+    // キャンセルなしでは ScanAsync(8s) + ConnectAsync(20s) の合計でシャットダウンが 28 秒遅延しうる。
+    private readonly CancellationTokenSource _cts = new();
     // 1 つ前の CheckAsync がまだ走っているときは新しい起動をスキップする
     private readonly SemaphoreSlim _checkGuard = new(1, 1);
 
@@ -70,20 +73,26 @@ public sealed class AdapterFailoverService : IDisposable
         _log.LogInformation("AdapterFailoverService started (interval={Interval}s)", CheckInterval.TotalSeconds);
     }
 
-    public void Stop() => _timer?.Change(Timeout.Infinite, 0);
+    public void Stop()
+    {
+        _timer?.Change(Timeout.Infinite, 0);
+        _cts.Cancel();
+    }
 
     public void Dispose()
     {
         _timer?.Dispose();
         _checkGuard.Dispose();
+        _cts.Dispose();
     }
 
     private async Task CheckAsync()
     {
         if (!await _checkGuard.WaitAsync(0).ConfigureAwait(false)) return;
+        var ct = _cts.Token;
         try
         {
-            var adapters = await _wifi.GetAdaptersAsync().ConfigureAwait(false);
+            var adapters = await _wifi.GetAdaptersAsync(ct).ConfigureAwait(false);
             var adapterMap = adapters.ToDictionary(a => a.Id);
 
             foreach (var adapter in adapters)
@@ -117,7 +126,7 @@ public sealed class AdapterFailoverService : IDisposable
                         "Failover triggered: adapter {Id} ({Name}) lost connection",
                         adapter.Id, adapter.Name);
                     _activeFailovers.Add(adapter.Id);
-                    await ActivateFailoverAsync(adapter, pref, adapterMap).ConfigureAwait(false);
+                    await ActivateFailoverAsync(adapter, pref, adapterMap, ct).ConfigureAwait(false);
                 }
 
                 // Primary came back (was in failover, now reconnected)
@@ -133,6 +142,7 @@ public sealed class AdapterFailoverService : IDisposable
                 }
             }
         }
+        catch (OperationCanceledException) { /* shutting down */ }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "AdapterFailoverService.CheckAsync failed");
@@ -146,7 +156,8 @@ public sealed class AdapterFailoverService : IDisposable
     private async Task ActivateFailoverAsync(
         WifiAdapter primary,
         AdapterPreferences pref,
-        Dictionary<Guid, WifiAdapter> adapterMap)
+        Dictionary<Guid, WifiAdapter> adapterMap,
+        CancellationToken ct)
     {
         if (pref.FailoverAdapterId is not Guid failoverId) return;
 
@@ -175,7 +186,7 @@ public sealed class AdapterFailoverService : IDisposable
         try
         {
             // Scan to find the target network and its auth method
-            var visible = await _wifi.ScanAsync(failoverId).ConfigureAwait(false);
+            var visible = await _wifi.ScanAsync(failoverId, ct).ConfigureAwait(false);
             var target  = visible.FirstOrDefault(n => n.Ssid == targetSsid);
             if (target is null)
             {
@@ -188,7 +199,8 @@ public sealed class AdapterFailoverService : IDisposable
                 failoverId, targetSsid,
                 auth: target.Auth,
                 passphrase: "",
-                timeout: TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+                timeout: TimeSpan.FromSeconds(20),
+                ct: ct).ConfigureAwait(false);
 
             if (result.Success)
             {
