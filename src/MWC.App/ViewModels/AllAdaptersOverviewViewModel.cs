@@ -181,7 +181,9 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
             await RefreshAsync();
             StatusMessage = res.Success
                 ? MWC.App.Resources.L.Format("Status_ConnectedTo_Short", best)
-                : MWC.App.Resources.L.ErrorConnectionFailed(res.Failure?.ToString() ?? "");
+                : MWC.App.Resources.L.ErrorConnectionFailed(
+                    MWC.App.Resources.L.ConnectionFailureLabel(
+                        res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown));
         }
         finally { IsConnecting = false; }
     }

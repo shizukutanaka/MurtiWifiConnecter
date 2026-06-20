@@ -651,4 +651,11 @@ Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
   <data name="Interference_Factor_Bluetooth"><value>2.4 GHz shares spectrum with Bluetooth/Zigbee — co-existence risk</value></data>
   <data name="Interference_Rec_24GHz"><value>High interference. Consider switching to 5 GHz/6 GHz. If staying on 2.4 GHz, prefer channels 1, 6, or 11.</value></data>
   <data name="Interference_Rec_5or6GHz"><value>Co-channel congestion detected. Consider a different channel or move to 6 GHz.</value></data>
+
+  <data name="Failure_Unknown"><value>Unknown error</value></data>
+  <data name="Failure_InvalidProfile"><value>Invalid network profile</value></data>
+  <data name="Failure_AdapterNotFound"><value>Wireless adapter not found</value></data>
+  <data name="Failure_Cancelled"><value>Cancelled</value></data>
+  <data name="Failure_ProfileRejected"><value>Profile rejected by the system</value></data>
+  <data name="Failure_OsError"><value>System error</value></data>
 </root>

@@ -319,6 +319,22 @@ public static class L
     public static string CertPickerExpiryFormat(string date, int days)
         => Format("CertPicker_ExpiryFormat", date, days);
 
+    // ─── Connection failure labels (concise, for inline status) ──────────
+    public static string ConnectionFailureLabel(ConnectionFailure failure) => failure switch
+    {
+        ConnectionFailure.BadCredentials        => Get("Failure_BadCredentials"),
+        ConnectionFailure.Timeout               => Get("Failure_Timeout"),
+        ConnectionFailure.NotInRange            => Get("Failure_NotInRange"),
+        ConnectionFailure.AdapterDisabled       => Get("Failure_AdapterDisabled"),
+        ConnectionFailure.InsufficientPrivilege => Get("Failure_InsufficientPrivilege"),
+        ConnectionFailure.InvalidProfile        => Get("Failure_InvalidProfile"),
+        ConnectionFailure.AdapterNotFound       => Get("Failure_AdapterNotFound"),
+        ConnectionFailure.Cancelled             => Get("Failure_Cancelled"),
+        ConnectionFailure.ProfileRejected       => Get("Failure_ProfileRejected"),
+        ConnectionFailure.OsError               => Get("Failure_OsError"),
+        _                                       => Get("Failure_Unknown"),
+    };
+
     // ─── Cipher type labels ──────────────────────────────────────────────
     public static string CipherLabel(CipherType cipher) => cipher switch
     {
