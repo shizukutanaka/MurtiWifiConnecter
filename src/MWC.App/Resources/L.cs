@@ -141,6 +141,7 @@ public static class L
     public static string AdapterBand6E             => Get("Adapter_Band_6E");
     public static string AdapterBandDesc           => Get("Adapter_Band_Desc");
     public static string AdapterPinnedSection      => Get("Adapter_Pinned_Section");
+    public static string AdapterPinnedListAutomation => Get("Adapter_Pinned_ListAutomation");
     public static string AdapterPinnedUnpin        => Get("Adapter_Pinned_Unpin");
     public static string AdapterPinnedEmpty        => Get("Adapter_Pinned_Empty");
     public static string AdapterAutoJoinDesc       => Get("Adapter_AutoJoin_Desc");

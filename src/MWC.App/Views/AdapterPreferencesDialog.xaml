@@ -61,6 +61,7 @@
         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
             <StackPanel>
                 <ListBox x:Name="PinnedList" MaxHeight="120"
+                         AutomationProperties.Name="{x:Static r:L.AdapterPinnedListAutomation}"
                          Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
                         <DataTemplate>

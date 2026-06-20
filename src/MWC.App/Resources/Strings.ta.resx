@@ -653,4 +653,6 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Failure_Cancelled"><value>Cancelled</value></data>
   <data name="Failure_ProfileRejected"><value>Profile rejected by the system</value></data>
   <data name="Failure_OsError"><value>System error</value></data>
+
+  <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
 </root>
