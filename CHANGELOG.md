@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **i18n — neutral `Strings.resx` had 19 Japanese values, causing Japanese text for any unmatched
+  locale**: The neutral file is the .NET fallback for every locale not explicitly listed; having 19
+  keys in Japanese meant German, French, Spanish, Korean etc. users would see Japanese for status
+  strings like "接続しました" instead of "Connected". Replaced all 19 values with English in the
+  neutral file (matching the existing `en.resx` overrides). `ja.resx` already contained correct
+  Japanese translations for all 19 keys so no change was needed there.
+- **i18n — `Strings.bn.resx`, `Strings.hi.resx`, `Strings.ta.resx` each had 15 keys with literal
+  Japanese text**: The three community-contributed locale files (Bengali, Hindi, Tamil) copied
+  Japanese strings verbatim from an older neutral file instead of translating or omitting them.
+  Bengali/Hindi/Tamil users saw Japanese UI for `Status_Copied`, `Progress_Connecting`,
+  `Captive_SignInRequired`, `Detail_HasProfile`, and 11 other keys. Removed all 15 Japanese entries
+  from each file; the keys now fall through to the (now-English) neutral, giving English as an
+  acceptable placeholder until community translators provide the target language.
 - **Accessibility — pinned-SSID list had no screen-reader name**: a full audit of every
   interactive control across all 15 XAML views found one gap against the "AutomationProperties.Name
   on all interactive elements" rule — the `PinnedList` ListBox in `AdapterPreferencesDialog`. Added
