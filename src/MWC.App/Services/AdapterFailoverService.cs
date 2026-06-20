@@ -149,7 +149,9 @@ public sealed class AdapterFailoverService : IDisposable
         }
         finally
         {
-            _checkGuard.Release();
+            // Guard against ObjectDisposedException if Dispose() races with this finally block.
+            try { _checkGuard.Release(); }
+            catch (ObjectDisposedException) { }
         }
     }
 
