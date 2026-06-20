@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using QRCoder;
 using MWC.Core.Models;
 using MWC.Core.Profile;
+using Serilog;
 
 namespace MWC.App.Views;
 
@@ -47,7 +48,7 @@ public partial class QrCodeDialog : Window
                 darkColorRgba:  new byte[] { 0, 0, 0, 255 },
                 lightColorRgba: new byte[] { 255, 255, 255, 255 });
         }
-        catch { return Array.Empty<byte>(); }
+        catch (Exception ex) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
     }
 
     private void OnCopy(object sender, RoutedEventArgs e)

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Media;
 using MWC.App.Resources;
 using MWC.Core.Services;
+using Serilog;
 
 namespace MWC.App.Views;
 
@@ -67,7 +68,7 @@ public partial class CertificatePickerDialog : Window
     {
         // certmgr.msc を起動
         try { Process.Start(new ProcessStartInfo("certmgr.msc") { UseShellExecute = true }); }
-        catch { }
+        catch (Exception ex) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
     }
 
     // ── ViewModel ───────────────────────────────────────────────────
