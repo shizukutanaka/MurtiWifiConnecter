@@ -396,4 +396,5 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Detail_SignalTrend"><value>신호 추세</value></data>
   <data name="Menu_DiagnosticExport"><value>지원 보고서 내보내기…</value></data>
   <data name="Status_DiagnosticExported"><value>지원 보고서 저장됨 → {0}</value></data>
+  <data name="Status_Exported"><value>내보내기 → {0}</value></data>
 </root>

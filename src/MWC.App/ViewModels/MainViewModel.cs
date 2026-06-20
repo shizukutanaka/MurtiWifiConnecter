@@ -155,7 +155,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 case "txt":  ExportService.ToText(nets, dlg.FileName); break;
                 default:     ExportService.ToCsv (nets, dlg.FileName); break;
             }
-            StatusMessage = $"Export → {Path.GetFileName(dlg.FileName)}";
+            StatusMessage = MWC.App.Resources.L.StatusExported(Path.GetFileName(dlg.FileName));
         }
         catch (Exception ex) { _log.LogError(ex, "Export"); }
     }

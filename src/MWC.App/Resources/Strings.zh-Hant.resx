@@ -396,4 +396,5 @@
   <data name="Detail_SignalTrend"><value>信號趨勢</value></data>
   <data name="Menu_DiagnosticExport"><value>匯出支援報告…</value></data>
   <data name="Status_DiagnosticExported"><value>支援報告已儲存 → {0}</value></data>
+  <data name="Status_Exported"><value>匯出 → {0}</value></data>
 </root>

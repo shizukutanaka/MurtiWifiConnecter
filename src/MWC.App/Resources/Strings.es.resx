@@ -396,4 +396,5 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Detail_SignalTrend"><value>Tendencia señal</value></data>
   <data name="Menu_DiagnosticExport"><value>Exportar informe de soporte…</value></data>
   <data name="Status_DiagnosticExported"><value>Informe guardado → {0}</value></data>
+  <data name="Status_Exported"><value>Exportar → {0}</value></data>
 </root>

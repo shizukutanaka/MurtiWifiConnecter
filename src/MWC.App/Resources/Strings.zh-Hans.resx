@@ -396,4 +396,5 @@
   <data name="Detail_SignalTrend"><value>信号趋势</value></data>
   <data name="Menu_DiagnosticExport"><value>导出支持报告…</value></data>
   <data name="Status_DiagnosticExported"><value>支持报告已保存 → {0}</value></data>
+  <data name="Status_Exported"><value>导出 → {0}</value></data>
 </root>

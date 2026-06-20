@@ -391,4 +391,5 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Detail_SignalTrend"><value>சிக்னல் போக்கு</value></data>
   <data name="Menu_DiagnosticExport"><value>ஆதரவு அறிக்கையை ஏற்றுமதி செய்…</value></data>
   <data name="Status_DiagnosticExported"><value>ஆதரவு அறிக்கை சேமிக்கப்பட்டது → {0}</value></data>
+  <data name="Status_Exported"><value>ஏற்றுமதி → {0}</value></data>
 </root>

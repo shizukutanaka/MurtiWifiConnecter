@@ -391,4 +391,5 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Detail_SignalTrend"><value>সিগন্যাল প্রবণতা</value></data>
   <data name="Menu_DiagnosticExport"><value>সাপোর্ট রিপোর্ট রপ্তানি করুন…</value></data>
   <data name="Status_DiagnosticExported"><value>সাপোর্ট রিপোর্ট সংরক্ষিত → {0}</value></data>
+  <data name="Status_Exported"><value>রপ্তানি → {0}</value></data>
 </root>

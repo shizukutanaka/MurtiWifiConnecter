@@ -396,4 +396,5 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_SignalTrend"><value>信号トレンド</value></data>
   <data name="Menu_DiagnosticExport"><value>サポートレポートをエクスポート…</value></data>
   <data name="Status_DiagnosticExported"><value>サポートレポートを保存 → {0}</value></data>
+  <data name="Status_Exported"><value>エクスポート → {0}</value></data>
 </root>

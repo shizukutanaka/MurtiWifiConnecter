@@ -330,6 +330,8 @@ public static class L
     public static string MenuDiagnosticExport => Get("Menu_DiagnosticExport");
     public static string StatusDiagnosticExported(string filename)
         => Format("Status_DiagnosticExported", filename);
+    public static string StatusExported(string filename)
+        => Format("Status_Exported", filename);
 
     // ─── Adapter failover ─────────────────────────────────────────────
     public static string FailoverSection                        => Get("Failover_Section");

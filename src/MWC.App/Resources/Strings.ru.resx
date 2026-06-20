@@ -396,4 +396,5 @@
   <data name="Detail_SignalTrend"><value>Тренд сигнала</value></data>
   <data name="Menu_DiagnosticExport"><value>Экспорт отчёта поддержки…</value></data>
   <data name="Status_DiagnosticExported"><value>Отчёт сохранён → {0}</value></data>
+  <data name="Status_Exported"><value>Экспорт → {0}</value></data>
 </root>

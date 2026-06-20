@@ -396,4 +396,5 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Detail_SignalTrend"><value>Signal Trend</value></data>
   <data name="Menu_DiagnosticExport"><value>Export Support Report…</value></data>
   <data name="Status_DiagnosticExported"><value>Support report saved → {0}</value></data>
+  <data name="Status_Exported"><value>Export → {0}</value></data>
 </root>
