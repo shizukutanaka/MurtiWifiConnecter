@@ -140,4 +140,4 @@ public sealed record AppSettings
 }
 
 public enum DisplayMode { Simple, Expert }
-public enum AppTheme    { Dark, Light, System }
+public enum AppTheme    { Dark, Light, System, Fluent, Solarized, Nord, Catppuccin }

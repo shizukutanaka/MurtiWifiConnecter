@@ -45,7 +45,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnIsExpertModeChanged(bool v)  { if (v) _isSimpleMode = false; OnPropertyChanged(nameof(IsSimpleMode)); }
 
     // 公開プロパティ (SettingsService 向け変換)
-    public AppTheme    Theme       => _themeIndex switch { 1 => AppTheme.Light, 2 => AppTheme.System, _ => AppTheme.Dark };
+    public AppTheme    Theme       => _themeIndex switch
+    {
+        1 => AppTheme.Light,
+        2 => AppTheme.System,
+        3 => AppTheme.Fluent,
+        4 => AppTheme.Solarized,
+        5 => AppTheme.Nord,
+        6 => AppTheme.Catppuccin,
+        _ => AppTheme.Dark
+    };
     public DisplayMode DisplayMode => _isExpertMode ? DisplayMode.Expert : DisplayMode.Simple;
 
     public IReadOnlyList<(string Code, string Label)> Languages { get; } = new[]
@@ -78,7 +87,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = _svc.Current;
         _isSimpleMode     = s.DisplayMode == DisplayMode.Simple;
         _isExpertMode     = s.DisplayMode == DisplayMode.Expert;
-        _themeIndex       = s.Theme switch { AppTheme.Light => 1, AppTheme.System => 2, _ => 0 };
+        _themeIndex       = s.Theme switch
+        {
+            AppTheme.Light      => 1,
+            AppTheme.System     => 2,
+            AppTheme.Fluent     => 3,
+            AppTheme.Solarized  => 4,
+            AppTheme.Nord       => 5,
+            AppTheme.Catppuccin => 6,
+            _                   => 0
+        };
         _language         = s.Language;
         _autoScanInterval = s.AutoScanIntervalSeconds;
         _scanOnStartup    = s.ScanOnStartup;

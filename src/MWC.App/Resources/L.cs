@@ -109,6 +109,10 @@ public static class L
     public static string ThemeDark                 => Get("Theme_Dark");
     public static string ThemeLight                => Get("Theme_Light");
     public static string ThemeSystem               => Get("Theme_System");
+    public static string ThemeFluent               => Get("Theme_Fluent");
+    public static string ThemeSolarized            => Get("Theme_Solarized");
+    public static string ThemeNord                 => Get("Theme_Nord");
+    public static string ThemeCatppuccin           => Get("Theme_Catppuccin");
     public static string SettingsLanguage          => Get("Settings_Language");
     public static string SettingsSectionScan       => Get("Settings_Section_Scan");
     public static string SettingsScanIntervalLabel => Get("Settings_ScanInterval_Label");

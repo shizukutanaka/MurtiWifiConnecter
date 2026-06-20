@@ -75,6 +75,10 @@
                         <ComboBoxItem Content="{x:Static r:L.ThemeDark}"/>
                         <ComboBoxItem Content="{x:Static r:L.ThemeLight}"/>
                         <ComboBoxItem Content="{x:Static r:L.ThemeSystem}"/>
+                        <ComboBoxItem Content="{x:Static r:L.ThemeFluent}"/>
+                        <ComboBoxItem Content="{x:Static r:L.ThemeSolarized}"/>
+                        <ComboBoxItem Content="{x:Static r:L.ThemeNord}"/>
+                        <ComboBoxItem Content="{x:Static r:L.ThemeCatppuccin}"/>
                     </ComboBox>
                 </Grid>
 
