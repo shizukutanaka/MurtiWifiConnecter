@@ -54,17 +54,6 @@ public static class SecurityBadgeService
         _ => "Unknown"
     };
 
-    /// <summary>チャンネル帯域幅を人間語に</summary>
-    public static string GetWidthLabel(int mhz) => mhz switch
-    {
-        320 => "320 MHz (Max Speed)",
-        160 => "160 MHz (High Speed)",
-        80  => "80 MHz (Standard)",
-        40  => "40 MHz",
-        20  => "20 MHz (Standard)",
-        0   => "",
-        _   => $"{mhz} MHz"
-    };
 }
 
 public enum SecurityLevel { Excellent, Good, Fair, Weak, Danger }
