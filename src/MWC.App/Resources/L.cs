@@ -489,13 +489,12 @@ public static class L
         _                                        => Get("Interference_Factor_Bluetooth"),
     };
 
-    public static string InterferenceRecommendationLabel(InterferenceRecommendationKind rec, WifiBand band)
-        => rec switch
-        {
-            InterferenceRecommendationKind.SwitchBand    => Get("Interference_Rec_24GHz"),
-            InterferenceRecommendationKind.SwitchChannel => Get("Interference_Rec_5or6GHz"),
-            _                                            => "",
-        };
+    public static string InterferenceRecommendationLabel(InterferenceRecommendationKind rec) => rec switch
+    {
+        InterferenceRecommendationKind.SwitchBand    => Get("Interference_Rec_24GHz"),
+        InterferenceRecommendationKind.SwitchChannel => Get("Interference_Rec_5or6GHz"),
+        _                                            => "",
+    };
 
     // ─── MLO reliability tier labels ─────────────────────────────────
     public static string MloReliabilityLabel(MloReliability tier) => tier switch

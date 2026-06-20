@@ -200,7 +200,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             : L.Format("Detail_Interference_Other", iReport.Level, iReport.Score,
                        firstFactor != null
                            ? L.InterferenceFactorLabel(firstFactor)
-                           : L.InterferenceRecommendationLabel(iReport.Recommendation, n.Band));
+                           : L.InterferenceRecommendationLabel(iReport.Recommendation));
 
         var meshGroups = _meshDetector.Detect(visible);
         var myGroup = meshGroups.FirstOrDefault(g =>
