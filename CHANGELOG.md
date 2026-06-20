@@ -21,7 +21,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
-- **`EvaluateContrast_MwcThemePairs` had wrong expected WCAG level for dark-text-on-teal pair —
+- **Localization — 67 missing keys in all 14 locale `.resx` files**: `Strings.resx` (neutral) had
+  453 keys but every locale file had only 386; 67 new keys added since v2.5.0 were never propagated.
+  All 14 locale files now contain the full set (English fallback text for translators to override).
+- **Localization — `NetworkDetailViewModel` used raw enum names as UI text**: `AuthLabel` was set
+  with `n.Auth.ToString()` ("WPA3SAE", "WPA2PSK") and `CipherLabel` with `n.Cipher.ToString()`
+  ("AES", "GCMP256"). Both now use typed L.cs helpers (`L.AuthCompact`, `L.CipherLabel`) backed by
+  `Auth_Compact_*` and `Cipher_*` resx keys.
+- **Localization — `ConnectDialog` showed hardcoded English security level labels**: the first
+  argument to the auth label came from `SecurityBadgeService.GetBadge(auth).Label`, which returned
+  Core-layer English strings ("Maximum Security", "Secured"). Changed to `L.SecurityLevelLabel(badge.Level)`.
+- **Localization — `NetworkRecommendationEngine.Explain()` summary reached the UI in English**:
+  `RecommendationSummary` was assigned directly from `Explain().Summary`, which contained hardcoded
+  English grade names, usage-profile descriptions, and dimension names. Added 13 `Rec_*` resx keys
+  and `L.BuildRecommendationSummary()`, `L.RecommendationGradeLabel()`, `L.UsageProfileDesc()`,
+  `L.ScoreDimensionLabel()` to the App layer; `NetworkDetailViewModel` now builds the localized string.
+- **Localization — expert-mode detail labels used English words directly**: `PredictedSignalLabel`
+  embedded "samples", `LinkEstimateLabel` embedded "effective, 2-stream est.", `MloLabel` embedded
+  "links" / "aggregate" and called `mlo.ReliabilityTier.ToString()`, `DistanceLabel` consumed
+  `DistanceEstimate.Label` (hardcoded English in Core). Added 7 keys and `L.MloReliabilityLabel()`
+  to replace all four call sites.
+- **Localization — PHY generation labels hardcoded in Core reached App UI**: `ToGenerationLabel()`
+  and `ToShortLabel()` extension methods (in `MWC.Core`) were called directly from
+  `NetworkItemViewModel` and `NetworkDetailViewModel`. Added 18 `Phy_Gen_*` / `Phy_Short_*` resx
+  keys and `L.PhyGenerationLabel()` / `L.PhyShortLabel()` to the App layer.
+- **Logging — three silent `catch {}` blocks in App swallowed exceptions without trace**:
+  `App.xaml.cs` (FlowDirection override), `MainWindow.xaml.cs` (background update check),
+  `AdapterFailoverService.cs` (semaphore disposed during shutdown). All now log at `Debug` level.
+  `MainWindow.xaml.cs` was missing `using Serilog;` which made `Log.*` unavailable.
+- **Logging — two silent `catch {}` blocks in Platform.Windows swallowed exceptions without trace**:
+  `WindowsWifiService.GetConnectedSsid` bare `catch { return null; }` now logs at `Debug`.
+  `NetworkStateChangedEventHandlerBridge` static constructor had no logger at all — refactored to
+  lazy-initialize via `EnsureRegistered(ILogger?)` called from `Subscribe()` so the `WindowsWifiService`
+  logger is forwarded; the subscription is guarded by the existing lock and a `_registered` flag.
+
+### Fixed (previous entries)
   assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected
   `WcagLevel.AA`, but the computed WCAG contrast ratio between near-black #001518 and the teal
   accent #00C4CC is ≈8.71:1, which exceeds the AAA threshold of 7.0:1 for normal text. The
