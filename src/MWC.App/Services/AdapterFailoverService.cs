@@ -88,7 +88,10 @@ public sealed class AdapterFailoverService : IDisposable
 
     private async Task CheckAsync()
     {
-        if (!await _checkGuard.WaitAsync(0).ConfigureAwait(false)) return;
+        bool acquired;
+        try { acquired = await _checkGuard.WaitAsync(0).ConfigureAwait(false); }
+        catch (ObjectDisposedException) { return; }
+        if (!acquired) return;
         var ct = _cts.Token;
         try
         {
