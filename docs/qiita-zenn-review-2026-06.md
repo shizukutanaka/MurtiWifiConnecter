@@ -425,6 +425,42 @@ doc = XDocument.Load(reader);
 | `NonBacktracking` への切替 | 同上。線形パターンに DFA エンジンは不要。 |
 | enum キャストに `Enum.IsDefined` ガード | ネイティブ値→enum は既に switch + default で正規化済。`IsDefined` はボクシング/リフレクションコストがあり冗長。 |
 
+## 4i. 第9ラウンド (数値カルチャ・SemaphoreSlim 非同期ロック・整数オーバーフロー)
+
+ロケール依存の数値バグと非同期排他の正当性を監査。**全軸クリーン、プロダクション変更なし。**
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Zenn (proudust) | [double.Parse("1.5") → FormatException ← は？](https://zenn.dev/proudust/articles/2020-09-18-csharp-parse-culture) | 仏/独ロケールは小数点がコンマ。`Parse` を `InvariantCulture` 無しで使うと環境依存で例外/誤読。 |
+| Qiita (tmokmss) | [特定ロケールのみで発生する例外の不思議](https://qiita.com/tmokmss/items/daf0d8427ba392c11a53) | 端末ロケール既定の数値解析は再現性の無いバグの温床。機械可読データは Invariant。 |
+| Qiita (laughter) | [await を含むコードの排他制御](https://qiita.com/laughter/items/2c5daf9fef32a694523f) | `await` 区間の排他は `lock` 不可。`SemaphoreSlim.WaitAsync` + `finally Release`。 |
+| Zenn (mod_poppo) | [C 言語での整数のオーバーフロー検査](https://zenn.dev/mod_poppo/articles/c-checked-int) | バイト演算/シフトでの桁あふれ。 |
+
+### 監査結果 — 全軸クリーン
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **`double/float/decimal.Parse`** | コードベース全体に **0 件**。最も危険な小数点セパレータ問題が存在しない | ✅ 該当なし |
+| **`int.TryParse` (6 件)** | CAT XML の EAP 型・nmcli/CoreWLAN の channel/freq/signal。すべて **非負 ASCII 整数**で、`int.TryParse("25")` は全カルチャで同一結果。負号も ASCII "-" で一致 | ✅ 実バグなし (CA1305 は理論上の指摘のみ) |
+| **数値の機械可読出力フォーマット** | `ExportService` は整数のみ出力 (`int.ToString()` は全カルチャ同一、グループ区切り無し)。日付は `InvariantCulture` 明示。JSON は System.Text.Json (内部 Invariant) | ✅ ラウンドトリップ安全 |
+| **`SemaphoreSlim` 非同期ロック** | `ConnectionExecutor`: `WaitAsync(ct)` は **try の外** (L65)、`finally { Release() }` (L132)。キャンセルで WaitAsync が throw しても finally に到達せず**過剰 Release しない** | ✅ 教科書通り正しい |
+| **整数オーバーフロー (ビーコン解析)** | `(uint)(b[6] | (b[7]<<8) | (b[8]<<16) | (b[9]<<24))` は uint へ明示キャストで意図的ラップ。境界チェック (`bodyStart+len > data.Length`) で範囲外参照を防止 (R 既出) | ✅ 防御的 |
+
+### この回の結論 — コード変更なし
+
+全軸クリーンのため**プロダクションコードは変更しない**。特筆すべき確認:
+
+1. **`double.Parse` がゼロ** — ロケール数値バグの最大の温床が構造的に存在しない。
+   表示は WPF バインディング/`L.Format` 経由、機械可読出力は整数 or System.Text.Json。
+2. **`SemaphoreSlim` の過剰 Release バグが無い** — `WaitAsync` を try の外に置く
+   正しいイディオム。キャンセル時に Release が呼ばれずセマフォカウントが破壊されない
+   (この 1 点だけで「アダプタ毎ロックが壊れて並行接続が漏れる」級のバグを防いでいる)。
+
+> `int.TryParse("25")` に `InvariantCulture` を付ける案は**不採用**。非負整数は全
+> カルチャで同一結果のため純粋な儀式 (theater) で、挙動を 1 ビットも変えない。
+> CA1305 を suggestion 化する案も不採用 (整数解析に多数ヒットしノイズになる。R7 の
+> CA1851 が green だったのとは異なる)。
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
