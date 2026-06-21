@@ -218,6 +218,62 @@ fail-fast 化。検証対象 (2 引数)・例外型・パラメータ名は不�
 唯一の不一致 (`AdapterViewModel` の旧式 throw 2 件) を解消し、コードベース全体で
 ガード節イディオムを統一した。
 
+## 4e. 第5ラウンド (CompositeFormat / 同期 I/O / ValueTask / ホットループ)
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Microsoft Learn | [CA1863: Use 'CompositeFormat'](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1863) | 同じ format string を繰り返し `string.Format` するなら `CompositeFormat.Parse` で事前解析しキャッシュ。.NET 8 ベンチで反復フォーマット 15-30% 削減。 |
+| Qiita (vivinko) | [C# 非同期処理の基準｜UI スレッド/await/デッドロックを避ける判断軸](https://qiita.com/vivinko/items/659c3490853102de516a) | UI スレッドで `File.ReadAllText` 等の同期 I/O はブロックの主因。`*Async` 版＋`await`。 |
+| Zenn (mayuki) | [Task/ValueTask を直接返せる場合でも原則 async/await](https://zenn.dev/mayuki/articles/96a17916096714) | `ValueTask` をそのまま返すと dispose 競合や stack trace 欠落を招きうる。`async/await` を経由する。 |
+| Qiita (Kujiro) | [ループの最適化手法 ② `List<T>` を `Span<T>` 化](https://qiita.com/Kujiro/items/9569e91b942bcf9d528b) | `CollectionsMarshal.AsSpan(List<T>)` で foreach の境界チェック削減。ホットループで有効。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **`CompositeFormat` キャッシュ** | `L.Format` が 31 ヶ所から呼ばれ毎回 `string.Format` で再パース | ⚠ **要改善** → 修正 |
+| **同期 File I/O** | 10 ヶ所。startup の `Load` (DI 構築前)・atomic 書込みの `Save` (背景スレッド)・ユーザー起動 export (待ち時間が UX 上自然) のいずれか | ✅ **意図的設計** — 変更しない |
+| **`ValueTask` の誤用** | `AutoReconnectService.DisposeAsync` のみ。これは `IAsyncDisposable.DisposeAsync` の契約 (`ValueTask` 必須) | ✅ インタフェース契約 |
+| **`CollectionsMarshal.AsSpan` 候補** | ホットループは `IReadOnlyList<T>` インタフェース型 (`RnrNeighbors`/`bySsid`)。具象 `List<T>` ではないため `AsSpan` 不可。共変性のため抽象化は妥当 | ✅ 設計的に正当 |
+
+### 適用した修正
+
+**`L.cs` — `string.Format` を `CompositeFormat` キャッシュ化** (CA1863)
+
+```csharp
+private static readonly ConcurrentDictionary<(string Key, string CultureName), CompositeFormat> _formatCache = new();
+
+public static string Format(string key, params object[] args)
+{
+    var culture  = CultureInfo.CurrentUICulture;
+    var template = Get(key);
+    var cacheKey = (key, culture.Name);
+    if (!_formatCache.TryGetValue(cacheKey, out var fmt))
+    {
+        try { fmt = CompositeFormat.Parse(template); _formatCache.TryAdd(cacheKey, fmt); }
+        catch (FormatException) { return template; }  // 不正テンプレートはキャッシュせず
+    }
+    try { return string.Format(culture, fmt, args); }
+    catch (FormatException) { return template; }     // 引数不足等 (既存契約と同一)
+}
+```
+
+設計判断:
+- **キーはカルチャ込み**: テンプレート文字列はカルチャ依存 (`"Connected to {0}"` vs `"{0} に接続しました"`)。
+- **規模上限**: format キー約 50 × カルチャ 15 = ~750 件で頭打ち。LRU 不要。
+- **失敗時はキャッシュしない**: resx の構文エラーがあると不正な CompositeFormat を握ってしまい以降全部 raw に落ちる。Parse 失敗時は単純に template を返す。
+- **既存契約完全保持**: `RefactoringTests.Format_BadArguments_DoesNotThrow` が引数不足時に raw template を返すことを期待。`string.Format(culture, fmt, /*empty*/)` も `FormatException` を投げるため、外側 try/catch で同じ挙動。
+- **スレッド安全**: `ConcurrentDictionary` + `CompositeFormat` 自体がイミュータブル。
+
+### 不採用 (第5ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| `SettingsService.Load` を `LoadAsync` 化 | DI 構築の前提として "起動直後に設定が読まれている" を満たす必要がある。非同期化すると初回 UI バインディングがレースする。Save 側は背景スレッドなので影響なし。 |
+| `AutoReconnectService.DisposeAsync` を `Task` 化 | `IAsyncDisposable.DisposeAsync()` の戻り値型は `ValueTask` 固定 (BCL 契約)。 |
+| `BeaconIeParser` の foreach を `AsSpan` 化 | パラメータが `IReadOnlyList<T>`。共変性のため抽象化は正しく、変更すると `Array.Empty<T>()` 等の参照渡しが壊れる。 |
+| ホットパスで非同期 `File.ReadAllTextAsync` 採用 | 該当する hot path がない (Load は startup, Save は背景、Export はユーザー起動)。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)

@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Resources;
+using System.Text;
 using MWC.Core.Models;
 using MWC.Core.Services;
 
@@ -20,6 +22,15 @@ public static class L
     private static readonly ResourceManager _rm =
         new("MWC.App.Resources.Strings", typeof(L).Assembly);
 
+    // CompositeFormat キャッシュ。CompositeFormat.Parse は format string を 1 度だけ走査し
+    // 構造化表現を作る (.NET 8+, CA1863)。string.Format(IFormatProvider, string, args) は
+    // 呼び出しごとにパースし直すため、UI ホットパス (ステータス・ツールチップ等の頻繁再評価)
+    // で繰り返しコストになる。Microsoft のベンチでは反復フォーマットで 15-30% 削減。
+    // キーは (resx キー, カルチャ名) — テンプレート文字列はカルチャ依存のため。
+    // 規模上限: 約 50 format キー × 15 カルチャ = ~750 件、サイズ無制限化はしない設計。
+    // スレッド安全: ConcurrentDictionary + CompositeFormat 自体がイミュータブル。
+    private static readonly ConcurrentDictionary<(string Key, string CultureName), CompositeFormat> _formatCache = new();
+
     /// <summary>キー → 翻訳文字列</summary>
     public static string Get(string key)
         => _rm.GetString(key, CultureInfo.CurrentUICulture) ?? key;
@@ -27,9 +38,27 @@ public static class L
     /// <summary>キー + フォーマット引数 → 翻訳済みフォーマット文字列</summary>
     public static string Format(string key, params object[] args)
     {
+        var culture  = CultureInfo.CurrentUICulture;
         var template = Get(key);
-        try { return string.Format(CultureInfo.CurrentUICulture, template, args); }
-        catch { return template; }
+
+        var cacheKey = (key, culture.Name);
+        if (!_formatCache.TryGetValue(cacheKey, out var fmt))
+        {
+            try
+            {
+                fmt = CompositeFormat.Parse(template);
+                _formatCache.TryAdd(cacheKey, fmt);
+            }
+            catch (FormatException)
+            {
+                // resx テンプレートが不正 (例: 閉じ括弧欠落)。
+                // 失敗はキャッシュせずテンプレートをそのまま返す。
+                return template;
+            }
+        }
+
+        try { return string.Format(culture, fmt, args); }
+        catch (FormatException) { return template; }   // 引数不足等 (テストで保証された契約)
     }
 
     public static string LabelNoData            => Get("Label_NoData");
