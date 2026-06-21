@@ -329,6 +329,47 @@ false を返すため副作用なし。正の http URL は実起動するので 
 | `Random.Shared` を `RandomNumberGenerator` 化 | 用途はバックオフ jitter (再試行の時間分散)。予測不能性は不要で、暗号 RNG はオーバーキル。 |
 | null 免除 `!` の一掃 | 8 件と僅少で、各々 NRT 解析の限界を補う正当な用法。機械的除去は可読性を下げる。 |
 
+## 4g. 第7ラウンド (ObservableCollection スレッド・多重列挙・linked CTS)
+
+WPF コレクションのスレッド安全と LINQ 遅延評価の罠を監査。
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (Kokudori) | [Livet で始める WPF 入門 その7](https://qiita.com/Kokudori/items/dfc5850321ea4c70b56b) | バインド済みコレクションを別スレッドから変更すると `NotSupportedException`。WPF 4.5 の `BindingOperations.EnableCollectionSynchronization` か Dispatcher 経由が必要。 |
+| Qiita (okazuki) | [複数 UI スレッドを WPF でやる前に](https://qiita.com/okazuki/items/698ec4d45c8286fedac1) | `ObservableCollection<T>` はスレッドセーフでない。複数スレッドからの操作は予期せず失敗。 |
+| Zenn (snak_dev) | [コレクションで capacity 指定してる？](https://zenn.dev/snak_dev/articles/0823a1f24ada92) | 遅延評価の `IEnumerable` を 2 回列挙すると処理が 2 回走る。`ToList()` で実体化 (CA1851)。 |
+| Zenn (nossa) | [効果的なキャンセルトークンの使用方法](https://zenn.dev/nossa/articles/df258b3ddc351f) | `CreateLinkedTokenSource` は `IDisposable`。破棄漏れでリーク/ゾンビタスク。 |
+
+### 監査結果 — 全軸クリーン (コード変更なし)
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **`ObservableCollection` の別スレッド変更** | VM の async は `ConfigureAwait(false)` を使わず継続が UI スレッドに戻る。バックグラウンドサービス (AutoReconnect/Failover) は束縛コレクションに触れない。自動スキャンは `DispatcherTimer` (ThreadPool Timer ではない) | ✅ **設計的に安全** |
+| **`MainViewModel` の設計コメント** | 「ThreadPool タイマーだと SynchronizationContext が無くコレクション変更が Dispatcher 外で起き NotSupportedException を投げ自動スキャンが無言で失敗していた」と明記 — **過去に踏んで修正済の知見が残る** | ✅ 制度的知識あり |
+| **`IEnumerable` 多重列挙 (CA1851)** | ~18 の `IEnumerable` 受け取りメソッドは全て単一パス or `ToList`/`HashSet` で 1 度実体化。`ExportService.ToTxt` はループカウンタで総数を数え count-then-iterate を回避 | ✅ クリーン |
+| **`CreateLinkedTokenSource` 破棄** | 3 ヶ所全て `using var` | ✅ クリーン |
+
+### 適用 — 予防的アナライザガード (コード欠陥はなし)
+
+コード欠陥が無いため**プロダクションコードは変更しない**。代わりに、検証で確認した
+「多重列挙していない」状態を**予防的に固定**する:
+
+```ini
+dotnet_diagnostic.CA1851.severity = suggestion  # possible multiple enumeration of IEnumerable
+```
+
+`IEnumerable<WifiNetwork>` を受ける公開サービスメソッドが多数あるため、将来
+`if (networks.Any()) { … networks.Select(…) }` のような二重列挙が紛れ込むのを
+IDE/CI で検知できる。現状グリーンなのでノイズはゼロ。R1 の CA1848 と同じ
+「suggestion で TreatWarningsAsErrors を壊さず可視化」方針。
+
+### この回の主眼
+
+本ラウンドは **3 軸すべてクリーン**で、プロダクションコードの変更は行わなかった
+(変更すれば theater になる)。WPF コレクションのスレッド安全という最も多い落とし穴が、
+`DispatcherTimer` 採用と設計コメントによって**既に潰され知見化されている**ことを
+確認できたのが収穫。多重列挙の予防ガード (CA1851) のみ追加。
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)

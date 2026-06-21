@@ -87,3 +87,9 @@ dotnet_diagnostic.CA1848.severity = suggestion # use LoggerMessage delegates for
                                                # (MWC.Core.Services.MwcLog already source-generates the connect/
                                                # disconnect/advisory paths; rule surfaces remaining ad-hoc sites
                                                # without forcing rewrite of cold I/O error paths)
+dotnet_diagnostic.CA1851.severity = suggestion # possible multiple enumeration of IEnumerable
+                                               # (audited 2026-06-21: all ~18 IEnumerable-taking service methods
+                                               # single-pass or materialize once via ToList/HashSet; ExportService
+                                               # even tracks a loop counter to avoid count-then-iterate. Currently
+                                               # green — this is a preventive guard against future regressions in
+                                               # the many services that accept IEnumerable<WifiNetwork>.)
