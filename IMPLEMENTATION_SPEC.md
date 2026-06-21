@@ -60,7 +60,7 @@ Services ground in peer-reviewed papers:
 
 ### 1.5 Test Coverage & Validation
 
-- **Core tests**: 514 tests (up from 354 in v2.5.0)
+- **Core tests**: **967 test cases** (650 `[Fact]` + 68 `[Theory]` × 317 `[InlineData]` rows), zero skipped, across 55 test files
 - **Golden XML tests**: ProfileXmlBuilder validated for WEP/WPA/WPA2/WPA3/Enterprise/OWE
 - **RNR/Beacon parsing**: Defensive edge cases covered (truncation, malformed IE)
 - **Profile validation**: SSID byte length, cipher strength, WPA dictionary attacks
@@ -81,12 +81,12 @@ Services ground in peer-reviewed papers:
 
 ### 2.2 Build System Gaps
 
-| Issue | Impact | Recommendation |
-|-------|--------|-----------------|
-| **Version Desync** | Directory.Build.props (2.5.0) vs CHANGELOG.md (3.11.0); .csproj inline version attributes | Centralize in Directory.Build.props; remove inline Version tags; add [Unreleased] CHANGELOG section |
-| **Locked Restore Without Lock Files** | `RestoreLockedMode=true` when GITHUB_ACTIONS=true, but no packages.lock.json exists → CI restore fails | Replace `GITHUB_ACTIONS` gate with opt-in `MWC_LOCKED_RESTORE=true` variable; generate lock files on demand |
-| **Missing CI Workflows** | README has badges but .github/workflows/ directory doesn't exist | Add ci.yml (Windows: build/test; Ubuntu: Core only — tests are net9.0-windows) + codeql.yml |
-| **GitHub App Permissions** | Workflow files require `workflows` OAuth scope — token limited to `contents` → push fails | Document requirement; provide manual push instructions; consider using native GitHub Actions GITHUB_TOKEN (if available) |
+| Issue | Impact | Status |
+|-------|--------|--------|
+| ~~**Version Desync**~~ | ~~Directory.Build.props vs CHANGELOG~~ | ✅ **Resolved** — Directory.Build.props at 3.11.0; no inline `.csproj` versions; all centralized in Directory.Packages.props |
+| ~~**Locked Restore Without Lock Files**~~ | ~~CI restore fails~~ | ✅ **Resolved** — `RestoreLockedMode` is opt-in via `MWC_LOCKED_RESTORE=true`; no longer gated on `GITHUB_ACTIONS` |
+| **Missing CI Workflows** | README has CI/CodeQL badges + CHANGELOG documents them, but `.github/workflows/` doesn't exist in the tree (was in commit `78367d7`, rebased out) | ⚠️ **Blocked** — files written locally; require `workflows` OAuth scope to push |
+| **GitHub App Permissions** | Workflow files require `workflows` OAuth scope — session token limited to `contents` → push rejected | ⚠️ **Blocked** — needs manual push with elevated scope, or repo-admin commits the workflow files directly |
 
 ### 2.3 Test Coverage Gaps
 
@@ -138,24 +138,13 @@ Services ground in peer-reviewed papers:
 - ✅ Fix AccessibilityAuditService dead parameter (commit `0ae3831`)
 - ✅ Fix TroubleshootingHelper WPA3Enterprise192 guard (commit `0ae3831`)
 
-### Phase 2: Build Hygiene (2-3 days, Tier 2)
+### Phase 2: Build Hygiene (Tier 2)
 
-**Required for CI/CD reliability and version consistency.**
+**Most items already resolved in earlier work — verified this session.**
 
-1. **Centralize Versions**
-   - Move inline `Version=` from MWC.Core.csproj, MWC.SDK.csproj, MWC.Benchmarks.csproj → Directory.Packages.props
-   - Set Directory.Build.props `<Version>3.11.0</Version>`
-   - Add `[Unreleased]` section in CHANGELOG.md for bug-fix entries
-
-2. **Fix Locked-Restore Gate**
-   - Change `RestoreLockedMode` condition from `GITHUB_ACTIONS=true` → `MWC_LOCKED_RESTORE=true`
-   - Document that CI must define the variable; local dev doesn't use locked mode
-   - Generate packages.lock.json on CI (future: Dependabot support)
-
-3. **Add CI Workflows** (requires `workflows` scope)
-   - **ci.yml**: Windows job (build, test, upload .trx); Ubuntu job (Core + Linux platform only, no tests)
-   - **codeql.yml**: Windows-only (tests are net9.0-windows); weekly Monday 04:23 UTC
-   - Use `MWC.ci.slnf` filter if mobile TFMs cause build failure
+1. ✅ **Centralize Versions** — DONE. Directory.Build.props at 3.11.0; no inline `.csproj` `Version=` attributes; all package versions in Directory.Packages.props.
+2. ✅ **Fix Locked-Restore Gate** — DONE. `RestoreLockedMode` opt-in via `MWC_LOCKED_RESTORE=true`.
+3. ⚠️ **Add CI Workflows** — BLOCKED by `workflows` OAuth scope. Files exist locally (commit `78367d7`). Action required: repo admin or a token with `workflows` scope must commit `.github/workflows/ci.yml` + `codeql.yml`. Until then, the README CI/CodeQL badges show "no status".
 
 ### Phase 3: Documentation (1 day, Tier 3)
 
