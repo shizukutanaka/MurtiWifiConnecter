@@ -623,6 +623,30 @@ public class PiiMaskSsidTests
         result.Should().EndWith("******");
         result.Length.Should().Be(8, "2 kept + 6 stars cap");
     }
+
+    // ── CWE-117: ログインジェクション防止 ───────────────────────────────
+    // 802.11 SSID は任意オクテット (CR/LF 含む) を取りうる。攻撃者が制御文字入り
+    // SSID をブロードキャストしても、マスク結果に制御文字が残ってはならない
+    // (プレーンテキストログへ出力されると改行注入でログ偽造される)。
+    [Theory]
+    [InlineData("\r\nFAKE 2099-01-01 [ERR] forged")]  // CRLF 注入
+    [InlineData("\nadmin")]                            // LF
+    [InlineData("\roverwrite")]                        // CR (端末上書き)
+    [InlineData("\t\ttabbed")]                         // TAB
+    [InlineData("\u0007\u001bbell-esc")]               // BEL / ESC
+    public void Ssid_NeutralizesControlChars_PreventsLogInjection(string input)
+    {
+        var masked = PiiMask.Ssid(input);
+        masked.Any(char.IsControl).Should().BeFalse(
+            "masked SSID must never carry a control character into a log line");
+        masked.Should().NotContainAny("\r", "\n", "\t");
+    }
+
+    [Theory]
+    [InlineData("日本語ネット", "日本")]   // 非ラテン (BMP) は保持
+    [InlineData("Café", "Ca")]             // アクセント付きは制御文字ではない
+    public void Ssid_PreservesVisibleNonControlChars(string input, string expectedPrefix)
+        => PiiMask.Ssid(input).Should().StartWith(expectedPrefix);
 }
 
 // ═══════════════════════════════════════════════
