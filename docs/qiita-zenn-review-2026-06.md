@@ -112,7 +112,72 @@ CA2007 (`ConfigureAwait`) のコメントも、なぜ無効化しているのに
 | `WeakEventManager` 全面導入 | MWC は購読箇所が限定的で全て対の `-=`/`Dispose` 済。WeakEvent 機構の複雑性は不要。 |
 | `CountBy` リファクタ | 真の頻度カウント (`NetworkHistoryService.GetFrequentSsids`) は既にロック内で辞書集計済。LINQ 化はロック粒度を乱す。 |
 
+## 4c. 第3ラウンド (ソース生成・カルチャ安全・HttpClient 寿命)
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (kurema) | [GeneratedRegex で遊ぶ](https://qiita.com/kurema/items/068385ba2f8bbe3858e1) | `[GeneratedRegex]` (.NET 7+) はコンパイル時に正規表現コードを生成。`RegexOptions.Compiled` の初回 JIT コストが無く Native AOT 対応。SYSLIB1045 が推奨。 |
+| Microsoft Learn / Zenn (microsoft) | [System.Text.Json ソース生成](https://zenn.dev/microsoft/articles/system-text-json-on-dotnet6) | `JsonSerializerContext` でリフレクションを排し、起動コスト削減・AOT 対応。 |
+| Qiita (sator_imaging) | [String.Equals はもう使う必要ない説](https://qiita.com/sator_imaging/items/5b87f026c162b9188c61) | `ToUpper/ToLower` や比較は明示的に `StringComparison` を指定。カルチャ依存の罠を避ける。 |
+| Zenn (arika) | [HttpClient とその設定方法](https://zenn.dev/arika/articles/20250918-httpclient-what-is-it) | `new HttpClient()` の都度生成はソケット枯渇を招く。`static readonly` + `SocketsHttpHandler`(PooledConnectionLifetime) か `IHttpClientFactory`。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **カルチャ非依存の `ToUpper/ToLower`** | bare な `ToUpper()/ToLower()` は 0 件 (全て `*Invariant`) | ✅ 完全準拠 |
+| **HttpClient 寿命** | `AppUpdateService` / `HttpConnectivityChecker` は `static readonly HttpClient` + `SocketsHttpHandler`。CLI の都度生成は単発プロセスなので無害 | ✅ 推奨パターン |
+| **`[GeneratedRegex]`** | `DiagnosticBundleService` が `RegexOptions.Compiled` を 4 つ (実行時 JIT) | ⚠ **要改善** → 修正 |
+| **`StartsWith` カルチャ指定** | `CertificateStoreService.MatchesHostname` の `cn.StartsWith("*.")` のみ `StringComparison` 未指定 (周囲は全て Ordinal) | ⚠ **要改善** → 修正 |
+| **System.Text.Json ソース生成** | 10 箇所すべてリフレクションベース。`JsonSerializerContext` 未使用 | ⏸ 保留 (下記) |
+
+### 適用した修正
+
+**(1) `DiagnosticBundleService` — `RegexOptions.Compiled` → `[GeneratedRegex]`**
+
+PII マスク 4 種 (IPv4/MAC/Email/Phone) をソース生成へ。`class` を `partial` 化し
+`static readonly Regex X = new(...)` を `[GeneratedRegex(...)] static partial Regex X();`
+へ変換、呼び出しを `X.Replace` → `X().Replace` に修正。
+- `RegexOptions.Compiled` は初回マッチ時に実行時 JIT する。診断バンドル生成は稀
+  (ユーザーが「問題を報告」時のみ) なので、起動時に JIT コストを払うのは本来無駄。
+- ソース生成はビルド時確定で起動コストゼロ・AOT/トリミング対応。
+- 挙動は同一 (全パターン ASCII・IgnoreCase 不使用)。`DiagnosticBundleServiceTests`
+  の 7 テストはすべて挙動ベースで内部フィールド非依存 → 変更後も通る。
+
+**(2) `CertificateStoreService.MatchesHostname` — `StartsWith` に `Ordinal` 明示**
+
+```diff
+-        if (cn.StartsWith("*."))
++        if (cn.StartsWith("*.", StringComparison.Ordinal))
+```
+
+証明書ホスト名照合 (RFC 6125, セキュリティ経路) はカルチャ非依存であるべき。
+同メソッド内の他の比較は全て `StringComparison.Ordinal*` を使っており、この 1 箇所
+だけ既定カルチャに依存していた (CA1310 該当)。`"*."` は句読点のみで実害は無いが、
+セキュリティコードでは明示的 Ordinal が正しい。
+
+### 保留 — System.Text.Json ソース生成
+
+10 箇所すべてリフレクションベースで、`JsonSerializerContext` 化は起動高速化と AOT
+対応に有効。**ただし永続化データ (settings.json / history / adapters.json) の
+シリアライズ経路を触るため、ラウンドトリップ崩れは既存ユーザーのデータ破損に直結する。**
+本環境は .NET SDK 不在 (Linux・テスト Windows 専用) でビルド/テスト検証ができないため、
+無検証での広域変更は CLAUDE.md の「テスト先行・最小差分」に反する。Windows CI が
+通る環境で、ゴールデンテスト (既存 JSON ファイルのラウンドトリップ) を先に追加してから
+着手するべき。→ §5 候補へ。
+
+### 不採用 (第3ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| CLI `QualityHistoryCommand` の `new HttpClient` を static 化 | 単発 CLI プロセスは実行後すぐ終了。ソケット枯渇は長時間稼働プロセス固有の問題で、CLI には該当しない。`using` で確実に破棄される現状が適切。 |
+| `CertificateStoreService` を `OrdinalIgnoreCase` に統一 | `"*."` は大小文字を持たない句読点。`Ordinal` で十分かつ最小。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
+
+0. **System.Text.Json ソース生成への移行** (§4c 保留分)
+   永続化 JSON のラウンドトリップ・ゴールデンテストを先に追加し、Windows CI で検証
+   できる状態を整えてから `JsonSerializerContext` を導入する。起動高速化＋AOT 対応。
 
 1. **UI Automation テスト** (Qiita: ken_hamada / Friendly フレームワーク)
    AutomationProperties.Name の "宣言済み" と "実際に Narrator/NVDA で読まれる" の

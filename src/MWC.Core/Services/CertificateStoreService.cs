@@ -184,7 +184,7 @@ public sealed class CertificateStoreService
         // ワイルドカード: *.example.com
         // RFC 6125 §6.4.3: ワイルドカードは単一の DNS ラベルのみに一致する。
         // "*.example.com" は "foo.example.com" に一致するが "a.b.example.com" には一致しない。
-        if (cn.StartsWith("*."))
+        if (cn.StartsWith("*.", StringComparison.Ordinal))
         {
             var suffix = cn[1..];  // .example.com
             if (!expected.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return false;

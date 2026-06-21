@@ -21,7 +21,7 @@ namespace MWC.Core.Services;
 ///
 /// 生成物は人間可読の Markdown 文字列。ファイル I/O は呼び出し側に委ねる。
 /// </summary>
-public sealed class DiagnosticBundleService
+public sealed partial class DiagnosticBundleService
 {
     /// <summary>診断バンドル (Markdown) を生成する。</summary>
     public string Build(DiagnosticContext ctx)
@@ -84,19 +84,27 @@ public sealed class DiagnosticBundleService
 
     // ── 秘匿ユーティリティ ───────────────────────────────────────────
 
-    private static readonly Regex Ipv4   = new(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", RegexOptions.Compiled);
-    private static readonly Regex Mac     = new(@"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b", RegexOptions.Compiled);
-    private static readonly Regex Email   = new(@"\b[\w.+-]+@[\w-]+\.[\w.-]+\b", RegexOptions.Compiled);
-    private static readonly Regex Phone   = new(@"\b0\d{1,4}-\d{1,4}-\d{4}\b", RegexOptions.Compiled);
+    // [GeneratedRegex]: パターンをコンパイル時にコード生成する (.NET 7+)。
+    // RegexOptions.Compiled は初回マッチ時に実行時 JIT する一方、ソース生成は
+    // ビルド時に確定するため起動コストがゼロで Native AOT/トリミングにも対応する
+    // (SYSLIB1045 推奨)。挙動は従来と同一 (全パターン ASCII・IgnoreCase 不使用)。
+    [GeneratedRegex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")]
+    private static partial Regex Ipv4();
+    [GeneratedRegex(@"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b")]
+    private static partial Regex Mac();
+    [GeneratedRegex(@"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")]
+    private static partial Regex Email();
+    [GeneratedRegex(@"\b0\d{1,4}-\d{1,4}-\d{4}\b")]
+    private static partial Regex Phone();
 
     /// <summary>任意文字列から PII を伏字に置換する。</summary>
     public static string Redact(string? text)
     {
         if (string.IsNullOrEmpty(text)) return text ?? "";
-        string s = Mac.Replace(text, m => MaskMac(m.Value));   // MAC を先に (IPv4 より具体的)
-        s = Ipv4.Replace(s, "x.x.x.x");
-        s = Email.Replace(s, "[email]");
-        s = Phone.Replace(s, "[phone]");
+        string s = Mac().Replace(text, m => MaskMac(m.Value));   // MAC を先に (IPv4 より具体的)
+        s = Ipv4().Replace(s, "x.x.x.x");
+        s = Email().Replace(s, "[email]");
+        s = Phone().Replace(s, "[phone]");
         return s;
     }
 
