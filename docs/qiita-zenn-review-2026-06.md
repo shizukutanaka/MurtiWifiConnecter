@@ -461,6 +461,73 @@ doc = XDocument.Load(reader);
 > CA1305 を suggestion 化する案も不採用 (整数解析に多数ヒットしノイズになる。R7 の
 > CA1851 が green だったのとは異なる)。
 
+## 4j. 第10ラウンド (ログインジェクション・Task.WhenAll 例外・WPF Freeze)
+
+攻撃者制御の SSID に着目したログ偽造 (CWE-117) を監査。**実バグを発見・修正。**
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (kaminuma) | [外部入力の攻撃面: インジェクション](https://qiita.com/kaminuma/items/2e0f7a12b17e2b6e3dc9) | 未検証入力の `\r\n` を行指向ログへ出力するとログ注入 (CWE-117)。`[\r\n\t]` の無害化が最低限の防御。 |
+| Zenn (dara) | [More Effective C# メモ (第3章)](https://zenn.dev/dara/scraps/63854485fc53cf) | `await` した Task は最初の例外のみ送出。`Task.Result/Wait` は AggregateException に集約。 |
+| Zenn (rioil) | [WPF の Freeze](https://zenn.dev/rioil/scraps/a53f242bd675ff) | `Freezable.Freeze()` で変更監視を省きグラフィック最適化。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **ログインジェクション (SSID 経由)** | `PiiMask.Ssid` が先頭 2 文字を**生**で残し、Serilog の `{Message:lj}` は非エスケープ描画。攻撃者が `"\r\n偽ログ"` SSID をブロードキャスト→プレーンテキストログに改行注入 | ⚠ **CWE-117 実バグ → 修正** |
+| **`Task.WhenAll` 例外** | 自動スキャン (タイマー駆動, L176) は `SafeRefreshOne` で各 Task を try/catch ラップ済。一方**手動リフレッシュ 2 箇所 (L91 Load / L111 RefreshAllAsync) は `a.RefreshAsync()` を直渡し**し、複数アダプタ同時失敗時に**最初の例外しかログに出ない** | ⚠ **観測性の軽微なギャップ → 統一修正** |
+| **WPF `Freeze`** | テーマブラシは XAML 静的リソース (WPF が自動 Freeze)。動的生成 Brush/Geometry をスレッド跨ぎ共有する箇所なし | ✅ 該当なし |
+
+### 適用した修正 — `PiiMask.Ssid` の制御文字無害化 (CWE-117)
+
+**攻撃シナリオ**: 802.11 SSID は任意オクテット (CR/LF 含む) を許容する。攻撃者が
+`"\r\n2099-01-01 [ERR] forged entry"` のような SSID をブロードキャストし、被害者の
+MWC がそれをログ (接続試行・フェイルオーバー等) に出力すると、`PiiMask.Ssid` が
+先頭 2 文字 (`\r\n`) を生で残すため、`Serilog.Sinks.File` のプレーンテキスト出力
+(`{Message:lj}` は文字列プロパティを非エスケープで描画) に**改行が注入されログ行が偽造**
+される。
+
+**修正**: マスク時に残す先頭 2 文字の `char.IsControl(c)` を `'?'` に置換。`string.Create`
+で確保効率も維持。可視文字 (絵文字・日本語・アクセント付き) は保持し、制御文字のみ無害化。
+
+```csharp
+string prefix = string.Create(keep, ssid, static (dst, src) =>
+{
+    for (int i = 0; i < dst.Length; i++)
+    {
+        char c = src[i];
+        dst[i] = char.IsControl(c) ? '?' : c;   // CR/LF/TAB/C0/C1 → '?'
+    }
+});
+```
+
+テスト 7 ケース追加 (`PiiMaskSsidTests`):
+- `\r\n…` / `\n…` / `\r…` / `\t\t…` / `…` → マスク結果に制御文字が**残らない**
+  ことを `masked.Any(char.IsControl)` で検証。
+- `日本語…`→`日本` / `Café`→`Ca` → 可視文字は保持されることを検証。
+- 既存 8 ケース (マスク桁数契約) は不変で全通過。
+
+> これは R6/R8 のような「安全だが明示化」ではなく、**実際に悪用可能なログ偽造の修正**。
+> SSID は唯一の攻撃者完全制御の入力であり、`PiiMask.Ssid` が全 SSID ログの単一通過点
+> であるため、ここでの無害化が最小かつ確実な対策になる。
+
+### 適用した修正 (2) — `Task.WhenAll` の例外取りこぼし統一
+
+`MainViewModel` の手動リフレッシュ 2 箇所が `Task.WhenAll(Adapters.Select(a => a.RefreshAsync()))`
+と直渡しで、`RefreshAsync` は `try/finally` のみ (catch なし) のため、複数アダプタが同時に
+失敗すると **WhenAll が最初の例外しか再送出せず**、他アダプタの失敗がログに残らない。
+自動スキャン経路 (L176) は既に `SafeRefreshOne` で各 Task を try/catch ラップしてこの問題を
+回避済だったため、**手動経路 2 箇所も `SafeRefreshOne` 経由に統一**し、各アダプタの失敗を
+独立にログするようにした (挙動の一貫性 + 観測性向上)。
+
+### 不採用 (第10ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| 全ログ呼び出しに汎用サニタイザ | SSID が唯一の攻撃者完全制御入力。アダプタ名/BSSID は OS/ドライバ由来で、SSID チョークポイント (`PiiMask.Ssid`) の無害化で主要ベクタは塞がる。 |
+| Serilog を JSON シンクに変更 | プレーンテキストログは人間可読性で運用上重要。シンク変更より入力無害化が正攻法 (OWASP も入力中和を推奨)。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)

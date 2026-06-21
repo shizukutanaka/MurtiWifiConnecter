@@ -87,8 +87,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 Adapters.Add(avm);
             }
             SelectedAdapter ??= Adapters.FirstOrDefault();
-            // 全アダプター並列スキャン (各子機独立)
-            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
+            // 全アダプター並列スキャン (各子機独立)。SafeRefreshOne で各 Task を
+            // try/catch ラップし、1 つの子機の失敗が他を巻き込まず全件ログされるようにする。
+            await Task.WhenAll(Adapters.Select(SafeRefreshOne));
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             _timer.Start();
@@ -108,7 +109,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IsScanning = true;
         try
         {
-            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
+            // 各子機を独立に try/catch ラップ (自動スキャン経路 L176 と同じ SafeRefreshOne)。
+            await Task.WhenAll(Adapters.Select(SafeRefreshOne));
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             int connected = Adapters.Count(a => a.ConnectedSsid is not null);
