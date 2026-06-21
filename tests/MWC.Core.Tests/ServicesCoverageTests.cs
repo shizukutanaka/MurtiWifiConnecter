@@ -93,6 +93,38 @@ public class CatImportServiceExtendedTests
     }
 
     [Fact]
+    public void ParseEapConfig_XxeExternalEntity_Rejected()
+    {
+        // 信頼できない CAT XML に仕込んだ外部実体 (ローカルファイル漏洩 XXE) は、
+        // DtdProcessing.Prohibit が <!DOCTYPE> 時点で拒否するため実体解決に到達しない。
+        const string xxe = """
+            <?xml version="1.0"?>
+            <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+            <EAPIdentityProviderList>
+              <EAPIdentityProvider><SSID>&xxe;</SSID></EAPIdentityProvider>
+            </EAPIdentityProviderList>
+            """;
+        Action act = () => _svc.ParseEapConfig(xxe);
+        act.Should().Throw<FormatException>("a DOCTYPE must be prohibited before any entity is resolved");
+    }
+
+    [Fact]
+    public void ParseEapConfig_EntityExpansionDtd_Rejected()
+    {
+        // billion laughs (実体展開 DoS) も <!DOCTYPE> 拒否で封じられる。
+        const string bomb = """
+            <?xml version="1.0"?>
+            <!DOCTYPE lolz [
+              <!ENTITY lol "lol">
+              <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;">
+            ]>
+            <EAPIdentityProviderList>&lol2;</EAPIdentityProviderList>
+            """;
+        Action act = () => _svc.ParseEapConfig(bomb);
+        act.Should().Throw<FormatException>("DTD entity expansion must be prohibited");
+    }
+
+    [Fact]
     public void BuildEduroamSpec_IsValidProfile()
     {
         const string xml = """

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using MWC.Core.Models;
 
@@ -34,8 +35,24 @@ public sealed class CatImportService
         if (string.IsNullOrWhiteSpace(xmlContent))
             throw new ArgumentException("CAT XML content is empty.", nameof(xmlContent));
 
+        // CAT / eap-config は eduroam からダウンロードされる **信頼できない外部 XML**。
+        // XXE (外部実体によるローカルファイル漏洩 / SSRF) と DTD 実体展開 (billion laughs DoS)
+        // を境界で明示的に封じる。XDocument.Parse は .NET の既定で安全だが、フレームワーク
+        // 既定に依存せず不変条件をローカルに可視化・監査可能にする (CA3075 / OWASP XXE Prevention)。
+        //   - DtdProcessing.Prohibit : <!DOCTYPE> を拒否し実体展開を不可能にする
+        //   - XmlResolver = null     : 外部 DTD / 外部実体を一切解決しない
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing             = DtdProcessing.Prohibit,
+            XmlResolver               = null,
+            MaxCharactersFromEntities = 0,
+        };
         XDocument doc;
-        try { doc = XDocument.Parse(xmlContent); }
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(xmlContent), settings);
+            doc = XDocument.Load(reader);
+        }
         catch (Exception ex) { throw new FormatException($"Failed to parse CAT XML: {ex.Message}", ex); }
 
         var root = doc.Root ?? throw new FormatException("XML has no root element.");

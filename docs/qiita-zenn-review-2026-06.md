@@ -370,6 +370,61 @@ IDE/CI で検知できる。現状グリーンなのでノイズはゼロ。R1 �
 `DispatcherTimer` 採用と設計コメントによって**既に潰され知見化されている**ことを
 確認できたのが収穫。多重列挙の予防ガード (CA1851) のみ追加。
 
+## 4h. 第8ラウンド (XXE・enum 未検証キャスト・不正 UTF-8・Regex ReDoS)
+
+外部入力のパース安全性を監査。MWC は eduroam CAT (外部 XML) を取り込むため XXE を重点確認。
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (keitakei777) | [XML External Entity (XXE) 脆弱性](https://qiita.com/keitakei777/items/b36d130bff5161159e87) | 外部実体解決で情報漏洩/SSRF/DoS。`DtdProcessing.Prohibit` + `XmlResolver=null` で封じる。 |
+| Qiita (tomoki0sanaki) | [XXE と .NET Framework](https://qiita.com/tomoki0sanaki/items/1987ecd472a1fd325d71) | `XmlResolver=null` を明示するのが手早い防止策。 |
+| Zenn (spacesolver) | [我々が enum に望むこと](https://zenn.dev/spacesolver/articles/ec960fb5b14d06) | C# は範囲外値を enum に格納できる。switch は網羅性を保証しない。 |
+| devleader / MS Learn | [Regex Performance / MatchTimeout](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex.matchtimeout?view=net-9.0) | ネスト量指定子は catastrophic backtracking (ReDoS)。`MatchTimeout` か `NonBacktracking`。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **XXE (CAT XML)** | `CatImportService.ParseEapConfig` が外部 eduroam XML を `XDocument.Parse` | ⚠ 既定で安全だが**境界で明示** → 修正 |
+| **不正 UTF-8 / untrusted バイト復号** | SSID は ManagedNativeWifi が復号済で渡す。生バイト `Encoding.GetString` は無し (出力用 export を除く) | ✅ 該当なし |
+| **enum 未検証キャスト** | 唯一 `ChannelBandCanvas` の WPF DP getter (`typeof(WifiBand)` 登録済で型安全)。ネイティブ値→enum は `MapAuth/MapCipher/MapPhy` の switch + `_ => default` で安全に正規化 | ✅ 健全 |
+| **Regex ReDoS** | DiagnosticBundle / HealthCheck の正規表現は IPv4/MAC/Email/Phone でネスト量指定子なし=線形。入力は境界済ログ/診断文。Linux nmcli regex はローカルコマンド出力 | ✅ ReDoS なし |
+
+### 適用した修正 — XXE 防御の明示化 (多層防御)
+
+`XDocument.Parse(string)` は .NET 9 既定で `DtdProcessing.Prohibit` + `XmlResolver=null`
+のため**実は既に安全**。しかし CAT/eap-config は eduroam から DL される信頼できない
+外部 XML であり、セキュリティ境界の不変条件をフレームワーク既定に委ねず**ローカルに
+可視化・監査可能**にする (R6 の BrowserLauncher と同じ思想、CLAUDE.md は `CA3075=error`)。
+
+```csharp
+var settings = new XmlReaderSettings
+{
+    DtdProcessing             = DtdProcessing.Prohibit, // <!DOCTYPE> 拒否で実体展開を不可能に
+    XmlResolver               = null,                   // 外部 DTD/実体を一切解決しない
+    MaxCharactersFromEntities = 0,
+};
+using var reader = XmlReader.Create(new StringReader(xmlContent), settings);
+doc = XDocument.Load(reader);
+```
+
+テスト 2 件追加 (`ServicesCoverageTests`):
+- `ParseEapConfig_XxeExternalEntity_Rejected`: `file:///etc/passwd` 外部実体を含む DOCTYPE
+  → `FormatException` (実体解決前に拒否され、ファイルは読まれない)。
+- `ParseEapConfig_EntityExpansionDtd_Rejected`: billion laughs 風 DTD → `FormatException`。
+
+> これは脆弱性修正ではなく**境界の明示化 (hardening)**。挙動は不変 (正規の CAT XML に
+> DTD は無い)。セキュリティレビューで「信頼できない XML を既定依存で解析」と指摘されない
+> よう、防御をシンクに局在させる。
+
+### 不採用 (第8ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| 全 Regex に `MatchTimeout` 付与 | パターンにネスト量指定子が無く ReDoS 不可能。入力も境界済。タイムアウトは無意味な複雑化。 |
+| `NonBacktracking` への切替 | 同上。線形パターンに DFA エンジンは不要。 |
+| enum キャストに `Enum.IsDefined` ガード | ネイティブ値→enum は既に switch + default で正規化済。`IsDefined` はボクシング/リフレクションコストがあり冗長。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
