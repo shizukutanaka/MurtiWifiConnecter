@@ -19,6 +19,19 @@ public partial class CaptivePortalDialog : Window
 
     private void OnNavigating(object sender, NavigatingCancelEventArgs e)
     {
+        // 埋め込み WebBrowser (レガシー IE エンジン) は信頼できない可能性のある
+        // キャプティブポータルを描画する。悪意あるポータルが file:// やカスタムスキームへ
+        // リダイレクトしてローカルファイル開示・スキーム悪用を狙う恐れがあるため、
+        // http/https 以外の絶対 URI へのナビゲーションは拒否する (R6 BrowserLauncher と
+        // 同じ多層防御をエンジン内部のナビゲーションにも適用)。
+        if (e.Uri is { IsAbsoluteUri: true } uri &&
+            uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+        {
+            // URL 自体はログに残さず、ブロックの事実のみ記録する。
+            Serilog.Log.Warning("Captive portal blocked a non-http(s) navigation (scheme blocked for safety)");
+            e.Cancel = true;
+            return;
+        }
         UrlLabel.Text  = e.Uri?.ToString() ?? "";
         StatusLabel.Text = MWC.App.Resources.L.Get("Captive_Loading");
     }

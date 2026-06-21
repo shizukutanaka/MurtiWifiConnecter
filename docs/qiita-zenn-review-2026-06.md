@@ -577,7 +577,59 @@ R10 に続き脅威モデル視点で機密の永続化/露出経路を監査。
 | コピー後の自動クリップボードクリア (タイマー) | UX を阻害 (貼り付け前に消えうる)。履歴/クラウド除外で残存リスクは十分低減。 |
 | QR 保存ファイル名の SSID サニタイズ | `SaveFileDialog.ValidateNames=true` (既定) が不正文字を拒否し、ユーザーが最終パスを確認する。実害なし。 |
 
+## 4l. 第12ラウンド (TLS 検証・キャプティブポータル WebBrowser)
+
+R10/R11 に続く脅威モデル監査。MWC が**信頼できないネットワーク由来のコンテンツ**を
+扱う 2 経路 (TLS 通信・キャプティブポータル描画) を確認。**WebBrowser 経路を 1 件修正。**
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (asterisk9101 ほか) | [HttpClient で証明書検証をスキップ](https://qiita.com/asterisk9101/items/20ae81016b1cf2e23614) | `ServerCertificateCustomValidationCallback => true` は全検証を無効化＝MITM に脆弱。本番では絶対に使わない。 |
+| Zenn (sakaki_web) | [WPF における WebView2 実装](https://zenn.dev/sakaki_web/articles/6e24d3f06c3fdc) | レガシー WebBrowser (IE エンジン) から Chromium ベースの WebView2 への移行。ドメイン検証等のセキュリティ考慮。 |
+| Zenn (nuits_jp) | [WPF WebBrowser の Window Open インターセプト](https://zenn.dev/nuits_jp/articles/2016-06-25-wpf-webbrowser-window-open-intercept) | IE WebBrowser はスクリプトの window.open で制御不能なポップアップを出しうる。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **TLS 証明書検証バイパス** | `HttpConnectivityChecker` / `AppUpdateService` に `ServerCertificateCustomValidationCallback` も `=> true` バイパスも**無し**。既定の検証が有効 (CA5359=error も担保) | ✅ 正しい |
+| **キャプティブポータルの埋め込み WebBrowser** | `CaptivePortalDialog` がレガシー IE エンジンの `<WebBrowser>` で**ネットワーク提供 (敵対的でありうる) のポータルページ**を描画。`OnNavigating` がスキーム検証していなかった | ⚠ **多層防御を追加** |
+
+### 適用した修正 — 埋め込みブラウザのナビゲーションを http/https に限定
+
+埋め込み `WebBrowser` は信頼できないキャプティブポータルを描画する。悪意あるポータルが
+`file://` やカスタムスキームへリダイレクトすれば、IE エンジン経由でローカルファイル開示や
+スキーム悪用を狙える。`OnNavigating(NavigatingCancelEventArgs e)` の `e.Cancel` を使い、
+**http/https 以外の絶対 URI へのナビゲーションを拒否**する (R6 BrowserLauncher の外部起動
+スキーム検証を、エンジン内部のナビゲーションにも適用)。
+
+```csharp
+if (e.Uri is { IsAbsoluteUri: true } uri &&
+    uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+{
+    Serilog.Log.Warning("Captive portal blocked a non-http(s) navigation (scheme blocked for safety)");
+    e.Cancel = true;   // file:// / custom scheme 等を IE エンジンに踏ませない
+    return;
+}
+```
+
+正規のキャプティブポータル (http/https リダイレクト) は不変。URL 自体はログに残さず
+ブロックの事実のみ記録。
+
+### 不採用 (第12ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| IE WebBrowser のレジストリ機能フラグ調整 (FEATURE_BROWSER_EMULATION 等) | レジストリ書込みで脆く環境依存。スキーム制限の方が確実で副作用が小さい。 |
+| 埋め込みブラウザ廃止・外部ブラウザのみ | UX を大きく変える。スキーム制限で主要リスクは低減。WebView2 移行 (§5) で本質対応。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
+
+-1. **キャプティブポータルを WebBrowser → WebView2 へ移行** (§4l 関連)
+   レガシー IE エンジンは敵対的な Web コンテンツに対する攻撃面が大きい。Chromium ベースの
+   `WebView2` へ移行すれば最新のサンドボックス・パッチを享受できる。ただし WebView2 ランタイム
+   依存の追加と非トリビアルな書換えを伴うため ADR 化して計画的に。当面は §4l のスキーム制限で
+   多層防御。
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
    永続化 JSON のラウンドトリップ・ゴールデンテストを先に追加し、Windows CI で検証
