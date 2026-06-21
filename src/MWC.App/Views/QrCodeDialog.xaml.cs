@@ -53,7 +53,9 @@ public partial class QrCodeDialog : Window
 
     private void OnCopy(object sender, RoutedEventArgs e)
     {
-        Clipboard.SetText(_uri);
+        // _uri は WIFI: URI でパスフレーズを含む機密。Win+V 履歴・クラウド同期に
+        // 残さないよう SensitiveClipboard 経由でコピーする。
+        MWC.App.Services.SensitiveClipboard.SetText(_uri);
         Title = MWC.App.Resources.L.Get("QR_Copied");
     }
 

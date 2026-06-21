@@ -528,6 +528,55 @@ string prefix = string.Create(keep, ssid, static (dst, src) =>
 | 全ログ呼び出しに汎用サニタイザ | SSID が唯一の攻撃者完全制御入力。アダプタ名/BSSID は OS/ドライバ由来で、SSID チョークポイント (`PiiMask.Ssid`) の無害化で主要ベクタは塞がる。 |
 | Serilog を JSON シンクに変更 | プレーンテキストログは人間可読性で運用上重要。シンク変更より入力無害化が正攻法 (OWASP も入力中和を推奨)。 |
 
+## 4k. 第11ラウンド (DPAPI スコープ・パストラバーサル・クリップボード機密・書式文字列)
+
+R10 に続き脅威モデル視点で機密の永続化/露出経路を監査。**実バグ 1 件 (クリップボード露出) を修正。**
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (OTAGAI-SAMA) | [ProtectedData クラス](https://qiita.com/OTAGAI-SAMA/items/c0da45ad60f9d07d9efc) | DPAPI `CurrentUser` はログイン中ユーザーのみ復号可。`LocalMachine` は同一 PC の全ユーザーが復号可。 |
+| Qiita (keitakei777) | [Directory Traversal 脆弱性](https://qiita.com/keitakei777/items/3ff73388786112d79d76) | ユーザー入力をそのままパスに使うと `../` で外部ファイルへ。`Path.GetFileName` / ベースディレクトリ配下検査。 |
+| Zenn (creanciel) | [Windows のクリップボードの話](https://zenn.dev/creanciel/articles/windows-clipboard) | クリップボードはアプリ間共有。履歴 (Win+V)・クラウド同期に残存しうる。 |
+| Qiita (twrcd1227) | [Format String Attack](https://qiita.com/twrcd1227/items/c1b0eefb9cf2736737a1) | 書式文字列を攻撃者が制御すると出力操作/クラッシュ。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **DPAPI 保護スコープ** | `DpapiSecretProtector` は `DataProtectionScope.CurrentUser` + 固定 Entropy ("WiFix-v1")。同一 PC の別ユーザーは復号不可 | ✅ 正しい |
+| **パストラバーサル** | `Path.Combine` は全て定数 (logs/config/exe)。SSID・プロファイル名・アダプタ名からパスを構築する箇所なし。QR 保存の `SaveFileDialog` 既定名は `ValidateNames=true` (既定) が不正文字を拒否 | ✅ 該当なし |
+| **クリップボード機密露出** | `QrCodeDialog.OnCopy` が**パスフレーズを含む WIFI: URI** を `Clipboard.SetText` で素のままコピー→Win+V 履歴・クラウド同期に残存 | ⚠ **実バグ → 修正** |
+| **書式文字列インジェクション** | `string.Format` の書式引数は全て resx 由来の `CompositeFormat` (制御済)。SSID/ユーザー入力をテンプレートに渡す箇所なし | ✅ 該当なし |
+
+### 適用した修正 — クリップボード機密の履歴/クラウド除外
+
+`QrCodeDialog` の「コピー」は `_uri = WifiUri.Build(spec)`、すなわち
+`WIFI:S:…;T:WPA;P:<パスフレーズ>;;` をクリップボードへ置く。素の `Clipboard.SetText`
+では Windows の**クリップボード履歴 (Win+V) に残り、設定によってはクラウド同期で
+他デバイスへ伝播**する。一度の貼り付けを越えてパスフレーズが残存・拡散する。
+
+新規 `SensitiveClipboard.SetText` (App/Services) を追加し、`DataObject` に Windows
+標準のクリップボードフォーマットを付与して履歴・クラウド・モニタから除外する
+(パスワードマネージャ KeePass 等と同じ手法):
+- `ExcludeClipboardContentFromMonitorProcessing`
+- `CanIncludeInClipboardHistory` = DWORD 0
+- `CanUploadToCloudClipboard` = DWORD 0
+
+`QrCodeDialog.OnCopy` をこれ経由に変更。クリップボード競合時は例外を投げず警告ログ
+のみ (機密内容自体はログに出さない)。SSID コピー (`MainWindowCommands`) は SSID が
+非機密のため対象外。
+
+> CLAUDE.md がパスフレーズ/WIFI: URI を「ログ禁止」の機密として扱う方針を、**クリップ
+> ボードという別の永続化経路**へ拡張した。ユーザーが明示的にコピーする UX は維持しつつ、
+> 履歴・クラウドへの残存だけを断つ。
+
+### 不採用 (第11ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| コピー後の自動クリップボードクリア (タイマー) | UX を阻害 (貼り付け前に消えうる)。履歴/クラウド除外で残存リスクは十分低減。 |
+| QR 保存ファイル名の SSID サニタイズ | `SaveFileDialog.ValidateNames=true` (既定) が不正文字を拒否し、ユーザーが最終パスを確認する。実害なし。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
