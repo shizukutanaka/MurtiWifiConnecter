@@ -117,13 +117,20 @@ public sealed partial class AdapterViewModel : ObservableObject
         SignalHistoryService h, OuiLookupService oui, ILogger l,
         AdapterPreferencesService prefs, ConnectionExecutor executor)
     {
+        // Fail-fast guards before any assignment. Use the modern throw-helper
+        // (ArgumentNullException.ThrowIfNull) to match the idiom used across
+        // MWC.Core (WifiUri, ProfileXmlBuilder, ExportService, …) instead of
+        // the older `?? throw new ArgumentNullException(...)` form.
+        ArgumentNullException.ThrowIfNull(prefs);
+        ArgumentNullException.ThrowIfNull(executor);
+
         _adapter  = a;
         _wifi     = w;
         _history  = h;
         _oui      = oui;
         _log      = l;
-        PrefsService = prefs ?? throw new ArgumentNullException(nameof(prefs));
-        _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+        PrefsService = prefs;
+        _executor = executor;
         Preferences = prefs.Get(a.Id);
         ConnectedSsid = a.ConnectedSsid;
     }

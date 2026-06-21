@@ -173,6 +173,51 @@ PII マスク 4 種 (IPv4/MAC/Email/Phone) をソース生成へ。`class` を `
 | CLI `QualityHistoryCommand` の `new HttpClient` を static 化 | 単発 CLI プロセスは実行後すぐ終了。ソケット枯渇は長時間稼働プロセス固有の問題で、CLI には該当しない。`using` で確実に破棄される現状が適切。 |
 | `CertificateStoreService` を `OrdinalIgnoreCase` に統一 | `"*."` は大小文字を持たない句読点。`Ordinal` で十分かつ最小。 |
 
+## 4d. 第4ラウンド (record 値等価・ガード節・破棄例外)
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (muniel) | [配列入りのレコードってどうだろう](https://qiita.com/muniel/items/fd843abc55a5626e5c45) | record の自動生成 `Equals` はコレクションプロパティ (`List`/配列) を **参照等価**で比較する。内容が同じでもインスタンスが違えば不等。`Distinct`/`HashSet`/辞書キーで使うと罠。 |
+| Qiita (laughter) | [もはや new ArgumentNullException する必要はない](https://qiita.com/laughter/items/55db2b97390121373795) | `?? throw new ArgumentNullException(nameof(x))` → `ArgumentNullException.ThrowIfNull(x)`。`CallerArgumentExpression` で nameof 不要。 |
+| Zenn (shimiyu) | [ObjectDisposedException を理解する](https://zenn.dev/shimiyu/articles/6e2accebf2af49) | .NET 8+ の `ObjectDisposedException.ThrowIf(disposed, this)` で破棄済みチェックを 1 行化。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **record × コレクションの値等価の罠** | `Distinct`/`GroupBy` は全て **スカラー射影**後 (`n.Auth`/`l.Band`/string)。コレクション持ち record (`WifiNetwork` 等) を丸ごと等価比較する箇所は皆無 | ✅ 罠を踏んでいない |
+| **`HashSet<record>` / `Dictionary<record,>`** | 該当なし (キーは Guid/string/enum のみ) | ✅ 安全 |
+| **ガード節の近代化** | Core は既に `ArgumentNullException.ThrowIfNull` を 10 箇所で採用。旧式 `?? throw` は `AdapterViewModel` の 2 箇所のみ | ⚠ **一貫性のため修正** |
+| **`ObjectDisposedException.ThrowIf`** | 手動 `if (_disposed) throw` / `throw new ObjectDisposedException` は **0 件**。`_disposed` フラグは Dispose の冪等化に `return` で使用 (正しい) | ✅ 修正不要 |
+
+### 適用した修正
+
+**`AdapterViewModel` コンストラクタ — 旧式 `?? throw` → `ThrowIfNull`**
+
+```diff
++        ArgumentNullException.ThrowIfNull(prefs);
++        ArgumentNullException.ThrowIfNull(executor);
+         ...
+-        PrefsService = prefs ?? throw new ArgumentNullException(nameof(prefs));
+-        _executor = executor ?? throw new ArgumentNullException(nameof(executor));
++        PrefsService = prefs;
++        _executor = executor;
+```
+
+コードベースの支配的イディオム (Core 全域) に揃え、ガードを代入前に集約して
+fail-fast 化。検証対象 (2 引数)・例外型・パラメータ名は不変。これで旧式 0 / 近代 12。
+
+> 補足: 既存コンストラクタは 7 引数中 2 つ (`prefs`/`executor`) のみガードする
+> 非対称設計だが、残り 5 引数への拡張は「これまで通っていた null がここで例外化する」
+> 挙動変更を伴いビルド/テスト検証が必要なため、本ラウンドでは**意図的に踏み込まない**。
+
+### この回の主眼
+
+本ラウンドは **大半が「既に近代パターンを採用済み」の確認**だった。record 値等価の罠は
+回避済、`ObjectDisposedException` の手動 throw は皆無、ガード節も Core では近代化済。
+唯一の不一致 (`AdapterViewModel` の旧式 throw 2 件) を解消し、コードベース全体で
+ガード節イディオムを統一した。
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
