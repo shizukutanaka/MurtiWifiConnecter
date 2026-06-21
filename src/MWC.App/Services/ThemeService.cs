@@ -80,8 +80,13 @@ public sealed class ThemeService : IDisposable
 
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
+        // このハンドラは OS の SystemEvents 専用スレッドで発火する。同期 Invoke で
+        // UI スレッドの応答を待つと、(1) 共有 OS スレッドを不要に塞ぎ他アプリの
+        // SystemEvents ハンドラを待たせ、(2) アプリ終了処理中に UI スレッドが
+        // ブロックしていると相互待ちでデッドロックしうる。テーマ適用は戻り値不要の
+        // fire-and-forget なので BeginInvoke でキューに積み、即座にスレッドを返す。
         if (e.Category == UserPreferenceCategory.General && _current == AppTheme.System)
-            Application.Current?.Dispatcher.Invoke(() => Apply(AppTheme.System));
+            Application.Current?.Dispatcher.BeginInvoke(() => Apply(AppTheme.System));
     }
 
     public void Dispose()

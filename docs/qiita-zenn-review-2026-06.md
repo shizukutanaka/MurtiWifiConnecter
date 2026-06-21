@@ -64,6 +64,54 @@ CA2007 (`ConfigureAwait`) のコメントも、なぜ無効化しているのに
 | FrozenSet 拡大 (Mesh OUI 12 件など) | 12 件規模では `HashSet` と差が出ない。マイクロ最適化。 |
 | Source Generator 全展開 | 既存 Hot-path が LoggerMessage 化済、ROI 低い変更の連鎖を呼ぶ。 |
 
+## 4b. 第2ラウンド (WPF メモリリーク・Dispatcher・破棄パターン)
+
+別の切り口 (弱イベント・Dispatcher デッドロック・IDisposable) で再監査した。
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (dyoneda) | [弱イベントはマルチスレッドで使ってはいけない](https://qiita.com/dyoneda/items/4d188b98a8ee066df162) | `WeakEventManager.AddListener/RemoveListener` は同期コンテキストから呼ぶ必要。別スレッドからだと確実に解除できない。 |
+| Qiita (mickie895) | [WPFで極力闇を見せない Dispatcher](https://qiita.com/mickie895/items/4a19f897ffe2b03eab63) | `Task.Result` で UI スレッドがデッドロックしうる。戻り値不要なら `BeginInvoke` を投げて回避。 |
+| Qiita (vivinko) | [async/await で UI が固まる理由](https://qiita.com/vivinko/items/9cdff83d6bf3fb5d7c00) | `.Result`/`.Wait()` が混じり帰還先が UI のままだとデッドロック。`ConfigureAwait(false)` で制御。 |
+| Zenn (nossa) | [効果的なキャンセルトークンの使用方法](https://zenn.dev/nossa/articles/df258b3ddc351f) | `CancellationTokenSource` は `IDisposable`。監視ループ完了を待ってから破棄する。 |
+| Zenn (tomokusaba) | [.NET 9 の新しい LINQ CountBy](https://zenn.dev/tomokusaba/articles/83a3fdf6515435) | キー頻度カウントは `CountBy` で簡潔化。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **ブロッキング `.Result`/`.Wait()`** | App 全体で 1 箇所 (`App.xaml.cs:217` の終了処理)。直後の鎖は全 `ConfigureAwait(false)` 準拠を実コードで検証。デッドロック不可 | ✅ 安全 (コメントの主張が正しい) |
+| **静的イベント購読リーク** | `ThemeService` が `SystemEvents.UserPreferenceChanged` を購読。`IDisposable` 実装済 + DI コンテナ生成シングルトンのため `Host.Dispose()` で確実に `-=` | ✅ リーク無し |
+| **CancellationTokenSource 破棄順** | `AutoReconnectService.DisposeAsync` は監視ループ完了を待ってから `_cts.Dispose()` | ✅ 教科書通り |
+| **`CountBy` 候補** | `ChannelAdvisorService`/`InterferenceAnalyzer` の `.Count(predicate)` は単一条件カウントで、キー別グルーピングではない → `CountBy` 対象外 | ✅ 該当なし |
+| **OS スレッドでの同期 `Dispatcher.Invoke`** | `ThemeService.OnUserPreferenceChanged` が SystemEvents 専用スレッドで `Invoke`(同期) | ⚠ **要改善** → 修正 |
+
+### 適用 — `ThemeService.cs`
+
+`OnUserPreferenceChanged` の `Dispatcher.Invoke` → `BeginInvoke`。
+
+```diff
+-        Application.Current?.Dispatcher.Invoke(() => Apply(AppTheme.System));
++        Application.Current?.Dispatcher.BeginInvoke(() => Apply(AppTheme.System));
+```
+
+理由:
+- このハンドラは **OS 所有の SystemEvents 専用スレッド**で発火する。同期 `Invoke`
+  はそのスレッドを UI 応答まで塞ぎ、プロセス内の他 SystemEvents ハンドラを待たせる。
+- アプリ終了処理中 (UI スレッドが `OnExit` 内でブロック) に本イベントが発火すると
+  相互待ちでデッドロックしうる (mickie895/vivinko の指摘パターン)。
+- テーマ適用は戻り値不要の fire-and-forget。`BeginInvoke` でキューに積めば
+  スレッドを即返せる。`MainWindow.xaml.cs:306` の `Invoke` は戻り値を使うため
+  同期のまま正しい (対比)。
+
+### 不採用 (第2ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| `MainWindow.xaml.cs:84` の `Invoke`→`BeginInvoke` | 更新チェックのバックグラウンドスレッド (OS 共有スレッドではない)。順序意味論を変える危険があり ROI 低。 |
+| `WeakEventManager` 全面導入 | MWC は購読箇所が限定的で全て対の `-=`/`Dispose` 済。WeakEvent 機構の複雑性は不要。 |
+| `CountBy` リファクタ | 真の頻度カウント (`NetworkHistoryService.GetFrequentSsids`) は既にロック内で辞書集計済。LINQ 化はロック粒度を乱す。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 1. **UI Automation テスト** (Qiita: ken_hamada / Friendly フレームワーク)
