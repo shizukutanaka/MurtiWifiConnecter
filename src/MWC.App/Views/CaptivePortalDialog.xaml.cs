@@ -1,7 +1,7 @@
 using System;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Navigation;
+using MWC.App.Services;
 
 namespace MWC.App.Views;
 
@@ -33,7 +33,7 @@ public partial class CaptivePortalDialog : Window
 
     private void OnOpenExternal(object sender, RoutedEventArgs e)
     {
-        Process.Start(new ProcessStartInfo(CaptiveProbe) { UseShellExecute = true });
+        BrowserLauncher.OpenHttp(CaptiveProbe);
     }
 
     private void OnDone(object sender, RoutedEventArgs e) { DialogResult = true;  Close(); }

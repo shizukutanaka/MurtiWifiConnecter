@@ -274,6 +274,61 @@ public static string Format(string key, params object[] args)
 | `BeaconIeParser` の foreach を `AsSpan` 化 | パラメータが `IReadOnlyList<T>`。共変性のため抽象化は正しく、変更すると `Array.Empty<T>()` 等の参照渡しが壊れる。 |
 | ホットパスで非同期 `File.ReadAllTextAsync` 採用 | 該当する hot path がない (Load は startup, Save は背景、Export はユーザー起動)。 |
 
+## 4f. 第6ラウンド (Process.Start URL 起動・DI 寿命・null 免除・暗号 RNG)
+
+セキュリティ寄りの角度で再監査。MWC は信頼できないネットワーク (キャプティブ
+ポータル) と接触するため、外部起動シンクを重点的に確認した。
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (naoki_oda) | [Web アプリから既存 Windows アプリを安全に起動する 2 方式比較](https://qiita.com/naoki_oda/items/9da81332ca1278d0b58c) | OS 登録のスキーム/シェル起動は悪意ある呼び出し元から任意ハンドラを起動させうる。検証が必要。 |
+| Qiita (M_Kagawa) | [既定ブラウザで URL を開く (.NET 6)](https://qiita.com/M_Kagawa/items/24e817a63742f04e2dc3) | .NET Core 以降は `UseShellExecute=true` が必要。シェル起動は URL 以外も起動しうる点に注意。 |
+| Zenn (rendya) | [.NET の Strategy パターンと DI](https://zenn.dev/rendya/articles/dotnet-strategy-pattern-gof-to-modern-di) | Singleton が Scoped を抱え込む captive dependency は古いインスタンスを使い続けるバグの温床。 |
+| Qiita (Hoshinari) | [null 免除演算子で警告を無視する](https://qiita.com/Hoshinari_Games/items/b07f364640336ca51ef6) | `!` はコンパイル時 null チェックを実行時に倒すだけ。濫用すると NRE をデバッグ困難にする。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **`Process.Start(url, UseShellExecute=true)`** | 3 ヶ所。`CaptiveProbe` (const)・About の Hyperlink (XAML ハードコード https)・`certmgr.msc`。いずれも**ネットワーク供給値ではない** | ✅ 実害なし → ただしシンク防御を追加 (下記) |
+| **DI captive dependency** | 登録は全て `AddSingleton`/`AddTransient`。`AddScoped` は **0 件** (デスクトップにスコープ無し)。Transient は factory ラムダ/`GetService` で都度解決し singleton ctor に抱え込まない | ✅ 構造的に発生しない |
+| **null 免除演算子 `!`** | 全体で 8 件 (Core 4/App 4) のみ。濫用なし | ✅ 健全 |
+| **暗号 RNG** | `RetryPolicy` の jitter は `Random.Shared` (非機密で正当)。WifiDirect の group SSID は `Guid.NewGuid` (SSID は公開ブロードキャストで秘匿不要)。脆弱なパスフレーズ生成は無し | ✅ 適切な使い分け |
+
+### 適用した修正 — 外部起動シンクの多層防御
+
+`Process.Start(..., UseShellExecute=true)` は http/https に限らず `file://`・
+カスタムスキーム・実行ファイルまで起動しうる典型的な任意起動シンク。現状の
+呼び出し元はすべてハードコード URL で**実害は無い**が、
+
+- キャプティブポータル画面は信頼できないネットワークが関与する文脈であること
+- WPF の `Hyperlink.RequestNavigate` → `e.Uri` 起動は、将来 NavigateUri が
+  データバインド/ローカライズ/非 http 化された瞬間に任意起動へ化けること
+
+から、**シンク側で「http/https の絶対 URI のみ起動」を不変条件として強制**する。
+
+新規 `BrowserLauncher` (App/Services) を追加:
+- `OpenHttp(string?)` / `OpenHttp(Uri?)`: scheme が http/https の絶対 URI のみ許可。
+  それ以外は起動せず警告ログ。起動失敗 (ブラウザ未関連付け) も握りつぶさず記録。
+- `AboutDialog.OnHyperlinkNavigate` と `CaptivePortalDialog.OnOpenExternal` を
+  これ経由に変更。`certmgr.msc` 起動 (URL ではなく管理コンソール) は対象外。
+
+テスト `BrowserLauncherTests`: `file://`・`javascript:`・`ms-settings:`・`ftp:`・
+相対/スキーム無し/null を**全て拒否**することを検証 (拒否は Process.Start 到達前に
+false を返すため副作用なし。正の http URL は実起動するので CI では検証しない)。
+
+> これは脆弱性修正ではなく**多層防御 (hardening)**。CLAUDE.md のセキュリティ姿勢
+> (「安全な箇所でも PII を必ずマスク」等) と同じ思想で、不変条件をシンクに局在化・
+> 明示する。
+
+### 不採用 (第6ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| `certmgr.msc` 起動もスキーム検証 | URL ではなく Windows 管理コンソール (.msc) の起動。ハードコードかつ別カテゴリで、URL 用ヘルパーの対象外。 |
+| `Random.Shared` を `RandomNumberGenerator` 化 | 用途はバックオフ jitter (再試行の時間分散)。予測不能性は不要で、暗号 RNG はオーバーキル。 |
+| null 免除 `!` の一掃 | 8 件と僅少で、各々 NRT 解析の限界を補う正当な用法。機械的除去は可読性を下げる。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 0. **System.Text.Json ソース生成への移行** (§4c 保留分)
