@@ -109,6 +109,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Thread-safety — `HandoverPredictor._history` accessed without lock**: `RecordHandover`,
   `DetectFlapping`, and the `HistoryCount` property all read/wrote the `List<HandoverEvent>` without
   synchronisation. Added `_histLock` object and wrapped every access in `lock (_histLock)`.
+- **`WindowsWifiService.DisconnectAsync` propagated native exceptions to callers**: the method was a
+  bare `Task.FromResult(NativeWifi.DisconnectNetwork(adapterId))` with no error handling; a native
+  failure (invalid adapter, driver error) would throw instead of returning `false`, unlike all other
+  methods in the class. Wrapped in `try/catch` and return `false` on exception.
+- **`WindowsWifiService.ConnectAsync` error log lacked SSID context**: the catch block logged
+  "ConnectAsync failed" with no indication of which network was involved. Added
+  `PiiMask.Ssid(ssid)` so debuggers can identify the failing SSID without persisting the plain value.
+- **`FirstRunWizard` hardcoded hex colours bypassed the theme system**: five `#xxxxxx` literals
+  created `SolidColorBrush` instances that ignored the current theme; `#E6E8EB` (near-white title)
+  is invisible on a light/system-theme background. Replaced all five with `FindResource()` calls
+  using the existing `FgBrush` / `FgMutedBrush` / `SurfaceBrush` / `AccentBrush` /
+  `FgVeryMutedBrush` theme keys. XAML dot-indicator initial fills updated to `DynamicResource`
+  bindings. Decorative emoji `TextBlock` hidden from the accessibility tree
+  (`AccessibilityView=Raw`).
+- **`AdapterCommand.adapter band` silently mapped any unknown value to `BandPreference.Any`**: an
+  unrecognised band string (e.g. `"wifi6"`, `"7"`) fell through the switch expression default arm
+  and set the adapter to Any without error or feedback. Changed to an explicit switch with a `default`
+  arm that writes an error and exits with code 2 (`ExitCode.InvalidInput`), consistent with
+  `mwc plan-channels --band`. Also accepts `"2.4ghz"` / `"5ghz"` / `"6ghz"` aliases.
 
 ### Fixed (previous entries)
   assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected
