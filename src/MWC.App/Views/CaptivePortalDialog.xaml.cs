@@ -44,6 +44,13 @@ public partial class CaptivePortalDialog : Window
             : MWC.App.Resources.L.Get("Captive_PageLoaded");
     }
 
+    private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
+    {
+        e.Handled = true;
+        StatusLabel.Text = MWC.App.Resources.L.Get("Captive_NavigationFailed");
+        Serilog.Log.Warning("Captive portal navigation failed (error handled in UI)");
+    }
+
     private void OnOpenExternal(object sender, RoutedEventArgs e)
     {
         BrowserLauncher.OpenHttp(CaptiveProbe);
