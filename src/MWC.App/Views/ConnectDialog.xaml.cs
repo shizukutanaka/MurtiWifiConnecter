@@ -42,8 +42,8 @@ public partial class ConnectDialog : Window
     private void UpdateStrengthIndicator(string pw)
     {
         var (score, label, color) = MeasureStrength(pw);
-        StrengthBar.Width = StrengthBarTrack.ActualWidth * score;
-        StrengthBar.Fill  = new SolidColorBrush(
+        StrengthBar.Width      = StrengthBarTrack.ActualWidth * score;
+        StrengthBar.Background = new SolidColorBrush(
             (Color)ColorConverter.ConvertFromString(color));
         StrengthLabel.Text = pw.Length == 0 ? "" : label;
         StrengthLabel.Foreground = new SolidColorBrush(

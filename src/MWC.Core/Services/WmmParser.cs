@@ -28,7 +28,7 @@ namespace MWC.Core.Services;
 public static class WmmParser
 {
     private const byte VendorSpecificId = 221;
-    private static readonly byte[] WmmOui = { 0x00, 0x50, 0xF2 };
+    private static ReadOnlySpan<byte> WmmOui => [0x00, 0x50, 0xF2];
     private const byte WmmType      = 0x02;
     private const byte WmmSubtypeParam = 0x01;
     private const byte WmmSubtypeInfo  = 0x00;

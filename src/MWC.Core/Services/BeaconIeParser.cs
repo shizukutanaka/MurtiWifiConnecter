@@ -106,7 +106,7 @@ public static class BeaconIeParser
     // ── 個別要素デコーダ (本体スライスのみを受け取る) ─────────────────
     private const byte ExtendedCapabilitiesId = 127;
     private const byte VendorSpecificId = 221;
-    private static readonly byte[] WmmOui = { 0x00, 0x50, 0xF2 };
+    private static ReadOnlySpan<byte> WmmOui => [0x00, 0x50, 0xF2];
     private static readonly IReadOnlyList<NeighborApInfo> EmptyNeighbors = Array.Empty<NeighborApInfo>();
     private static readonly IReadOnlyList<RnrNeighborAp>  EmptyRnr       = Array.Empty<RnrNeighborAp>();
 

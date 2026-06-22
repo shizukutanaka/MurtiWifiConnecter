@@ -62,9 +62,9 @@
                 <!-- フィル -->
                 <Border Grid.Row="0" x:Name="StrengthBar" Width="0"
                         HorizontalAlignment="Left" CornerRadius="2">
-                    <Border.Fill>
+                    <Border.Background>
                         <SolidColorBrush x:Name="StrengthBarBrush" Color="{DynamicResource SuccessBrush}"/>
-                    </Border.Fill>
+                    </Border.Background>
                 </Border>
                 <!-- ラベル -->
                 <TextBlock Grid.Row="1" x:Name="StrengthLabel"

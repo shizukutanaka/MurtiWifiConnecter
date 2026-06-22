@@ -30,6 +30,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
 
     public async Task LoadAsync(Guid adapterId)
     {
+        if (IsBusy) return;
         _adapterId = adapterId;
         IsBusy = true;
         try
@@ -46,19 +47,24 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
     [RelayCommand]
     public async Task DeleteAsync()
     {
-        if (Selected is null) return;
-        var ssid = Selected.Name;
-        bool ok = await _wifi.DeleteProfileAsync(_adapterId, ssid);
-        if (ok)
+        if (Selected is null || IsBusy) return;
+        IsBusy = true;
+        try
         {
-            _history.Forget(ssid);
-            Profiles.Remove(Selected);
-            StatusMessage = MWC.App.Resources.L.StatusDeleted(ssid);
+            var ssid = Selected.Name;
+            bool ok = await _wifi.DeleteProfileAsync(_adapterId, ssid);
+            if (ok)
+            {
+                _history.Forget(ssid);
+                Profiles.Remove(Selected);
+                StatusMessage = MWC.App.Resources.L.StatusDeleted(ssid);
+            }
+            else
+            {
+                StatusMessage = MWC.App.Resources.L.StatusDeleteFailed(ssid);
+            }
         }
-        else
-        {
-            StatusMessage = MWC.App.Resources.L.StatusDeleteFailed(ssid);
-        }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand]
