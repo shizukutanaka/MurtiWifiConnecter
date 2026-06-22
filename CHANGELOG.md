@@ -123,6 +123,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FgVeryMutedBrush` theme keys. XAML dot-indicator initial fills updated to `DynamicResource`
   bindings. Decorative emoji `TextBlock` hidden from the accessibility tree
   (`AccessibilityView=Raw`).
+- **`CertificatePickerDialog` expiry indicator always showed transparent background**: the expiry
+  indicator `Border` bound `Background="{Binding ExpiryBrush}"` but the `CertListItem` record
+  exposes the property as `ExpiryColor` (type `Brush`). WPF binding failures are silent, so the
+  circle was always transparent — expired/near-expiry certificates showed no orange/red warning
+  background. Fixed by renaming the binding to `ExpiryColor`.
 - **`CaptivePortalDialog` had no `NavigationFailed` handler**: if the embedded WebBrowser failed
   to load the captive portal page (network error, redirect loop, invalid certificate), the status
   label stayed at "Loading…" indefinitely with no user feedback. Added `OnNavigationFailed` which
