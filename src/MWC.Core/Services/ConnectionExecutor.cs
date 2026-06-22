@@ -91,7 +91,7 @@ public sealed class ConnectionExecutor
             }
 
             // 2. 接続実行
-            _log.LogInformation("Connecting to {ssid} on adapter {id}", PiiMask.Ssid(spec.Ssid), adapterId);
+            _log.ConnectAttempt(adapterId, MwcLog.HashSsid(spec.Ssid), spec.Auth);
             var result = await _wifi.ConnectAsync(adapterId, spec.Ssid, spec.Ssid, to, ct).ConfigureAwait(false);
 
             // 3. 履歴記録
@@ -104,16 +104,15 @@ public sealed class ConnectionExecutor
             {
                 MwcActivity.ConnectSuccesses.Add(1);
                 activity?.SetStatus(ActivityStatusCode.Ok);
+                _log.ConnectSucceeded(adapterId, MwcLog.HashSsid(spec.Ssid), sw.ElapsedMilliseconds);
             }
             else
             {
                 MwcActivity.ConnectFailures.Add(1,
                     new System.Collections.Generic.KeyValuePair<string,object?>("failure", result.Failure?.ToString()));
                 activity?.SetStatus(ActivityStatusCode.Error, result.Failure?.ToString() ?? "unknown");
+                _log.ConnectFailed(adapterId, MwcLog.HashSsid(spec.Ssid), result.Failure ?? ConnectionFailure.Unknown, 0);
             }
-
-            _log.LogInformation("Connection {res}: {ssid} ({ms:F1}ms)",
-                result.Success ? "success" : $"failed ({result.Failure})", PiiMask.Ssid(spec.Ssid), sw.Elapsed.TotalMilliseconds);
 
             return result;
         }
