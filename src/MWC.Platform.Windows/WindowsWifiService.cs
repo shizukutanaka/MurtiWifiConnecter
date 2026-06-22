@@ -222,14 +222,21 @@ public sealed class WindowsWifiService : IWifiService
             { return ConnectionResult.Fail(ConnectionFailure.InsufficientPrivilege); }
         catch (Exception ex)
         {
-            _log.LogError(ex, "ConnectAsync failed");
+            _log.LogError(ex, "ConnectAsync failed for {Ssid}", PiiMask.Ssid(ssid));
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }
     }
 
     // ── Misc ─────────────────────────────────────────────────────────
     public Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
-        => Task.FromResult(NativeWifi.DisconnectNetwork(adapterId));
+    {
+        try   { return Task.FromResult(NativeWifi.DisconnectNetwork(adapterId)); }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "DisconnectAsync failed for adapter {Id}", adapterId);
+            return Task.FromResult(false);
+        }
+    }
 
     public Task<bool> DeleteProfileAsync(Guid adapterId, string profileName,
         CancellationToken ct = default)
