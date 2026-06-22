@@ -70,6 +70,7 @@ public partial class App : Application
                     sp.GetRequiredService<ILogger<NotificationService>>(),
                     sp.GetRequiredService<System.Windows.Forms.NotifyIcon>()));
                 s.AddSingleton<SystemTrayService>(sp => new SystemTrayService(
+                    sp.GetRequiredService<System.Windows.Forms.NotifyIcon>(),
                     Dispatcher.CurrentDispatcher,
                     sp.GetRequiredService<ILogger<SystemTrayService>>()));
 

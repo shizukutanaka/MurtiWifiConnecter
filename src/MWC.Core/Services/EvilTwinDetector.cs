@@ -107,7 +107,7 @@ public sealed class EvilTwinDetector
                 reasons.Add($"Security downgrade detected: known {trustedAuth} vs current {network.Auth}");
         }
 
-        // 5. ベンダー (OUI) 照合 — 既知と異なるベンダーの機器
+        // 4. ベンダー (OUI) 照合 — 既知と異なるベンダーの機器
         if (_knownVendors.TryGetValue(ssid, out var knownVendors) && knownVendors.Count > 0)
         {
             var bssids2 = network.BssEntries?.Select(b => b.Bssid) ?? Array.Empty<string>();

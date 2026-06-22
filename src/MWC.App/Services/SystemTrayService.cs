@@ -34,16 +34,15 @@ public sealed class SystemTrayService : IDisposable
 
     public event Action? RequestOpenMainWindow;
 
-    public SystemTrayService(Dispatcher dispatcher, ILogger<SystemTrayService> log)
+    // Accept the shared NotifyIcon singleton so only one tray icon is visible.
+    // Creating a second NotifyIcon here would show two icons in the taskbar.
+    public SystemTrayService(NotifyIcon tray, Dispatcher dispatcher, ILogger<SystemTrayService> log)
     {
         _dispatcher = dispatcher; _log = log;
-
-        _tray = new NotifyIcon
-        {
-            Text    = "MWC",
-            Visible = true,
-            Icon    = BuildIcon(quality: 0, connected: false)
-        };
+        _tray = tray;
+        _tray.Text    = "MWC";
+        _tray.Visible = true;
+        _tray.Icon    = BuildIcon(quality: 0, connected: false);
         _tray.DoubleClick += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
     }
 
@@ -220,8 +219,10 @@ public sealed class SystemTrayService : IDisposable
         _disposed = true;
         _tray.Visible = false;
         _tray.ContextMenuStrip?.Dispose();
-        var icon = _tray.Icon;   // BuildIcon の Clone は破棄が必要
-        _tray.Dispose();
+        // Dispose only the GDI icon clone created by BuildIcon/UpdateStatus.
+        // The NotifyIcon itself is owned by the DI container and disposed separately.
+        var icon = _tray.Icon;
+        _tray.Icon = null;
         icon?.Dispose();
     }
 }
