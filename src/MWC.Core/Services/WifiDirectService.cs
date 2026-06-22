@@ -79,14 +79,12 @@ public sealed class WifiDirectService
     /// <summary>アダプターからの発見通知を受けて重複排除のうえ公開イベントへ転送する。</summary>
     private void OnDeviceDiscovered(WifiDirectDevice device)
     {
-        bool added;
         lock (_stateLock)
         {
             if (_discovered.Exists(d => d.DeviceId == device.DeviceId)) return;
             _discovered.Add(device);
-            added = true;
         }
-        if (added) DeviceDiscovered?.Invoke(device);
+        DeviceDiscovered?.Invoke(device);
     }
 
     /// <summary>探索を停止する。</summary>
