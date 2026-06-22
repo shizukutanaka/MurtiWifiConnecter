@@ -97,6 +97,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NetworkStateChangedEventHandlerBridge` static constructor had no logger at all — refactored to
   lazy-initialize via `EnsureRegistered(ILogger?)` called from `Subscribe()` so the `WindowsWifiService`
   logger is forwarded; the subscription is guarded by the existing lock and a `_registered` flag.
+- **Two system tray icons appeared on startup**: `SystemTrayService` created its own `NotifyIcon`
+  internally while `App.xaml.cs` independently registered a separate `NotifyIcon` singleton for
+  `NotificationService` — both had `Visible = true`, showing two icons in the taskbar. Fixed by
+  injecting the DI-registered singleton into `SystemTrayService` via constructor, removing the
+  internal `new NotifyIcon { ... }`. `Dispose()` now only releases the GDI icon handle (owned by the
+  service) and hides the icon; the `NotifyIcon` lifetime is managed by the DI container.
+- **`GroupPolicyProvider.ReadValue` threw `InvalidCastException` on REG_QWORD registry values**:
+  the method cast `gpVal` directly to `(int)`, which throws for `long` (REG_QWORD). Changed to a
+  switch pattern that accepts both `int` (REG_DWORD) and `long` (REG_QWORD, clamped to `int` range).
+- **Thread-safety — `HandoverPredictor._history` accessed without lock**: `RecordHandover`,
+  `DetectFlapping`, and the `HistoryCount` property all read/wrote the `List<HandoverEvent>` without
+  synchronisation. Added `_histLock` object and wrapped every access in `lock (_histLock)`.
 
 ### Fixed (previous entries)
   assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected
