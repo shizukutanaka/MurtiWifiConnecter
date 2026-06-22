@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`mwc plan-channels` CLI command**: exposes `ChannelPlannerService` from the CLI. Options:
+  `--band 2.4|5|6` (default: all bands), `--dfs` (include DFS candidates), `--ranked` (show full
+  candidate table per band), `--json`, `--adapter`. Invalid `--band` values exit with code 2 rather
+  than silently falling back to all-bands.
 - **Channel planner** (`ChannelPlannerService`, ADR-0025): recommends which channel to set your
   *own* AP to, per band, from a neighbor scan — the inverse of the client-side advisors. Candidate
   sets follow operational best practice (2.4 GHz: 1/6/11; 5 GHz: non-DFS by default, opt-in DFS;

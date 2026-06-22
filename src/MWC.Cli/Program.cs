@@ -50,6 +50,7 @@ public static partial class Program
         root.AddCommand(BuildExport(sp));
         root.AddCommand(BuildQuality(sp));
         root.AddCommand(BuildHistory(sp));
+        root.AddCommand(BuildPlanChannels(sp));
         root.AddCommand(AdapterCommand.Build(sp));
 
         return await root.InvokeAsync(args);
