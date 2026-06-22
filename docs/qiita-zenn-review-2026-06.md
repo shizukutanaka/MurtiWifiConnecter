@@ -623,6 +623,51 @@ if (e.Uri is { IsAbsoluteUri: true } uri &&
 | IE WebBrowser のレジストリ機能フラグ調整 (FEATURE_BROWSER_EMULATION 等) | レジストリ書込みで脆く環境依存。スキーム制限の方が確実で副作用が小さい。 |
 | 埋め込みブラウザ廃止・外部ブラウザのみ | UX を大きく変える。スキーム制限で主要リスクは低減。WebView2 移行 (§5) で本質対応。 |
 
+## 4m. 第13ラウンド (ソート比較子・自動更新の完全性/堅牢性・ゼロ除算)
+
+クラッシュ系の品質バグと更新経路の安全性を監査。**堅牢性を 1 件改善。**
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (nabemax) | [IComparable/IComparer/Comparison](https://qiita.com/nabemax/items/81e3ab884b20be8386dc) | カスタム比較子が推移律を破ると `List.Sort` が `ArgumentException` を投げる。 |
+| Zenn (haretokidoki) | [ハッシュ値を確認する方法](https://zenn.dev/haretokidoki/articles/651424302fa922) | DL ファイルの改ざん検証は `Get-FileHash`/`certutil`。 |
+| Zenn (johmaru) | [WPF アプリの自動アップデート](https://zenn.dev/johmaru/articles/535c12baee666d) | 自動更新は署名/ハッシュ検証が要。 |
+
+### 監査結果
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **カスタムソート比較子** | `IComparer`/`Comparison`/`List.Sort` の使用は**ゼロ**。並び替えは LINQ `OrderBy/ThenBy` (安定ソート、推移律違反で例外を投げない) | ✅ 該当なし |
+| **自動更新の完全性** | `AppUpdateService` は GitHub `releases/latest` JSON を**通知目的のみ**取得。DL/実行は一切しない (ユーザーが手動取得) ため署名検証の対象外。HTTPS + 既定証明書検証 | ✅ サプライチェーンリスク無し |
+| **バージョン比較の正しさ** | `Version.TryParse` で `System.Version` 同士を**数値比較** (`latest > current`)。文字列比較ではないので `3.11.0 > 3.9.0` が正しく判定される + `!prerelease` 除外 | ✅ 正しい (セマンティック) |
+| **ゼロ除算 / NaN** | `KalmanRssiFilter` は `measurementNoise > 0` をコンストラクタで要求 (分母 `P+R>0`)。`RssiDistanceEstimator` は `pathLossExponent > 0` 要求 + `freqMhz<=0` で早期 return (`log10(0)` 回避) | ✅ 全て構成時ガード済 |
+| **更新 JSON の欠落プロパティ堅牢性** | `root.GetProperty("tag_name")` がプロパティ欠落時に `KeyNotFoundException` を投げる | ⚠ レート制限時に誤解を招く例外 → 改善 |
+
+### 適用した改善 — `AppUpdateService` の欠落プロパティ耐性
+
+GitHub API は**未認証で 60 req/h のレート制限**があり、超過時は `tag_name` を持たない
+エラー JSON (`{"message":"API rate limit exceeded", ...}`) を返す。現状の
+`root.GetProperty("tag_name")` はこの応答で `KeyNotFoundException` を投げ、`catch` で
+拾われるものの**誤解を招くスタックトレース付きで "Update check failed" ログ**になる
+(レート制限は通常運用で頻発する)。
+
+`TryGetProperty` + `ValueKind` チェックに変更し、「リリースではない応答」を例外を介さず
+静かに `Failed` 扱いにする。成功時の挙動は不変。`prerelease` も `ValueKind == True` で
+安全に読む。
+
+```csharp
+if (root.ValueKind != JsonValueKind.Object ||
+    !root.TryGetProperty("tag_name", out var tagEl))
+    return UpdateCheckResult.Failed;        // レート制限/非リリース応答を静かに無視
+```
+
+### 不採用 (第13ラウンド)
+
+| 提案 | 理由 |
+|------|------|
+| 更新成果物の署名/ハッシュ検証 | `AppUpdateService` は DL/実行せず通知のみ。検証対象の成果物がそもそも無い。 |
+| リリースノート (GitHub body) のサニタイズ | WPF `TextBlock.Text` は markup 非解釈の素テキスト表示。リポジトリ管理者しか書けず一般攻撃者の制御外。 |
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 -1. **キャプティブポータルを WebBrowser → WebView2 へ移行** (§4l 関連)

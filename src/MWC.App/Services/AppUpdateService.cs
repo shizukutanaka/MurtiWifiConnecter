@@ -37,10 +37,20 @@ public sealed class AppUpdateService
             var json = await _http.GetStringAsync(ApiUrl, ct);
             using var doc  = JsonDocument.Parse(json);
             var root       = doc.RootElement;
-            var tag        = root.GetProperty("tag_name").GetString() ?? "";
-            var url        = root.GetProperty("html_url").GetString()  ?? "";
-            var body       = root.GetProperty("body").GetString()       ?? "";
-            var prerelease = root.GetProperty("prerelease").GetBoolean();
+
+            // GitHub API は未認証時 60 req/h でレート制限され、その際 tag_name を持たない
+            // エラー JSON ({"message":"API rate limit exceeded",...}) を返す。GetProperty だと
+            // KeyNotFoundException を投げ、誤解を招くスタックトレース付きで "Update check failed"
+            // ログになる。TryGetProperty で「リリースではない」応答を静かに Failed 扱いにする。
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("tag_name", out var tagEl))
+                return UpdateCheckResult.Failed;
+
+            var tag        = tagEl.GetString() ?? "";
+            var url        = root.TryGetProperty("html_url", out var urlEl) ? urlEl.GetString() ?? "" : "";
+            var body       = root.TryGetProperty("body", out var bodyEl) ? bodyEl.GetString() ?? "" : "";
+            var prerelease = root.TryGetProperty("prerelease", out var preEl)
+                             && preEl.ValueKind == JsonValueKind.True;
 
             var latest  = Version.TryParse(tag.TrimStart('v'), out var v) ? v : null;
             var current = Version.TryParse(App.Version, out var cv) ? cv : null;
