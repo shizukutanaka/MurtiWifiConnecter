@@ -141,6 +141,24 @@ public class EvilTwinDetectorTests
         verdict.Reasons.Should().NotContain(r => r.Contains("vendor"));
     }
 
+    [Fact]
+    public void Analyze_DifferentOuiAndSecurityDowngrade_IsHighRisk()
+    {
+        // Verify that two simultaneous indicators escalate to HighRisk (2+ reasons).
+        // Previous tests only trigger one indicator at a time and never assert HighRisk.
+        var detector = new EvilTwinDetector();
+        detector.RecordTrusted("SecureNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
+
+        // Same SSID, different OUI vendor (reason 1) AND security downgrade (reason 2)
+        var rogue = Net("SecureNet", AuthMethod.Open, "99:88:77:44:55:66");
+        var verdict = detector.Analyze(rogue, new[] { rogue });
+
+        verdict.Risk.Should().Be(EvilTwinRisk.HighRisk);
+        verdict.Reasons.Should().HaveCountGreaterThanOrEqualTo(2);
+        verdict.Reasons.Should().Contain(r => r.Contains("vendor") || r.Contains("OUI"));
+        verdict.Reasons.Should().Contain(r => r.Contains("downgrade"));
+    }
+
 }
 
 // ══════════════════════════════════════════════════════════════
