@@ -1124,12 +1124,15 @@
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                                 <RadioButton Content="{x:Static r:L.BandFilter24}" GroupName="band" IsChecked="True"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter24}"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect2_4"/>
                                 <RadioButton Content="{x:Static r:L.BandFilter5}" GroupName="band"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter5}"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect5"/>
                                 <RadioButton Content="{x:Static r:L.BandFilter6}" GroupName="band"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter6}"
                                              Foreground="{DynamicResource FgBrush}"
                                              Click="OnBandSelect6"/>
                             </StackPanel>
