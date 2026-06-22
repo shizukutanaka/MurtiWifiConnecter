@@ -144,6 +144,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   arm that writes an error and exits with code 2 (`ExitCode.InvalidInput`), consistent with
   `mwc plan-channels --band`. Also accepts `"2.4ghz"` / `"5ghz"` / `"6ghz"` aliases.
 
+### Added
+- **Test — `EvilTwinDetector` HighRisk scenario**: Existing tests only triggered one indicator at a
+  time and never asserted `EvilTwinRisk.HighRisk` (they only checked `IsSuspect`). Added
+  `Analyze_DifferentOuiAndSecurityDowngrade_IsHighRisk` which records a trusted WPA2PSK AP then
+  analyses the same SSID with a different-OUI BSSID AND a security downgrade (→ Open), expecting
+  HighRisk (≥2 reasons) — the two-indicator escalation path was untested.
+
 ### Fixed (previous entries)
   assertion would fail**: The `InlineData` for `("#001518", "#00C4CC", false)` expected
   `WcagLevel.AA`, but the computed WCAG contrast ratio between near-black #001518 and the teal
