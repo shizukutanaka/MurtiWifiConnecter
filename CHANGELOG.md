@@ -123,6 +123,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FgVeryMutedBrush` theme keys. XAML dot-indicator initial fills updated to `DynamicResource`
   bindings. Decorative emoji `TextBlock` hidden from the accessibility tree
   (`AccessibilityView=Raw`).
+- **`CaptivePortalDialog` had no `NavigationFailed` handler**: if the embedded WebBrowser failed
+  to load the captive portal page (network error, redirect loop, invalid certificate), the status
+  label stayed at "Loading…" indefinitely with no user feedback. Added `OnNavigationFailed` which
+  sets a localised error message and logs at Warning level.
+- **`ProfileManagerDialog` async handlers silently swallowed exceptions**: `OnRefresh` and
+  `OnDeleteOne` called `AsyncEventHelper.SafeRunAsync(null, ...)` with a null logger — any
+  exception from `RefreshCommand` or `DeleteCommand` disappeared without a trace. Added
+  `ILogger<ProfileManagerDialog>` to the constructor; `ShowProfileManagerAsync` now resolves the
+  dialog from the DI container (`GetRequiredService`) instead of `new ProfileManagerDialog(pmVm)`
+  so the logger is injected automatically.
 - **`AdapterCommand.adapter band` silently mapped any unknown value to `BandPreference.Any`**: an
   unrecognised band string (e.g. `"wifi6"`, `"7"`) fell through the switch expression default arm
   and set the adapter to Any without error or feedback. Changed to an explicit switch with a `default`
