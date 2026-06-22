@@ -129,7 +129,14 @@ public sealed class GroupPolicyProvider
         {
             // GP キーが優先
             using var gpKey = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
-            if (gpKey?.GetValue(name) is object gpVal) return (int)gpVal;
+            var gpVal = gpKey?.GetValue(name);
+            // REG_DWORD → Int32, REG_QWORD → Int64; both accepted as policy integers.
+            return gpVal switch
+            {
+                int  i => i,
+                long l => (int)Math.Clamp(l, int.MinValue, int.MaxValue),
+                _      => null
+            };
         }
         catch { }
         return null;
