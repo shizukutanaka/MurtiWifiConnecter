@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Channel planner** (`ChannelPlannerService`, ADR-0025): recommends which channel to set your
+  *own* AP to, per band, from a neighbor scan — the inverse of the client-side advisors. Candidate
+  sets follow operational best practice (2.4 GHz: 1/6/11; 5 GHz: non-DFS by default, opt-in DFS;
+  6 GHz: PSC channels). Deterministic, signal-weighted, channel-width-aware interference scoring
+  (0–100 cleanliness); skips unknown-channel neighbours; DFS-annotated. Pure Core, 15 golden tests.
 - **GitHub Actions CI workflow** (`ci.yml`): Windows job builds the full solution (excluding
   `MWC.Platform.MacOS` which requires macOS) and runs `MWC.Core.Tests` with coverage; Ubuntu job
   builds `MWC.Core`, `MWC.Platform.Linux`, and cross-platform projects to catch Linux regressions
