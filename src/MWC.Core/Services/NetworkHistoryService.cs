@@ -164,8 +164,8 @@ public sealed class NetworkHistoryService
             // 破損ファイルは黙って上書きせず .corrupt に退避(復旧/調査可能にする)。
             _log.LogWarning(ex, "History file corrupted, moved to {Path}.corrupt", HistoryPath);
             try { File.Move(HistoryPath, HistoryPath + ".corrupt", overwrite: true); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException moveEx)             { _log.LogDebug(moveEx, "Could not move corrupted history file to .corrupt"); }
+            catch (UnauthorizedAccessException moveEx) { _log.LogDebug(moveEx, "Could not move corrupted history file to .corrupt"); }
             return new();
         }
         catch (IOException ex) { _log.LogWarning(ex, "Failed to read history file {Path}", HistoryPath); return new(); }

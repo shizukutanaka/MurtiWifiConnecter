@@ -193,8 +193,8 @@ public sealed class AdapterPreferencesService
         {
             _log.LogWarning(ex, "Adapter prefs file corrupted, moved to {Path}.corrupt", ConfigPath);
             try { File.Move(ConfigPath, ConfigPath + ".corrupt", overwrite: true); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException moveEx)             { _log.LogDebug(moveEx, "Could not move corrupted adapter prefs file to .corrupt"); }
+            catch (UnauthorizedAccessException moveEx) { _log.LogDebug(moveEx, "Could not move corrupted adapter prefs file to .corrupt"); }
             return new();
         }
         catch (IOException ex) { _log.LogWarning(ex, "Failed to read adapter prefs {Path}", ConfigPath); return new(); }
