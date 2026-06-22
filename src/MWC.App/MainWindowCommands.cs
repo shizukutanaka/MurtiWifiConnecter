@@ -214,10 +214,12 @@ public sealed class MainWindowCommands
     {
         var ad = vm.SelectedAdapter;
         if (ad is null) return;
-        var pmVm = _services.GetService(typeof(ProfileManagerViewModel)) as ProfileManagerViewModel;
-        if (pmVm is null) return;
-        await pmVm.LoadAsync(ad.Id);
-        new ProfileManagerDialog(pmVm) { Owner = owner }.ShowDialog();
+        // Resolve through DI so ILogger<ProfileManagerDialog> is injected automatically.
+        // ProfileManagerViewModel is transient; a fresh instance is created here.
+        var dlg = _services.GetRequiredService<ProfileManagerDialog>();
+        dlg.Owner = owner;
+        await dlg.ViewModel.LoadAsync(ad.Id);
+        dlg.ShowDialog();
         await ad.RefreshAsync();
     }
 
