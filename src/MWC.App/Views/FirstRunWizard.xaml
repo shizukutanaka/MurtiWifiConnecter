@@ -23,11 +23,11 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal"
                         VerticalAlignment="Center">
                 <Ellipse x:Name="Dot1" Width="8" Height="8"
-                         Fill="#00C4CC" Margin="0,0,6,0"/>
+                         Fill="{DynamicResource AccentBrush}" Margin="0,0,6,0"/>
                 <Ellipse x:Name="Dot2" Width="8" Height="8"
-                         Fill="#2B313A" Margin="0,0,6,0"/>
+                         Fill="{DynamicResource FgVeryMutedBrush}" Margin="0,0,6,0"/>
                 <Ellipse x:Name="Dot3" Width="8" Height="8"
-                         Fill="#2B313A"/>
+                         Fill="{DynamicResource FgVeryMutedBrush}"/>
             </StackPanel>
 
             <Button Grid.Column="1" x:Name="BackBtn"

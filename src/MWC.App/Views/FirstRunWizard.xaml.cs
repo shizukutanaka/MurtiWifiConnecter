@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MWC.App.Services;
@@ -33,6 +34,10 @@ public partial class FirstRunWizard : Window
         ShowPage(0);
     }
 
+    // Read a theme brush from resources; never throw even if the key is absent.
+    private Brush Res(string key)
+        => TryFindResource(key) as Brush ?? Brushes.Gray;
+
     private void ShowPage(int idx)
     {
         _page = idx;
@@ -50,46 +55,45 @@ public partial class FirstRunWizard : Window
         panel.Children.Add(new TextBlock
         {
             Text = icon, FontSize = 52, HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 20)
+            Margin = new Thickness(0, 0, 0, 20),
+            AutomationProperties.AccessibilityView = AccessibilityView.Raw  // decorative
         });
         panel.Children.Add(new TextBlock
         {
             Text = title, FontSize = 22, FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E6E8EB")),
+            Foreground = Res("FgBrush"),
             Margin = new Thickness(0, 0, 0, 16)
         });
         panel.Children.Add(new TextBlock
         {
             Text = body, FontSize = 14, TextWrapping = TextWrapping.Wrap,
             TextAlignment = TextAlignment.Center, LineHeight = 22,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9CA3AF")),
+            Foreground = Res("FgMutedBrush"),
             Margin = new Thickness(0, 0, 0, 20)
         });
 
         // ヒントボックス
         var hintBorder = new Border
         {
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1A1D23")),
+            Background = Res("SurfaceBrush"),
             CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10)
         };
         hintBorder.Child = new TextBlock
         {
             Text = hint, FontSize = 12, TextAlignment = TextAlignment.Center,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00C4CC"))
+            Foreground = Res("AccentBrush")
         };
         panel.Children.Add(hintBorder);
 
         PageContainer.Children.Clear();
         PageContainer.Children.Add(panel);
 
-        // ドット更新
+        // ドット更新 (アクティブ = アクセントカラー、非アクティブ = 非アクティブ前景)
         var dots = new[] { Dot1, Dot2, Dot3 };
-        var on   = (Color)ColorConverter.ConvertFromString("#00C4CC");
-        var off  = (Color)ColorConverter.ConvertFromString("#2B313A");
         for (int i = 0; i < dots.Length; i++)
-            dots[i].Fill = new SolidColorBrush(i == idx ? on : off);
+            dots[i].Fill = (Brush)(i == idx ? Res("AccentBrush") : Res("FgVeryMutedBrush"));
 
         // ナビゲーション
         BackBtn.Visibility = idx > 0 ? Visibility.Visible : Visibility.Collapsed;
