@@ -89,13 +89,18 @@ internal static class AdapterCommand
             {
                 var (id, ok) = await ResolveAdapter(sp, name);
                 if (!ok) { Console.Error.WriteLine($"Not found: {name}"); Environment.Exit(ExitCode.InvalidInput); return; }
-                var pref = band.ToLowerInvariant() switch
+                BandPreference pref;
+                switch (band.Trim().ToLowerInvariant())
                 {
-                    "2.4" => BandPreference.Only2_4GHz,
-                    "5"   => BandPreference.Only5GHz,
-                    "6"   => BandPreference.Only6GHz,
-                    _     => BandPreference.Any
-                };
+                    case "2.4": case "2.4ghz": pref = BandPreference.Only2_4GHz; break;
+                    case "5":   case "5ghz":   pref = BandPreference.Only5GHz;   break;
+                    case "6":   case "6ghz":   pref = BandPreference.Only6GHz;   break;
+                    case "any":                pref = BandPreference.Any;         break;
+                    default:
+                        Console.Error.WriteLine($"unknown band '{band}' — use any, 2.4, 5, or 6");
+                        Environment.Exit(ExitCode.InvalidInput);
+                        return;
+                }
                 sp.GetRequiredService<AdapterPreferencesService>().SetBandFilter(id, pref);
                 Console.WriteLine($"✓ Band: {pref}");
             }
