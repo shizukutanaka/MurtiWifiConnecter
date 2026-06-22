@@ -29,6 +29,7 @@ public sealed class HandoverPredictor
     private const int FlapCountThreshold    = 3;     // この回数でフラッピング判定
 
     private readonly List<HandoverEvent> _history = new();
+    private readonly object _histLock = new();
 
     /// <summary>
     /// 現在の接続を評価し、ハンドオーバーすべきか判断する。
@@ -81,10 +82,12 @@ public sealed class HandoverPredictor
     /// </summary>
     public void RecordHandover(string fromBssid, string toBssid, DateTimeOffset when)
     {
-        _history.Add(new HandoverEvent(fromBssid, toBssid, when));
-        // 古いイベントを掃除 (直近5分のみ保持)
-        var cutoff = when.AddMinutes(-5);
-        _history.RemoveAll(e => e.When < cutoff);
+        lock (_histLock)
+        {
+            _history.Add(new HandoverEvent(fromBssid, toBssid, when));
+            var cutoff = when.AddMinutes(-5);
+            _history.RemoveAll(e => e.When < cutoff);
+        }
     }
 
     /// <summary>
@@ -101,7 +104,8 @@ public sealed class HandoverPredictor
     public FlappingVerdict DetectFlapping(DateTimeOffset now)
     {
         var window = now.AddSeconds(-FlapWindowSeconds);
-        var recent = _history.Where(e => e.When >= window).ToList();
+        List<HandoverEvent> recent;
+        lock (_histLock) { recent = _history.Where(e => e.When >= window).ToList(); }
 
         if (recent.Count < FlapCountThreshold)
             return new FlappingVerdict(false, recent.Count, "");
@@ -124,7 +128,7 @@ public sealed class HandoverPredictor
     }
 
     /// <summary>記録されたハンドオーバー履歴数。</summary>
-    public int HistoryCount => _history.Count;
+    public int HistoryCount { get { lock (_histLock) { return _history.Count; } } }
 
     // ── Private ─────────────────────────────────────────────────
 
