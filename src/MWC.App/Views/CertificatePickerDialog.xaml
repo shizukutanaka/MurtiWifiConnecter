@@ -48,7 +48,7 @@
 
                         <!-- 有効期限インジケーター -->
                         <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14"
-                                Background="{Binding ExpiryBrush}"
+                                Background="{Binding ExpiryColor}"
                                 VerticalAlignment="Center">
                             <TextBlock Text="🔐" HorizontalAlignment="Center"
                                        VerticalAlignment="Center" FontSize="14"/>
