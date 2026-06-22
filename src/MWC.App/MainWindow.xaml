@@ -116,11 +116,10 @@
     </Window.Resources>
 
     <Grid>
-        <!-- スクリーンリーダー Live Region (Apple A11y) -->
-        <TextBlock x:Name="_srLiveRegion"
-                   Visibility="Collapsed"
-                   AutomationProperties.LiveSetting="Polite"
-                   AutomationProperties.IsLiveRegion="True"/>
+        <!-- スクリーンリーダー通知は AccessibilityService.RaiseNotificationEvent で行う
+             (要素の可視性に依存せず読み上げられる)。旧来の Collapsed TextBlock を
+             Live Region にする方式は、Collapsed 要素がオートメーションツリーから
+             除外され一切読み上げられないため廃止した。 -->
 
         <Grid.RowDefinitions>
             <RowDefinition Height="52"/>    <!-- ツールバー -->

@@ -668,6 +668,42 @@ if (root.ValueKind != JsonValueKind.Object ||
 | 更新成果物の署名/ハッシュ検証 | `AppUpdateService` は DL/実行せず通知のみ。検証対象の成果物がそもそも無い。 |
 | リリースノート (GitHub body) のサニタイズ | WPF `TextBlock.Text` は markup 非解釈の素テキスト表示。リポジトリ管理者しか書けず一般攻撃者の制御外。 |
 
+## 4n. 第14ラウンド (WCAG アクセシビリティの実装網羅)
+
+CLAUDE.md 必須要件「AutomationProperties.Name を全インタラクティブ要素に付与」の
+**実 XAML 準拠**を監査。実装は良好で、デッドマークアップ 1 件のみ除去。
+
+| 出典 | 記事 | 主張 |
+|------|------|------|
+| Qiita (degudegu2510) | [アイコンボタンのアクセシビリティ対応](https://qiita.com/degudegu2510/items/e7bb4ef6133ed05e4a43) | テキストの無いアイコンボタンは明示的なアクセシブル名が必須。 |
+| Qiita (24motz) | [スクリーンリーダーのライブリージョン読み上げ](https://qiita.com/24motz/items/a992a8d3d4b65452b7eb) | 状態変化はライブリージョン/通知イベントで announce する (WCAG 4.1.3)。 |
+
+### 監査結果 — 実装は良好
+
+| 項目 | 現状 | 判定 |
+|------|------|------|
+| **インタラクティブ要素の名前付与** | 全 XAML で `AutomationProperties.Name` 数 ≥ Button 数 (MainWindow 8 btn / 23 name 等)。アイコンボタン (`↻`/`📡`/`⋯`/モード切替) は全て明示名あり | ✅ 網羅 |
+| **データテンプレート内の動的行** | ネットワーク行・グラフに `AutomationProperties.Name="{Binding …Automation…}"` をバインド | ✅ 対応 |
+| **状態変化の読み上げ (WCAG 4.1.3)** | `AccessibilityService.RaiseNotificationEvent` (UIA 通知, Win10 1709+) を接続成功/失敗/コピーで発火 (`MainWindowCommands` L83/88/109)。要素可視性に非依存で確実に読み上げ | ✅ 機能 |
+| **旧 Live Region の残骸** | `MainWindow.xaml` に `_srLiveRegion` (Collapsed TextBlock + IsLiveRegion) が残存。コードから一切参照されず、Collapsed ゆえ**読み上げ不能**。`AccessibilityService` のコメントが「この方式は一切読み上げられなかったので RaiseNotificationEvent に置換」と明記 | ⚠ **デッド/誤誘導マークアップ → 除去** |
+
+### 適用した修正 — デッド Live Region の除去
+
+`_srLiveRegion` は置換済みの旧実装の残骸。`Visibility="Collapsed"` 要素はオートメーション
+ツリーから除外され読み上げられない (まさに `AccessibilityService` のコメントが説明する失敗
+理由)。コードから 0 参照を確認のうえ削除し、「通知は RaiseNotificationEvent で行う」旨の
+コメントに置換した。
+
+> 単なる未使用要素の削除ではなく、**誤誘導の除去**が主眼。`IsLiveRegion="True"` を見た将来の
+> 保守者が「これが Live Region だ」と誤解し、動作中の RaiseNotificationEvent 方式を壊して
+> Collapsed-element 方式 (= 読み上げ不能) へ戻すリスクを断つ。
+
+### この回の結論
+
+アクセシビリティは CLAUDE.md の必須要件を**実装レベルで満たしている** (アイコンボタン命名・
+動的行命名・状態通知)。専用 `AccessibilityService` と WCAG チェックリスト (SR01–SR12) が
+形骸でなく機能していることを確認。唯一の不整合 (旧 Live Region 残骸) を除去した。
+
 ## 5. 次の自然な深掘り候補 (将来セッション用)
 
 -1. **キャプティブポータルを WebBrowser → WebView2 へ移行** (§4l 関連)
