@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`AdapterFailoverService` silently dropped the failure when the backup SSID was not in range,
+  and left the primary adapter stuck in `_activeFailovers` forever**: `ActivateFailoverAsync`
+  called `_wifi.ScanAsync` on the backup adapter; if the target SSID wasn't visible it logged a
+  warning and returned (void). Two consequences: (1) the user had no notification that failover
+  failed — primary was down, backup was unavailable, but no toast; (2) `CheckAsync` had already
+  added the primary adapter to `_activeFailovers` *before* calling `ActivateFailoverAsync`,
+  and that set was never cleared on failure — so the "primary went connected→disconnected"
+  branch (`!_activeFailovers.Contains`) was permanently blocked for the rest of the downtime,
+  preventing any retry. When primary eventually reconnected, the "Failover resolved" toast fired
+  even though backup had never been connected. Fixed: `ActivateFailoverAsync` now returns `bool`
+  (true = backup connected); `CheckAsync` removes the primary from `_activeFailovers` when
+  `false` is returned, allowing the next 30-second cycle to retry. Added `NotifyFailed(targetSsid,
+  NotInRange)` in the not-in-range path so the user is informed.
 - **`ConnectionFailure.NotInRange` was a dead enum value — the "Network not in range" toast was
   never shown**: `ConnectionWaiter` mapped all non-auth WLAN disconnect/fail events to
   `ConnectionOutcome.Failed`, which `WindowsWifiService` then mapped to `ConnectionFailure.Unknown`

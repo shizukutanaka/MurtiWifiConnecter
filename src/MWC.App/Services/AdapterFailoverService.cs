@@ -129,7 +129,9 @@ public sealed class AdapterFailoverService : IDisposable
                         "Failover triggered: adapter {Id} ({Name}) lost connection",
                         adapter.Id, adapter.Name);
                     _activeFailovers.Add(adapter.Id);
-                    await ActivateFailoverAsync(adapter, pref, adapterMap, ct).ConfigureAwait(false);
+                    bool activated = await ActivateFailoverAsync(adapter, pref, adapterMap, ct).ConfigureAwait(false);
+                    if (!activated)
+                        _activeFailovers.Remove(adapter.Id);
                 }
 
                 // Primary came back (was in failover, now reconnected)
@@ -158,18 +160,21 @@ public sealed class AdapterFailoverService : IDisposable
         }
     }
 
-    private async Task ActivateFailoverAsync(
+    // Returns true only when the backup adapter actually connected successfully.
+    // false causes the caller to remove the primary from _activeFailovers, allowing
+    // retry on the next CheckAsync cycle.
+    private async Task<bool> ActivateFailoverAsync(
         WifiAdapter primary,
         AdapterPreferences pref,
         Dictionary<Guid, WifiAdapter> adapterMap,
         CancellationToken ct)
     {
-        if (pref.FailoverAdapterId is not Guid failoverId) return;
+        if (pref.FailoverAdapterId is not Guid failoverId) return false;
 
         if (!adapterMap.TryGetValue(failoverId, out var failoverAdapter))
         {
             _log.LogWarning("Failover adapter {Id} not found", failoverId);
-            return;
+            return false;
         }
 
         // Get the best SSID for the failover adapter from its preferences
@@ -181,7 +186,7 @@ public sealed class AdapterFailoverService : IDisposable
         {
             _log.LogWarning(
                 "Failover adapter {Id} has no preferred SSID configured", failoverId);
-            return;
+            return false;
         }
 
         _log.LogInformation(
@@ -197,7 +202,8 @@ public sealed class AdapterFailoverService : IDisposable
             {
                 _log.LogWarning("Failover target SSID {Ssid} not in range on adapter {Id}",
                     PiiMask.Ssid(targetSsid), failoverId);
-                return;
+                _notify.NotifyFailed(targetSsid, MWC.Core.Models.ConnectionFailure.NotInRange);
+                return false;
             }
 
             var result = await _executor.ConnectAsync(
@@ -214,16 +220,19 @@ public sealed class AdapterFailoverService : IDisposable
                     hasInternet: result.HasInternet, captive: result.BehindCaptivePortal);
                 _log.LogInformation("Failover successful: connected to {Ssid} via {Adapter}",
                     PiiMask.Ssid(targetSsid), failoverAdapter.Name);
+                return true;
             }
             else
             {
                 _log.LogWarning("Failover connection failed: {Failure}", result.Failure);
                 _notify.NotifyFailed(targetSsid, result.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown);
+                return false;
             }
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Exception during failover connection attempt");
+            return false;
         }
     }
 }
