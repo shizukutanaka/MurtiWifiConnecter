@@ -30,6 +30,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`WindowsWifiService` misclassified WEP networks as Open, triggering the wrong security advisory
+  and a 2× too high security score**: Windows WLAN API represents WEP networks as
+  `AuthAlgorithm.Open` (or `SharedKey`) + `CipherAlgorithm.Wep`. `MapAuth(first.AuthAlgorithm)`
+  alone returned `AuthMethod.Open`, so `SecurityAdvisoryService` fired `MWC-SEC-005` (Warning:
+  open/unencrypted) instead of `MWC-SEC-003` (Critical: WEP is broken), and computed a security
+  score of 20 (Open) instead of the correct 10 (WEP). Added cipher-based override:
+  `first.CipherAlgorithm is CipherAlgorithm.Wep ? AuthMethod.WEP : MapAuth(first.AuthAlgorithm)`.
+  Added regression tests `Analyze_Wep_DoesNotTriggerOpenNetworkAdvisory` and
+  `Analyze_Wep_SecurityScoreIsLowerThanOpen` to `SecurityAdvisoryAndPredictionTests`.
+- **`MainViewModel.Export` and `MainWindowCommands.ExportDiagnosticAsync` used hardcoded
+  Save-dialog filter strings** — violating CLAUDE.md's rule that all UI strings route through
+  `Strings.resx`. Non-English users saw English filter labels (`"JSON (*.json)|*.json"` etc.) in
+  the export dialogs. Added `Export_FilterJson`, `Export_FilterTxt`, `Export_FilterCsv`, and
+  `Export_FilterDiagnostic` keys to `Strings.resx` and `Strings.ja.resx`, and switched all four
+  sites to `L.Get(...)`.
 - **CLI `mwc disconnect` exited 0 when the adapter was not found — scripts couldn't detect the
   error**: the handler printed "adapter not found" to stderr then `return`ed, leaving the process
   exit code at 0 (success). `mwc connect` already exits `InvalidInput` (2) in the same case. Added
