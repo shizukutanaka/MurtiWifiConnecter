@@ -310,6 +310,20 @@ public class ProfileXmlBuilderTests
         act.Should().Throw<System.ArgumentException>();
     }
 
+    // ── WifiProfileSpec.ValidatePassphrase: 非ASCII文字を拒否 ──────────────────
+    [Theory]
+    [InlineData("こんにちは123")]    // 8 chars, contains Japanese (passes length, must fail on non-ASCII)
+    [InlineData("passé_wordX")]      // 10 chars, accented Latin (passes length, must fail on non-ASCII)
+    [InlineData("pass\x01word1")]    // 11 chars, control char U+0001 (passes length, must fail on non-ASCII)
+    public void WPA2PSK_NonAsciiPassphrase_Rejected(string pw)
+    {
+        var act = () => ProfileXmlBuilder.Build(new()
+        {
+            Ssid = "Net", Auth = AuthMethod.WPA2PSK, Passphrase = pw
+        });
+        act.Should().Throw<System.ArgumentException>();
+    }
+
     // ── WPA3Transition 完全ゴールデン: auth/enc/passphrase/MFP欠如をすべて検証 ──
     // transitionMode 要素の形式は Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace で別途検証。
     [Fact]

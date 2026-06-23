@@ -30,6 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`WifiProfileSpec.Validate()` (model method) accepted non-ASCII PSK passphrases that
+  `WifiProfileValidator` rejects — inconsistent validation surface**: the record's own
+  `Validate()` → `ValidatePassphrase()` checked passphrase *length* (8-63 or 64-hex) but not
+  character set, while the static `WifiProfileValidator.ValidatePassphrase` additionally enforces
+  ASCII-printable 0x20-0x7E (the IEEE 802.11i PSK constraint). Inside `ProfileXmlBuilder.Build`
+  both run so the stricter one wins, but `WifiProfileSpec.Validate()` is `public` and returns a
+  `ProfileValidation` result intended for UI form feedback — any caller using it standalone would
+  green-light a passphrase containing Japanese/accented/control characters, then hit a late
+  `ArgumentException` from `Build`. Added the same ASCII-printable loop to the record method so
+  both validation entry points agree. Added `WPA2PSK_NonAsciiPassphrase_Rejected` theory (Japanese,
+  accented Latin, control char — all length-valid to isolate the new check).
 - **`AdapterFailoverService` silently dropped the failure when the backup SSID was not in range,
   and left the primary adapter stuck in `_activeFailovers` forever**: `ActivateFailoverAsync`
   called `_wifi.ScanAsync` on the backup adapter; if the target SSID wasn't visible it logged a

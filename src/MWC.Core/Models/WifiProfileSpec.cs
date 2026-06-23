@@ -62,9 +62,13 @@ public sealed record WifiProfileSpec
         // WPA/WPA2/WPA3 PSK: 64 桁 hex の raw PSK は別扱い
         if (len == 64 && IsHex(Passphrase))
             return ProfileValidation.Ok;
-        // それ以外は 8-63 ASCII
+        // それ以外は 8-63 ASCII printable (0x20-0x7E)
         if (len < 8 || len > 63)
             return ProfileValidation.Fail("Passphrase must be 8-63 ASCII chars or exactly 64 hex digits");
+        foreach (var c in Passphrase)
+            if (c < 0x20 || c > 0x7E)
+                return ProfileValidation.Fail(
+                    $"Passphrase contains non-ASCII printable character U+{(int)c:X4}; WPA passphrases must use ASCII 0x20-0x7E");
         return ProfileValidation.Ok;
     }
 
