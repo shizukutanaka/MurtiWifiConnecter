@@ -168,6 +168,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a concurrent adapter-switch could call `Profiles.Clear()` while the first load was still adding
   items. Both methods now guard with `if (IsBusy) return;` and wrap the work in `IsBusy = true` /
   `finally { IsBusy = false; }`.
+- **`RnrParser.ParseRnrBody` used `return` on a truncated TBTT entry — remaining Neighbor AP
+  Info sets in the same RNR element were silently discarded**: on encountering a TBTT entry whose
+  declared `tbttInfoLen` bytes didn't fit in the remaining body, the method did `return` (exit
+  `ParseRnrBody` entirely) instead of advancing past the bad set's remaining entries and continuing.
+  Any valid Neighbor AP Info sets after the bad one were never parsed. Changed to advance
+  `pos += (tbttCount − t) × tbttInfoLen` and `break` out of the inner loop — the outer
+  while terminates naturally when `pos` exceeds the body boundary. Added a two-set golden test
+  (`ParsesTwoNeighborInfoSets_BothContributed`) to guard against regression.
 - **`WmmParser` and `BeaconIeParser` used mutable `static readonly byte[]` for the WMM OUI
   constant**: `private static readonly byte[] WmmOui = { 0x00, 0x50, 0xF2 }` is technically
   mutable — any code holding the array reference can overwrite its contents. Changed to

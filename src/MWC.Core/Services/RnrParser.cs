@@ -72,7 +72,16 @@ public static class RnrParser
             // TBTT Info Set: tbttCount エントリ × tbttInfoLen バイト
             for (int t = 0; t < tbttCount; t++)
             {
-                if (pos + tbttInfoLen > body.Length) return;
+                if (pos + tbttInfoLen > body.Length)
+                {
+                    // This TBTT entry is truncated. Advance pos past all remaining
+                    // entries in this Neighbor AP Info set, then let the outer while
+                    // decide if there is another set. (In practice, pos exceeds
+                    // body.Length and the outer loop terminates naturally — the
+                    // intent here is explicit: discard the bad set, not the element.)
+                    pos += (tbttCount - t) * tbttInfoLen;
+                    break;
+                }
 
                 // Operating Class と Channel は Offset の後の 2 バイト
                 // ただし Short format では:

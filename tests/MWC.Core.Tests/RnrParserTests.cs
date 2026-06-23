@@ -88,6 +88,34 @@ public class RnrParserTests
     }
 
     [Fact]
+    public void ParsesTwoNeighborInfoSets_BothContributed()
+    {
+        // Two back-to-back Neighbor AP Info sets inside one RNR element body.
+        // Set 1: opClass=131 (6 GHz), channel=5.
+        // Set 2: opClass=115 (5 GHz), channel=36.
+        // Regression: ParseRnrBody must not exit (return) after the first set.
+        //
+        // Neighbor AP Info (LE 16-bit): bits 0-3 = tbttCount-1, bits 9-15 = tbttInfoLen.
+        // tbttInfoLen=3, tbttCount=1 → info = 3<<9 = 0x0600 → bytes [0x00, 0x06].
+        // Same encoding as the RnrElement() helper above.
+        const byte InfoLo = 0x00;
+        const byte InfoHi = 0x06;
+
+        var body = new List<byte>
+        {
+            InfoLo, InfoHi, 0x00, 131, 5,   // Set 1: TBTT Offset=0, OpClass=131, Channel=5
+            InfoLo, InfoHi, 0x00, 115, 36   // Set 2: TBTT Offset=0, OpClass=115, Channel=36
+        };
+        var element = new byte[] { 201, (byte)body.Count }.AppendRange(body);
+
+        var result = RnrParser.Parse(element);
+
+        result.Should().HaveCount(2);
+        result.Should().Contain(ap => ap.OperatingClass == 131 && ap.Channel == 5);
+        result.Should().Contain(ap => ap.OperatingClass == 115 && ap.Channel == 36);
+    }
+
+    [Fact]
     public void MalformedEntry_TbttInfoLenZero_DoesNotProduceSpuriousEntries()
     {
         // Before fix: tbttInfoLen=0 caused the inner for-loop (pos += 0) to not advance pos.
