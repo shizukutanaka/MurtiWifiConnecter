@@ -40,7 +40,7 @@ public sealed class SystemTrayService : IDisposable
     {
         _dispatcher = dispatcher; _log = log;
         _tray = tray;
-        _tray.Text    = "MWC";
+        _tray.Text    = MWC.App.Resources.L.Get("App_Title");
         _tray.Visible = true;
         _tray.Icon    = BuildIcon(quality: 0, connected: false);
         _tray.DoubleClick += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
@@ -77,7 +77,7 @@ public sealed class SystemTrayService : IDisposable
         // ── 各アダプターのサブメニュー(子機ごとSSID選択) ──
         foreach (var a in adapters)
         {
-            var adapterItem = new ToolStripMenuItem($"📡 {a.Name}");
+            var adapterItem = new ToolStripMenuItem(MWC.App.Resources.L.Format("Tray_AdapterMenuItem", a.Name));
             if (a.Description.Length > 0)
                 adapterItem.ToolTipText = a.Description;
 

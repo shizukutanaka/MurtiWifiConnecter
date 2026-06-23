@@ -184,6 +184,7 @@
   <data name="Cert_Expiry90"><value>期限まで {0} 日</value></data>
   <data name="Cert_ExpiryOk"><value>有効 (残 {0} 日)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 公式)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
   <data name="Tray_NoNetworks"><value>(検出なし)</value></data>
   <data name="Tray_OpenApp"><value>MWC を開く</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>

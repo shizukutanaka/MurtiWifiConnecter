@@ -133,9 +133,9 @@ public sealed class MainWindowCommands
             DefaultExt = format == "json" ? "json" : format == "txt" ? "txt" : "csv",
             Filter     = format switch
             {
-                "json" => "JSON (*.json)|*.json",
-                "txt"  => "Text (*.txt)|*.txt",
-                _      => "CSV (*.csv)|*.csv"
+                "json" => MWC.App.Resources.L.Get("Export_FilterJson"),
+                "txt"  => MWC.App.Resources.L.Get("Export_FilterTxt"),
+                _      => MWC.App.Resources.L.Get("Export_FilterCsv")
             }
         };
         if (dlg.ShowDialog() != true) return "";
