@@ -274,6 +274,10 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Action_Copy"><value>Copy</value></data>
   <data name="QR_SavePng"><value>Save PNG</value></data>
   <data name="QR_PngFileFilter"><value>PNG Image (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>Text (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|Text (*.txt)|*.txt</value></data>
   <data name="Profile_WindowTitle"><value>Saved networks</value></data>
   <data name="Profile_DialogAutomation"><value>Saved network management</value></data>
   <data name="Profile_ListAutomation"><value>Saved profile list</value></data>

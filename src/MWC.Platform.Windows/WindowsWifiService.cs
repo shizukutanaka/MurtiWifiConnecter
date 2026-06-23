@@ -100,7 +100,9 @@ public sealed class WindowsWifiService : IWifiService
                         BssEntries   = bssList,
                         SignalQuality = (int)first.SignalQuality,
                         Rssi         = rssi != 0 ? rssi : null,
-                        Auth         = MapAuth(first.AuthAlgorithm),
+                        Auth         = first.CipherAlgorithm is CipherAlgorithm.Wep
+                                       ? AuthMethod.WEP
+                                       : MapAuth(first.AuthAlgorithm),
                         Cipher       = MapCipher(first.CipherAlgorithm),
                         Band         = FreqToBand(freq > 0 ? freq : ChannelToFreq(ch)),
                         Channel      = ch,

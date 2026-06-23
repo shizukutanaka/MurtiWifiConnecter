@@ -240,7 +240,7 @@ public sealed class MainWindowCommands
         {
             FileName   = $"mwc-diagnostic-{DateTime.Now:yyyyMMdd-HHmmss}",
             DefaultExt = "md",
-            Filter     = "Markdown (*.md)|*.md|Text (*.txt)|*.txt"
+            Filter     = MWC.App.Resources.L.Get("Export_FilterDiagnostic")
         };
         if (dlg.ShowDialog(owner) != true) return;
 

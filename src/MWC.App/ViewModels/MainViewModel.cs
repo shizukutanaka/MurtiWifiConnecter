@@ -143,9 +143,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             DefaultExt = fmt == "json" ? "json" : fmt == "txt" ? "txt" : "csv",
             Filter     = fmt switch
             {
-                "json" => "JSON (*.json)|*.json",
-                "txt"  => "Text (*.txt)|*.txt",
-                _      => "CSV (*.csv)|*.csv"
+                "json" => MWC.App.Resources.L.Get("Export_FilterJson"),
+                "txt"  => MWC.App.Resources.L.Get("Export_FilterTxt"),
+                _      => MWC.App.Resources.L.Get("Export_FilterCsv")
             }
         };
         if (dlg.ShowDialog() != true) return;

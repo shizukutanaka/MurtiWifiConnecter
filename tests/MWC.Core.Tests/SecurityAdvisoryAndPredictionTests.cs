@@ -57,6 +57,30 @@ public class SecurityAdvisoryServiceTests
         advisories.Should().Contain(a => a.Code == "MWC-SEC-003" && a.Severity == AdvisorySeverity.Critical);
     }
 
+    // WEP networks that were previously misclassified as Open (Auth=Open, Cipher=WEP)
+    // must trigger MWC-SEC-003, NOT MWC-SEC-005. This test documents the expectation
+    // that the platform layer (WindowsWifiService) sets Auth=WEP when Cipher=WEP,
+    // regardless of the underlying 802.11 auth algorithm (Open or SharedKey both use WEP cipher).
+    [Fact]
+    public void Analyze_Wep_DoesNotTriggerOpenNetworkAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WEP));
+        // Open-network advisory must NOT fire for WEP — WEP has its own, stronger advisory
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-005",
+            because: "WEP triggers MWC-SEC-003 (Critical) which is stricter than the open-network Warning");
+    }
+
+    [Fact]
+    public void Analyze_Wep_SecurityScoreIsLowerThanOpen()
+    {
+        // WEP score=10 must be below Open score=20 — false-sense-of-security makes
+        // WEP worse than openly admitting no encryption.
+        var wepScore  = _svc.ComputeScore(Net(AuthMethod.WEP));
+        var openScore = _svc.ComputeScore(Net(AuthMethod.Open));
+        wepScore.Should().BeLessThan(openScore,
+            because: "false sense of security makes WEP more dangerous than unencrypted Open");
+    }
+
     [Fact]
     public void Analyze_HardenedNetwork_GivesPositiveFeedback()
     {
