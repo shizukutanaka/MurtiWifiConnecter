@@ -10,6 +10,7 @@ internal enum ConnectionOutcome
 {
     Connected,
     BadCredentials,
+    NotInRange,
     Timeout,
     Cancelled,
     Failed
@@ -58,6 +59,10 @@ internal sealed class ConnectionWaiter : IDisposable
                 {
                     _tcs.TrySetResult(ConnectionOutcome.BadCredentials);
                 }
+                else if (IsNotInRangeReason(e.Reason))
+                {
+                    _tcs.TrySetResult(ConnectionOutcome.NotInRange);
+                }
                 else
                 {
                     _tcs.TrySetResult(ConnectionOutcome.Failed);
@@ -90,6 +95,17 @@ internal sealed class ConnectionWaiter : IDisposable
         _disposed = true;
         NativeWifi.NetworkStateChanged -= _handler;
     }
+
+    // Match WLAN reason code strings that indicate the BSS/network was not found.
+    // Covers both enum-style names (e.g. "network_not_available") and fragments of
+    // localized WlanReasonCodeToString output (e.g. "cannot be found").
+    private static bool IsNotInRangeReason(string? reason) =>
+        reason is not null &&
+        (reason.Contains("not_available",   StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("not_found",       StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("no_match",        StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("cannot be found", StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("not available",   StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>

@@ -310,6 +310,35 @@ public class ProfileXmlBuilderTests
         act.Should().Throw<System.ArgumentException>();
     }
 
+    // ── WPA3Transition 完全ゴールデン: auth/enc/passphrase/MFP欠如をすべて検証 ──
+    // transitionMode 要素の形式は Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace で別途検証。
+    [Fact]
+    public void Wpa3Transition_FullProfile_AuthEncPassphraseMfpAbsent()
+    {
+        var xml = ProfileXmlBuilder.Build(new()
+        {
+            Ssid       = "Mixed-WiFi",
+            Auth       = AuthMethod.WPA3Transition,
+            Passphrase = "supersecret123"
+        });
+        var doc = XDocument.Parse(xml);
+        var ns  = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
+        var v3  = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v3";
+
+        // authentication はWPA3SAE (WPA2/WPA3混在モードのWindows XML値)
+        doc.Descendants(ns + "authentication").Single().Value.Should().Be("WPA3SAE");
+        // encryption は AES
+        doc.Descendants(ns + "encryption").Single().Value.Should().Be("AES");
+        // パスフレーズが keyMaterial に格納されている
+        doc.Descendants(ns + "keyMaterial").Single().Value.Should().Be("supersecret123");
+        doc.Descendants(ns + "keyType").Single().Value.Should().Be("passPhrase");
+        // 802.1X は不要
+        doc.Descendants(ns + "useOneX").Should().BeEmpty();
+        // Transition は MFP-optional のため pmkCacheMode (v3) を含まない
+        // (WPA3SAE 専用ネットワークとの区別: 純 WPA3SAE は v3 pmkCacheMode=enabled を持つ)
+        doc.Descendants(v3 + "pmkCacheMode").Should().BeEmpty();
+    }
+
     // ── 不足していたゴールデンテスト ─────────────────────────────────
 
     [Fact]

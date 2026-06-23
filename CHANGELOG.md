@@ -30,6 +30,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`ConnectionFailure.NotInRange` was a dead enum value — the "Network not in range" toast was
+  never shown**: `ConnectionWaiter` mapped all non-auth WLAN disconnect/fail events to
+  `ConnectionOutcome.Failed`, which `WindowsWifiService` then mapped to `ConnectionFailure.Unknown`
+  → "GenericFailure" toast. The `NotInRange` enum value existed in `Core` and had a dedicated
+  `Notify_NotInRange` resource key, but the path from OS notification → `NotInRange` was never
+  wired. Added `ConnectionOutcome.NotInRange` and `ConnectionWaiter.IsNotInRangeReason` which
+  pattern-matches WLAN reason code strings for "not_available", "not_found", "no_match",
+  "cannot be found", and "not available". `WindowsWifiService` now maps the new outcome to
+  `ConnectionFailure.NotInRange`. If none of the patterns match the fallback is `Failed` → `Unknown`
+  — identical to prior behaviour — so the change is strictly additive.
+- **`ProfileXmlBuilder.WPA3Transition` golden test only verified the `transitionMode` element —
+  authentication, encryption, passphrase content, and absence of PMK-cache/MFP were untested**:
+  `Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace` parsed the XML and checked that the
+  `<transitionMode>true</transitionMode>` element appeared in the v4 namespace (and had no raw
+  namespace URI in its value), but never asserted the surrounding profile shape. A regression
+  could silently change auth from `"WPA3SAE"` to `"WPA2PSK"`, omit the passphrase `<keyMaterial>`,
+  add an incorrect `<pmkCacheMode>` (which would force PMF-Required and break WPA2 clients), or
+  add `<useOneX>` without any test failing. Added `Wpa3Transition_FullProfile_AuthEncPassphraseMfpAbsent`
+  which verifies `authentication="WPA3SAE"`, `encryption="AES"`, `keyMaterial` contents,
+  `useOneX` absent, and v3 `pmkCacheMode` absent — the last two being the intentional
+  MFP-optional invariant for transition mode.
 - **`AllAdaptersOverviewViewModel.ConnectPreferredAsync` never showed the captive portal dialog**:
   the "Connect preferred" action (triggered from the all-adapters overview window and from
   "Connect All Preferred") called `executor.ConnectAsync` and ignored `result.BehindCaptivePortal`.

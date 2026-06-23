@@ -208,6 +208,7 @@ public sealed class WindowsWifiService : IWifiService
                 return ConnectionResult.Fail(outcome switch
                 {
                     ConnectionOutcome.BadCredentials => ConnectionFailure.BadCredentials,
+                    ConnectionOutcome.NotInRange     => ConnectionFailure.NotInRange,
                     ConnectionOutcome.Timeout        => ConnectionFailure.Timeout,
                     ConnectionOutcome.Cancelled      => ConnectionFailure.Cancelled,
                     _ => ConnectionFailure.Unknown
