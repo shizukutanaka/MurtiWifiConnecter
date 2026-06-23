@@ -45,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the export dialogs. Added `Export_FilterJson`, `Export_FilterTxt`, `Export_FilterCsv`, and
   `Export_FilterDiagnostic` keys to `Strings.resx` and `Strings.ja.resx`, and switched all four
   sites to `L.Get(...)`.
+- **`SystemTrayService` tray tooltip and adapter-submenu header had hardcoded `"MWC"` and `"📡 {name}"`
+  string literals** — violating the CLAUDE.md rule that all UI strings route through `Strings.resx`.
+  `_tray.Text = "MWC"` in the constructor and the adapter-menu item format string `$"📡 {a.Name}"`
+  were both hardcoded; `App.xaml.cs` also hardcoded "MWC" as the `NotifyIcon.Text` initial value
+  and as the unhandled-exception `MessageBox` title. Switched all four sites to `L.AppTitle` and a
+  new `Tray_AdapterMenuItem = "📡 {0}"` resource key (added to `Strings.resx` and `Strings.ja.resx`).
 - **CLI `mwc disconnect` exited 0 when the adapter was not found — scripts couldn't detect the
   error**: the handler printed "adapter not found" to stderr then `return`ed, leaving the process
   exit code at 0 (success). `mwc connect` already exits `InvalidInput` (2) in the same case. Added
