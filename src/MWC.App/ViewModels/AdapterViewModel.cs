@@ -251,21 +251,6 @@ public sealed partial class AdapterViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task ConnectAsync(string passphrase)
-    {
-        if (_selected is null) return;
-        try
-        {
-            var res = await _executor.ConnectAsync(
-                _adapter.Id, _selected.Ssid, _selected.Auth,
-                passphrase, TimeSpan.FromSeconds(30));
-            if (res.Success) await RefreshAsync();
-            else _log.LogWarning("Connect failed: {f}", res.Failure);
-        }
-        catch (Exception ex) { _log.LogError(ex, "Connect"); }
-    }
-
-    [RelayCommand]
     public async Task DisconnectAsync()
     {
         await _executor.DisconnectAsync(_adapter.Id);

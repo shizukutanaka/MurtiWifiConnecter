@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **Tray quick-connect never showed the captive portal dialog**: the system-tray "Connect" menu
+  item called `executor.ConnectAsync` and discarded the returned `ConnectionResult`, so when the
+  joined network was behind a captive portal (`result.BehindCaptivePortal`) the
+  `CaptivePortalDialog` was never opened and the user had no sign-in prompt. Applied the same
+  check already present in `AdapterConnectExtension`: capture the result, and if `Success &&
+  BehindCaptivePortal`, dispatch `CaptivePortalDialog` to the WPF UI thread via the existing
+  `Dispatcher.InvokeAsync` call that was already there for tray refresh.
+- **`AdapterViewModel.ConnectAsync` was dead code with wrong captive-portal handling**: a
+  `[RelayCommand]`-decorated method that was never bound in XAML, never called from code, and
+  never exercised in tests. It performed the raw connection without the Apple-style progress flow
+  or captive-portal detection. Removed. All connection entry points now go through either
+  `MainWindowCommands.ConnectAsync` → `AdapterConnectExtension` (UI) or the tray callback (now
+  fixed above).
 - **Connectivity probe was not bound to the connecting adapter — wrong internet/captive-portal verdict
   on multi-adapter PCs**: `IConnectivityChecker.CheckAsync` took no adapter argument and
   `HttpConnectivityChecker` issued its `msftconnecttest.com` probe over the OS *default route*. On a

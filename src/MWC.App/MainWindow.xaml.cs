@@ -296,9 +296,14 @@ public partial class MainWindow : Window
                 if (!networkSnapshot.TryGetValue(adapterId, out var nets)) return;
                 var net = nets.FirstOrDefault(n => n.Ssid == ssid && n.HasProfile);
                 if (net is null) return;
-                await executor.ConnectAsync(adapterId, ssid, net.Auth, "", TimeSpan.FromSeconds(20));
-                // 接続完了後、UI スレッドでトレイを再同期
-                Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
+                var result = await executor.ConnectAsync(adapterId, ssid, net.Auth, "", TimeSpan.FromSeconds(20));
+                // 接続完了後、UI スレッドでトレイ再同期＋キャプティブポータル判定
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (DataContext is MainViewModel v) UpdateTray(v);
+                    if (result.Success && result.BehindCaptivePortal)
+                        new Views.CaptivePortalDialog(ssid) { Owner = this }.ShowDialog();
+                });
             },
             async (adapterId) =>
             {
