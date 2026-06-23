@@ -71,6 +71,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw an English filter label in the Save dialog. Added the `QR_PngFileFilter` key (neutral English
   + Japanese `PNG 画像`) and switched the code to `L.Get("QR_PngFileFilter")`; other locales fall
   through to the neutral English value until translated.
+- **`L.GetTroubleshootingAdvice` showed consumer "Wrong Password" dialog for WPA3-Enterprise-192-bit
+  (CNSA) bad-credential failures**: the `isEnterprise` guard only listed `WPA2Enterprise | WPA3Enterprise`
+  — `WPA3Enterprise192` was missing, so a 192-bit enterprise user who mistyped credentials was told
+  "Double-check the password (case-sensitive)" instead of "Verify your credentials with the network
+  administrator". Every other enterprise guard in the codebase (SecurityAdvisoryService, RoamingAdvisoryService,
+  ProfileXmlBuilder, WifiProfileSpec) correctly covers all three variants. Added
+  `WPA3Enterprise192` to the `isEnterprise` check; added a three-variant regression test
+  `BadCredentials_EnterpriseAuth_ReturnsEnterpriseTitle` to `BugFixRegressionTests`.
 - **`WifiProfileSpec.Validate()` (model method) accepted non-ASCII PSK passphrases that
   `WifiProfileValidator` rejects — inconsistent validation surface**: the record's own
   `Validate()` → `ValidatePassphrase()` checked passphrase *length* (8-63 or 64-hex) but not

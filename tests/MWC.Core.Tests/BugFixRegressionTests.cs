@@ -794,3 +794,35 @@ public class JumpListEscapeArgTests
             "naive quoting without escaping is vulnerable to argument injection");
     }
 }
+
+/// <summary>
+/// L.GetTroubleshootingAdvice が WPA3Enterprise192 を Enterprise として扱うことを保証する。
+/// 回帰防止: auth ガードに WPA3Enterprise192 が含まれず消費者向け「Wrong Password」を
+/// 返してしまうバグの再発を防ぐ。
+/// </summary>
+public class TroubleshootingAdviceEnterpriseRegressionTests
+{
+    [Theory]
+    [InlineData(AuthMethod.WPA2Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise192)]
+    public void BadCredentials_EnterpriseAuth_ReturnsEnterpriseTitle(AuthMethod auth)
+    {
+        var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
+            ConnectionFailure.BadCredentials, auth);
+
+        advice.Title.Should().Be("Enterprise Authentication Failed",
+            because: $"{auth} must yield enterprise guidance, not consumer 'Wrong Password'");
+        advice.Icon.Should().Be("🏢");
+    }
+
+    [Fact]
+    public void BadCredentials_PersonalAuth_ReturnsWrongPasswordTitle()
+    {
+        var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
+            ConnectionFailure.BadCredentials, AuthMethod.WPA3SAE);
+
+        advice.Title.Should().Be("Wrong Password");
+        advice.Icon.Should().Be("🔑");
+    }
+}

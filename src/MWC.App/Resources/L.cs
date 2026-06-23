@@ -556,7 +556,8 @@ public static class L
         MWC.Core.Models.AuthMethod auth)
     {
         bool isEnterprise = auth is MWC.Core.Models.AuthMethod.WPA2Enterprise
-                                 or MWC.Core.Models.AuthMethod.WPA3Enterprise;
+                                 or MWC.Core.Models.AuthMethod.WPA3Enterprise
+                                 or MWC.Core.Models.AuthMethod.WPA3Enterprise192;
         var (prefix, icon) = failure switch
         {
             MWC.Core.Models.ConnectionFailure.BadCredentials when isEnterprise
