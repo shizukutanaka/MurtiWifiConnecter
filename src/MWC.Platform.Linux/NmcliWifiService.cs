@@ -173,6 +173,8 @@ public sealed class NmcliWifiService : IWifiService
         var pass = keyMatch.Success ? System.Net.WebUtility.HtmlDecode(keyMatch.Groups[1].Value) : "";
 
         // nmcli connection add で登録(既存があれば modify)
+        // NOTE: パスフレーズはプロセス引数として渡すため /proc/<pid>/cmdline に表示される。
+        // 本番実装では NetworkManager D-Bus API か libnm P/Invoke を使い引数渡しを避けること。
         if (overwrite)
         {
             // 既存の接続設定を更新
