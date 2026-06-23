@@ -71,6 +71,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw an English filter label in the Save dialog. Added the `QR_PngFileFilter` key (neutral English
   + Japanese `PNG 画像`) and switched the code to `L.Get("QR_PngFileFilter")`; other locales fall
   through to the neutral English value until translated.
+- **`EvilTwinDetector.Analyze` double-counted vendor mismatch as two reasons, producing a false
+  HighRisk rating for a single indicator**: when a new BSSID's OUI was resolvable by the OUI
+  database (e.g., Cisco → Apple), check 2 added "BSSID detected with a different vendor (OUI)
+  than previously seen" AND check 4 separately added "Device vendor different from known vendor
+  detected", making `reasons.Count == 2` and elevating a single-indicator scenario to HighRisk
+  instead of the correct Suspicious. Fix: check 2's vendor-mismatch path now defers to check 4
+  when `OuiLookupService.Lookup` can resolve a vendor name; it only fires for truly unknown OUIs
+  (not in the database), preventing the double-count. Added regression test
+  `Analyze_KnownVendorMismatch_IsOnlyOneSuspiciousReason`.
 - **`WifiNetwork.IsPasspoint` excluded WPA3-Enterprise-192-bit networks from Passpoint detection**:
   the `Auth is WPA2Enterprise or WPA3Enterprise` guard was missing `WPA3Enterprise192`, so a
   WPA3-192-bit AP that broadcasts the 802.11u Interworking element was not recognised as a Passpoint

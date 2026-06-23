@@ -142,6 +142,28 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
+    public void Analyze_KnownVendorMismatch_IsOnlyOneSuspiciousReason()
+    {
+        // Regression: a new BSSID whose OUI is known in the DB used to fire BOTH check 2
+        // ("BSSID detected with different vendor") AND check 4 ("Device vendor different"),
+        // inflating reasons.Count to 2 and producing a false HighRisk for a single indicator.
+        // Fix: check 2 defers to check 4 when the OUI DB resolves a vendor name.
+        var detector = new EvilTwinDetector();
+        // Record a Cisco BSSID as trusted (000142 = Cisco in the OUI DB)
+        detector.RecordTrusted("CorpNet", "00:01:42:11:22:33", AuthMethod.WPA2Enterprise);
+
+        // New AP: Apple BSSID (001122 = Apple in the OUI DB), same SSID & auth
+        var net = Net("CorpNet", AuthMethod.WPA2Enterprise, "00:11:22:99:88:77");
+        var verdict = detector.Analyze(net, new[] { net });
+
+        verdict.IsSuspect.Should().BeTrue("different vendor is a valid suspicion signal");
+        verdict.Reasons.Should().HaveCount(1,
+            because: "vendor mismatch is a single indicator — check 2 must not double-count check 4");
+        verdict.Risk.Should().Be(EvilTwinRisk.Suspicious,
+            because: "one indicator does not justify HighRisk");
+    }
+
+    [Fact]
     public void Analyze_DifferentOuiAndSecurityDowngrade_IsHighRisk()
     {
         // Verify that two simultaneous indicators escalate to HighRisk (2+ reasons).

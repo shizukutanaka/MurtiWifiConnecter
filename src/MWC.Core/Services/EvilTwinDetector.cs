@@ -93,7 +93,14 @@ public sealed class EvilTwinDetector
                     var oui = b.Length >= 8 ? b[..8] : b;
                     bool ouiKnown = known.Any(k => k.StartsWith(oui, StringComparison.OrdinalIgnoreCase));
                     if (!ouiKnown)
-                        reasons.Add("BSSID detected with a different vendor (OUI) than previously seen");
+                    {
+                        // Only report here when the OUI DB cannot resolve a vendor name.
+                        // When the DB *can* name it, check 4 adds a richer reason for the
+                        // same signal — adding both would double-count one indicator.
+                        var vendorFromDb = _oui.Lookup(b);
+                        if (vendorFromDb is null)
+                            reasons.Add("BSSID detected with a different vendor (OUI) than previously seen");
+                    }
                 }
             }
         }
