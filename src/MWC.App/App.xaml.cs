@@ -60,7 +60,7 @@ public partial class App : Application
                 {
                     var ni = new System.Windows.Forms.NotifyIcon
                     {
-                        Text    = MWC.App.Resources.L.Get("App_Title"),
+                        Text    = MWC.App.Resources.L.AppTitle,
                         Visible = true,
                         Icon    = System.Drawing.SystemIcons.Information
                     };
@@ -235,7 +235,7 @@ public partial class App : Application
     private void OnUiUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error(e.Exception, "UI unhandled");
-        MessageBox.Show(MWC.App.Resources.L.ErrorUnexpected(e.Exception.Message), MWC.App.Resources.L.Get("App_Title"),
+        MessageBox.Show(MWC.App.Resources.L.ErrorUnexpected(e.Exception.Message), MWC.App.Resources.L.AppTitle,
             MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }

@@ -194,4 +194,21 @@ public class ChannelPlannerServiceTests
         s48Narrow.Should().Be(100, "a 20MHz neighbor at ch36 does not overlap ch48");
         s48Wide.Should().BeLessThan(s48Narrow, "an 80MHz neighbor at ch36 occupies 36–48 and overlaps ch48");
     }
+
+    [Fact]
+    public void Recommend_24GHz_ExactDelta5_IsNotOverlapping()
+    {
+        // 2.4 GHz overlap uses strict inequality: delta < 5 means 0..4 overlap, 5 does not.
+        // A neighbor exactly on ch 6 is |1-6|=5 and |11-6|=5 from both ch 1 and ch 11.
+        // Both must score 100 — no interference leaks across the non-overlapping boundary.
+        var visible = new List<WifiNetwork> { Ap(WifiBand.Band2_4GHz, 6, 100) };
+        var ranked  = _svc.RankCandidates(WifiBand.Band2_4GHz, visible);
+
+        ranked.First(r => r.Channel == 1).Score.Should().Be(100,
+            "delta=5 is the non-overlapping boundary: ch 1 and ch 6 do not share spectrum");
+        ranked.First(r => r.Channel == 11).Score.Should().Be(100,
+            "delta=5 is the non-overlapping boundary: ch 11 and ch 6 do not share spectrum");
+        ranked.First(r => r.Channel == 6).Score.Should().BeLessThan(100,
+            "ch 6 co-channel interference from the neighbor lowers its own score");
+    }
 }

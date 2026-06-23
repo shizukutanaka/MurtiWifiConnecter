@@ -40,7 +40,7 @@ public sealed class SystemTrayService : IDisposable
     {
         _dispatcher = dispatcher; _log = log;
         _tray = tray;
-        _tray.Text    = MWC.App.Resources.L.Get("App_Title");
+        _tray.Text    = MWC.App.Resources.L.AppTitle;
         _tray.Visible = true;
         _tray.Icon    = BuildIcon(quality: 0, connected: false);
         _tray.DoubleClick += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
