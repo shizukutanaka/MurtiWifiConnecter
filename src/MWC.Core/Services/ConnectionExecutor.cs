@@ -35,8 +35,9 @@ public sealed class ConnectionExecutor
     private readonly IWifiService               _wifi;
     private readonly NetworkHistoryService      _history;
     private readonly ILogger<ConnectionExecutor> _log;
-    // アダプターごとの排他ロック(並列接続によるドライバー不整合を防止)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim>
+    // アダプターごとの排他ロック(並列接続によるドライバー不整合を防止)。
+    // インスタンスフィールドにすることでテスト分離とアダプター抜き差し時のリークを防ぐ。
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim>
         _perAdapterLocks = new();
     // ユーザーが意図的に切断したアダプターと時刻を記録
     // AutoReconnect / Failover が誤って再接続しないよう使う

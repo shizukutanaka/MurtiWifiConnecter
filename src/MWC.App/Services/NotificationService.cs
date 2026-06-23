@@ -52,6 +52,20 @@ public sealed class NotificationService
         }
     }
 
+    /// <summary>
+    /// フェイルオーバー専用の通知。<paramref name="title"/> は SSID ではなく
+    /// アダプター名を含む定型文 ("Failover: switched to …") であるため、
+    /// <see cref="NotifyConnected"/> が付加する "Connected to {0}" プレフィックスを
+    /// 使わずに直接 <paramref name="title"/> をトースト題として表示する。
+    /// </summary>
+    public void NotifyFailover(string title, bool hasInternet, bool captive)
+    {
+        string body = captive     ? MWC.App.Resources.L.Get("Notify_CaptivePortal")
+                    : hasInternet ? MWC.App.Resources.L.Get("Notify_InternetOk")
+                    :               MWC.App.Resources.L.Get("Notify_NoInternet");
+        Show(title, body, captive ? ToolTipIcon.Warning : ToolTipIcon.Info);
+    }
+
     public void NotifyDisconnected(string ssid)
         => Show(MWC.App.Resources.L.NotifyDisconnected(ssid), "", ToolTipIcon.Info);
 

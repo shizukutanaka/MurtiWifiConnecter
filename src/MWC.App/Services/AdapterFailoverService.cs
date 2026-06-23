@@ -139,7 +139,7 @@ public sealed class AdapterFailoverService : IDisposable
                     _log.LogInformation(
                         "Failover resolved: primary adapter {Id} ({Name}) reconnected to {Ssid}",
                         adapter.Id, adapter.Name, PiiMask.Ssid(currentSsid));
-                    _notify.NotifyConnected(
+                    _notify.NotifyFailover(
                         MWC.App.Resources.L.NotifyFailoverRestored(adapter.Name),
                         hasInternet: true, captive: false);
                 }
@@ -209,7 +209,7 @@ public sealed class AdapterFailoverService : IDisposable
 
             if (result.Success)
             {
-                _notify.NotifyConnected(
+                _notify.NotifyFailover(
                     MWC.App.Resources.L.NotifyFailoverActivated(failoverAdapter.Name),
                     hasInternet: result.HasInternet, captive: result.BehindCaptivePortal);
                 _log.LogInformation("Failover successful: connected to {Ssid} via {Adapter}",

@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using MWC.App.Views;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
@@ -184,6 +186,10 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
                 : MWC.App.Resources.L.ErrorConnectionFailed(
                     MWC.App.Resources.L.ConnectionFailureLabel(
                         res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown));
+            if (res.Success && res.BehindCaptivePortal)
+                new CaptivePortalDialog(best)
+                    { Owner = Application.Current?.MainWindow }
+                    .ShowDialog();
         }
         finally { IsConnecting = false; }
     }

@@ -30,6 +30,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`AllAdaptersOverviewViewModel.ConnectPreferredAsync` never showed the captive portal dialog**:
+  the "Connect preferred" action (triggered from the all-adapters overview window and from
+  "Connect All Preferred") called `executor.ConnectAsync` and ignored `result.BehindCaptivePortal`.
+  Users who joined a captive-portal hotspot via the overview panel got a "Connected to X" status
+  line but no sign-in dialog. Added the same `if (res.Success && res.BehindCaptivePortal)` guard
+  that exists in `AdapterConnectExtension`, using `Application.Current?.MainWindow` as the owner.
+- **`AdapterFailoverService.NotifyConnected` API misuse produced garbled toast text**: both
+  failover-notification call sites passed pre-formatted adapter-name strings (e.g.
+  `"Failover: switched to Intel Wi-Fi 2"`) as the `ssid` parameter of `NotifyConnected`, which
+  then prefixed them with `"Connected to {0}"` → `"Connected to Failover: switched to Intel Wi-Fi 2"`.
+  With a captive portal this was even more confusing. Added `NotificationService.NotifyFailover(title,
+  hasInternet, captive)` which uses the pre-formatted title directly as the toast header, then updated
+  both call sites to use it.
+- **`ConnectionExecutor._perAdapterLocks` was a `static` field — test-isolation leak**: the
+  per-adapter `SemaphoreSlim` dictionary was `static`, so it was shared across all
+  `ConnectionExecutor` instances (including multiple test-created instances). Adapter entries added
+  by one test were visible to the next. Additionally, semaphores for removed adapters (USB Wi-Fi
+  dongles) were never pruned. Changed to an instance field; since the executor is a DI singleton,
+  this has no runtime impact while fixing test isolation and the theoretical churn leak.
 - **Tray quick-connect never showed the captive portal dialog**: the system-tray "Connect" menu
   item called `executor.ConnectAsync` and discarded the returned `ConnectionResult`, so when the
   joined network was behind a captive portal (`result.BehindCaptivePortal`) the
