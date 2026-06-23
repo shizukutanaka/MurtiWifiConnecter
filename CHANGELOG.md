@@ -30,6 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **CLI `mwc disconnect` exited 0 when the adapter was not found — scripts couldn't detect the
+  error**: the handler printed "adapter not found" to stderr then `return`ed, leaving the process
+  exit code at 0 (success). `mwc connect` already exits `InvalidInput` (2) in the same case. Added
+  `Environment.Exit(ExitCode.InvalidInput)` so the two commands behave consistently.
+- **CLI `mwc multi connect` exited 0 (success) when every adapter=SSID pair was invalid**: each
+  malformed or adapter-not-found pair was logged and `continue`d, leaving the `tasks` list empty;
+  `Task.WhenAll([])` produced an empty result array, and the `success < results.Length` check was
+  `0 < 0` (false) → exit 0. A user who typo'd all adapter names got silent success. Added a
+  `tasks.Count == 0` guard that reports "no valid adapter=SSID pairs" and exits `InvalidInput`.
+  Also wrapped the whole handler in try/catch (exit `GeneralError` on unexpected exception) to match
+  the sibling `disconnect-all` and `status` handlers, which already had top-level guards.
+- **CLI `mwc connect --timeout 0` / negative crashed in the `CancellationTokenSource` constructor**:
+  `new CancellationTokenSource(TimeSpan.FromSeconds(to + 5))` throws `ArgumentOutOfRangeException`
+  for a negative `TimeSpan`, producing an unhandled crash instead of a usage error. Added an early
+  `if (to <= 0)` guard that reports the constraint and exits `InvalidInput`.
+- **`QrCodeDialog` save-file filter `"PNG Image (*.png)|*.png"` was a hardcoded UI string** —
+  violating the CLAUDE.md rule that all UI strings route through `Strings.resx`. Non-English users
+  saw an English filter label in the Save dialog. Added the `QR_PngFileFilter` key (neutral English
+  + Japanese `PNG 画像`) and switched the code to `L.Get("QR_PngFileFilter")`; other locales fall
+  through to the neutral English value until translated.
 - **`WifiProfileSpec.Validate()` (model method) accepted non-ASCII PSK passphrases that
   `WifiProfileValidator` rejects — inconsistent validation surface**: the record's own
   `Validate()` → `ValidatePassphrase()` checked passphrase *length* (8-63 or 64-hex) but not

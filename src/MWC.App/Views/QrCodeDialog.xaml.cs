@@ -65,7 +65,7 @@ public partial class QrCodeDialog : Window
         var dlg = new SaveFileDialog
         {
             FileName = $"{SsidLabel.Text}.png",
-            Filter   = "PNG Image (*.png)|*.png",
+            Filter   = MWC.App.Resources.L.Get("QR_PngFileFilter"),
             DefaultExt = ".png"
         };
         if (dlg.ShowDialog() == true)

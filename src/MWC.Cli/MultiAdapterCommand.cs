@@ -45,42 +45,55 @@ internal static class MultiAdapterCommand
 
         cmd.SetHandler(async (string[] specs, string? pw) =>
         {
-            var svc      = sp.GetRequiredService<IWifiService>();
-            var executor = sp.GetRequiredService<ConnectionExecutor>();
-            var ads      = await svc.GetAdaptersAsync();
-            pw ??= Environment.GetEnvironmentVariable("PW") ?? "";
-
-            var tasks = new List<Task<(string adapter, string ssid, bool ok, string? error)>>();
-
-            foreach (var spec in specs)
+            try
             {
-                var idx = spec.IndexOf('=');
-                if (idx < 0) { Console.Error.WriteLine($"invalid: {spec}"); continue; }
-                var adName = spec[..idx].Trim();
-                var ssid   = spec[(idx + 1)..].Trim();
+                var svc      = sp.GetRequiredService<IWifiService>();
+                var executor = sp.GetRequiredService<ConnectionExecutor>();
+                var ads      = await svc.GetAdaptersAsync();
+                pw ??= Environment.GetEnvironmentVariable("PW") ?? "";
 
-                var ad = ads.FirstOrDefault(a =>
-                    a.Name.Equals(adName, StringComparison.OrdinalIgnoreCase));
-                if (ad is null)
+                var tasks = new List<Task<(string adapter, string ssid, bool ok, string? error)>>();
+
+                foreach (var spec in specs)
                 {
-                    Console.Error.WriteLine($"adapter not found: {adName}");
-                    continue;
+                    var idx = spec.IndexOf('=');
+                    if (idx < 0) { Console.Error.WriteLine($"invalid: {spec}"); continue; }
+                    var adName = spec[..idx].Trim();
+                    var ssid   = spec[(idx + 1)..].Trim();
+
+                    var ad = ads.FirstOrDefault(a =>
+                        a.Name.Equals(adName, StringComparison.OrdinalIgnoreCase));
+                    if (ad is null)
+                    {
+                        Console.Error.WriteLine($"adapter not found: {adName}");
+                        continue;
+                    }
+
+                    tasks.Add(ConnectOneAsync(svc, executor, ad.Id, adName, ssid, pw));
                 }
 
-                tasks.Add(ConnectOneAsync(svc, executor, ad.Id, adName, ssid, pw));
+                // すべての spec が不正 / アダプター不一致なら、暗黙の成功 (exit 0) を避けて
+                // 入力エラーとして終了する。
+                if (tasks.Count == 0)
+                {
+                    Console.Error.WriteLine("no valid adapter=SSID pairs to connect");
+                    Environment.Exit(ExitCode.InvalidInput);
+                    return;
+                }
+
+                var results = await Task.WhenAll(tasks);
+                Console.WriteLine();
+                Console.WriteLine($"{"Adapter",-18}  {"SSID",-24}  Result");
+                Console.WriteLine(new string('-', 70));
+                foreach (var (adapter, ssid, ok, err) in results)
+                    Console.WriteLine($"{adapter,-18}  {ssid,-24}  {(ok ? "✓ connected" : $"✗ {err}")}");
+
+                int success = results.Count(r => r.ok);
+                Console.WriteLine();
+                Console.WriteLine($"{success} / {results.Length} adapters connected");
+                if (success < results.Length) Environment.Exit(ExitCode.GeneralError);
             }
-
-            var results = await Task.WhenAll(tasks);
-            Console.WriteLine();
-            Console.WriteLine($"{"Adapter",-18}  {"SSID",-24}  Result");
-            Console.WriteLine(new string('-', 70));
-            foreach (var (adapter, ssid, ok, err) in results)
-                Console.WriteLine($"{adapter,-18}  {ssid,-24}  {(ok ? "✓ connected" : $"✗ {err}")}");
-
-            int success = results.Count(r => r.ok);
-            Console.WriteLine();
-            Console.WriteLine($"{success} / {results.Length} adapters connected");
-            if (success < results.Length) Environment.Exit(ExitCode.GeneralError);
+            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, pairs, pwOpt);
 
         return cmd;

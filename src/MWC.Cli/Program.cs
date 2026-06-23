@@ -291,6 +291,8 @@ public static partial class Program
 
         cmd.SetHandler(async (string s, string? p, AuthMethod a, string? af, int to, bool h) =>
         {
+            if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
+
             var svc      = sp.GetRequiredService<IWifiService>();
             var executor = sp.GetRequiredService<ConnectionExecutor>();
             var ad       = await Resolve(svc, af);
@@ -342,7 +344,7 @@ public static partial class Program
         {
             var svc = sp.GetRequiredService<IWifiService>();
             var ad  = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); return; }
+            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
             Console.WriteLine(await svc.DisconnectAsync(ad.Id) ? "disconnected" : "no-op");
         }, adapter);
         return cmd;

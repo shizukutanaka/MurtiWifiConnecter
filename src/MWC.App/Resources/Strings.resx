@@ -273,6 +273,7 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="QR_DialogAutomation"><value>Wi-Fi QR Code display</value></data>
   <data name="Action_Copy"><value>Copy</value></data>
   <data name="QR_SavePng"><value>Save PNG</value></data>
+  <data name="QR_PngFileFilter"><value>PNG Image (*.png)|*.png</value></data>
   <data name="Profile_WindowTitle"><value>Saved networks</value></data>
   <data name="Profile_DialogAutomation"><value>Saved network management</value></data>
   <data name="Profile_ListAutomation"><value>Saved profile list</value></data>
