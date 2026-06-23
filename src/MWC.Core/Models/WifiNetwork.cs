@@ -87,7 +87,8 @@ public sealed record WifiNetwork
         }
     }
 
-    public bool IsPasspoint => Auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
+    public bool IsPasspoint =>
+        Auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192
         && BssEntries.Any(b => b.HasInterworkingElement);
 
     public int? MloAggregatedSpeedMbps => IsMlo && MloLinks.Count > 0

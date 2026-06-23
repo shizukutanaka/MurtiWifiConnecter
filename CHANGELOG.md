@@ -71,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw an English filter label in the Save dialog. Added the `QR_PngFileFilter` key (neutral English
   + Japanese `PNG 画像`) and switched the code to `L.Get("QR_PngFileFilter")`; other locales fall
   through to the neutral English value until translated.
+- **`WifiNetwork.IsPasspoint` excluded WPA3-Enterprise-192-bit networks from Passpoint detection**:
+  the `Auth is WPA2Enterprise or WPA3Enterprise` guard was missing `WPA3Enterprise192`, so a
+  WPA3-192-bit AP that broadcasts the 802.11u Interworking element was not recognised as a Passpoint
+  network by `Hotspot20Service.FilterPasspointNetworks`. Added `or WPA3Enterprise192` to the property
+  and a three-variant `[Theory]` regression test in `HighDensityScenarioTests`.
 - **`L.GetTroubleshootingAdvice` showed consumer "Wrong Password" dialog for WPA3-Enterprise-192-bit
   (CNSA) bad-credential failures**: the `isEnterprise` guard only listed `WPA2Enterprise | WPA3Enterprise`
   — `WPA3Enterprise192` was missing, so a 192-bit enterprise user who mistyped credentials was told

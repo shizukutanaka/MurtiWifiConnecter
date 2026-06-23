@@ -710,6 +710,23 @@ public class BssInfoModelTests
         passpointNet.Auth.Should().Be(AuthMethod.WPA2Enterprise);
         passpointNet.BssEntries.Should().HaveCount(1);
     }
+
+    [Theory]
+    [InlineData(AuthMethod.WPA2Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise192)]
+    public void WifiNetwork_IsPasspoint_AllEnterpriseAuthMethods_Recognized(AuthMethod auth)
+    {
+        var net = new WifiNetwork
+        {
+            Ssid       = "CorpNet",
+            Auth       = auth,
+            Band       = WifiBand.Band5GHz,
+            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+        };
+        net.IsPasspoint.Should().BeTrue(
+            because: $"{auth} is an enterprise auth method and must be recognized as Passpoint-capable");
+    }
 }
 
 public class TroubleshootingHelperBasicTests
