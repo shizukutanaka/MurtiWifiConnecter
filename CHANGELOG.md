@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **Connectivity probe was not bound to the connecting adapter — wrong internet/captive-portal verdict
+  on multi-adapter PCs**: `IConnectivityChecker.CheckAsync` took no adapter argument and
+  `HttpConnectivityChecker` issued its `msftconnecttest.com` probe over the OS *default route*. On a
+  machine with more than one active interface — the exact scenario this tool exists for — the verdict
+  was attributed to whichever adapter owned the default route, not the one that just associated.
+  Concretely: adapter A (already online) + adapter B just joined a captive-portal hotspot → the probe
+  egressed A and reported B as "Connected, internet OK", so the captive-portal dialog never fired; the
+  reverse (A's dead default route masking B's good link) was equally possible. Threaded the `adapterId`
+  through `CheckAsync(Guid? adapterId, …)` and bound the probe socket to that adapter's local IPv4 via
+  `SocketsHttpHandler.ConnectCallback`. When the IP can't be resolved (link not yet assigned, no match)
+  it falls back to the previous unbound behaviour, so the change is strictly ≥ prior correctness with no
+  regression. Contract change is fully contained: the interface has one implementation
+  (`HttpConnectivityChecker`) and one caller (`WindowsWifiService.ConnectAsync`); Linux/macOS don't use it.
 - **i18n — neutral `Strings.resx` had 19 Japanese values, causing Japanese text for any unmatched
   locale**: The neutral file is the .NET fallback for every locale not explicitly listed; having 19
   keys in Japanese meant German, French, Spanish, Korean etc. users would see Japanese for status

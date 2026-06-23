@@ -213,7 +213,9 @@ public sealed class WindowsWifiService : IWifiService
                     _ => ConnectionFailure.Unknown
                 });
 
-            var conn = await _connectivity.CheckAsync(ct);
+            // 疎通確認は「今接続したこのアダプター」に束縛して行う。既定ルートが
+            // 別アダプター(有線/別 Wi-Fi)の場合、束縛しないとそちらの疎通を誤報告する。
+            var conn = await _connectivity.CheckAsync(adapterId, ct);
             return ConnectionResult.Ok(ssid, conn.HasInternet, conn.CaptivePortalDetected);
         }
         catch (OperationCanceledException)

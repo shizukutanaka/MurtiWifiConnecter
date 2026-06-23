@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +20,16 @@ public interface ISecretProtector
 /// </summary>
 public interface IConnectivityChecker
 {
-    /// <summary>NCSI相当の検証。MS標準のmsftconnecttest.com利用</summary>
-    Task<ConnectivityStatus> CheckAsync(CancellationToken ct = default);
+    /// <summary>
+    /// NCSI相当の検証。MS標準のmsftconnecttest.com利用。
+    ///
+    /// <paramref name="adapterId"/> を指定すると、そのアダプターのローカル IP に
+    /// プローブ用ソケットをバインドし、検証トラフィックを<b>当該アダプター経由</b>で
+    /// 送出する。複数の無線アダプターを独立管理する本ツールでは、既定ルート
+    /// (別アダプター) の疎通を誤って「今接続したアダプターの結果」として報告しない
+    /// ために必須。null の場合は既定ルートで送出する (バインド無し)。
+    /// </summary>
+    Task<ConnectivityStatus> CheckAsync(Guid? adapterId = null, CancellationToken ct = default);
 }
 
 public readonly record struct ConnectivityStatus(
