@@ -17,13 +17,14 @@
 
     <!-- MWC アクセントカラー #00C4CC をシステムアクセントにフォールバック付きで定義 -->
     <SolidColorBrush x:Key="AccentBrush"     Color="#00C4CC"/>
-    <SolidColorBrush x:Key="AccentHoverBrush"Color="#33D2D9"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#33D2D9"/>
     <SolidColorBrush x:Key="AccentTextBrush" Color="#001518"/>
 
     <!-- セマンティックカラー (Fluent Design に合わせた値) -->
     <SolidColorBrush x:Key="SuccessBrush"    Color="#107C10"/>
     <SolidColorBrush x:Key="WarnBrush"       Color="#C19C00"/>
     <SolidColorBrush x:Key="DangerBrush"     Color="#C42B1C"/>
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="FocusBrush"      Color="#00C4CC"/>
 
     <!--
@@ -33,7 +34,7 @@
     -->
     <SolidColorBrush x:Key="BgBrush"          Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}"/>
     <SolidColorBrush x:Key="SurfaceBrush"     Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}"/>
-    <SolidColorBrush x:Key="SurfaceHoverBrush"Color="{DynamicResource {x:Static SystemColors.ControlLightColorKey}}"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="{DynamicResource {x:Static SystemColors.ControlLightColorKey}}"/>
     <SolidColorBrush x:Key="SurfaceSelBrush"  Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}"/>
     <SolidColorBrush x:Key="FgBrush"          Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}"/>
     <SolidColorBrush x:Key="FgMutedBrush"     Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}"/>

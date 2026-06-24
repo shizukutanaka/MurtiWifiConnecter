@@ -23,7 +23,7 @@
             <Setter Property="Foreground"     Value="#001518"/>
             <Setter Property="FontWeight"     Value="SemiBold"/>
             <Setter Property="Padding"        Value="14,7"/>
-            <Setter Property="BorderThickness"Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="MinHeight"      Value="32"/>
             <Setter Property="Cursor"         Value="Hand"/>
             <Setter Property="Template">
@@ -63,7 +63,7 @@
             <Setter Property="Foreground"     Value="{DynamicResource FgBrush}"/>
             <Setter Property="CaretBrush"     Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderBrush"    Value="{DynamicResource DividerBrush}"/>
-            <Setter Property="BorderThickness"Value="1"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"        Value="30,7,8,7"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -88,7 +88,7 @@
         <!-- ── ListBoxItem ── -->
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding"                   Value="10,9"/>
-            <Setter Property="HorizontalContentAlignment"Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Background"                Value="Transparent"/>
             <Setter Property="BorderThickness"           Value="0"/>
             <Setter Property="Template">
@@ -757,7 +757,7 @@
                         <Style TargetType="TabItem">
                             <Setter Property="Foreground"     Value="{DynamicResource FgMutedBrush}"/>
                             <Setter Property="Background"     Value="Transparent"/>
-                            <Setter Property="BorderThickness"Value="0"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="Padding"        Value="12,9"/>
                             <Setter Property="FontSize"       Value="12"/>
                         </Style>
