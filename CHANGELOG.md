@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`mwc quality --bufferbloat` now reports per-application suitability.** The previously
+  unsurfaced, fully-tested `QosAdvisoryService` is now wired into the responsiveness measurement:
+  after computing the bufferbloat grade, the CLI prints an Online Gaming / Video Conferencing /
+  Video Streaming / Web Browsing suitability verdict (and an `app_suitability` array under `--json`).
+  A ping-based test cannot observe the AP's WMM IE, so WMM priority is treated as absent
+  (the service's conservative path) and the output says so explicitly.
 - **Theme contract regression tests** (`ThemeContractTests`): guard the defect class where the WPF
   app could not build or launch. Reads the theme `.xaml` sources directly (no WPF `Application`
   needed) and asserts (1) every dictionary referenced by `App.xaml`/`ThemeService` exists,

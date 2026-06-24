@@ -18,7 +18,7 @@ public static partial class Program
         var host    = new Option<string>("--host", () => "8.8.8.8", "Ping target");
         var samples = new Option<int>("--samples", () => 5, "Ping count");
         var json    = new Option<bool>("--json");
-        var bloat   = new Option<bool>("--bufferbloat", "Also measure working latency (RPM + bufferbloat grade) under download load");
+        var bloat   = new Option<bool>("--bufferbloat", "Also measure working latency (RPM + bufferbloat grade) under download load, plus per-application suitability");
         var loadUrl = new Option<string>("--load-url",
             () => "https://speed.cloudflare.com/__down?bytes=104857600",
             "Download URL used to generate load for --bufferbloat");
@@ -39,6 +39,19 @@ public static partial class Program
                     var rr = await svc.MeasureResponsivenessAsync(
                         h, ct => GenerateLoadAsync(url, ct), s, cts.Token);
                     Console.Error.WriteLine();
+
+                    // 用途別適性 (QosAdvisoryService) を併せて提示する。
+                    // ping ベースの計測では AP の WMM IE を観測できないため wmm=null
+                    // (= 優先制御なしの保守的判定) を渡す。
+                    var qos = new QosAdvisoryService().Evaluate(rr, wmm: null);
+                    static string AppLabel(AppClass a) => a switch
+                    {
+                        AppClass.RealtimeGaming    => "Online Gaming",
+                        AppClass.VideoConferencing => "Video Conferencing",
+                        AppClass.VideoStreaming    => "Video Streaming",
+                        _                          => "Web Browsing",
+                    };
+
                     if (j)
                     {
                         Print(new {
@@ -46,7 +59,11 @@ public static partial class Program
                             working_latency_ms  = rr.WorkingLatencyMs,
                             latency_increase_ms = rr.LatencyIncreaseMs,
                             rpm                 = rr.Rpm,
-                            bufferbloat_grade   = rr.Grade.ToString()
+                            bufferbloat_grade   = rr.Grade.ToString(),
+                            app_suitability     = qos.Select(a => new {
+                                app   = a.App.ToString(),
+                                level = a.Level.ToString()
+                            })
                         });
                         return;
                     }
@@ -54,6 +71,10 @@ public static partial class Program
                     Console.WriteLine($"Working RTT:     {rr.WorkingLatencyMs} ms (+{rr.LatencyIncreaseMs} ms under load)");
                     Console.WriteLine($"Responsiveness:  {rr.RpmLabel}");
                     Console.WriteLine($"Bufferbloat:     {rr.GradeLabel}");
+                    Console.WriteLine();
+                    Console.WriteLine("Application suitability (from bufferbloat; AP WMM priority not observed via ping):");
+                    foreach (var a in qos)
+                        Console.WriteLine($"  {AppLabel(a.App),-20} {a.Level}");
                     return;
                 }
 
