@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Theme contract regression tests** (`ThemeContractTests`): guard the defect class where the WPF
+  app could not build or launch. Reads the theme `.xaml` sources directly (no WPF `Application`
+  needed) and asserts (1) every dictionary referenced by `App.xaml`/`ThemeService` exists,
+  (2) each is well-formed XML — catching glued attributes like `x:Key="…"Color="…"`, and (3) each
+  self-completely defines the full 16-brush contract the views consume. A fourth test scans the
+  views and asserts every `{DynamicResource …Brush}` they reference is in the contract, so a newly
+  referenced brush forces the contract (and all theme files) to be updated.
 - **`mwc plan-channels` CLI command**: exposes `ChannelPlannerService` from the CLI. Options:
   `--band 2.4|5|6` (default: all bands), `--dfs` (include DFS candidates), `--ranked` (show full
   candidate table per band), `--json`, `--adapter`. Invalid `--band` values exit with code 2 rather
