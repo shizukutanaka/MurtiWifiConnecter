@@ -64,6 +64,12 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Scan ─────────────────────────────────────────────────────────
+    /// <summary>
+    /// 利用可能なネットワークをスキャンする。
+    /// 注意: Windows 11 24H2 以降は Wi-Fi スキャン / SSID 列挙に「位置情報」プライバシー
+    /// 許可が必要。未許可だと Native Wifi が <see cref="UnauthorizedAccessException"/> を
+    /// 投げ、列挙結果が空になる。本実装はこれを区別して実用的な案内をログに出す。
+    /// </summary>
     public async Task<IReadOnlyList<WifiNetwork>> ScanAsync(
         Guid adapterId, CancellationToken ct = default)
     {
@@ -72,6 +78,11 @@ public sealed class WindowsWifiService : IWifiService
             await NativeWifi.ScanNetworksAsync(adapterId, TimeSpan.FromSeconds(8), ct);
         }
         catch (OperationCanceledException) { throw; }
+        catch (UnauthorizedAccessException ex)
+        {
+            _log.LogWarning(ex, "Wi-Fi scan denied — grant Location permission in " +
+                "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
+        }
         catch (Exception ex) { _log.LogWarning(ex, "ScanNetworks warning"); }
 
         try
@@ -79,6 +90,11 @@ public sealed class WindowsWifiService : IWifiService
             // BSS 情報(BSSID/RSSI/Channel)を取得
             var bssMap = BuildBssMap(adapterId);
 
+            // 既知の制限: SSID は仕様上 UTF-8 が保証されず、日本では Shift-JIS(cp932)で
+            // 設定された AP が存在する。ManagedNativeWifi の Ssid.ToString() は UTF-8 として
+            // 解釈するため、非 UTF-8 SSID は文字化けしうる。厳密対応には Ssid.ToBytes() を
+            // 取得し UTF-8 検証 → 失敗時 cp932 フォールバック(System.Text.Encoding.CodePages)
+            // が必要。実機(Windows)での検証が要るため将来対応とする。
             var networks = NativeWifi.EnumerateAvailableNetworks()
                 .Where(n => n.Interface.Id == adapterId)
                 .GroupBy(n => n.Ssid.ToString())
@@ -135,6 +151,15 @@ public sealed class WindowsWifiService : IWifiService
                 _log.LogDebug(ex, "Beacon IE enrichment skipped");
                 return marked;
             }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // Windows 11 24H2+ gates network enumeration behind the Location
+            // privacy permission. Surface this distinctly so an empty scan is
+            // diagnosable rather than reported as a generic failure.
+            _log.LogWarning(ex, "Wi-Fi network enumeration denied — grant Location permission in " +
+                "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
+            return Array.Empty<WifiNetwork>();
         }
         catch (Exception ex)
         {

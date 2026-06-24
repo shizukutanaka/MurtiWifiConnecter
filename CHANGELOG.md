@@ -43,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **Wi-Fi scan silently returned "0 networks" on Windows 11 24H2+ when Location permission was
+  denied.** `ManagedNativeWifi` (and the underlying Native Wifi API) gate scanning and SSID
+  enumeration behind the Location privacy permission on 24H2+; without it they throw
+  `UnauthorizedAccessException`. `ScanAsync` caught the generic `Exception` and logged a misleading
+  *"EnumerateAvailableNetworks failed"* error, so users saw an empty list with no cause. Now the
+  scan-trigger and enumeration paths catch `UnauthorizedAccessException` distinctly and log an
+  actionable, correctly-leveled warning naming the exact setting (Privacy & security > Location) —
+  which surfaces on the CLI's stderr logger. Mirrors the connect path's existing
+  `UnauthorizedAccessException → InsufficientPrivilege` handling. (Researched against the
+  ManagedNativeWifi docs / MS Learn Native Wifi guidance.)
+- **Documented the non-UTF-8 SSID limitation** at the decode site: SSIDs are not guaranteed UTF-8
+  (Shift-JIS/cp932 APs exist in Japan), so `Ssid.ToString()` can render garbled names; a precise
+  comment records the `Ssid.ToBytes()` + cp932-fallback approach for a future Windows-verified fix.
 - **Build-breaking malformed XAML: attributes glued together without a separating space.**
   `MainWindow.xaml` had four `<Setter Property="…"Value="…"/>` (e.g. `"BorderThickness"Value="0"`)
   and `Fluent.xaml` had two `x:Key="…"Color="…"` brushes with no space between the attributes —
