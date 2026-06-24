@@ -81,7 +81,7 @@
         <!-- エラーメッセージ -->
         <Border Grid.Row="3" Background="{DynamicResource DangerBrush}" CornerRadius="6"
                 Padding="10,8" Margin="0,10,0,0">
-            <TextBlock x:Name="ErrorLabel" Foreground="{DynamicResource DangerBrush}"
+            <TextBlock x:Name="ErrorLabel" Foreground="{DynamicResource DangerTextBrush}"
                        FontSize="12" TextWrapping="Wrap"/>
             <Border.Style>
                 <Style TargetType="Border">

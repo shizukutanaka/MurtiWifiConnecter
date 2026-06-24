@@ -1,0 +1,27 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Solarized Dark (Ethan Schoonover) パレット。全ブラシキーを完備。 -->
+
+    <SolidColorBrush x:Key="BgBrush"           Color="#002B36"/>
+    <SolidColorBrush x:Key="SurfaceBrush"      Color="#073642"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#0B4451"/>
+    <SolidColorBrush x:Key="SurfaceSelBrush"   Color="#134E5A"/>
+
+    <SolidColorBrush x:Key="FgBrush"           Color="#93A1A1"/>
+    <SolidColorBrush x:Key="FgMutedBrush"      Color="#839496"/>
+    <SolidColorBrush x:Key="FgVeryMutedBrush"  Color="#586E75"/>
+    <SolidColorBrush x:Key="DividerBrush"      Color="#0B4451"/>
+
+    <SolidColorBrush x:Key="AccentBrush"       Color="#2AA198"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"  Color="#3CBAB0"/>
+    <SolidColorBrush x:Key="AccentTextBrush"   Color="#002B36"/>
+    <SolidColorBrush x:Key="FocusBrush"        Color="#2AA198"/>
+
+    <SolidColorBrush x:Key="SuccessBrush"      Color="#859900"/>
+    <SolidColorBrush x:Key="WarnBrush"         Color="#B58900"/>
+    <SolidColorBrush x:Key="DangerBrush"       Color="#DC322F"/>
+    <SolidColorBrush x:Key="DangerTextBrush"   Color="#FDF6E3"/>
+
+</ResourceDictionary>

@@ -57,8 +57,20 @@ public sealed class ThemeService : IDisposable
             AppTheme.Catppuccin => CatppuccinUri,
             _                   => dark ? DarkUri : LightUri,
         };
-        var newDict = new ResourceDictionary
-            { Source = new Uri(uri, UriKind.Relative) };
+
+        // テーマ辞書の読込は失敗しうる (リソース欠落・破損)。失敗を握り潰すと
+        // 全ブラシキーが未解決になり UI が無言で壊れるため、既定の Dark へ
+        // フォールバックして起動を継続する (Dark は必ず存在する完備辞書)。
+        ResourceDictionary newDict;
+        try
+        {
+            newDict = new ResourceDictionary { Source = new Uri(uri, UriKind.Relative) };
+        }
+        catch (Exception ex) when (uri != DarkUri)
+        {
+            _log.LogWarning(ex, "Theme {theme} failed to load; falling back to Dark", _current);
+            newDict = new ResourceDictionary { Source = new Uri(DarkUri, UriKind.Relative) };
+        }
 
         var merged = Application.Current.Resources.MergedDictionaries;
         for (int i = merged.Count - 1; i >= 0; i--)

@@ -30,6 +30,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **Build-breaking malformed XAML: attributes glued together without a separating space.**
+  `MainWindow.xaml` had four `<Setter Property="…"Value="…"/>` (e.g. `"BorderThickness"Value="0"`)
+  and `Fluent.xaml` had two `x:Key="…"Color="…"` brushes with no space between the attributes —
+  invalid XML that the WPF markup compiler rejects, so the `MWC.App` project (and the
+  `MWC.Core.Tests` build that references it) could not compile. Inserted the missing spaces;
+  added a repo-wide XML well-formedness check over every `*.xaml` to the verification routine.
+- **WPF app could not start: every theme `ResourceDictionary` except `Fluent.xaml` was missing.**
+  `App.xaml` statically merges `Themes/Generic.xaml` + `Themes/Dark.xaml` at startup, and
+  `ThemeService` switches between six themes (`Dark`/`Light`/`Fluent`/`Solarized`/`Nord`/`Catppuccin`),
+  but only `Fluent.xaml` existed on disk — so loading `App.xaml` threw on the missing merged
+  dictionaries (the default theme is `AppTheme.Dark`), and the Core-only CI build never caught it
+  because pack-URI resources resolve at runtime. Added the missing self-complete dictionaries
+  (`Generic`, `Dark`, `Light`, `Solarized`, `Nord`, `Catppuccin`), each defining the full 16-brush
+  contract the views consume (`BgBrush`/`SurfaceBrush`/`FgBrush`/`AccentBrush`/… ). Hardened
+  `ThemeService.Apply` to fall back to `Dark` (and log) if a theme dictionary ever fails to load,
+  so a corrupt/absent palette degrades gracefully instead of crashing the app.
+- **Error text and the profile delete button were invisible (red-on-red).** `ConnectDialog`'s
+  validation banner placed `DangerBrush` text on a `DangerBrush` background, and
+  `ProfileManagerDialog`'s per-row Delete button did the same — both rendered the same red on red.
+  Added a `DangerTextBrush` (white / theme-appropriate) to every theme dictionary and pointed both
+  foregrounds at it so text on the danger surface is legible.
 - **`WindowsWifiService` misclassified WEP networks as Open, triggering the wrong security advisory
   and a 2× too high security score**: Windows WLAN API represents WEP networks as
   `AuthAlgorithm.Open` (or `SharedKey`) + `CipherAlgorithm.Wep`. `MapAuth(first.AuthAlgorithm)`
