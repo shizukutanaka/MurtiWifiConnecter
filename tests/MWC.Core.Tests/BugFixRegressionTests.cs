@@ -826,3 +826,117 @@ public class TroubleshootingAdviceEnterpriseRegressionTests
         advice.Icon.Should().Be("🔑");
     }
 }
+
+// ═══════════════════════════════════════════════
+//  NetworkQualityService.GetCached — TTL 回帰
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// GetCached が 5 分以上古い測定値を返さないことを保証する。
+/// 回帰防止: TTL なし実装では古い品質スコアが UI に表示され続けた。
+/// </summary>
+public class NetworkQualityServiceCacheTests
+{
+    [Fact]
+    public void GetCached_ReturnsNull_WhenNotYetMeasured()
+    {
+        var svc = new NetworkQualityService();
+        svc.GetCached("8.8.8.8").Should().BeNull();
+    }
+
+    [Fact]
+    public void GetCached_ReturnsFreshResult_WhenWithinTtl()
+    {
+        // MeasuredAt = just now → must be returned
+        var fresh = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow);
+        var svc = new NetworkQualityService();
+        // inject via the internal cache through reflection so we don't need network I/O
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = fresh;
+
+        svc.GetCached("8.8.8.8").Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GetCached_ReturnsNull_WhenResultIsOlderThan5Minutes()
+    {
+        // MeasuredAt = 6 minutes ago → TTL expired
+        var stale = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow.AddMinutes(-6));
+        var svc = new NetworkQualityService();
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = stale;
+
+        svc.GetCached("8.8.8.8").Should().BeNull(
+            because: "a 6-minute-old measurement exceeds the 5-minute TTL");
+    }
+
+    [Fact]
+    public void GetCached_ReturnsCachedResult_JustBeforeTtlExpiry()
+    {
+        // MeasuredAt = 4 min 59 sec ago → still within TTL
+        var nearExpiry = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow.AddSeconds(-299));
+        var svc = new NetworkQualityService();
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = nearExpiry;
+
+        svc.GetCached("8.8.8.8").Should().NotBeNull(
+            because: "299 seconds is within the 300-second TTL");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  AccessibilityAuditService.ParseHex — 入力バリデーション回帰
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// CalcContrast に無効なカラー文字列を渡したとき明確な ArgumentException が
+/// 投げられることを保証する。
+/// 回帰防止: バリデーション前は ArgumentOutOfRangeException / FormatException など
+/// 不明瞭な例外が発生し、呼び出し元がエラー原因を特定できなかった。
+/// </summary>
+public class AccessibilityAuditHexValidationTests
+{
+    private readonly AccessibilityAuditService _svc = new();
+
+    [Theory]
+    [InlineData("")]           // 空文字
+    [InlineData("#")]          // # のみ
+    [InlineData("FFFF")]       // 4 桁 (CSS では無効)
+    [InlineData("FFFFF")]      // 5 桁
+    [InlineData("FFFFFFFFF")]  // 9 桁
+    public void CalcContrast_ThrowsArgumentException_ForInvalidLength(string bad)
+    {
+        var act = () => _svc.CalcContrast(bad, "#FFFFFF");
+        act.Should().Throw<ArgumentException>(
+            because: $"'{bad}' is not a valid 3- or 6-digit hex colour");
+    }
+
+    [Theory]
+    [InlineData("#FFF",    "#000")]    // 3 桁短縮形 → 展開
+    [InlineData("FFFFFF",  "000000")] // # なし 6 桁
+    [InlineData("#FFFFFF", "#000000")]
+    [InlineData("#FFFFFFAA", "#000000")] // 8 桁 CSS → 先頭 6 桁使用
+    public void CalcContrast_AcceptsValidHex(string fg, string bg)
+    {
+        var act = () => _svc.CalcContrast(fg, bg);
+        act.Should().NotThrow();
+        _svc.CalcContrast(fg, bg).Should().BeApproximately(21.0, precision: 0.1);
+    }
+
+    [Fact]
+    public void EvaluateContrast_WhiteOnBlack_IsAaaLevel()
+    {
+        var r = _svc.EvaluateContrast("#FFFFFF", "#000000");
+        r.Level.Should().Be(WcagLevel.AAA);
+        r.Ratio.Should().BeApproximately(21.0, precision: 0.1);
+    }
+}

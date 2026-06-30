@@ -215,8 +215,8 @@ public static partial class Program
             if (et)
             {
                 // CLI は接続履歴を持たないステートレス実行のため、EvilTwinDetector の
-                // 5 ヒューリスティックのうち履歴非依存の 1 つ (同一 SSID に異なる
-                // セキュリティ設定が混在) のみが発火する。残り 4 つ (BSSID/ベンダー/
+                // 4 ヒューリスティックのうち履歴非依存の 1 つ (同一 SSID に異なる
+                // セキュリティ設定が混在) のみが発火する。残り 3 つ (BSSID/ベンダー/
                 // セキュリティ降格の履歴照合) はデスクトップアプリ側でのみ機能する。
                 var detector = new EvilTwinDetector(oui);
                 var suspects = enriched

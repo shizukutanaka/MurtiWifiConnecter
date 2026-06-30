@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ namespace MWC.Core.Services;
 /// </summary>
 public sealed class NetworkQualityService
 {
-    private static readonly string[] DnsTargets = { "8.8.8.8", "1.1.1.1" };
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
     private readonly ConcurrentDictionary<string, NetworkQualityResult> _cache = new();
 
     /// <summary>指定ホストへの品質計測(非同期)</summary>
@@ -73,8 +72,12 @@ public sealed class NetworkQualityService
         return result;
     }
 
+    /// <summary>直近の測定結果を返す。TTL(5分)超過または未測定の場合は null。</summary>
     public NetworkQualityResult? GetCached(string host = "8.8.8.8")
-        => _cache.TryGetValue(host, out var r) ? r : null;
+    {
+        if (!_cache.TryGetValue(host, out var r)) return null;
+        return DateTimeOffset.UtcNow - r.MeasuredAt <= CacheTtl ? r : null;
+    }
 
     /// <summary>
     /// 負荷時遅延(responsiveness / bufferbloat)を計測する。

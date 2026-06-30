@@ -166,7 +166,18 @@ public sealed class AdapterPreferencesService
     public IReadOnlyList<string> GetPreferredNetworks(Guid adapterId)
         => Get(adapterId).AutoConnectPriority;
 
-    /// <summary>自動再接続の有効/無効を設定。無効化時は両方の優先リストをクリアする。</summary>
+    /// <summary>
+    /// 自動再接続の有効/無効を設定。
+    /// <para>
+    /// <paramref name="enabled"/> = false: 優先 SSID リスト両方をクリアする。
+    /// 以後 <see cref="IsAutoReconnectEnabled"/> は false を返す(SSID が空のため)。
+    /// </para>
+    /// <para>
+    /// <paramref name="enabled"/> = true: 意図的に何もしない。
+    /// 自動再接続は SSID の明示登録(<see cref="PinSsid"/> / <see cref="AddPreferred"/>)によって
+    /// 有効化するものであり、このメソッドで「スイッチを入れる」概念はない。
+    /// </para>
+    /// </summary>
     public void SetAutoReconnect(Guid adapterId, bool enabled)
     {
         if (!enabled)
@@ -178,6 +189,7 @@ public sealed class AdapterPreferencesService
                 PinnedSsids         = Array.Empty<string>()
             });
         }
+        // enabled=true は意図的な no-op。上記 XML doc 参照。
     }
 
     private Dictionary<Guid, AdapterPreferences> Load()

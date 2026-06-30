@@ -85,7 +85,7 @@ public sealed class GroupPolicyProvider
                 result.Add(new PolicyEntry(name, val?.ToString() ?? "", key.GetValueKind(name).ToString()));
             }
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なしは空リストで正常処理 */ }
         return result;
     }
 
@@ -113,7 +113,7 @@ public sealed class GroupPolicyProvider
                 using var key = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
                 return key is not null;
             }
-            catch { return false; }
+            catch (Exception) { return false; }
         }
     }
 
@@ -138,7 +138,7 @@ public sealed class GroupPolicyProvider
                 _      => null
             };
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なし */ }
         return null;
     }
 
@@ -149,7 +149,7 @@ public sealed class GroupPolicyProvider
             using var gpKey = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
             if (gpKey?.GetValue(name) is string gpVal) return gpVal;
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なし */ }
         return null;
     }
 

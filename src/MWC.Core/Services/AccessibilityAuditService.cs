@@ -149,9 +149,23 @@ public sealed class AccessibilityAuditService
 
     private static (double R, double G, double B) ParseHex(string hex)
     {
+        if (string.IsNullOrEmpty(hex))
+            throw new ArgumentException("Hex colour must not be empty.", nameof(hex));
+
         hex = hex.TrimStart('#');
+
         if (hex.Length == 3)
             hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
+
+        // CSS 8-digit (#RRGGBBAA) は先頭 6 桁のみ使用; それ以外の長さは不正
+        if (hex.Length == 8)
+            hex = hex[..6];
+
+        if (hex.Length != 6)
+            throw new ArgumentException(
+                $"Invalid hex colour '{hex}': expected 3 or 6 hex digits (with optional leading '#').",
+                nameof(hex));
+
         return (
             Convert.ToInt32(hex[..2], 16) / 255.0,
             Convert.ToInt32(hex[2..4], 16) / 255.0,

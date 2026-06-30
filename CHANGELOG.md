@@ -43,6 +43,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`NetworkQualityService.GetCached` returned measurements of any age** — a quality result from
+  10+ minutes ago could appear as "current" in the UI or CLI, even after the connection changed.
+  Added a 5-minute TTL: `GetCached` returns `null` when `DateTimeOffset.UtcNow − MeasuredAt > 5 min`,
+  forcing callers to remeasure. Replaced the unused `DnsTargets` dead field with a `CacheTtl`
+  constant and removed the unused `using System.Diagnostics` import.
+- **`AccessibilityAuditService.ParseHex` threw cryptic low-level exceptions on invalid colour strings.**
+  Inputs with the wrong number of hex digits (e.g. 4-digit `"FFFF"`, 5-digit, 9-digit) caused
+  `ArgumentOutOfRangeException` from the range-indexer `hex[..2]`, and invalid hex characters
+  caused `FormatException` from `Convert.ToInt32`, with no indication of which colour argument
+  was bad. Added explicit guard clauses: empty strings throw `ArgumentException` with the argument
+  name, wrong lengths throw with the offending value and expected format. 8-digit CSS `#RRGGBBAA`
+  hex is accepted silently (alpha stripped) since it appears in design-system tokens.
+- **`GroupPolicyProvider` `catch { }` blocks swallowed all exceptions silently**, including potential
+  thread-abort or memory-pressure exceptions unrelated to registry access. Changed to
+  `catch (Exception)` with inline comments explaining the intentional catch-all (registry absent /
+  access denied on non-domain machines). No behaviour change; explicit syntax aids static analysis.
+- **`AdapterPreferencesService.SetAutoReconnect(enabled: true)` was an undocumented no-op.**
+  The ViewModel binding called this when the user toggled auto-reconnect on, but the method did
+  nothing — auto-reconnect requires explicit SSID pinning via `PinSsid` / `AddPreferred`, there is
+  no "global enable switch". Added XML documentation explaining the intentional design to prevent
+  future contributors from treating the `enabled=true` branch as a bug to be filled in.
+- **CLI Evil Twin comment overstated heuristic count.** The `--evil-twin` handler comment said "5
+  ヒューリスティックのうち 1 つ" but `EvilTwinDetector.Analyze` implements exactly 4 checks
+  (multi-auth, BSSID mismatch, security downgrade, vendor mismatch). Corrected to 4 / 3.
 - **Wi-Fi scan silently returned "0 networks" on Windows 11 24H2+ when Location permission was
   denied.** `ManagedNativeWifi` (and the underlying Native Wifi API) gate scanning and SSID
   enumeration behind the Location privacy permission on 24H2+; without it they throw
