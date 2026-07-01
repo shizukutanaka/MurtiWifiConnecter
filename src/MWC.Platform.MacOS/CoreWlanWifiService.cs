@@ -79,6 +79,19 @@ public sealed class CoreWlanWifiService : IWifiService
         // macOS では /Library/Preferences/SystemConfiguration/com.apple.wifi.plist
         // または networksetup -addpreferredwirelessnetworkatindex で管理
         // 未実装スタブ — 登録は行われないため false。
+        //
+        // ⚠ 実装時の注意 (他メソッドと違いここは「見た目は動くが実は罠」になりやすい):
+        // ConnectionExecutor.ConnectAsync はパスフレーズが必要な認証方式の場合、
+        // まず RegisterProfileAsync(profileXml) を呼び、false が返ると即座に
+        // ConnectionFailure.OsError で失敗させ、下の ConnectAsync(adapterId, ssid,
+        // profileName, ...) 自体を一切呼ばない。しかもこの ConnectAsync のシグネチャは
+        // パスフレーズを引数に取らないため、ここでスタブを解除する場合は
+        // RegisterProfileAsync 側で profileXml から SSID/keyMaterial を抽出し
+        // (NmcliWifiService.RegisterProfileAsync と同じパターン)、インスタンスの
+        // 辞書等にキャッシュしておき、ConnectAsync がそのキャッシュを参照して
+        // "networksetup -setairportnetwork <iface> <ssid> <password>" を呼ぶ必要がある。
+        // RegisterProfileAsync を安易に true 固定へ変えるだけでは、
+        // パスフレーズ無しで networksetup が呼ばれ全接続が失敗する。
         return Task.FromResult(false);
     }
 

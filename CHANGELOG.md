@@ -42,6 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Solution filter files** (`MWC.ci-win.slnf`, `MWC.ci-linux.slnf`): allow CI to build the
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
+### Docs
+- **Documented a latent trap in `CoreWlanWifiService.RegisterProfileAsync` (macOS prototype).**
+  Unlike the fully-stubbed Android/iOS implementations, this class has real working logic for
+  `GetAdaptersAsync`/`ScanAsync`/`ConnectAsync` (via `networksetup`/`airport`), which could mislead
+  a future implementer into thinking `RegisterProfileAsync`'s `false` stub is similarly harmless.
+  In fact `ConnectionExecutor.ConnectAsync` treats a `false` return as fatal for any
+  passphrase-requiring auth method and never calls the platform's `ConnectAsync` at all — and
+  since `IWifiService.ConnectAsync` has no passphrase parameter, simply flipping the stub to
+  `true` would call `networksetup -setairportnetwork` with no password and fail every secured
+  connection anyway. Added a comment explaining the correct fix (extract SSID/keyMaterial from
+  `profileXml` in `RegisterProfileAsync`, cache it, and have `ConnectAsync` look it up — the same
+  pattern `NmcliWifiService.RegisterProfileAsync` already uses for Linux). No behavior change.
+
 ### Fixed
 - **`CertificatePickerDialog`'s certificate-expiry indicator ignored the active theme.** Every
   other visual element in the dialog binds `{DynamicResource ...Brush}`, but the expiry
