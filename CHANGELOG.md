@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **`ROADMAP.md`'s "14 languages, 100% translated" claim does not hold for Bengali/Hindi/Tamil.**
+  A key-by-key audit found `Strings.bn.resx`, `Strings.hi.resx`, and `Strings.ta.resx` each have
+  274 of 426 entries (64%) that are byte-for-byte identical English placeholder text, not
+  translations (e.g. `Label_AvailableNetworks` = "Available networks", `Auth_Open` = "Open"),
+  across the exact same 274 keys in all three files — consistent with a bulk-scaffolded locale
+  file whose translation pass never happened. The other 11 locales (ar/de/en/es/fr/ja/ko/pt-BR/
+  ru/zh-Hans/zh-Hant) were individually spot-checked against the same key set and are correctly
+  translated. Reverted the roadmap checkbox to `[ ]` with the exact scope documented; no strings
+  were changed in this pass (see the "Next steps" discussion for why a bulk fix wasn't attempted
+  here). Also corrected the "90日 SQLite" scan-history claim: the actual implementation
+  (`NetworkHistoryService`) uses a JSON file, not SQLite — the 90-day/500-entry functional
+  requirement is met, only the roadmap's stated storage technology was wrong (JSON is the
+  appropriate choice here per CLAUDE.md's own "≤200 lines → self-implement" guidance, so no code
+  change is warranted). And flagged "スクリーンリーダー実機テスト" as unverifiable rather than
+  false: no automated test or documented test log corresponds to it in this repository, but real
+  screen-reader hardware testing cannot be proven or disproven by source inspection alone.
+
 ### Fixed
 - **Four theme colours failed WCAG contrast despite `ROADMAP.md` claiming "AAA" verification was
   complete — because `AccessibilityAuditService`, the WCAG contrast calculator, had never actually

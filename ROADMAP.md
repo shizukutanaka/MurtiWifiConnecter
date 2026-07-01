@@ -15,16 +15,30 @@
 - [x] Wi-Fi 7 (802.11be) MLO (Multi-Link Operation) サポート
 - [ ] 6 GHz 帯の規制ドメイン別チャネル表示 — `RegulatoryDomainService` (Core, 国別チャネル
   テーブル) は実装済みだが、App/CLI のどこからも呼び出されておらず未配線。
-- [x] スキャン履歴の長期保存 (90日 SQLite)
+- [x] スキャン履歴の長期保存(90日・500件上限)— 実装は `NetworkHistoryService` による JSON
+  ファイル保存(`%LocalAppData%/MWC/history.json`)。**SQLite ではない**(2026-07 監査で
+  判明、以前の記載は技術詳細が誤り)。500件規模の単純な読み書きに SQLite は過剰で、
+  CLAUDE.md の「依存追加 vs 自前実装 → ≤200行なら自前」という方針にも整合するため、
+  機能要件(90日保持)自体は満たしており、実装方針の変更は不要と判断。
 
 ### UX
-- [x] 言語追加: 中国語簡体字以外の地域言語(ヒンディー語、ベンガル語、タミル語)
+- [ ] 言語追加: 中国語簡体字以外の地域言語(ヒンディー語、ベンガル語、タミル語)—
+  **未完了**(2026-07 監査で判明)。`Strings.bn.resx`/`Strings.hi.resx`/`Strings.ta.resx` は
+  いずれも 426 キー中 274 キー(64%)が英語原文のまま一字一句コピーされたプレースホルダーで、
+  翻訳が行われていない(例: `Label_AvailableNetworks` = "Available networks",
+  `Error_PassphraseTooShort` = "Passphrase must be at least 8 characters")。他の11言語
+  (ar/de/en/es/fr/ja/ko/pt-BR/ru/zh-Hans/zh-Hant)は同じキーで正しく翻訳されていることを
+  個別確認済み — 問題はこの3言語に限定される。
 - [x] WCAG AAA 全画面ナビゲーション検証(Dark/Light/Nord/Catppuccin テーマ。Solarized は
   実在の著名パレット保持を優先し AA。Fluent は OS システムカラー依存のため本文コントラストは
   検証対象外)— `ThemeAccessibilityAuditTests` で自動検証。2026-07 監査でこの検証自体が
   一度も実行されていなかったことが判明し、実施したところ4件の実コントラスト不足を発見・修正
   (Light の AccentTextBrush、Dark/Nord/Solarized の DangerTextBrush)。
-- [x] スクリーンリーダー実機テスト (NVDA / JAWS / ナレーター)
+- [ ] スクリーンリーダー実機テスト (NVDA / JAWS / ナレーター)— **未検証**(2026-07 監査)。
+  リポジトリ内に対応する自動テスト・実施記録が一切見つからず、この主張を裏付ける証拠がない。
+  実機での人手検証が本質的に必要な項目のため、この監査では「反証」ではなく「証跡なし」の
+  指摘にとどめる(AutomationProperties.Name 自体は全 View で要素数以上の出現数が確認できて
+  おり、少なくとも土台は整っている)。
 
 ### 配布
 - [x] Microsoft Store 申請(MSIX)
