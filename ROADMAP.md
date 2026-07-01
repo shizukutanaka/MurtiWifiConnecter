@@ -2,12 +2,19 @@
 
 このドキュメントは MWC の今後の方向性を示す。優先順は固定ではなく、コミュニティの反響と技術的実現性で変動する。
 
+> **注記(2026-07 監査)**: 「実装されている」(Core にクラスがあり単体テストが通る)と
+> 「機能している」(ユーザーが App/CLI から実際に到達できる)は別物であることが判明した。
+> 監査の結果、`[x]` 完了扱いだった項目のうち 6 件が、対応する Core サービスを持ちながら
+> App/CLI/他の Core サービスのいずれからも一度も呼び出されていない(=呼び出し元ゼロ)ことを
+> 確認したため `[ ]` へ差し戻した。コードは変更していない — チェック状態のみ実態に合わせた。
+
 ## v2.x (短期: 3-6ヶ月)
 
 ### コア機能強化
 - [x] EAP-TLS クライアント証明書ストアからの自動選択 UI
 - [x] Wi-Fi 7 (802.11be) MLO (Multi-Link Operation) サポート
-- [x] 6 GHz 帯の規制ドメイン別チャネル表示
+- [ ] 6 GHz 帯の規制ドメイン別チャネル表示 — `RegulatoryDomainService` (Core, 国別チャネル
+  テーブル) は実装済みだが、App/CLI のどこからも呼び出されておらず未配線。
 - [x] スキャン履歴の長期保存 (90日 SQLite)
 
 ### UX
@@ -28,10 +35,14 @@
 - [x] 共通 Core を NetStandard 2.0 化
 
 ### 高度機能
-- [x] Wi-Fi Direct ピアツーピア接続
-- [x] WPA3-OWE (Opportunistic Wireless Encryption) 自動選択
-- [x] Hotspot 2.0 / Passpoint 自動接続プロファイル
-- [x] eduroam ワンクリック設定 (CAT XML インポート)
+- [ ] Wi-Fi Direct ピアツーピア接続 — `WifiDirectService` (Core) は実装済みだが、App/CLI の
+  どこからも呼び出されておらず、ユーザーは到達できない。GUI/CLI への配線が未完了。
+- [ ] WPA3-OWE (Opportunistic Wireless Encryption) 自動選択 — `OweSelectionService` (Core) は
+  実装済みだが未配線。同上。
+- [ ] Hotspot 2.0 / Passpoint 自動接続プロファイル — `Hotspot20Service` (Core, キャリアプリセット
+  含む) は実装済みだが未配線。同上。
+- [ ] eduroam ワンクリック設定 (CAT XML インポート) — `CatImportService` (Core, XXE 対策済み)は
+  実装済みだが未配線。同上。
 
 ### 開発者向け
 - [x] MWC.SDK NuGet パッケージ(Cli/App をライブラリ化)
@@ -44,7 +55,8 @@
 - [x] iOS 版 (NEHotspotConfiguration)
 
 ### エンタープライズ
-- [x] Group Policy 経由でのプロファイル一括配布
+- [ ] Group Policy 経由でのプロファイル一括配布 — `GroupPolicyProvider` (Core, レジストリ
+  読み取り) は実装済みだが、App/CLI のどこからも呼び出されておらず未配線。
 - [x] Intune / Endpoint Manager 統合
 - [x] 自社 RADIUS サーバ証明書の自動検証
 

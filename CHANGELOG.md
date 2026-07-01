@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **Corrected six `ROADMAP.md` items falsely marked `[x]` complete.** An audit (prompted by a
+  strengths/weaknesses review) found that "implemented" (a Core class exists and its unit tests
+  pass) and "functioning" (a user can actually reach it from the App or CLI) had diverged: 6
+  GHz regulatory-domain display, Wi-Fi Direct, WPA3-OWE auto-selection, Hotspot 2.0/Passpoint,
+  eduroam CAT XML import, and Group Policy profile distribution all have real, tested Core
+  implementations (`RegulatoryDomainService`, `WifiDirectService`, `OweSelectionService`,
+  `Hotspot20Service`, `CatImportService`, `GroupPolicyProvider`) that are never invoked from the
+  App, the CLI, or any other reachable Core service — zero call sites outside their own file and
+  tests. Reverted their checkboxes to `[ ]` with a note identifying the missing wiring; no code
+  was changed. A broader audit found 13 of 56 Core services (~23%) in this unreachable state;
+  the other 7 (`AccessibilityAuditService`, `CaptivePortalService`, `KalmanRssiFilter`,
+  `PrivacyAdvisoryService`, `RetryPolicy`, `SignalIconService`, `BeaconUptimeEstimator`) were not
+  claimed as roadmap-complete items and are left for a future wiring or removal decision.
+
 ### Added
 - **`VpnAdvisoryService` + `mwc vpn-advice`: VPN usage recommendation per network** (ROADMAP.md
   "検討中" item, delivered in advisory-only form). Recommends whether a VPN is worth using on a
