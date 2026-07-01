@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`NmcliWifiService.ParseSecurity` (Linux) misclassified 802.1X Enterprise networks as
+  Personal (PSK/SAE).** nmcli's `SECURITY` column appends `" 802.1X"` to the WPA version
+  string for Enterprise networks (e.g. `"WPA2 802.1X"`, `"WPA3 802.1X"`), but `ParseSecurity`
+  only matched on the WPA version substring, so an Enterprise AP was reported as
+  `AuthMethod.WPA2PSK`/`WPA3SAE`. This would steer the connect flow toward a PSK profile
+  instead of the certificate/EAP-based one, causing spurious auth failures on eduroam-style
+  networks scanned from Linux. Added an `802.1X` substring check ahead of the WPA-version
+  branches, mapping to `AuthMethod.WPA2Enterprise`/`WPA3Enterprise` accordingly.
 - **`NetworkQualityService.GetCached` returned measurements of any age** — a quality result from
   10+ minutes ago could appear as "current" in the UI or CLI, even after the connection changed.
   Added a 5-minute TTL: `GetCached` returns `null` when `DateTimeOffset.UtcNow − MeasuredAt > 5 min`,

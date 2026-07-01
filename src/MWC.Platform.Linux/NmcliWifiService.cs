@@ -325,12 +325,19 @@ public sealed class NmcliWifiService : IWifiService
 
     private static AuthMethod ParseSecurity(string security)
     {
-        if (security.Contains("WPA3"))   return AuthMethod.WPA3SAE;
-        if (security.Contains("WPA2"))   return AuthMethod.WPA2PSK;
-        if (security.Contains("WPA"))    return AuthMethod.WPAPSK;
-        if (security.Contains("WEP"))    return AuthMethod.WEP;
-        if (security.Contains("OWE"))    return AuthMethod.OWE;
-        if (security == "--")            return AuthMethod.Open;
+        // nmcli の SECURITY 列は 802.1X (Enterprise) キー管理の場合 "WPA2 802.1X" /
+        // "WPA3 802.1X" のように末尾へ "802.1X" を付加する (NetworkManager の
+        // nm_utils_ap_mode_security_flags2str 相当の出力形式)。802.1X チェックを
+        // WPA バージョンチェックより先に行わないと、Enterprise ネットワークが
+        // Personal (PSK/SAE) と誤判定され、証明書ベースの接続フローが選ばれず
+        // 接続に失敗する。
+        bool enterprise = security.Contains("802.1X");
+        if (security.Contains("WPA3")) return enterprise ? AuthMethod.WPA3Enterprise : AuthMethod.WPA3SAE;
+        if (security.Contains("WPA2")) return enterprise ? AuthMethod.WPA2Enterprise : AuthMethod.WPA2PSK;
+        if (security.Contains("WPA"))  return AuthMethod.WPAPSK;
+        if (security.Contains("WEP"))  return AuthMethod.WEP;
+        if (security.Contains("OWE"))  return AuthMethod.OWE;
+        if (security == "--")          return AuthMethod.Open;
         return AuthMethod.Open;
     }
 
