@@ -22,13 +22,14 @@
   機能要件(90日保持)自体は満たしており、実装方針の変更は不要と判断。
 
 ### UX
-- [ ] 言語追加: 中国語簡体字以外の地域言語(ヒンディー語、ベンガル語、タミル語)—
-  **未完了**(2026-07 監査で判明)。`Strings.bn.resx`/`Strings.hi.resx`/`Strings.ta.resx` は
-  いずれも 426 キー中 274 キー(64%)が英語原文のまま一字一句コピーされたプレースホルダーで、
-  翻訳が行われていない(例: `Label_AvailableNetworks` = "Available networks",
-  `Error_PassphraseTooShort` = "Passphrase must be at least 8 characters")。他の11言語
-  (ar/de/en/es/fr/ja/ko/pt-BR/ru/zh-Hans/zh-Hant)は同じキーで正しく翻訳されていることを
-  個別確認済み — 問題はこの3言語に限定される。
+- [x] 言語追加: 中国語簡体字以外の地域言語(ヒンディー語、ベンガル語、タミル語)。
+  2026-07 監査で `Strings.bn.resx`/`Strings.hi.resx`/`Strings.ta.resx` の 426 キー中 274 キー
+  (64%)が英語原文のまま一字一句コピーされたプレースホルダーで未翻訳と判明したため、
+  この3言語分を翻訳して適用。また全15ロケールファイルで欠落していた `Captive_NavigationFailed`
+  (全ロケール共通)と、13ロケールで欠落していた `Export_FilterCsv`/`FilterJson`/`FilterTxt`/
+  `FilterDiagnostic`/`QR_PngFileFilter`/`Tray_AdapterMenuItem` も補完し、全15ファイルが
+  ちょうど515キーで揃うことを確認。`LocaleKeyConsistencyTests` を追加し、キー欠落の再発を
+  自動検出する(値の翻訳品質までは検証しない — ネイティブスピーカーによるレビューは別途推奨)。
 - [x] WCAG AAA 全画面ナビゲーション検証(Dark/Light/Nord/Catppuccin テーマ。Solarized は
   実在の著名パレット保持を優先し AA。Fluent は OS システムカラー依存のため本文コントラストは
   検証対象外)— `ThemeAccessibilityAuditTests` で自動検証。2026-07 監査でこの検証自体が

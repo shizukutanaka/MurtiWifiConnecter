@@ -169,6 +169,7 @@
   <data name="Captive_Loading"><value>Loading...</value></data>
   <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
   <data name="Captive_PageLoaded"><value>Page loaded</value></data>
+  <data name="Captive_NavigationFailed"><value>Échec de la navigation — essayez d'ouvrir dans le navigateur</value></data>
   <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
   <data name="About_Version"><value>Version {0}</value></data>
   <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
@@ -184,6 +185,7 @@
   <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
   <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
   <data name="Tray_NoNetworks"><value>(Aucun réseau)</value></data>
   <data name="Tray_OpenApp"><value>Ouvrir MWC</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
@@ -255,6 +257,11 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="QR_DialogAutomation"><value>Affichage du QR Code Wi-Fi</value></data>
   <data name="Action_Copy"><value>Copier</value></data>
   <data name="QR_SavePng"><value>Enregistrer PNG</value></data>
+  <data name="QR_PngFileFilter"><value>PNG Image (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>Texte (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|Texte (*.txt)|*.txt</value></data>
   <data name="Profile_WindowTitle"><value>Réseaux enregistrés</value></data>
   <data name="Profile_DialogAutomation"><value>Gestion des réseaux enregistrés</value></data>
   <data name="Profile_ListAutomation"><value>Liste des profils enregistrés</value></data>

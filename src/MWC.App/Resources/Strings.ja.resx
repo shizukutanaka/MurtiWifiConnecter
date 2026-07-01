@@ -169,6 +169,7 @@
   <data name="Captive_Loading"><value>読み込み中…</value></data>
   <data name="Captive_InternetOk"><value>✓ インターネット接続を確認しました</value></data>
   <data name="Captive_PageLoaded"><value>ページを読み込みました</value></data>
+  <data name="Captive_NavigationFailed"><value>ナビゲーションに失敗しました — ブラウザーで開いてみてください</value></data>
   <data name="Confirm_DeleteTitle"><value>削除の確認</value></data>
   <data name="About_Version"><value>バージョン {0}</value></data>
   <data name="QR_Copied"><value>コピー完了 — Wi-Fi QR コード</value></data>

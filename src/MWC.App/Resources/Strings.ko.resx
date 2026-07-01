@@ -169,6 +169,7 @@
   <data name="Captive_Loading"><value>Loading...</value></data>
   <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
   <data name="Captive_PageLoaded"><value>Page loaded</value></data>
+  <data name="Captive_NavigationFailed"><value>탐색 실패 — 브라우저에서 열어보세요</value></data>
   <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
   <data name="About_Version"><value>Version {0}</value></data>
   <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
@@ -184,6 +185,7 @@
   <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
   <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
   <data name="Tray_NoNetworks"><value>(네트워크 없음)</value></data>
   <data name="Tray_OpenApp"><value>MWC 열기</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
@@ -255,6 +257,11 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="QR_DialogAutomation"><value>Wi-Fi QR 코드 표시</value></data>
   <data name="Action_Copy"><value>복사</value></data>
   <data name="QR_SavePng"><value>PNG 저장</value></data>
+  <data name="QR_PngFileFilter"><value>PNG 이미지 (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>텍스트 (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|텍스트 (*.txt)|*.txt</value></data>
   <data name="Profile_WindowTitle"><value>저장된 네트워크</value></data>
   <data name="Profile_DialogAutomation"><value>저장된 네트워크 관리</value></data>
   <data name="Profile_ListAutomation"><value>저장된 프로필 목록</value></data>

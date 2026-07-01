@@ -10,24 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Docs
-- **`ROADMAP.md`'s "14 languages, 100% translated" claim does not hold for Bengali/Hindi/Tamil.**
-  A key-by-key audit found `Strings.bn.resx`, `Strings.hi.resx`, and `Strings.ta.resx` each have
-  274 of 426 entries (64%) that are byte-for-byte identical English placeholder text, not
-  translations (e.g. `Label_AvailableNetworks` = "Available networks", `Auth_Open` = "Open"),
-  across the exact same 274 keys in all three files — consistent with a bulk-scaffolded locale
-  file whose translation pass never happened. The other 11 locales (ar/de/en/es/fr/ja/ko/pt-BR/
-  ru/zh-Hans/zh-Hant) were individually spot-checked against the same key set and are correctly
-  translated. Reverted the roadmap checkbox to `[ ]` with the exact scope documented; no strings
-  were changed in this pass (see the "Next steps" discussion for why a bulk fix wasn't attempted
-  here). Also corrected the "90日 SQLite" scan-history claim: the actual implementation
+- Corrected the "90日 SQLite" scan-history claim: the actual implementation
   (`NetworkHistoryService`) uses a JSON file, not SQLite — the 90-day/500-entry functional
   requirement is met, only the roadmap's stated storage technology was wrong (JSON is the
   appropriate choice here per CLAUDE.md's own "≤200 lines → self-implement" guidance, so no code
-  change is warranted). And flagged "スクリーンリーダー実機テスト" as unverifiable rather than
+  change is warranted). Also flagged "スクリーンリーダー実機テスト" as unverifiable rather than
   false: no automated test or documented test log corresponds to it in this repository, but real
   screen-reader hardware testing cannot be proven or disproven by source inspection alone.
 
 ### Fixed
+- **Bengali/Hindi/Tamil localizations were 64% untranslated English placeholder text, despite
+  `ROADMAP.md` claiming "100% translated"; four other locale-completeness gaps existed alongside
+  it.** A key-by-key audit found `Strings.bn.resx`, `Strings.hi.resx`, and `Strings.ta.resx` each
+  had 274 of 426 entries that were byte-for-byte identical to the English source (e.g.
+  `Label_AvailableNetworks` = "Available networks", `Auth_Open` = "Open") — consistent with a
+  bulk-scaffolded locale file whose translation pass never happened. The other 11 locales were
+  individually spot-checked against the same key set and were correctly translated. Separately:
+  `Captive_NavigationFailed` was missing entirely (not just untranslated) from all 14 non-neutral
+  locales including `ja`, the otherwise most-complete translation; and
+  `Export_FilterCsv`/`FilterJson`/`FilterTxt`/`FilterDiagnostic`, `QR_PngFileFilter`, and
+  `Tray_AdapterMenuItem` were missing from every locale except `ja` (added in an earlier session
+  to only 2 of 15 resx files). Translated the 274 bn/hi/ta entries and inserted all missing keys
+  into every affected locale; all 15 `Strings.*.resx` files now define the identical 515-key set.
+  Universal technical terms (PHY, BSSID, WEP/TKIP/AES/GCMP-256, MLO, band frequency values,
+  file-format acronyms CSV/JSON) were deliberately left in Latin script, matching the existing
+  convention already used by the correctly-translated `ja`/`de` locales for these same keys.
+  Added `LocaleKeyConsistencyTests`, which asserts every locale defines every key the neutral
+  `Strings.resx` does — it checks key *presence* (which would have caught the missing-key
+  defects), not translation *quality* (which required this one-time manual audit; a native
+  speaker review of the new bn/hi/ta strings is still recommended).
 - **Four theme colours failed WCAG contrast despite `ROADMAP.md` claiming "AAA" verification was
   complete — because `AccessibilityAuditService`, the WCAG contrast calculator, had never actually
   been run against the shipped colours (zero call sites anywhere in the codebase).** A Socratic

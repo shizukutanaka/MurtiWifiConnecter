@@ -169,6 +169,7 @@
   <data name="Captive_Loading"><value>Loading...</value></data>
   <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
   <data name="Captive_PageLoaded"><value>Page loaded</value></data>
+  <data name="Captive_NavigationFailed"><value>Navigation fehlgeschlagen — im Browser öffnen versuchen</value></data>
   <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
   <data name="About_Version"><value>Version {0}</value></data>
   <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
@@ -184,6 +185,7 @@
   <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
   <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
   <data name="Tray_NoNetworks"><value>(Keine Netzwerke)</value></data>
   <data name="Tray_OpenApp"><value>MWC öffnen</value></data>
   <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
@@ -255,6 +257,11 @@ Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
   <data name="QR_DialogAutomation"><value>WLAN QR-Code anzeigen</value></data>
   <data name="Action_Copy"><value>Kopieren</value></data>
   <data name="QR_SavePng"><value>PNG speichern</value></data>
+  <data name="QR_PngFileFilter"><value>PNG Bild (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>Text (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|Text (*.txt)|*.txt</value></data>
   <data name="Profile_WindowTitle"><value>Gespeicherte Netzwerke</value></data>
   <data name="Profile_DialogAutomation"><value>Gespeicherte Netzwerke verwalten</value></data>
   <data name="Profile_ListAutomation"><value>Liste gespeicherter Profile</value></data>
