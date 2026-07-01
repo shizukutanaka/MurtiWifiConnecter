@@ -83,10 +83,21 @@ public partial class CertificatePickerDialog : Window
             DisplayLabel   = cert.DisplayLabel;
             Issuer         = FormatIssuer(cert.Issuer);
             ExpiryLabel    = BuildExpiryLabel(cert.DaysUntilExpiry);
-            ThumbprintShort = cert.Thumbprint[..8] + "…";
-            ExpiryColor    = cert.DaysUntilExpiry < 30 ? Brushes.OrangeRed
-                           : cert.DaysUntilExpiry < 90 ? Brushes.Orange
-                           : Brushes.LightGreen;
+            ThumbprintShort = cert.Thumbprint.Length > 8 ? cert.Thumbprint[..8] + "…" : cert.Thumbprint;
+            ExpiryColor    = ResolveExpiryBrush(cert.DaysUntilExpiry);
+        }
+
+        // 他の全要素は {DynamicResource ...Brush} でテーマに追従するが、この一覧は
+        // C# 側で Brush を確定させる必要がある(バインディング先が ItemsSource の POCO)。
+        // ハードコードした Brushes.OrangeRed 等は現在のテーマ(Dark/Light/Solarized/...)を
+        // 無視し、アクセシビリティコントラスト監査の対象外になってしまうため、
+        // 16-brush contract のキー (DangerBrush/WarnBrush/SuccessBrush) を都度解決する。
+        private static Brush ResolveExpiryBrush(int daysUntilExpiry)
+        {
+            string key = daysUntilExpiry < 30 ? "DangerBrush"
+                       : daysUntilExpiry < 90 ? "WarnBrush"
+                       : "SuccessBrush";
+            return (Application.Current?.TryFindResource(key) as Brush) ?? Brushes.Gray;
         }
 
         public string  DisplayLabel    { get; }

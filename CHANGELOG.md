@@ -43,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appropriate project subset per platform without requiring MAUI/mobile workloads.
 
 ### Fixed
+- **`CertificatePickerDialog`'s certificate-expiry indicator ignored the active theme.** Every
+  other visual element in the dialog binds `{DynamicResource ...Brush}`, but the expiry
+  swatch/text color was hardcoded to `Brushes.OrangeRed`/`Orange`/`LightGreen` in code-behind —
+  fixed at Dark-theme-era values regardless of Light/Solarized/Nord/Catppuccin, and invisible to
+  the theme contract's accessibility contrast audit. Switched to resolving `DangerBrush`/
+  `WarnBrush`/`SuccessBrush` from the active theme via `Application.Current.TryFindResource`
+  (same fallback idiom already used by `FirstRunWizard`), with a neutral gray fallback if no
+  theme resource is found. Also hardened `ThumbprintShort` against thumbprints shorter than 8
+  characters (previously `cert.Thumbprint[..8]` would throw `ArgumentOutOfRangeException`).
 - **`NmcliWifiService.ParseSecurity` (Linux) misclassified 802.1X Enterprise networks as
   Personal (PSK/SAE).** nmcli's `SECURITY` column appends `" 802.1X"` to the WPA version
   string for Enterprise networks (e.g. `"WPA2 802.1X"`, `"WPA3 802.1X"`), but `ParseSecurity`
