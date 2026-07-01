@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`VpnAdvisoryService` + `mwc vpn-advice`: VPN usage recommendation per network** (ROADMAP.md
+  "検討中" item, delivered in advisory-only form). Recommends whether a VPN is worth using on a
+  given network based on encryption strength and whether MWC has a prior successful-connection
+  history for it (`NotNeeded` for known Enterprise networks that already route through an org
+  firewall/VPN, `Optional` for known WPA3-SAE personal networks, `Recommended` for unknown or
+  weakly-encrypted known networks, `StronglyRecommended` for open networks). Deliberately does
+  **not** implement the "auto-switch" half of the original idea (actually toggling the OS VPN
+  connection) — a wrong VPN state change has an outsized blast radius (exposed traffic), so the
+  service only advises; the user or OS makes the actual call, consistent with every other
+  `*AdvisoryService` in this codebase (`SecurityAdvisoryService`, `PrivacyAdvisoryService`, etc.).
+  New CLI command `mwc vpn-advice [--adapter <id>] [--json]`. 8 new tests
+  (`VpnAdvisoryServiceTests`) cover every recommendation tier including the WPA3 transition-mode
+  and OWE edge cases (both must not receive the "strong personal encryption" pass).
 - **`EapAuthStatsService` + `mwc eap-stats`: 802.1X (Enterprise) authentication success-rate
   measurement** (ROADMAP.md "検討中" item, now delivered). Tracks per-SSID × per-EAP-type
   success/failure counts by piggy-backing on `ConnectionExecutor`'s existing connect flow — it

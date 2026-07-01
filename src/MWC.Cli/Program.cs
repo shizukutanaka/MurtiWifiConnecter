@@ -52,6 +52,7 @@ public static partial class Program
         root.AddCommand(BuildHistory(sp));
         root.AddCommand(BuildEapStats(sp));
         root.AddCommand(BuildPlanChannels(sp));
+        root.AddCommand(BuildVpnAdvice(sp));
         root.AddCommand(AdapterCommand.Build(sp));
 
         return await root.InvokeAsync(args);

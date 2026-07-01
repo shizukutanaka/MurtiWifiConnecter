@@ -80,6 +80,7 @@ mwc export --format csv           # CSV エクスポート
 mwc quality 8.8.8.8 -s 10         # 品質計測 (Ping × 10)
 mwc history                       # 接続履歴
 mwc eap-stats                     # 802.1X (Enterprise) 認証成功率(SSID×EAPタイプ別)
+mwc vpn-advice                    # VPN 使用推奨(助言のみ、実際の切替は行わない)
 mwc profile delete "OldNet"       # プロファイル削除
 ```
 
