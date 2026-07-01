@@ -94,6 +94,7 @@ public partial class App : Application
                 s.AddSingleton<JumpListService>();
                 s.AddSingleton<AppUpdateService>();
                 s.AddSingleton<NetworkHistoryService>();
+                s.AddSingleton<EapAuthStatsService>();
                 s.AddSingleton<ConnectionExecutor>();
                 s.AddSingleton<AdapterPreferencesService>();
                 s.AddSingleton<ErrorHandlerService>();

@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`EapAuthStatsService` + `mwc eap-stats`: 802.1X (Enterprise) authentication success-rate
+  measurement** (ROADMAP.md "検討中" item, now delivered). Tracks per-SSID × per-EAP-type
+  success/failure counts by piggy-backing on `ConnectionExecutor`'s existing connect flow — it
+  does not trigger new test connections, only records the outcome of connections the user (or
+  auto-reconnect) already attempted. Surfaces the class of failure the existing per-SSID
+  `NetworkHistoryService` couldn't distinguish: e.g. "PEAP succeeds 95% of the time on this
+  network, but EAP-TLS only succeeds 60%". No credentials are ever recorded — only SSID, EAP
+  type, and success/fail counts, persisted to `%LocalAppData%/MWC/eap-stats.json`. Wired into
+  `ConnectionExecutor` as an *optional* constructor parameter (defaults to `null`) so all existing
+  3-argument call sites (tests, prior DI registrations) keep compiling unchanged. New CLI command
+  `mwc eap-stats [--json] [--clear]`. 12 new tests (`EapAuthStatsServiceTests`,
+  `ConnectionExecutorEapStatsWiringTests`) cover accumulation, per-EAP-type isolation, success-rate
+  math, the `ConnectionExecutor` wiring (success/failure/personal-auth-is-not-recorded), and
+  backward compatibility with the 3-argument constructor.
 - **`mwc quality --bufferbloat` now reports per-application suitability.** The previously
   unsurfaced, fully-tested `QosAdvisoryService` is now wired into the responsiveness measurement:
   after computing the bufferbloat grade, the CLI prints an Online Gaming / Video Conferencing /

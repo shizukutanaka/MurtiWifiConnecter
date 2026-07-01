@@ -50,6 +50,7 @@ public static partial class Program
         root.AddCommand(BuildExport(sp));
         root.AddCommand(BuildQuality(sp));
         root.AddCommand(BuildHistory(sp));
+        root.AddCommand(BuildEapStats(sp));
         root.AddCommand(BuildPlanChannels(sp));
         root.AddCommand(AdapterCommand.Build(sp));
 
@@ -70,6 +71,7 @@ public static partial class Program
         sc.AddSingleton<NetworkQualityService>();
         sc.AddSingleton<OuiLookupService>();
         sc.AddSingleton<AdapterPreferencesService>();
+        sc.AddSingleton<EapAuthStatsService>();
         sc.AddSingleton<ConnectionExecutor>();
         return sc.BuildServiceProvider();
     }

@@ -151,6 +151,50 @@ public static partial class Program
         return cmd;
     }
 
+    // ── eap-stats ────────────────────────────────────────
+    private static Command BuildEapStats(ServiceProvider sp)
+    {
+        var json  = new Option<bool>("--json");
+        var clear = new Option<bool>("--clear", "Clear all recorded EAP statistics");
+        var cmd   = new Command("eap-stats",
+            "Show 802.1X (Enterprise) authentication success rate by SSID and EAP type");
+        cmd.AddOption(json); cmd.AddOption(clear);
+
+        cmd.SetHandler((bool j, bool clr) =>
+        {
+            var svc = sp.GetRequiredService<EapAuthStatsService>();
+            if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
+
+            var entries = svc.GetAll();
+            if (j)
+            {
+                Print(entries.Select(e => new
+                {
+                    ssid          = e.Ssid,
+                    eap_type      = e.EapType.ToString(),
+                    success_count = e.SuccessCount,
+                    fail_count    = e.FailCount,
+                    success_rate  = e.SuccessRate,
+                    last_attempt  = e.LastAttempt
+                }));
+                return;
+            }
+
+            if (entries.Count == 0)
+            {
+                Console.WriteLine("No 802.1X connection attempts recorded yet.");
+                return;
+            }
+
+            Console.WriteLine($"{"SSID",-32} {"EAP Type",-16} {"Success",7} {"Fail",5} {"Rate",6}  Last Attempt");
+            foreach (var e in entries)
+                Console.WriteLine(
+                    $"{Trunc(e.Ssid,32),-32} {e.EapType,-16} {e.SuccessCount,7} {e.FailCount,5} " +
+                    $"{e.SuccessRate * 100,5:F0}%  {e.LastAttempt.LocalDateTime:yyyy-MM-dd HH:mm}");
+        }, json, clear);
+        return cmd;
+    }
+
     // ── helpers ──────────────────────────────────────────
     private static async Task<WifiAdapter?> Resolve(IWifiService svc, string? filter)
     {

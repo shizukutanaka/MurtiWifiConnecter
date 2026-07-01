@@ -44,12 +44,18 @@ public sealed class ConnectionExecutor
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, DateTimeOffset>
         _userDisconnects = new();
 
+    // 802.1X (Enterprise) 接続試行の EAP タイプ別成否を記録する(任意注入)。
+    // 未指定(null)の場合は記録をスキップする — 既存の 3 引数コンストラクタ呼び出し
+    // (テスト等)との後方互換性を保つため required にしない。
+    private readonly EapAuthStatsService? _eapStats;
+
     public ConnectionExecutor(
         IWifiService wifi,
         NetworkHistoryService history,
-        ILogger<ConnectionExecutor> log)
+        ILogger<ConnectionExecutor> log,
+        EapAuthStatsService? eapStats = null)
     {
-        _wifi = wifi; _history = history; _log = log;
+        _wifi = wifi; _history = history; _log = log; _eapStats = eapStats;
     }
 
     /// <summary>
@@ -97,6 +103,11 @@ public sealed class ConnectionExecutor
 
             // 3. 履歴記録
             _history.RecordConnection(spec.Ssid, result.Success);
+
+            // 3b. 802.1X (Enterprise) 接続なら EAP タイプ別統計も記録する
+            // (ROADMAP.md 「802.1X 自動テスト(EAP 認証成功率を計測)」の計測基盤)。
+            if (spec.EapType is { } eap)
+                _eapStats?.RecordAttempt(spec.Ssid, eap, result.Success);
 
             sw.Stop();
             MwcActivity.ConnectDurationMs.Record(sw.Elapsed.TotalMilliseconds);
