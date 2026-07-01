@@ -22,7 +22,9 @@
     <!-- アクセント -->
     <SolidColorBrush x:Key="AccentBrush"       Color="#00A6AD"/>
     <SolidColorBrush x:Key="AccentHoverBrush"  Color="#00C4CC"/>
-    <SolidColorBrush x:Key="AccentTextBrush"   Color="#FFFFFF"/>
+    <!-- 白 (#FFFFFF) は AccentBrush (#00A6AD) に対しコントラスト比 2.98:1 で WCAG AA (4.5) にも
+         届かなかった (2026-07 監査で発覚)。黒はコントラスト比 7.06:1 で AAA (7.0) を満たす。 -->
+    <SolidColorBrush x:Key="AccentTextBrush"   Color="#000000"/>
     <SolidColorBrush x:Key="FocusBrush"        Color="#00A6AD"/>
 
     <!-- セマンティック -->

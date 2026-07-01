@@ -22,6 +22,9 @@
     <SolidColorBrush x:Key="SuccessBrush"      Color="#859900"/>
     <SolidColorBrush x:Key="WarnBrush"         Color="#B58900"/>
     <SolidColorBrush x:Key="DangerBrush"       Color="#DC322F"/>
-    <SolidColorBrush x:Key="DangerTextBrush"   Color="#FDF6E3"/>
+    <!-- base3 (#FDF6E3) はコントラスト比 4.29:1 で WCAG AA (4.5) に僅かに届かなかった
+         (2026-07 監査で発覚)。純白はコントラスト比 4.63:1 で AA を満たす。他の Solarized
+         カノニカルな暗色 (base03/base02) はこの赤に対しさらに悪化するため不採用。 -->
+    <SolidColorBrush x:Key="DangerTextBrush"   Color="#FFFFFF"/>
 
 </ResourceDictionary>

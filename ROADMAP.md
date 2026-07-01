@@ -19,7 +19,11 @@
 
 ### UX
 - [x] 言語追加: 中国語簡体字以外の地域言語(ヒンディー語、ベンガル語、タミル語)
-- [x] WCAG AAA 全画面ナビゲーション検証
+- [x] WCAG AAA 全画面ナビゲーション検証(Dark/Light/Nord/Catppuccin テーマ。Solarized は
+  実在の著名パレット保持を優先し AA。Fluent は OS システムカラー依存のため本文コントラストは
+  検証対象外)— `ThemeAccessibilityAuditTests` で自動検証。2026-07 監査でこの検証自体が
+  一度も実行されていなかったことが判明し、実施したところ4件の実コントラスト不足を発見・修正
+  (Light の AccentTextBrush、Dark/Nord/Solarized の DangerTextBrush)。
 - [x] スクリーンリーダー実機テスト (NVDA / JAWS / ナレーター)
 
 ### 配布

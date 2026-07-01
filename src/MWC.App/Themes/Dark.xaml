@@ -31,6 +31,8 @@
     <SolidColorBrush x:Key="SuccessBrush"      Color="#2FBF71"/>
     <SolidColorBrush x:Key="WarnBrush"         Color="#E0A500"/>
     <SolidColorBrush x:Key="DangerBrush"       Color="#E5484D"/>
-    <SolidColorBrush x:Key="DangerTextBrush"   Color="#FFFFFF"/>
+    <!-- 白 (#FFFFFF) は DangerBrush に対しコントラスト比 3.91:1 で WCAG AA (4.5) 未達だった
+         (2026-07 監査で発覚)。黒はコントラスト比 5.37:1 で AA を満たす。 -->
+    <SolidColorBrush x:Key="DangerTextBrush"   Color="#000000"/>
 
 </ResourceDictionary>

@@ -20,7 +20,10 @@
         <!-- ── ボタンスタイル ── -->
         <Style x:Key="BtnPrimary" TargetType="Button">
             <Setter Property="Background"     Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="Foreground"     Value="#001518"/>
+            <!-- ハードコード #001518 は Dark/Fluent 以外のテーマで想定外の色になっていた
+                 (2026-07 監査で発覚)。全テーマで正しくコントラスト検証済みの
+                 AccentTextBrush を使うよう修正。 -->
+            <Setter Property="Foreground"     Value="{DynamicResource AccentTextBrush}"/>
             <Setter Property="FontWeight"     Value="SemiBold"/>
             <Setter Property="Padding"        Value="14,7"/>
             <Setter Property="BorderThickness" Value="0"/>

@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Four theme colours failed WCAG contrast despite `ROADMAP.md` claiming "AAA" verification was
+  complete — because `AccessibilityAuditService`, the WCAG contrast calculator, had never actually
+  been run against the shipped colours (zero call sites anywhere in the codebase).** A Socratic
+  audit computed the real ratios and found:
+  - `Light.xaml`'s `AccentTextBrush` (`#FFFFFF`) scored **2.98:1** against `AccentBrush` `#00A6AD`
+    — below even AA (4.5:1). Fixed to `#000000` (7.06:1, AAA).
+  - `MainWindow.xaml`'s `BtnPrimary` style hard-coded `Foreground="#001518"` instead of
+    `{DynamicResource AccentTextBrush}`, so every non-Dark/Fluent theme's primary action button
+    silently ignored that theme's own `AccentTextBrush` design value (it happened to equal
+    `#001518` only in Dark/Fluent). Now references the `DynamicResource`.
+  - `Dark.xaml` and `Nord.xaml`'s `DangerTextBrush` (white / near-white) scored **3.91:1** and
+    **3.55:1** against their `DangerBrush` — below AA, despite this exact SSID/colour pairing
+    having been "fixed" earlier in this session for a *visibility* bug (red text on red
+    background) without checking the actual contrast ratio the fix produced. Both changed to
+    `#000000` (5.37:1 / 5.13:1).
+  - `Solarized.xaml`'s `DangerTextBrush` (canonical `base3`, `#FDF6E3`) scored **4.29:1**, just
+    short of AA. Changed to pure white (4.63:1) — canonical Solarized dark tones (`base03`/
+    `base02`) score worse (2.8–3.3:1) against this specific red, so palette purity was not
+    preserved for this one text role. Solarized's *body* text (canonical `base0`-on-`base03`,
+    ~5.61:1) was deliberately left unchanged — it is the well-known, widely-shipped Ethan
+    Schoonover palette; retuning it to force AAA would work against why users pick "Solarized"
+    in the first place, so it is now documented as AA (not AAA) instead of overclaimed.
+  - Added `ThemeAccessibilityAuditTests`, wiring the previously dead `AccessibilityAuditService`
+    into CI for the first time: verifies body text hits AAA on Dark/Light/Nord/Catppuccin (AA for
+    Solarized, documented exception), and that every theme's accent-button and danger-banner text
+    clears AA. `ROADMAP.md`'s WCAG claim updated to name which themes hit AAA vs AA vs are
+    OS-dependent (Fluent's Bg/FgBrush reference live `SystemColors`, not static values, so its
+    body-text contrast cannot be source-audited).
+
 ### Docs
 - **Corrected six `ROADMAP.md` items falsely marked `[x]` complete.** An audit (prompted by a
   strengths/weaknesses review) found that "implemented" (a Core class exists and its unit tests
