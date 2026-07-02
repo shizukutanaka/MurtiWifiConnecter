@@ -398,6 +398,13 @@ Supports WPA3, Enterprise, QR code &amp; CLI.</value></data>
   <data name="Detail_Interference"><value>Interference</value></data>
   <data name="Detail_Mesh"><value>Mesh</value></data>
   <data name="Detail_PowerSave"><value>Power Saving</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>Not needed</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>Optional</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>Recommended</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ Strongly recommended</value></data>
+  <data name="Detail_EapStats"><value>802.1X Success Rate</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} attempts)</value></data>
   <data name="Detail_LinkEstimate"><value>Link Estimate</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>Signal Trend</value></data>

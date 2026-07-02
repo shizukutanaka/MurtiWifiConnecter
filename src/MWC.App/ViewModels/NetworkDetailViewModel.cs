@@ -32,6 +32,13 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly PowerSaveAdvisorService _powerSaveAdvisor = new();
     private static readonly LinkRateEstimator _linkRate = new();
     private static readonly MloAnalyzerService _mloAnalyzer = new();
+    private static readonly VpnAdvisoryService _vpnAdvisor = new();
+    private static readonly EapAuthStatsService _eapStats = new();
+    // NetworkHistoryService は ConnectionExecutor 等が DI シングルトンとして持つ別インスタンスとは
+    // 独立している(このクラスの全 *Service フィールドと同じ既存パターン — 静的ローカル生成)。
+    // そのため同一プロセス内で他画面が記録した最新の接続履歴が、アプリ再起動まで
+    // ここに反映されない場合がある(許容範囲: 「既知ネットワークか」の参考表示に留まる)。
+    private static readonly NetworkHistoryService _historyForVpnAdvice = new();
 
     [ObservableProperty] private string _ssid = "";
 
@@ -56,6 +63,9 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _linkEstimateLabel = "";
     [ObservableProperty] private string _mloLabel = "";
     [ObservableProperty] private string _predictedSignalLabel = "";
+    [ObservableProperty] private string _vpnAdviceLabel = "";
+    [ObservableProperty] private string _eapStatsLabel = "";
+    [ObservableProperty] private bool _hasEapStats;
 
     // 大半のネットワークでは空になる行は、勧告パネル同様、値があるときだけ表示する
     // (情報過多を避ける — CLAUDE.md「性能 vs 可読性 → 可読性」)
@@ -99,7 +109,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
-            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = false;
+            VpnAdviceLabel = EapStatsLabel = "";
+            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = HasEapStats = false;
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -192,6 +203,26 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             RoamingTier.Assisted => L.Get("Detail_Roaming_Assisted"),
             _                    => L.Format("Detail_Roaming_Standard", roaming.EstimatedHandoverMs)
         };
+
+        // VPN 使用推奨(助言のみ — 実際の VPN 状態は変更しない。VpnAdvisoryService 参照)。
+        // 「既知信頼済み」は過去の成功接続実績で近似する(CLI mwc vpn-advice と同じ判定方式)。
+        var vpnKnown = _historyForVpnAdvice.GetEntry(n.Ssid) is { ConnectCount: > 0 };
+        var vpnAdvice = _vpnAdvisor.Analyze(n, vpnKnown);
+        VpnAdviceLabel = vpnAdvice.Recommendation switch
+        {
+            VpnRecommendation.StronglyRecommended => L.Get("Detail_VpnAdvice_StronglyRecommended"),
+            VpnRecommendation.Recommended          => L.Get("Detail_VpnAdvice_Recommended"),
+            VpnRecommendation.Optional             => L.Get("Detail_VpnAdvice_Optional"),
+            _                                       => L.Get("Detail_VpnAdvice_NotNeeded")
+        };
+
+        // 802.1X (Enterprise) 認証成功率(記録がある場合のみ表示 — CLI mwc eap-stats と同じデータ源)。
+        var eapRecords = _eapStats.GetAll().Where(s => s.Ssid == n.Ssid).ToList();
+        HasEapStats = eapRecords.Count > 0;
+        EapStatsLabel = HasEapStats
+            ? string.Join("  ", eapRecords.Select(s =>
+                L.Format("Detail_EapStats_Format", s.EapType, $"{s.SuccessRate * 100:F0}", s.TotalAttempts)))
+            : "";
 
         var iReport = _interferenceAnalyzer.Analyze(n, visible);
         var firstFactor = iReport.Factors.FirstOrDefault();

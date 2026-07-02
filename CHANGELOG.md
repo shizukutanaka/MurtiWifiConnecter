@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Wired `VpnAdvisoryService` and `EapAuthStatsService` into the GUI detail panel** (highest
+  priority item from `docs/FEATURE-AUDIT.md` §4) — both were previously CLI-only
+  (`mwc vpn-advice` / `mwc eap-stats`), so GUI users had no way to see this advice.
+  `NetworkDetailViewModel` gained `VpnAdviceLabel` and `EapStatsLabel`/`HasEapStats` following
+  the exact pattern the already-wired `SecurityAdvisoryService` uses on the same class (static
+  readonly service field, populated in `Load()`, bound from `MainWindow.xaml`'s detail panel).
+  The EAP-stats row only appears when a prior connection attempt was actually recorded for that
+  SSID (`HasEapStats`), matching the `HasMesh`-style conditional-visibility convention already
+  used elsewhere on the same panel. Added 7 new `Strings.resx` keys, translated into all 15
+  locales (`LocaleKeyConsistencyTests` verifies completeness — all files now define 522 keys).
+  New tests: `tests/MWC.Core.Tests/NetworkDetailViewModelVpnEapWiringTests.cs`.
+  **`PrivacyAdvisoryService` was not wired** in this pass: its `Analyze(MacAddressMode mode, ...)`
+  signature needs the local adapter's MAC-randomization state, which no platform layer currently
+  detects (`grep -rn "MacAddressMode" src/` returns zero hits outside the service's own file and
+  tests) — wiring it requires new Windows registry-reading code first, not just ViewModel glue,
+  so it's deferred and documented as a separate, larger follow-up in `docs/FEATURE-AUDIT.md`.
+
 ### Docs
 - **`docs/FEATURE-AUDIT.md` second pass: corrected a "delete candidate" recommendation that would
   have broken a public NuGet package.** `sdk/MWC.SDK.csproj` re-packages the entire `MWC.Core`

@@ -398,6 +398,13 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Detail_Interference"><value>간섭</value></data>
   <data name="Detail_Mesh"><value>메시</value></data>
   <data name="Detail_PowerSave"><value>절전</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>불필요</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>선택 사항</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>권장</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ 강력히 권장</value></data>
+  <data name="Detail_EapStats"><value>802.1X 성공률</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2}회 시도)</value></data>
   <data name="Detail_LinkEstimate"><value>링크 추정</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>신호 추세</value></data>

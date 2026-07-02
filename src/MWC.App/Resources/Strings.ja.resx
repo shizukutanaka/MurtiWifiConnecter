@@ -398,6 +398,13 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_Interference"><value>干渉</value></data>
   <data name="Detail_Mesh"><value>メッシュ</value></data>
   <data name="Detail_PowerSave"><value>省電力</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>不要</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>任意</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>推奨</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ 強く推奨</value></data>
+  <data name="Detail_EapStats"><value>802.1X 成功率</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}%({2}回)</value></data>
   <data name="Detail_LinkEstimate"><value>リンク推定</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>信号トレンド</value></data>

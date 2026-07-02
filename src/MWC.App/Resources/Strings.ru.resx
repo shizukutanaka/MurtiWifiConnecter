@@ -398,6 +398,13 @@
   <data name="Detail_Interference"><value>Помехи</value></data>
   <data name="Detail_Mesh"><value>Меш</value></data>
   <data name="Detail_PowerSave"><value>Энергосбережение</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>Не требуется</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>Опционально</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>Рекомендуется</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ Настоятельно рекомендуется</value></data>
+  <data name="Detail_EapStats"><value>Успешность 802.1X</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} попыток)</value></data>
   <data name="Detail_LinkEstimate"><value>Оценка канала</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>Тренд сигнала</value></data>

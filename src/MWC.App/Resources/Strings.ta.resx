@@ -393,6 +393,13 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Detail_Interference"><value>குறுக்கீடு</value></data>
   <data name="Detail_Mesh"><value>மெஷ்</value></data>
   <data name="Detail_PowerSave"><value>சக்தி சேமிப்பு</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>தேவையில்லை</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>விருப்பத்திற்குரியது</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>பரிந்துரைக்கப்படுகிறது</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ கடுமையாக பரிந்துரைக்கப்படுகிறது</value></data>
+  <data name="Detail_EapStats"><value>802.1X வெற்றி விகிதம்</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} முயற்சிகள்)</value></data>
   <data name="Detail_LinkEstimate"><value>இணைப்பு மதிப்பீடு</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>சிக்னல் போக்கு</value></data>

@@ -1027,7 +1027,7 @@
                                 </Grid>
 
                                 <!-- Power saving capability -->
-                                <Grid Margin="0,4,0,12">
+                                <Grid Margin="0,4,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
@@ -1037,6 +1037,37 @@
                                                Text="{Binding SelectedAdapter.Detail.PowerSaveLabel}"
                                                FontSize="11" FontWeight="SemiBold"
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.PowerSaveLabel}"/>
+                                </Grid>
+
+                                <!-- VPN usage advice — advisory only, never changes VPN state.
+                                     VpnAdvisoryService (Core) was previously CLI-only (`mwc vpn-advice`);
+                                     wired here as the App-layer equivalent (2026-07 audit follow-up). -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailVpn}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.VpnAdviceLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.VpnAdviceLabel}"/>
+                                </Grid>
+
+                                <!-- 802.1X (Enterprise) auth success rate — only shown when a prior
+                                     attempt was recorded (EapAuthStatsService, previously CLI-only
+                                     `mwc eap-stats`; 2026-07 audit follow-up). -->
+                                <Grid Margin="0,4,0,12"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasEapStats, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailEapStats}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.EapStatsLabel}"
+                                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.EapStatsLabel}"/>
                                 </Grid>
 
                                 <!-- セキュリティ勧告 -->

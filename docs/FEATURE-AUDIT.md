@@ -76,16 +76,25 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 `SecurityAdvisoryService` だけが GUI(`src/MWC.App/ViewModels/NetworkDetailViewModel.cs`)に
 配線されており、同系統の以下は CLI 止まり。GUI ユーザーはこれらの存在を知る手段がない:
 
-| サービス | 現在の到達手段 | 不足 |
+| サービス | 現在の到達手段 | 状態 |
 |---|---|---|
-| `VpnAdvisoryService` | CLI `mwc vpn-advice` のみ | GUI 表示なし |
-| `EapAuthStatsService` | CLI `mwc eap-stats` のみ | `App.xaml.cs` に DI 登録はあるが、どの ViewModel も未消費 |
-| `PrivacyAdvisoryService` | **なし**(完全孤立) | GUI/CLI 両方 |
+| `VpnAdvisoryService` | CLI `mwc vpn-advice` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.VpnAdviceLabel` として表示 |
+| `EapAuthStatsService` | CLI `mwc eap-stats` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.EapStatsLabel`(記録がある場合のみ表示) |
+| `PrivacyAdvisoryService` | **なし**(完全孤立) | **未着手** — 下記「配線できない理由」参照 |
 
-**推奨**: `NetworkDetailViewModel` の `_secAdvisor` と同じパターン(static readonly フィールド +
-`Load()` 内で `Analyze` 呼び出し → ラベルプロパティ)で追加するのが最小差分。
-**制約**: UI 文字列は必ず `Strings.resx` 経由(CLAUDE.md 必須ルール)。全15ロケールへのキー追加が
-必要で、キー欠落は `tests/MWC.Core.Tests/LocaleKeyConsistencyTests.cs` が検出する。
+`VpnAdvisoryService`/`EapAuthStatsService` は `_secAdvisor` と同じパターン(static readonly
+フィールド + `Load()` 内で `Analyze`/`GetAll` 呼び出し → ラベルプロパティ)で
+`src/MWC.App/MainWindow.xaml` の詳細パネルに追加済み。新規 resx キー7個を全15ロケールに
+追加(`LocaleKeyConsistencyTests` で完全性を検証)。テストは
+`tests/MWC.Core.Tests/NetworkDetailViewModelVpnEapWiringTests.cs`。
+
+**`PrivacyAdvisoryService` が配線できない理由**: `Analyze(MacAddressMode mode, WifiNetwork network)`
+は現在の Wi-Fi アダプターの MAC ランダム化状態(固定/ネットワーク別ランダム/日次ランダム)を
+引数に要求するが、**この状態を検出するコードがプラットフォーム層に一切存在しない**
+(`grep -rn "MacAddressMode" src/` は定義・テスト以外で0件)。Windows の
+「ランダムハードウェアアドレス」設定はレジストリ(`HKLM\SYSTEM\...\WlanSvc\...` 相当)から
+読み取る必要があり、これは既存の Core サービスを呼ぶだけでは完結しない新規プラットフォーム
+実装が必要。§4 優先順位からは意図的に外してある(小差分では終わらないため)。
 
 ### 2b. CLAUDE.md ルールと実装の乖離(**ユーザー裁定待ち — 勝手に解決しないこと**)
 
@@ -139,12 +148,15 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 
 ## §4 優先順位の目安
 
-1. **高**: §2a の GUI 配線(小差分・高価値。手本パターンが `NetworkDetailViewModel` に存在)
+1. ~~**高**: §2a の GUI 配線~~ — `VpnAdvisoryService`/`EapAuthStatsService` は 2026-07 に完了。
+   `PrivacyAdvisoryService` は新規プラットフォーム実装が要るため別枠(下記)
 2. **高**: §1a のうち `RegulatoryDomainService`/`CatImportService`/`OweSelectionService` の配線
    (実装品質が高く、配線だけで ROADMAP 項目が本当に完了する)
 3. **中**: §2b の SecureString 裁定をリポジトリ所有者に仰ぐ(裁定なしでは進められない)
-4. **中**: §1a 残りの配線 or 削除判断(削除する場合は対応テストも削除)
-5. **低**: §1c のプラットフォーム実装(実機がないと検証不能)
+4. **中**: §1a 残りの配線 or 削除判断(削除する場合は対応テストも削除。SDK 公開4サービスは
+   削除不可、§1a 注記参照)
+5. **中**: `PrivacyAdvisoryService` — MAC ランダム化状態のプラットフォーム検出を新規実装後に配線
+6. **低**: §1c のプラットフォーム実装(実機がないと検証不能)
 
 ---
 

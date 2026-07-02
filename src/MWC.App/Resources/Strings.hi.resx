@@ -393,6 +393,13 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Detail_Interference"><value>व्यवधान</value></data>
   <data name="Detail_Mesh"><value>मेश</value></data>
   <data name="Detail_PowerSave"><value>ऊर्जा बचत</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>आवश्यक नहीं</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>वैकल्पिक</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>अनुशंसित</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ दृढ़ता से अनुशंसित</value></data>
+  <data name="Detail_EapStats"><value>802.1X सफलता दर</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} प्रयास)</value></data>
   <data name="Detail_LinkEstimate"><value>लिंक अनुमान</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>सिग्नल प्रवृत्ति</value></data>
