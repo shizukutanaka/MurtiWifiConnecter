@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Docs
+- **Added `docs/FEATURE-AUDIT.md`: a self-contained feature excess/deficiency audit.** Consolidates
+  the 2026-07 Socratic audit findings — previously scattered across CHANGELOG entries, ROADMAP
+  corrections, and commit messages — into one reference document sorted into three verdicts:
+  *excess* (11 orphaned Core services with zero call sites in `src/`, plus quasi-orphans and
+  platform stubs), *deficiency* (GUI wiring gaps for CLI-only advisory services, the unresolved
+  CLAUDE.md SecureString rule-vs-implementation divergence awaiting the repository owner's ruling,
+  and unverified claims like screen-reader hardware testing), and *correctly-scoped* (items that
+  look like defects but are intentional — JSON-not-SQLite history storage, Solarized's AA body
+  text, the `SetAutoReconnect(true)` no-op — listed explicitly so future sessions don't "fix"
+  them). Every claim carries a file path, a rationale, and a runnable re-verification command;
+  the orphan-detection one-liner was executed against the tree at authoring time and matches the
+  documented count (11).
 - Corrected the "90日 SQLite" scan-history claim: the actual implementation
   (`NetworkHistoryService`) uses a JSON file, not SQLite — the 90-day/500-entry functional
   requirement is met, only the roadmap's stated storage technology was wrong (JSON is the
