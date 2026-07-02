@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Docs
+- **`docs/FEATURE-AUDIT.md` second pass: corrected a "delete candidate" recommendation that would
+  have broken a public NuGet package.** `sdk/MWC.SDK.csproj` re-packages the entire `MWC.Core`
+  source tree (`<Compile Include="../src/MWC.Core/**/*.cs" />`) into the published `MWC.SDK`
+  NuGet package (v3.11.0), and its `<Description>` names four of the "orphaned" services from the
+  first audit pass (`CatImportService`, `RegulatoryDomainService`, `OweSelectionService`,
+  `Hotspot20Service`) as advertised features. The first pass's "App/CLI has zero call sites"
+  finding was correct, but its "delete candidate" framing was not — these are shipped public API;
+  removing them requires a SemVer major bump, not a routine cleanup. Re-framed §1 accordingly and
+  marked the four services delete-unsafe. Also documented a methodology gap the second pass
+  caught mid-audit: class-name `grep` misses extension-method call sites (`SafeFireAndForget` was
+  nearly misflagged as orphaned; it's actually used as `.Forget()` in 5 places) — added a
+  `grep -c "(this "` check to the re-audit instructions. Confirmed `src/MWC.App/Services/`'s 15
+  services have zero true orphans (added to §3). Flagged `benchmarks/`, `completions/`, `tools/`
+  as out of scope for both audit passes so a future session knows what's still unchecked.
 - **Added `docs/FEATURE-AUDIT.md`: a self-contained feature excess/deficiency audit.** Consolidates
   the 2026-07 Socratic audit findings — previously scattered across CHANGELOG entries, ROADMAP
   corrections, and commit messages — into one reference document sorted into three verdicts:

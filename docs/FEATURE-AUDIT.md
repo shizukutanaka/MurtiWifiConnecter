@@ -12,32 +12,43 @@
 
 ---
 
-## §1 過剰 — 実装済みだが到達不能(保守コストのみ発生)
+## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
 ### 1a. 完全孤立サービス(11個)
 
 `src/` 内で自ファイル以外からの参照が**ゼロ**の Core サービス。テストは存在する(=壊れてはいない)が、
-製品としては動いていない。検証コマンド:
+App/CLI という製品としては動いていない。検証コマンド:
 
 ```bash
 # 例: RegulatoryDomainService の参照元を探す(自ファイルを除く)
 grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.cs"
-# → 出力が空 = 孤立
+# → 出力が空 = 孤立(ただし直後の SDK 注記を必ず読むこと)
 ```
+
+> **⚠ 重要な訂正(2026-07 第2パスで判明)**: `sdk/MWC.SDK.csproj` は
+> `<Compile Include="../src/MWC.Core/**/*.cs" />` で **Core の全ソースを NuGet パッケージ
+> `MWC.SDK` (v3.11.0, `IsPackable=true`) にそのまま再パッケージして出荷している**。
+> さらにパッケージの `<Description>` は下表のうち `CatImportService`・`RegulatoryDomainService`・
+> `OweSelectionService`・`Hotspot20Service` を**名指しで機能として宣伝**している。
+> つまりこれらは「App/CLI という製品からは未配線」だが「`MWC.SDK` ライブラリ利用者には
+> 公開 API として既に出荷済み」— **単純な「削除」は公開 NuGet パッケージの破壊的変更**であり
+> SemVer メジャーバンプなしには行えない。以下の「推奨アクション」列は App/CLI(製品)側の判断であり、
+> SDK パッケージからも削除する場合は別途 SemVer 対応が必要な点に注意。
+> 検証: `grep -A3 "Compile Include" sdk/MWC.SDK.csproj` / `grep -A15 "<Description>" sdk/MWC.SDK.csproj`
 
 | サービス (`src/MWC.Core/Services/`) | 本来対応する機能 | 推奨アクション | 備考 |
 |---|---|---|---|
-| `RegulatoryDomainService` | 6GHz 帯の国別チャネル表示 | **配線** — `NetworkDetailViewModel` か CLI `scan` に国別チャネル合法性表示を追加 | 国別テーブル・PSC 判定まで実装済み。テスト5ファイル |
-| `CatImportService` | eduroam CAT XML インポート | **配線** — GUI にインポートダイアログ追加 | XXE/DTD 対策済みの丁寧な実装。品質は高い |
-| `OweSelectionService` | 同一 SSID の Open/OWE ペア統合 | **配線** — スキャン結果パイプライン(`AdapterViewModel.RefreshAsync`)に挿入 | 純粋関数なので挿入は容易 |
-| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線 or 削除の判断 | 日本キャリア(au/SoftBank/docomo)プリセット付き |
-| `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断 | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
-| `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討 | 機能が部分重複している |
-| `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除 | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
-| `RetryPolicy` | 接続リトライ | `ConnectionExecutor` に統合 or 削除 | executor は現在リトライなしで動いている |
-| `SignalIconService` | 信号アイコン選択 | 削除候補 | View 側に同等ロジックが直書きされている可能性を確認してから |
-| `BeaconUptimeEstimator` | AP 稼働時間推定 | 削除候補 | TSF タイムスタンプ入力をどの層も供給していない |
-| `AccessibilityAuditService` | WCAG コントラスト計算 | **現状維持** | 2026-07 に `tests/MWC.Core.Tests/ThemeAccessibilityAuditTests.cs` から使用開始(CI でテーマ色を検証)。製品コードからは未参照だが、これは正当な使途 |
+| `RegulatoryDomainService` | 6GHz 帯の国別チャネル表示 | **配線**(製品側)— `NetworkDetailViewModel` か CLI `scan` に国別チャネル合法性表示を追加 | 国別テーブル・PSC 判定まで実装済み。テスト5ファイル。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `CatImportService` | eduroam CAT XML インポート | **配線**(製品側)— GUI にインポートダイアログ追加 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `OweSelectionService` | 同一 SSID の Open/OWE ペア統合 | **配線**(製品側)— スキャン結果パイプライン(`AdapterViewModel.RefreshAsync`)に挿入 | 純粋関数なので挿入は容易。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
+| `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
+| `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
+| `RetryPolicy` | 接続リトライ | `ConnectionExecutor` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | executor は現在リトライなしで動いている |
+| `SignalIconService` | 信号アイコン選択 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | View 側に同等ロジックが直書きされている可能性を確認してから |
+| `BeaconUptimeEstimator` | AP 稼働時間推定 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | TSF タイムスタンプ入力をどの層も供給していない |
+| `AccessibilityAuditService` | WCAG コントラスト計算 | **現状維持** | 2026-07 に `tests/MWC.Core.Tests/ThemeAccessibilityAuditTests.cs` から使用開始(CI でテーマ色を検証)。製品コードからは未参照だが、これは正当な使途。SDK にも同梱 |
 
 ### 1b. 準孤立(参照が形式的なもののみ)
 
@@ -122,6 +133,7 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 | `EapType` enum の非ゼロ明示値 (25/13/23/21) | 不揃いに見える | IANA の EAP Method Type 公式番号。変更禁止 |
 | DPAPI エントロピー `"WiFix-v1"` バイト列 | 旧名の残骸に見える | **変更絶対禁止**。既存ユーザーの保存済み暗号データが復号不能になる(`DpapiSecretProtector.cs` に警告コメントあり) |
 | コア機能(複数アダプター管理)の導線 | — | `AllAdaptersOverviewView` は Ctrl+Shift+A・ツールバー・メニューから到達可能。健全 |
+| App 層サービス (`src/MWC.App/Services/`) 全15個 | Core と同じ孤立問題があるのでは | 2026-07 第2パスで全数検証。真の孤立はゼロ(全て配線済み)。App 層は健全 |
 
 ---
 
@@ -152,6 +164,13 @@ done
 grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 ```
 
+> **⚠ 手法的な盲点(2026-07 第2パスで判明)**: (1) のクラス名 grep は**拡張メソッド呼び出し**を
+> 見逃す。例えば `SafeFireAndForget`(`src/MWC.App/Services/SafeFireAndForget.cs`)はクラス名の
+> grep ではヒットしないが、実際は `.Forget()` という拡張メソッド構文で App 内5箇所から使われて
+> いる(誤って「孤立」と判定しかけた)。孤立候補が出たら、判定を確定する前に必ず
+> `grep -c "(this " <file>` でそのファイルが拡張メソッドを定義していないか確認すること。
+> 上記 §1a の11件は個別にこの確認を実施済みで、結論は変わらない。
+
 自動化済みの検証(CI のテストが担当。手動再確認は不要):
 
 | 観点 | テスト |
@@ -162,6 +181,9 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 
 自動化されていない検証(人手が必要): スクリーンリーダー実機テスト、bn/hi/ta 訳文の
 ネイティブレビュー、Windows 実機での WLAN 動作確認。
+
+**本監査の対象外(未実施。将来パスの候補)**: `benchmarks/`、`completions/`、`tools/` の
+各ディレクトリはまだ監査していない。
 
 ---
 
