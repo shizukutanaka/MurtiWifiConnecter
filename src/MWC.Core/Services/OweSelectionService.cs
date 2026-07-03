@@ -19,6 +19,15 @@ namespace MWC.Core.Services;
 ///   1. スキャン結果から Open + OWE の SSID ペアを検出
 ///   2. OWE 対応デバイスでは OWE を優先 → SSID を統合表示
 ///   3. 接続時に OWE プロファイルを自動生成
+///
+/// 既知の制限(GUI/CLI 配線時に検討・許容した事項、2026-07):
+///   <see cref="ApplyOwePreference"/> は Open AP が <c>IsConnected</c> かどうかに関わらず
+///   OWE 側が存在すれば無条件で除外する。OWE 非対応の端末が過去に Windows ネイティブ設定
+///   (MWC 経由でない)で Open 側へ接続済みだった場合、理論上は「実際は接続中なのに UI 上は
+///   未接続に見える」表示上の不整合が起こりうる。実際の OS レベルの接続状態には影響しない
+///   (表示のみ)。発生条件が狭い(OWE 非対応端末 + 既存 Open プロファイル)ため、
+///   呼び出し側で追加のガードは設けていない — 再発時は Open 側の <c>IsConnected</c> を
+///   常に残す変更を検討すること。
 /// </summary>
 public sealed class OweSelectionService
 {

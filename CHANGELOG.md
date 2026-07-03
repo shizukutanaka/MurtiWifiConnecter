@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Wired `OweSelectionService` into CLI `mwc scan` and both App scan pipelines** (priority-2 item
+  from `docs/FEATURE-AUDIT.md` §4). Previously a fully-tested but orphaned Core service with zero
+  call sites in App/CLI, despite the ROADMAP claiming "WPA3-OWE auto-selection" was complete.
+  Applied `ApplyOwePreference` in `AdapterViewModel.RefreshAsync`,
+  `AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`, and CLI `scan` (not `export`,
+  which stays a raw diagnostic dump) — same "merge the OWE Transition Mode Open placeholder away"
+  behavior in all three, matching the service's existing, already-tested contract (RFC 8110: the
+  Open BSS in transition mode is a legacy-client placeholder; OWE-aware clients should always
+  prefer the encrypted twin). Documented one known edge case directly on the service rather than
+  adding new, untested guard logic at each call site: the Open beacon is dropped unconditionally
+  even if it happens to be the one a legacy (non-MWC) profile is actually connected through, which
+  could theoretically show "not connected" in the UI for that narrow, unlikely case — OS-level
+  connectivity is unaffected, only the MWC status display. New tests:
+  `tests/MWC.Core.Tests/OweWiringTests.cs`.
 - **Wired `VpnAdvisoryService` and `EapAuthStatsService` into the GUI detail panel** (highest
   priority item from `docs/FEATURE-AUDIT.md` §4) — both were previously CLI-only
   (`mwc vpn-advice` / `mwc eap-stats`), so GUI users had no way to see this advice.

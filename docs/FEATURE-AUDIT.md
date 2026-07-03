@@ -14,7 +14,7 @@
 
 ## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
-### 1a. 完全孤立サービス(11個)
+### 1a. 完全孤立サービス(2026-07 執筆時点11個 → `OweSelectionService` 配線済みにより現在10個)
 
 `src/` 内で自ファイル以外からの参照が**ゼロ**の Core サービス。テストは存在する(=壊れてはいない)が、
 App/CLI という製品としては動いていない。検証コマンド:
@@ -40,7 +40,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 |---|---|---|---|
 | `RegulatoryDomainService` | 6GHz 帯の国別チャネル表示 | **配線**(製品側)— `NetworkDetailViewModel` か CLI `scan` に国別チャネル合法性表示を追加 | 国別テーブル・PSC 判定まで実装済み。テスト5ファイル。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | `CatImportService` | eduroam CAT XML インポート | **配線**(製品側)— GUI にインポートダイアログ追加 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
-| `OweSelectionService` | 同一 SSID の Open/OWE ペア統合 | **配線**(製品側)— スキャン結果パイプライン(`AdapterViewModel.RefreshAsync`)に挿入 | 純粋関数なので挿入は容易。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| ~~`OweSelectionService`~~ | 同一 SSID の Open/OWE ペア統合 | **✅ 配線済み(2026-07)** | `AdapterViewModel.RefreshAsync`・`AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`・CLI `mwc scan` の3箇所に挿入。既知の限界(Open 側が実際に接続中でも無条件除外される稀なエッジケース)をサービス自身の XML doc に明記。テスト: `tests/MWC.Core.Tests/OweWiringTests.cs` |
 | `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
 | `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
@@ -150,8 +150,10 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 
 1. ~~**高**: §2a の GUI 配線~~ — `VpnAdvisoryService`/`EapAuthStatsService` は 2026-07 に完了。
    `PrivacyAdvisoryService` は新規プラットフォーム実装が要るため別枠(下記)
-2. **高**: §1a のうち `RegulatoryDomainService`/`CatImportService`/`OweSelectionService` の配線
-   (実装品質が高く、配線だけで ROADMAP 項目が本当に完了する)
+2. ~~**高**: §1a のうち `RegulatoryDomainService`/`CatImportService`/`OweSelectionService` の配線~~
+   — `OweSelectionService` は 2026-07 に完了(CLI `scan`・`AdapterViewModel`・
+   `AdapterPanelViewModel` の3箇所)。`RegulatoryDomainService`(6GHz 国別チャネル表示)と
+   `CatImportService`(eduroam インポート、GUI ダイアログ新設が必要でより大きな変更)は残作業
 3. **中**: §2b の SecureString 裁定をリポジトリ所有者に仰ぐ(裁定なしでは進められない)
 4. **中**: §1a 残りの配線 or 削除判断(削除する場合は対応テストも削除。SDK 公開4サービスは
    削除不可、§1a 注記参照)

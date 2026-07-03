@@ -152,6 +152,11 @@ public sealed partial class AdapterViewModel : ObservableObject
                 })
                 .ToList();
 
+            // OWE Transition Mode: 同一 SSID の Open ビーコンは後方互換用のプレースホルダーであり
+            // (RFC 8110)、OWE 対応クライアントは常に暗号化された OWE 側を使うべき。重複表示を防ぐ。
+            // 信号履歴記録(上記)は raw nets のまま — 表示用リストのみ統合する。
+            enriched = new OweSelectionService().ApplyOwePreference(enriched).ToList();
+
             // 子機の好みバンドフィルタを適用 (5GHz 専用ドングル等)
             SourceNetworks = ApplyBandFilter(enriched);
 

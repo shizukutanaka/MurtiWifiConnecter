@@ -133,7 +133,10 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
         IsScanning = true;
         try
         {
-            var nets = await _wifi.ScanAsync(_adapter.Id);
+            var rawNets = await _wifi.ScanAsync(_adapter.Id);
+            // OWE Transition Mode: 同一 SSID の Open ビーコンは後方互換用のプレースホルダーであり
+            // (RFC 8110)、OWE 対応クライアントは常に暗号化された OWE 側を使うべき。重複表示を防ぐ。
+            var nets = new OweSelectionService().ApplyOwePreference(rawNets);
             SourceNetworks = nets;
 
             var byKey = nets.ToDictionary(n => n.Ssid);

@@ -178,6 +178,10 @@ public static partial class Program
                 return v is null ? n : n with { VendorName = v };
             }).ToList();
 
+            // OWE Transition Mode: 同一 SSID の Open ビーコンは後方互換用のプレースホルダーであり
+            // (RFC 8110)、OWE 対応クライアントは常に暗号化された OWE 側を使うべき。重複表示を防ぐ。
+            enriched = new OweSelectionService().ApplyOwePreference(enriched).ToList();
+
             if (j) { Print(enriched); return; }
 
             Console.WriteLine($"{"SSID",-32} {"Auth",-14} {"Band",4} {"PHY",-8} {"Signal",6} {"Vendor"}");

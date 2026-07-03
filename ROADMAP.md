@@ -57,8 +57,9 @@
 ### 高度機能
 - [ ] Wi-Fi Direct ピアツーピア接続 — `WifiDirectService` (Core) は実装済みだが、App/CLI の
   どこからも呼び出されておらず、ユーザーは到達できない。GUI/CLI への配線が未完了。
-- [ ] WPA3-OWE (Opportunistic Wireless Encryption) 自動選択 — `OweSelectionService` (Core) は
-  実装済みだが未配線。同上。
+- [x] WPA3-OWE (Opportunistic Wireless Encryption) 自動選択 — `OweSelectionService` を CLI
+  `mwc scan` および App 両スキャンパイプライン(`AdapterViewModel`/`AdapterPanelViewModel`)に
+  2026-07 配線完了。詳細は `docs/FEATURE-AUDIT.md` §1a 参照。
 - [ ] Hotspot 2.0 / Passpoint 自動接続プロファイル — `Hotspot20Service` (Core, キャリアプリセット
   含む) は実装済みだが未配線。同上。
 - [ ] eduroam ワンクリック設定 (CAT XML インポート) — `CatImportService` (Core, XXE 対策済み)は
