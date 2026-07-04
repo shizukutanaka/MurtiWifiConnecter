@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **`CatImportService` (eduroam CAT XML import) is blocked on a bigger, previously undiscovered
+  gap: neither the GUI nor the CLI supports entering 802.1X Enterprise (PEAP/EAP-TTLS) username/
+  password at all.** `docs/FEATURE-AUDIT.md` §4 estimated this as a "small diff — just add a GUI
+  import dialog," matching the pattern of the other two priority-2 wirings this session. On
+  investigation, `ConnectDialog` only handles Personal (PSK/WEP)/Open/OWE passphrase entry (no
+  Enterprise credential fields), CLI `mwc connect --auth` has no `--username`-equivalent option,
+  and `CertificatePickerDialog` (EAP-TLS client-certificate picker) is itself orphaned from every
+  connect flow (referenced only by `L.cs` resource strings). eduroam's CAT XML deliberately never
+  carries real PEAP/TTLS credentials (per-institution accounts are entered by each user after
+  distribution — that's the eduroam design, not a gap in the XML), so a working import feature
+  needs an Enterprise credential-entry UI to exist first; parsing the XML and registering a
+  profile without one would either fail `ProfileXmlBuilder`'s validation (PEAP requires
+  Username+Password) or produce a profile that can never actually authenticate. Implementing a
+  half-working "import" button was rejected as exactly the kind of incomplete feature CLAUDE.md
+  warns against. Re-scoped in `docs/FEATURE-AUDIT.md` §4 as a larger prerequisite item (build the
+  Enterprise credential UI + wire `CertificatePickerDialog` first, then `CatImportService`
+  becomes the small diff it was originally estimated to be) rather than attempted here.
+
 ### Added
 - **Wired `RegulatoryDomainService` into the GUI detail panel** (priority-2 item from
   `docs/FEATURE-AUDIT.md` §4). Previously a fully-tested but orphaned Core service with zero call

@@ -40,7 +40,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | サービス (`src/MWC.Core/Services/`) | 本来対応する機能 | 推奨アクション | 備考 |
 |---|---|---|---|
 | ~~`RegulatoryDomainService`~~ | 6GHz 帯の国別チャネル表示 | **✅ 配線済み(2026-07)** | `NetworkDetailViewModel.RegulatoryLabel`(6GHz ネットワークのみ表示、`RegionInfo.CurrentRegion` からシステムロケールで国を自動推定)。テスト: `NetworkDetailViewModelVpnEapWiringTests.cs` に追加。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
-| `CatImportService` | eduroam CAT XML インポート | **配線**(製品側)— GUI にインポートダイアログ追加 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `CatImportService` | eduroam CAT XML インポート | **ブロック中** — 下記「配線できない理由」参照 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | ~~`OweSelectionService`~~ | 同一 SSID の Open/OWE ペア統合 | **✅ 配線済み(2026-07)** | `AdapterViewModel.RefreshAsync`・`AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`・CLI `mwc scan` の3箇所に挿入。既知の限界(Open 側が実際に接続中でも無条件除外される稀なエッジケース)をサービス自身の XML doc に明記。テスト: `tests/MWC.Core.Tests/OweWiringTests.cs` |
 | `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
@@ -97,6 +97,30 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 読み取る必要があり、これは既存の Core サービスを呼ぶだけでは完結しない新規プラットフォーム
 実装が必要。§4 優先順位からは意図的に外してある(小差分では終わらないため)。
 
+**`CatImportService` が配線できない理由(2026-07 調査で判明した、より根本的な欠落)**:
+当初は「GUI にインポートダイアログを追加するだけ」の小さな作業と見積もっていたが、調査の結果
+**GUI (`ConnectDialog`) も CLI (`mwc connect`) も、802.1X Enterprise 認証(PEAP/EAP-TTLS)の
+ユーザー名・パスワード入力に一切対応していない**ことが判明した
+(`grep -rn "Username.*Password\|EnterpriseCred" src/MWC.App/Views/ src/MWC.App/ViewModels/` は
+0件、CLI `mwc connect --auth` にも `--username` 相当のオプションが存在しない)。`ConnectDialog`
+は Personal(PSK/WEP)/Open/OWE のパスフレーズ入力のみに対応。さらに `CertificatePickerDialog`
+(EAP-TLS 用クライアント証明書選択、`src/MWC.App/Views/CertificatePickerDialog.xaml.cs`)自体も
+どの接続フローからも呼び出されておらず孤立している(`L.cs` の文字列参照のみ)。
+
+eduroam の PEAP/EAP-TTLS は CAT XML に実際の認証情報を含まない(各利用者の学内アカウントは
+XML 配布後にユーザー自身が入力する設計が eduroam の仕様そのもの)ため、`CatImportService` を
+真に機能させるには **先に Enterprise 認証情報入力 UI を新規構築する必要がある**。
+XML パースだけ動かして認証情報を入力させない「インポート」機能は、登録はできても実際には
+接続できない(PEAP は `ProfileXmlBuilder` の検証で Username/Password 必須のため、
+そもそも登録時点で失敗する)半端な機能になるため、実装を見送った。
+
+次に着手する場合の推奨順序: (1) Enterprise 用ユーザー名/パスワード入力パネルを
+`ConnectDialog` に追加(または新規ダイアログ)→ (2) `CertificatePickerDialog` を EAP-TLS
+選択時の接続フローに接続 → (3) その基盤の上で `CatImportService` の「XML を解析して
+SSID/EAP種別/サーバー検証情報を事前入力し、残りをユーザーに入力させる」インポート機能を追加。
+(1)(2) は `CatImportService` 単体よりずっと大きい作業(新規 UI 設計・全認証方式のゴールデン
+テスト拡張・資格情報の安全な取り扱い検討)であり、§2b の SecureString 論点とも関連する。
+
 ### 2b. CLAUDE.md ルールと実装の乖離(**ユーザー裁定待ち — 勝手に解決しないこと**)
 
 CLAUDE.md 必須事項「パスワードは `SecureString`、使用直後 `Marshal.ZeroFreeGlobalAllocUnicode`」
@@ -151,16 +175,24 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 
 1. ~~**高**: §2a の GUI 配線~~ — `VpnAdvisoryService`/`EapAuthStatsService` は 2026-07 に完了。
    `PrivacyAdvisoryService` は新規プラットフォーム実装が要るため別枠(下記)
-2. ~~**高**: §1a のうち `RegulatoryDomainService`/`CatImportService`/`OweSelectionService` の配線~~
-   — `OweSelectionService` と `RegulatoryDomainService` は 2026-07 に完了。前者は CLI `scan`・
-   `AdapterViewModel`・`AdapterPanelViewModel` の3箇所、後者は `NetworkDetailViewModel` の
-   6GHz 限定表示として配線。`CatImportService`(eduroam インポート)は GUI ダイアログの
-   新設が必要でより大きな変更のため残作業
+2. ~~**高**: §1a のうち `RegulatoryDomainService`/`OweSelectionService` の配線~~ — 2026-07 に完了。
+   前者は CLI `scan`・`AdapterViewModel`・`AdapterPanelViewModel` の3箇所、後者は
+   `NetworkDetailViewModel` の6GHz 限定表示として配線。
+   `CatImportService`(eduroam インポート)は当初「小差分」と見積もっていたが、調査の結果
+   Enterprise 認証情報入力 UI 自体が GUI/CLI どちらにも存在しない、より根本的な欠落を発見した
+   ため §2a の「配線できない理由」欄へ格上げ・降格(単純な配線作業ではなくなったため優先度
+   リストの番号付けからは除外。次点は下記7)
 3. **中**: §2b の SecureString 裁定をリポジトリ所有者に仰ぐ(裁定なしでは進められない)
-4. **中**: §1a 残りの配線 or 削除判断(削除する場合は対応テストも削除。SDK 公開4サービスは
-   削除不可、§1a 注記参照)
+4. **中**: §1a 残りの配線 or 削除判断(削除する場合は対応テストも削除。SDK 公開3サービス
+   ―`CatImportService`/`Hotspot20Service`は残存、`OweSelectionService`/`RegulatoryDomainService`
+   は既に配線済み― は削除不可、§1a 注記参照)
 5. **中**: `PrivacyAdvisoryService` — MAC ランダム化状態のプラットフォーム検出を新規実装後に配線
 6. **低**: §1c のプラットフォーム実装(実機がないと検証不能)
+7. **低〜中(規模が大きいため要事前設計)**: Enterprise(802.1X)認証情報入力 UI の新規構築
+   (GUI: `ConnectDialog` 拡張 or 新規ダイアログ、CLI: `mwc connect --username` 相当)+
+   `CertificatePickerDialog` の接続フローへの接続。これが完了して初めて `CatImportService`
+   の配線が「小差分」になる。§2b の SecureString 裁定と合わせて検討すべき(資格情報の
+   安全な取り扱いという同じ論点を含むため)。
 
 ---
 
