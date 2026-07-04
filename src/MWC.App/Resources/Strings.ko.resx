@@ -405,6 +405,9 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ 강력히 권장</value></data>
   <data name="Detail_EapStats"><value>802.1X 성공률</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2}회 시도)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz 지역</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}에서 합법</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}에서 허용되지 않음</value></data>
   <data name="Detail_LinkEstimate"><value>링크 추정</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>신호 추세</value></data>

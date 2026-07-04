@@ -405,6 +405,9 @@
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ يوصى به بشدة</value></data>
   <data name="Detail_EapStats"><value>معدل نجاح 802.1X</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} محاولات)</value></data>
+  <data name="Detail_Regulatory"><value>منطقة 6GHz</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ قانوني في {0}</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ غير مسموح في {0}</value></data>
   <data name="Detail_LinkEstimate"><value>تقدير الرابط</value></data>
   <data name="Detail_Mlo"><value>متعدد الروابط</value></data>
   <data name="Detail_SignalTrend"><value>اتجاه الإشارة</value></data>

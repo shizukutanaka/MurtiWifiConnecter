@@ -450,6 +450,7 @@ public static class L
     public static string DetailSignalTrend   => Get("Detail_SignalTrend");
     public static string DetailVpn           => Get("Detail_Vpn");
     public static string DetailEapStats      => Get("Detail_EapStats");
+    public static string DetailRegulatory    => Get("Detail_Regulatory");
     public static string MenuDiagnosticExport => Get("Menu_DiagnosticExport");
     public static string StatusDiagnosticExported(string filename)
         => Format("Status_DiagnosticExported", filename);

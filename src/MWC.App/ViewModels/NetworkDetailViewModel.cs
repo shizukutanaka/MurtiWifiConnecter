@@ -34,6 +34,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly MloAnalyzerService _mloAnalyzer = new();
     private static readonly VpnAdvisoryService _vpnAdvisor = new();
     private static readonly EapAuthStatsService _eapStats = new();
+    private static readonly RegulatoryDomainService _regulatoryDomain = new();
     // NetworkHistoryService は ConnectionExecutor 等が DI シングルトンとして持つ別インスタンスとは
     // 独立している(このクラスの全 *Service フィールドと同じ既存パターン — 静的ローカル生成)。
     // そのため同一プロセス内で他画面が記録した最新の接続履歴が、アプリ再起動まで
@@ -66,6 +67,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _vpnAdviceLabel = "";
     [ObservableProperty] private string _eapStatsLabel = "";
     [ObservableProperty] private bool _hasEapStats;
+    [ObservableProperty] private string _regulatoryLabel = "";
 
     // 大半のネットワークでは空になる行は、勧告パネル同様、値があるときだけ表示する
     // (情報過多を避ける — CLAUDE.md「性能 vs 可読性 → 可読性」)
@@ -73,6 +75,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private bool _hasMesh;
     [ObservableProperty] private bool _hasPredictedSignal;
     [ObservableProperty] private bool _hasLinkEstimate;
+    // 6GHz ネットワークのみ表示(2.4/5GHz には規制ドメインの概念が実質適用されない)。
+    [ObservableProperty] private bool _hasRegulatoryInfo;
     [ObservableProperty] private string _statusLabel = "";
     [ObservableProperty] private string _vendorLabel = "";
     [ObservableProperty] private bool _hasProfile;
@@ -109,8 +113,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
-            VpnAdviceLabel = EapStatsLabel = "";
-            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = HasEapStats = false;
+            VpnAdviceLabel = EapStatsLabel = RegulatoryLabel = "";
+            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = HasEapStats = HasRegulatoryInfo = false;
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -223,6 +227,23 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ? string.Join("  ", eapRecords.Select(s =>
                 L.Format("Detail_EapStats_Format", s.EapType, $"{s.SuccessRate * 100:F0}", s.TotalAttempts)))
             : "";
+
+        // 6GHz 規制ドメイン(国別チャネル合法性)。2.4/5GHz には実質適用されないため 6GHz のみ表示。
+        // 現在のシステムロケールから国を推定する(RegulatoryDomainService.DetectCurrentRegion)。
+        HasRegulatoryInfo = n.Band == WifiBand.Band6GHz;
+        if (HasRegulatoryInfo)
+        {
+            var region = _regulatoryDomain.DetectCurrentRegion();
+            bool legal = _regulatoryDomain.IsChannelLegal(n.Channel, region.CountryCode);
+            bool psc   = _regulatoryDomain.IsPreferredScanChannel(n.Channel);
+            RegulatoryLabel = legal
+                ? L.Format("Detail_Regulatory_Legal", region.CountryName) + (psc ? " (PSC)" : "")
+                : L.Format("Detail_Regulatory_Illegal", region.CountryName);
+        }
+        else
+        {
+            RegulatoryLabel = "";
+        }
 
         var iReport = _interferenceAnalyzer.Analyze(n, visible);
         var firstFactor = iReport.Factors.FirstOrDefault();

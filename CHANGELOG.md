@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Wired `RegulatoryDomainService` into the GUI detail panel** (priority-2 item from
+  `docs/FEATURE-AUDIT.md` §4). Previously a fully-tested but orphaned Core service with zero call
+  sites in App/CLI, despite the ROADMAP claiming "6 GHz 帯の規制ドメイン別チャネル表示" was
+  complete. `NetworkDetailViewModel` gained `RegulatoryLabel`/`HasRegulatoryInfo`, shown only for
+  6 GHz networks (the concept doesn't meaningfully apply to 2.4/5 GHz): the current region is
+  auto-detected via `RegulatoryDomainService.DetectCurrentRegion()` (system locale), and the
+  panel shows whether the network's channel is legal there, with a "(PSC)" suffix when it's also
+  a Preferred Scanning Channel. Added 3 new `Strings.resx` keys, translated into all 15 locales
+  (all files now define 525 keys, verified by `LocaleKeyConsistencyTests`). New tests added to
+  `tests/MWC.Core.Tests/NetworkDetailViewModelVpnEapWiringTests.cs` — since the test environment's
+  detected region can't be controlled from a unit test, the legal/illegal assertions compute the
+  expected answer via the same `RegulatoryDomainService` call the ViewModel makes, rather than
+  hard-coding a specific region.
 - **Wired `OweSelectionService` into CLI `mwc scan` and both App scan pipelines** (priority-2 item
   from `docs/FEATURE-AUDIT.md` §4). Previously a fully-tested but orphaned Core service with zero
   call sites in App/CLI, despite the ROADMAP claiming "WPA3-OWE auto-selection" was complete.

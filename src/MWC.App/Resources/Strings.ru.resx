@@ -405,6 +405,9 @@
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ Настоятельно рекомендуется</value></data>
   <data name="Detail_EapStats"><value>Успешность 802.1X</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} попыток)</value></data>
+  <data name="Detail_Regulatory"><value>Регион 6ГГц</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ Разрешено в {0}</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ Не разрешено в {0}</value></data>
   <data name="Detail_LinkEstimate"><value>Оценка канала</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>Тренд сигнала</value></data>

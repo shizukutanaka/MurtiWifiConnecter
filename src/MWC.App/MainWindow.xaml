@@ -1070,6 +1070,22 @@
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.EapStatsLabel}"/>
                                 </Grid>
 
+                                <!-- 6GHz regulatory-domain legality — only shown for 6GHz networks
+                                     (RegulatoryDomainService, previously fully orphaned; 2026-07
+                                     audit follow-up). -->
+                                <Grid Margin="0,4,0,12"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasRegulatoryInfo, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailRegulatory}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.RegulatoryLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.RegulatoryLabel}"/>
+                                </Grid>
+
                                 <!-- セキュリティ勧告 -->
                                 <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.SecurityAdvisories}"
                                               Margin="0,0,0,12">

@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using MWC.App.ViewModels;
 using MWC.Core.Models;
+using MWC.Core.Services;
 using Xunit;
 
 namespace MWC.Core.Tests;
@@ -77,5 +78,66 @@ public class NetworkDetailViewModelVpnEapWiringTests
 
         vm.HasEapStats.Should().BeFalse();
         vm.EapStatsLabel.Should().BeEmpty();
+    }
+
+    // ── RegulatoryDomainService wiring ──────────────────────────────
+    // RegulatoryDomainService.DetectCurrentRegion() reads RegionInfo.CurrentRegion
+    // (the OS/CI environment's locale), which this test suite cannot control. So
+    // rather than hard-coding an expected region, these tests either (a) check
+    // behavior that holds regardless of region (non-6GHz networks never show
+    // regulatory info), or (b) compute the expected answer via the same
+    // RegulatoryDomainService call the ViewModel makes, and assert consistency.
+
+    [Theory]
+    [InlineData(WifiBand.Band2_4GHz)]
+    [InlineData(WifiBand.Band5GHz)]
+    public void Load_NonSixGhzNetwork_HasNoRegulatoryInfo(WifiBand band)
+    {
+        var vm = new NetworkDetailViewModel();
+        var ssid = "RegWiring_NonSixGhz_" + Guid.NewGuid().ToString("N")[..8];
+        var net = new WifiNetwork { Ssid = ssid, Auth = AuthMethod.WPA2PSK, Band = band, Channel = 36 };
+
+        vm.Load(net);
+
+        vm.HasRegulatoryInfo.Should().BeFalse();
+        vm.RegulatoryLabel.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Load_SixGhzNetwork_ShowsRegulatoryInfoConsistentWithService()
+    {
+        var vm = new NetworkDetailViewModel();
+        var ssid = "RegWiring_SixGhz_" + Guid.NewGuid().ToString("N")[..8];
+        const int channel = 37; // a PSC channel (see RegulatoryDomainService.PscChannels)
+        var net = new WifiNetwork { Ssid = ssid, Auth = AuthMethod.WPA3SAE, Band = WifiBand.Band6GHz, Channel = channel };
+
+        vm.Load(net);
+
+        vm.HasRegulatoryInfo.Should().BeTrue();
+        vm.RegulatoryLabel.Should().NotBeNullOrEmpty();
+
+        var regulatory = new RegulatoryDomainService();
+        var region = regulatory.DetectCurrentRegion();
+        bool expectedLegal = regulatory.IsChannelLegal(channel, region.CountryCode);
+
+        if (expectedLegal)
+            vm.RegulatoryLabel.Should().Contain(region.CountryName)
+                .And.Contain("Legal", because: "channel 37 is legal in the detected region per RegulatoryDomainService");
+        else
+            vm.RegulatoryLabel.Should().Contain(region.CountryName)
+                .And.Contain("Not permitted");
+    }
+
+    [Fact]
+    public void Load_NullNetwork_ClearsRegulatoryInfo()
+    {
+        var vm = new NetworkDetailViewModel();
+        vm.Load(new WifiNetwork { Ssid = "RegWiring_ToClear", Auth = AuthMethod.WPA3SAE, Band = WifiBand.Band6GHz, Channel = 37 });
+        vm.HasRegulatoryInfo.Should().BeTrue();
+
+        vm.Load(null);
+
+        vm.HasRegulatoryInfo.Should().BeFalse();
+        vm.RegulatoryLabel.Should().BeEmpty();
     }
 }

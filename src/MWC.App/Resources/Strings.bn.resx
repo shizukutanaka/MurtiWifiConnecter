@@ -400,6 +400,9 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ দৃঢ়ভাবে সুপারিশকৃত</value></data>
   <data name="Detail_EapStats"><value>802.1X সাফল্যের হার</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2}টি প্রচেষ্টা)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz অঞ্চল</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}-এ বৈধ</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}-এ অনুমোদিত নয়</value></data>
   <data name="Detail_LinkEstimate"><value>লিংক অনুমান</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>সিগন্যাল প্রবণতা</value></data>

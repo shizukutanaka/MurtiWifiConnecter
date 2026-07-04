@@ -400,6 +400,9 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ கடுமையாக பரிந்துரைக்கப்படுகிறது</value></data>
   <data name="Detail_EapStats"><value>802.1X வெற்றி விகிதம்</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} முயற்சிகள்)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz பகுதி</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}-இல் சட்டப்பூர்வமானது</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}-இல் அனுமதிக்கப்படவில்லை</value></data>
   <data name="Detail_LinkEstimate"><value>இணைப்பு மதிப்பீடு</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>சிக்னல் போக்கு</value></data>

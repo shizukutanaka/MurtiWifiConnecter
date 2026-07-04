@@ -405,6 +405,9 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ Muy recomendado</value></data>
   <data name="Detail_EapStats"><value>Tasa de éxito 802.1X</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} intentos)</value></data>
+  <data name="Detail_Regulatory"><value>Región 6GHz</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ Legal en {0}</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ No permitido en {0}</value></data>
   <data name="Detail_LinkEstimate"><value>Estimación enlace</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>Tendencia señal</value></data>

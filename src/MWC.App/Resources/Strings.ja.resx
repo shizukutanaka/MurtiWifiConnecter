@@ -405,6 +405,9 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ 強く推奨</value></data>
   <data name="Detail_EapStats"><value>802.1X 成功率</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}%({2}回)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz地域規制</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}で合法</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}では許可されていません</value></data>
   <data name="Detail_LinkEstimate"><value>リンク推定</value></data>
   <data name="Detail_Mlo"><value>MLO</value></data>
   <data name="Detail_SignalTrend"><value>信号トレンド</value></data>

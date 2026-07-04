@@ -14,8 +14,8 @@
 ### コア機能強化
 - [x] EAP-TLS クライアント証明書ストアからの自動選択 UI
 - [x] Wi-Fi 7 (802.11be) MLO (Multi-Link Operation) サポート
-- [ ] 6 GHz 帯の規制ドメイン別チャネル表示 — `RegulatoryDomainService` (Core, 国別チャネル
-  テーブル) は実装済みだが、App/CLI のどこからも呼び出されておらず未配線。
+- [x] 6 GHz 帯の規制ドメイン別チャネル表示 — `RegulatoryDomainService` を `NetworkDetailViewModel`
+  (6GHz ネットワークのみ表示)に 2026-07 配線完了。詳細は `docs/FEATURE-AUDIT.md` §1a 参照。
 - [x] スキャン履歴の長期保存(90日・500件上限)— 実装は `NetworkHistoryService` による JSON
   ファイル保存(`%LocalAppData%/MWC/history.json`)。**SQLite ではない**(2026-07 監査で
   判明、以前の記載は技術詳細が誤り)。500件規模の単純な読み書きに SQLite は過剰で、

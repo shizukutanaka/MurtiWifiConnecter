@@ -405,6 +405,9 @@
   <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ 強烈建議</value></data>
   <data name="Detail_EapStats"><value>802.1X 成功率</value></data>
   <data name="Detail_EapStats_Format"><value>{0}: {1}%（{2}次嘗試）</value></data>
+  <data name="Detail_Regulatory"><value>6GHz 地區</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ 在{0}合法</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ 在{0}不允許</value></data>
   <data name="Detail_LinkEstimate"><value>鏈路估算</value></data>
   <data name="Detail_Mlo"><value>多鏈路</value></data>
   <data name="Detail_SignalTrend"><value>信號趨勢</value></data>
