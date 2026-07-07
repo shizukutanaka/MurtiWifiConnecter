@@ -367,16 +367,10 @@ public sealed record BssDetailRow(
     string ChannelWidth
 );
 
+// Severity → 色の対応づけは View 側 (MainWindow.xaml の DataTrigger) が
+// テーマブラシ (DangerBrush/WarnBrush/AccentBrush/SuccessBrush) 経由で行う。
+// ここでハードコード16進色を持つと、テーマ切替 (ThemeService) を無視した
+// 固定色になり、Light テーマ等で視認性が悪化する (2026-07 品質パスで是正)。
 public sealed record SecurityAdvisoryItem(
     string Title,
-    AdvisorySeverity Severity)
-{
-    public string SeverityColor => Severity switch
-    {
-        AdvisorySeverity.Critical => "#EF4444",
-        AdvisorySeverity.Warning  => "#F59E0B",
-        AdvisorySeverity.Info     => "#3B82F6",
-        AdvisorySeverity.Good     => "#22C55E",
-        _ => "#6B7280"
-    };
-}
+    AdvisorySeverity Severity);

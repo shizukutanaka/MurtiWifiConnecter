@@ -62,6 +62,10 @@ public sealed partial class AdapterViewModel : ObservableObject
     [ObservableProperty] private string?                  _connectedSsid;
     [ObservableProperty] private bool                     _isScanning;
     [ObservableProperty] private NetworkDetailViewModel   _detail = new();
+    // スキャン失敗時のみ非空。前回成功時のリストは (RefreshAsync が例外時は
+    // Networks/SourceNetworks を一切更新しないため) そのまま表示され続ける —
+    // 「古いが既知のデータ」の方が「空白のダイアログなし障害」より有用という判断。
+    [ObservableProperty] private string                   _scanErrorMessage = "";
 
     private DateTimeOffset? _connectedSince;
     private string?         _prevConnectedSsid;
@@ -141,6 +145,7 @@ public sealed partial class AdapterViewModel : ObservableObject
         try
         {
             var nets = await _wifi.ScanAsync(_adapter.Id);
+            ScanErrorMessage = "";
 
             // OUI解決 + 信号履歴記録
             _history.Record(nets);
@@ -202,6 +207,14 @@ public sealed partial class AdapterViewModel : ObservableObject
             Detail.Load(_selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(_selected?.Ssid));
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
+        }
+        catch (Exception ex)
+        {
+            // スキャン失敗を無音で握りつぶさない。AsyncRelayCommand 経由の呼び出しは
+            // 例外を ExecutionTask に格納するだけで UI に伝播しないため、ここで
+            // ログ記録 + ユーザー向けメッセージ表示を行わないと「原因不明の無反応」になる。
+            _log.LogError(ex, "Scan failed for adapter {AdapterId}", _adapter.Id);
+            ScanErrorMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
         }
         finally { IsScanning = false; }
     }

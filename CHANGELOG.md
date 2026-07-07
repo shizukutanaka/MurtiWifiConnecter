@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Scan failures in `AdapterViewModel.RefreshAsync` were silently swallowed.** The method had a
+  `finally { IsScanning = false; }` but no `catch` — any exception from `IWifiService.ScanAsync`
+  (adapter removed, WLAN service down, permission denied, etc.) propagated into the
+  `AsyncRelayCommand`'s `ExecutionTask`, which CommunityToolkit.Mvvm captures but never surfaces to
+  the UI, so the app just looked unresponsive with no explanation. Added a `catch` that logs via
+  Serilog and sets a new `ScanErrorMessage` property, shown as a small banner above the network
+  list (previous scan results are left untouched — a stale-but-known list beats an empty one).
+  Reused the existing `Error_Unexpected` resx key (`L.ErrorUnexpected`) rather than adding a new
+  one, since the message shape already matched.
+- **Three UI surfaces hardcoded hex colors that ignored the active theme entirely**, so switching
+  to Light/Nord/Catppuccin/etc. left these elements stuck on Dark-theme colors (or, worse, could
+  produce low-contrast combinations the theme system was never asked to check):
+  `NetworkDetailViewModel.SecurityAdvisoryItem.SeverityColor` (a C# property returning raw hex),
+  `MainWindow.xaml`'s signal-bar glyph-color `DataTrigger`s, and `ConnectDialog.xaml.cs`'s password
+  strength indicator. Fixed by reusing the existing theme contract's semantic brushes
+  (`DangerBrush`/`WarnBrush`/`SuccessBrush`/`AccentBrush`/`FgMutedBrush`) via `DynamicResource` in
+  XAML and `Application.Current.Resources[key]` in code-behind — no new brush keys needed, so
+  `ThemeContractTests`'s 16-brush contract and `ThemeAccessibilityAuditTests` needed no changes.
+  `SeverityColor` was deleted entirely (color now decided by the View via `DataTrigger` on the
+  already-public `Severity` enum, not passed as a magic string from the ViewModel).
+
+### Docs
+- **Found a fourth hardcoded-color instance while fixing the three above, but left it alone:**
+  `SecurityLevelToBrushConverter` (`src/MWC.App/Converters/Converters.cs`) freezes 6 raw hex
+  `SolidColorBrush`es at static-field-init time and is registered in `App.xaml` as
+  `SecLevelToBrush` — but has zero `{StaticResource SecLevelToBrush}` consumers anywhere in the
+  app's XAML. It's orphaned, not an active theming defect (nothing renders it, so nothing looks
+  wrong), so fixing its internals wouldn't be user-visible. Left as a follow-up: either wire it to
+  something that needs `SecurityLevel`→Brush (and fix it to do a live resource lookup instead of
+  freezing colors once) or delete it if truly unused.
+
 ### Added
 - **Wired `RetryPolicy` into the GUI connect flow — transient failures now retry automatically
   with jittered backoff before bothering the user.** Previously every connection failure,

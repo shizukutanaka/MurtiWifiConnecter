@@ -41,18 +41,21 @@ public partial class ConnectDialog : Window
 
     private void UpdateStrengthIndicator(string pw)
     {
-        var (score, label, color) = MeasureStrength(pw);
-        StrengthBar.Width      = StrengthBarTrack.ActualWidth * score;
-        StrengthBar.Background = new SolidColorBrush(
-            (Color)ColorConverter.ConvertFromString(color));
-        StrengthLabel.Text = pw.Length == 0 ? "" : label;
-        StrengthLabel.Foreground = new SolidColorBrush(
-            (Color)ColorConverter.ConvertFromString(color));
+        var (score, label, brushKey) = MeasureStrength(pw);
+        var brush = (Brush)Application.Current.Resources[brushKey];
+        StrengthBar.Width       = StrengthBarTrack.ActualWidth * score;
+        StrengthBar.Background  = brush;
+        StrengthLabel.Text       = pw.Length == 0 ? "" : label;
+        StrengthLabel.Foreground = brush;
     }
 
-    private static (double score, string label, string color) MeasureStrength(string pw)
+    // 戻り値の色はテーマブラシのリソースキー名 (16進色の直書きではない) —
+    // ハードコード色はテーマ切替 (ThemeService) を無視してしまう
+    // (2026-07 品質パスで是正。既存の Danger/Warn/Success/Accent 各ブラシを
+    // 意味的に再利用し、新規ブラシは追加しない)。
+    private static (double score, string label, string brushKey) MeasureStrength(string pw)
     {
-        if (pw.Length == 0) return (0, "", "#9CA3AF");
+        if (pw.Length == 0) return (0, "", "FgMutedBrush");
 
         int pts = 0;
         if (pw.Length >= 8)  pts++;
@@ -65,10 +68,10 @@ public partial class ConnectDialog : Window
 
         return pts switch
         {
-            <= 2 => (0.25, MWC.App.Resources.L.Get("Strength_Weak"),   "#EF4444"),
-            <= 4 => (0.5,  MWC.App.Resources.L.Get("Strength_Fair"),   "#F59E0B"),
-            <= 5 => (0.75, MWC.App.Resources.L.Get("Strength_Strong"),   "#22C55E"),
-            _    => (1.0,  MWC.App.Resources.L.Get("Strength_VeryStrong"), "#00C4CC")
+            <= 2 => (0.25, MWC.App.Resources.L.Get("Strength_Weak"),       "DangerBrush"),
+            <= 4 => (0.5,  MWC.App.Resources.L.Get("Strength_Fair"),       "WarnBrush"),
+            <= 5 => (0.75, MWC.App.Resources.L.Get("Strength_Strong"),     "SuccessBrush"),
+            _    => (1.0,  MWC.App.Resources.L.Get("Strength_VeryStrong"), "AccentBrush")
         };
     }
 

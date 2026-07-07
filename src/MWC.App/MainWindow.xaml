@@ -421,6 +421,25 @@
                 <!-- ネットワーク一覧 (EmptyState対応) -->
                 <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="10">
                     <Grid>
+                        <!-- スキャン失敗バナー — 前回成功時の一覧はそのまま残し、上に軽い警告のみ重ねる
+                             (RefreshAsync が例外時に一覧を空にしないため。2026-07 品質パスで追加)。
+                             文字色は FgBrush-on-SurfaceHoverBrush (BodyText_MeetsAaa で検証済みの
+                             組み合わせと同一階調) を使い、WarnBrush は左端のアクセント縦線のみに限定する
+                             — セキュリティ勧告パネルと同じ「色は付随情報、本文は常時 AAA 配色」方針 -->
+                        <Border Panel.ZIndex="9" VerticalAlignment="Top" CornerRadius="8,8,0,0"
+                                Background="{DynamicResource SurfaceHoverBrush}"
+                                Visibility="{Binding SelectedAdapter.ScanErrorMessage,
+                                             Converter={StaticResource StrToVis}}">
+                            <StackPanel Orientation="Horizontal" Margin="10,6">
+                                <Border Width="4" CornerRadius="2" Margin="0,0,8,0"
+                                        Background="{DynamicResource WarnBrush}"/>
+                                <TextBlock Text="{Binding SelectedAdapter.ScanErrorMessage}"
+                                           FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource FgBrush}"
+                                           AutomationProperties.Name="{Binding SelectedAdapter.ScanErrorMessage}"/>
+                            </StackPanel>
+                        </Border>
+
                         <!-- スキャン中オーバーレイ -->
                         <Border CornerRadius="10" Panel.ZIndex="10">
                             <Border.Style>
@@ -522,23 +541,23 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Text"       Value="▁"/>
-                                                        <Setter Property="Foreground" Value="#EF4444"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Bars}" Value="4">
                                                                 <Setter Property="Text"       Value="▄"/>
-                                                                <Setter Property="Foreground" Value="#22C55E"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding Bars}" Value="3">
                                                                 <Setter Property="Text"       Value="▄"/>
-                                                                <Setter Property="Foreground" Value="#A3E635"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding Bars}" Value="2">
                                                                 <Setter Property="Text"       Value="▃"/>
-                                                                <Setter Property="Foreground" Value="#F59E0B"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding Bars}" Value="1">
                                                                 <Setter Property="Text"       Value="▂"/>
-                                                                <Setter Property="Foreground" Value="#F97316"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -1107,7 +1126,23 @@
                                                     Background="{DynamicResource SurfaceHoverBrush}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Border Width="5" CornerRadius="2.5" Margin="0,0,8,0"
-                                                            Background="{Binding SeverityColor}"/>
+                                                            Background="{DynamicResource DangerBrush}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                                                                        <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Good">
+                                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
                                                     <TextBlock Text="{Binding Title}"
                                                                FontSize="10" TextWrapping="Wrap"
                                                                Foreground="{DynamicResource FgBrush}"/>
