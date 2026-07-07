@@ -67,6 +67,7 @@
   <data name="Detail_Connected"><value>接続中 ✓</value></data>
   <data name="Status_Copied"><value>コピー: {0}</value></data>
   <data name="Progress_Error"><value>エラー: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>接続が不安定です — 自動的に再試行しています…</value></data>
   <data name="Status_Deleted"><value>削除しました: {0}</value></data>
   <data name="Progress_Authenticating"><value>認証中…</value></data>
   <data name="Error_Unexpected"><value>予期しない問題: {0}</value></data>

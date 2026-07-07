@@ -30,7 +30,15 @@ public static class AdapterConnectExtension
         NotificationService notify,
         Window? owner = null)
     {
-        for (int attempt = 1; attempt <= 3; attempt++)
+        // 一時的失敗 (電波・タイムアウト等) はユーザーにダイアログを見せる前に
+        // ジッター付きバックオフで静かに自動再試行する。決定的失敗 (認証・権限・
+        // プロファイル・キャンセル) の分類は RetryPolicy.IsRetriable が担う。
+        // 上限: 自動再試行 2 回 (MaxAttempts=3 の残り) + ユーザー承認制 3 ラウンド。
+        var retryPolicy = new RetryPolicy();
+        int autoRetries = 0;
+        int userRounds  = 0;
+
+        while (true)
         {
             using var progress = new ConnectionProgressDialog(ssid) { Owner = owner };
             var cts = progress.CancellationToken;
@@ -62,17 +70,32 @@ public static class AdapterConnectExtension
             }
 
             // 失敗 (履歴は executor が記録済み)
+            var failure = result.Failure ?? ConnectionFailure.Unknown;
+
+            if (RetryPolicy.IsRetriable(failure) && autoRetries < retryPolicy.MaxAttempts - 1)
+            {
+                autoRetries++;
+                progress.SetResult(result, MWC.App.Resources.L.Get("Progress_AutoRetry"));
+                // バックオフ待機中はダイアログを開いたまま「自動再試行中…」を見せる。
+                // 待機中のキャンセル (×/Cancel) は次の試行に入らず即終了する。
+                try { await Task.Delay(retryPolicy.ComputeDelay(autoRetries), cts); }
+                catch (OperationCanceledException) { progress.Close(); return; }
+                progress.Close();
+                continue;
+            }
+
             progress.SetResult(result, MWC.App.Resources.L.StatusConnectionFailed);
             await Task.Delay(500);
             progress.Close();
 
-            var advice  = MWC.App.Resources.L.GetTroubleshootingAdvice(result.Failure ?? ConnectionFailure.Unknown, auth);
+            userRounds++;
+            var advice  = MWC.App.Resources.L.GetTroubleshootingAdvice(failure, auth);
             var trouble = new TroubleshootingDialog(ssid, advice) { Owner = owner };
             trouble.ShowDialog();
 
-            if (!trouble.ShouldRetry || attempt >= 3)
+            if (!trouble.ShouldRetry || userRounds >= 3)
             {
-                notify.NotifyFailed(ssid, result.Failure ?? ConnectionFailure.Unknown);
+                notify.NotifyFailed(ssid, failure);
                 return;
             }
         }

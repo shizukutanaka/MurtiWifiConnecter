@@ -65,13 +65,21 @@ public sealed class RetryPolicy
 
     /// <summary>
     /// この失敗種別がリトライ可能かどうかを判定する。
-    /// 認証失敗・権限不足は再試行しても無意味なため false。
+    /// 決定的失敗 (同じ入力なら必ず同じ結果になるもの: 認証失敗・権限不足・
+    /// 不正プロファイル・ユーザーによるキャンセル) は再試行しても無意味なため false。
+    /// 一時的失敗 (Timeout/NotInRange/OsError) と分類不能 (Unknown) は true —
+    /// Unknown を true に倒すのは「原因不明の失敗は電波状況等の一時要因である
+    /// 可能性が高く、リトライのコスト (数秒の待機) が誤分類の害より小さい」ため。
     /// </summary>
     public static bool IsRetriable(MWC.Core.Models.ConnectionFailure failure) => failure switch
     {
         MWC.Core.Models.ConnectionFailure.BadCredentials       => false,
         MWC.Core.Models.ConnectionFailure.InsufficientPrivilege => false,
         MWC.Core.Models.ConnectionFailure.AdapterDisabled      => false,
+        MWC.Core.Models.ConnectionFailure.AdapterNotFound      => false,
+        MWC.Core.Models.ConnectionFailure.InvalidProfile       => false,
+        MWC.Core.Models.ConnectionFailure.ProfileRejected      => false,
+        MWC.Core.Models.ConnectionFailure.Cancelled            => false,
         MWC.Core.Models.ConnectionFailure.Timeout              => true,
         MWC.Core.Models.ConnectionFailure.NotInRange           => true,
         _                                                       => true

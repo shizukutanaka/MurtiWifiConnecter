@@ -67,6 +67,7 @@
   <data name="Progress_CheckInternet"><value>Проверка подключения…</value></data>
   <data name="Progress_IPObtaining"><value>Obtaining IP address…</value></data>
   <data name="Progress_Error"><value>Error: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>Соединение нестабильно — автоматическая повторная попытка…</value></data>
   <data name="Detail_Connected"><value>Подключено ✓</value></data>
   <data name="Detail_HasProfile"><value>Профиль сохранён</value></data>
   <data name="Detail_NotConnected"><value>Не подключено</value></data>

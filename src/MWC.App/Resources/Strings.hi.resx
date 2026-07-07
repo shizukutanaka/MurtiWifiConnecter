@@ -62,6 +62,7 @@
   <data name="Progress_CheckInternet"><value>इंटरनेट कनेक्शन की जांच हो रही है…</value></data>
   <data name="Progress_IPObtaining"><value>IP पता प्राप्त हो रहा है…</value></data>
   <data name="Progress_Error"><value>त्रुटि: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>कनेक्शन अस्थिर — स्वचालित रूप से पुनः प्रयास हो रहा है…</value></data>
   <data name="Detail_Connected"><value>कनेक्टेड ✓</value></data>
   <data name="Detail_HasProfile"><value>प्रोफ़ाइल सहेजी गई</value></data>
   <data name="Detail_NotConnected"><value>कनेक्टेड नहीं</value></data>

@@ -67,6 +67,7 @@
   <data name="Progress_CheckInternet"><value>인터넷 연결 확인 중…</value></data>
   <data name="Progress_IPObtaining"><value>Obtaining IP address…</value></data>
   <data name="Progress_Error"><value>Error: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>연결이 불안정합니다 — 자동으로 다시 시도 중…</value></data>
   <data name="Detail_Connected"><value>연결됨 ✓</value></data>
   <data name="Detail_HasProfile"><value>프로필 저장됨</value></data>
   <data name="Detail_NotConnected"><value>연결 안 됨</value></data>

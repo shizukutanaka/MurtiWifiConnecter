@@ -62,6 +62,7 @@
   <data name="Progress_CheckInternet"><value>ইন্টারনেট সংযোগ পরীক্ষা করা হচ্ছে…</value></data>
   <data name="Progress_IPObtaining"><value>IP ঠিকানা প্রাপ্ত করা হচ্ছে…</value></data>
   <data name="Progress_Error"><value>ত্রুটি: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>সংযোগ অস্থির — স্বয়ংক্রিয়ভাবে পুনরায় চেষ্টা করা হচ্ছে…</value></data>
   <data name="Detail_Connected"><value>সংযুক্ত ✓</value></data>
   <data name="Detail_HasProfile"><value>প্রোফাইল সংরক্ষিত</value></data>
   <data name="Detail_NotConnected"><value>সংযুক্ত নয়</value></data>

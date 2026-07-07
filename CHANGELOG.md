@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Wired `RetryPolicy` into the GUI connect flow — transient failures now retry automatically
+  with jittered backoff before bothering the user.** Previously every connection failure,
+  including a momentary timeout or weak-signal drop, immediately opened `TroubleshootingDialog`
+  and waited for the user to click retry (`AdapterConnectExtension`'s 3-round loop was entirely
+  user-gated; `RetryPolicy` — the Core service implementing AWS full-jitter exponential backoff —
+  had zero call sites in App/CLI, per `docs/FEATURE-AUDIT.md` §1a). Now failures classified
+  transient by `RetryPolicy.IsRetriable` (Timeout/NotInRange/OsError/Unknown) retry silently up
+  to 2 times with `ComputeDelay` backoff (cap 8 s) while the progress dialog shows a localized
+  "retrying automatically…" message; cancelling during the backoff wait exits immediately.
+  Deterministic failures (BadCredentials, InsufficientPrivilege, etc.) skip straight to the
+  dialog as before, and the user-gated 3-round loop is unchanged after auto-retries exhaust.
+  Also hardened `IsRetriable` itself: `AdapterNotFound`/`InvalidProfile`/`ProfileRejected`
+  (deterministic — same input always fails the same way) and `Cancelled` (a machine must not
+  override the user's explicit abort) previously fell through to the default `true` arm and are
+  now explicitly non-retriable, with the classification table pinned by 6 new test rows in
+  `RecommendationAndPortalTests`. New `Progress_AutoRetry` resx key translated into all 15
+  locales (every file now defines 526 keys).
+
 ### Docs
 - **`CatImportService` (eduroam CAT XML import) is blocked on a bigger, previously undiscovered
   gap: neither the GUI nor the CLI supports entering 802.1X Enterprise (PEAP/EAP-TTLS) username/

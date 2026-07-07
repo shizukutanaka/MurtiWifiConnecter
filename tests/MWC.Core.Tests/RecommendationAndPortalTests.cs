@@ -191,8 +191,16 @@ public class RetryPolicyTests
     [InlineData(ConnectionFailure.BadCredentials,        false)]
     [InlineData(ConnectionFailure.InsufficientPrivilege, false)]
     [InlineData(ConnectionFailure.AdapterDisabled,       false)]
+    // 決定的失敗 — 同じ入力で必ず再発するため自動リトライは無意味 (2026-07 配線時に固定化)
+    [InlineData(ConnectionFailure.AdapterNotFound,       false)]
+    [InlineData(ConnectionFailure.InvalidProfile,        false)]
+    [InlineData(ConnectionFailure.ProfileRejected,       false)]
+    // ユーザーの意思による中断を機械が上書きして再試行してはならない
+    [InlineData(ConnectionFailure.Cancelled,             false)]
     [InlineData(ConnectionFailure.Timeout,               true)]
     [InlineData(ConnectionFailure.NotInRange,            true)]
+    [InlineData(ConnectionFailure.OsError,               true)]
+    [InlineData(ConnectionFailure.Unknown,               true)]
     public void IsRetriable_CorrectlyClassifies(ConnectionFailure failure, bool expected)
     {
         RetryPolicy.IsRetriable(failure).Should().Be(expected);

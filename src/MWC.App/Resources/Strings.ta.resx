@@ -62,6 +62,7 @@
   <data name="Progress_CheckInternet"><value>இணைய இணைப்பை சரிபார்க்கிறது…</value></data>
   <data name="Progress_IPObtaining"><value>IP முகவரியைப் பெறுகிறது…</value></data>
   <data name="Progress_Error"><value>பிழை: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>இணைப்பு நிலையற்றது — தானாக மீண்டும் முயற்சிக்கப்படுகிறது…</value></data>
   <data name="Detail_Connected"><value>இணைக்கப்பட்டது ✓</value></data>
   <data name="Detail_HasProfile"><value>சுயவிவரம் சேமிக்கப்பட்டது</value></data>
   <data name="Detail_NotConnected"><value>இணைக்கப்படவில்லை</value></data>

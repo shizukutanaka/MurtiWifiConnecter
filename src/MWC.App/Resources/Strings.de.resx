@@ -67,6 +67,7 @@
   <data name="Progress_CheckInternet"><value>Internetverbindung wird geprüft…</value></data>
   <data name="Progress_IPObtaining"><value>Obtaining IP address…</value></data>
   <data name="Progress_Error"><value>Error: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>Verbindung instabil — automatischer Neuversuch…</value></data>
   <data name="Detail_Connected"><value>Verbunden ✓</value></data>
   <data name="Detail_HasProfile"><value>Profil gespeichert</value></data>
   <data name="Detail_NotConnected"><value>Nicht verbunden</value></data>
