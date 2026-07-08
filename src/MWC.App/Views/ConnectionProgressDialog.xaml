@@ -27,38 +27,58 @@
                                 VerticalAlignment="Center">
                             <Border.Style>
                                 <Style TargetType="Border">
-                                    <Setter Property="Background" Value="#2B313A"/>
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Active">
-                                            <Setter Property="Background" Value="#00C4CC"/>
+                                            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Done">
-                                            <Setter Property="Background" Value="#22C55E"/>
+                                            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Error">
-                                            <Setter Property="Background" Value="#EF4444"/>
+                                            <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
+                            <!-- ドットの前景色: Pending は中立の FgMutedBrush、それ以外は円の色に対して
+                                 実際にコントラスト検証済みの AccentTextBrush/DangerTextBrush を流用する
+                                 (固定 White だと Active の AccentBrush 背景で AA 未達になりうる —
+                                 ThemeAccessibilityAuditTests の AccentTextBrush 検証はまさにこの組合せ用) -->
                             <TextBlock x:Name="StepIcon" Text="●" FontSize="8"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="White"/>
+                                       Foreground="{DynamicResource FgMutedBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding State}" Value="Active">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding State}" Value="Done">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding State}" Value="Error">
+                                                <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Border>
                         <!-- ステップ名 -->
                         <TextBlock Grid.Column="1" Text="{Binding Name}"
                                    VerticalAlignment="Center" Margin="8,0,0,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#9CA3AF"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource FgMutedBrush}"/>
                                     <Setter Property="FontSize" Value="13"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Active">
-                                            <Setter Property="Foreground" Value="#E6E8EB"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource FgBrush}"/>
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Done">
-                                            <Setter Property="Foreground" Value="#4ADE80"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

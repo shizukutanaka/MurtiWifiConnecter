@@ -24,14 +24,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   intended use case is now handled directly via `DataTrigger`, matching every other severity
   indicator in the app — so it and its `App.xaml` registration (`SecLevelToBrush`) were deleted
   rather than fixed, since nothing consumes it.
-  **Found but deliberately left alone this pass** (documented here rather than rushed): a
-  `MainWindow.xaml` list-item hover-state color (`#2B313A`) that's suspiciously close to but not
-  identical to `SurfaceHoverBrush`, and — a larger, unverified scope — `AllAdaptersOverviewView.xaml`,
-  `ConnectionProgressDialog.xaml`, and `SettingsDialog.xaml` collectively hardcode roughly 20 more
-  hex colors (status dots, connection-progress step colors, settings dialog surfaces). These need
-  the same per-composition contrast care as this pass, file by file, ideally with the app actually
-  running to visually confirm — attempting all of them at once here risked exactly the kind of
-  half-verified, rushed change this project's conventions warn against.
+- **Follow-up pass: cleared the remaining ~28 hardcoded colors identified but deliberately deferred
+  last time**, across `AllAdaptersOverviewView.xaml`, `SettingsDialog.xaml`, and the ambiguous
+  `MainWindow.xaml` hover color:
+  - `AllAdaptersOverviewView.xaml`'s connection-status bar background was tinted green when
+    connected — removed the tint entirely (unified to `SurfaceHoverBrush` regardless of state)
+    rather than inventing a new "success surface" brush, since the status dot + bold green
+    percentage text already convey "connected" redundantly. Its status dot and signal-bar
+    `DataTrigger`s now reuse `FgMutedBrush`/`SuccessBrush`/`WarnBrush`/`DangerBrush`, matching the
+    exact reuse scheme signal bars already use elsewhere.
+  - `ConnectionProgressDialog.xaml` was found already fixed in the working tree (not by this
+    session) with a notably careful touch: it swaps a fixed `White` step-icon foreground for
+    `AccentTextBrush`/`DangerTextBrush` specifically because plain white against `AccentBrush`
+    risks failing WCAG AA on some themes — exactly the pairing `ThemeAccessibilityAuditTests`
+    already verifies passes. Left as-is; it needed no further work.
+  - `SettingsDialog.xaml`'s entire `Window.Resources` default styles (TextBlock, ComboBox, the
+    `SectionLabel` and `Card` styles) hardcoded hex values that matched the Dark theme's brushes
+    *exactly* (`#E6E8EB`==`FgBrush`, `#1A1D23`==`SurfaceBrush`) — strong evidence they were meant
+    to be `DynamicResource` references from the start and got hardcoded by mistake. Every control
+    in this dialog silently ignored theme switches until now.
+  - The `MainWindow.xaml` hover color (`#2B313A`) turned out to exactly match
+    `SettingsDialog.xaml`'s `BorderBrush` value before that was fixed, which is now `DividerBrush`
+    — the recurring exact hex match across two unrelated files was enough evidence to resolve it
+    the same way rather than leave it ambiguous.
+  - Left `MainWindow.xaml`'s `#550F1115` scanning overlay alone: it's a translucent dark scrim over
+    the whole list during an in-progress scan, a different design category (a temporary dimming
+    effect, not a semantic color) that's conventionally theme-agnostic in most UI systems, not a
+    case of "wrong color for this theme."
+  All of the above reuse the existing 16-brush contract — no new brush keys, so
+  `ThemeContractTests`/`ThemeAccessibilityAuditTests` needed no changes, same as the prior pass.
 - **Scan failures in `AdapterViewModel.RefreshAsync` were silently swallowed.** The method had a
   `finally { IsScanning = false; }` but no `catch` — any exception from `IWifiService.ScanAsync`
   (adapter removed, WLAN service down, permission denied, etc.) propagated into the

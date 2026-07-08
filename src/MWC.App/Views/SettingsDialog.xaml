@@ -7,24 +7,28 @@
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         AutomationProperties.Name="{x:Static r:L.SettingsDialogAutomation}">
+    <!-- 全コントロール既定スタイルが16進色を直書きしており、ダークテーマ以外への
+         切替を完全に無視していた (2026-07 品質パスで是正)。各値は Dark.xaml の
+         対応ブラシと厳密一致 (#E6E8EB=FgBrush, #1A1D23=SurfaceBrush 等) — 元々
+         DynamicResource を意図していたが直書きされたものとみて置換する。 -->
     <Window.Resources>
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E6E8EB"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgBrush}"/>
         </Style>
         <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#22262E"/>
-            <Setter Property="Foreground" Value="#E6E8EB"/>
-            <Setter Property="BorderBrush" Value="#2B313A"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
             <Setter Property="Padding" Value="8,6"/>
         </Style>
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgMutedBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
         <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="#1A1D23"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="16"/>
             <Setter Property="Margin" Value="0,0,0,16"/>

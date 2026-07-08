@@ -315,8 +315,10 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
+                                                <!-- #2B313A は SettingsDialog.xaml の BorderBrush と厳密一致し
+                                                     DividerBrush に対応することが判明 (2026-07 品質パス) -->
                                                 <Setter TargetName="bd" Property="Background"
-                                                        Value="#2B313A"/>
+                                                        Value="{DynamicResource DividerBrush}"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter TargetName="bd" Property="Background"
