@@ -10,6 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Found and fixed 4 more theme-bypassing hardcoded colors in `MainWindow.xaml` while resolving
+  the `SecurityLevelToBrushConverter` orphan** (a follow-up from the previous theme-color pass):
+  the network list's security-level indicator dot (5-tier `DataTrigger` chain on `SecurityLevel`),
+  the DFS-channel warning icon, the channel-congestion indicator dot, and the DFS warning banner
+  (previously a hardcoded dark-amber box that looked fine only in the Dark theme). All now use
+  `DynamicResource` against the existing brush contract — the 5-tier security levels collapse to
+  the same 3-brush reuse already used for signal bars (`SuccessBrush`/`SuccessBrush`/`WarnBrush`/
+  `WarnBrush`/`DangerBrush`), and the DFS banner switched to the established "neutral surface +
+  accent stripe, text always on the AAA-tested `FgBrush`/`FgMutedBrush` pairing" pattern rather
+  than inventing a new warn-background-with-warn-text composition with no contrast test covering
+  it. This also made `SecurityLevelToBrushConverter` (`Converters.cs`) genuinely dead — its
+  intended use case is now handled directly via `DataTrigger`, matching every other severity
+  indicator in the app — so it and its `App.xaml` registration (`SecLevelToBrush`) were deleted
+  rather than fixed, since nothing consumes it.
+  **Found but deliberately left alone this pass** (documented here rather than rushed): a
+  `MainWindow.xaml` list-item hover-state color (`#2B313A`) that's suspiciously close to but not
+  identical to `SurfaceHoverBrush`, and — a larger, unverified scope — `AllAdaptersOverviewView.xaml`,
+  `ConnectionProgressDialog.xaml`, and `SettingsDialog.xaml` collectively hardcode roughly 20 more
+  hex colors (status dots, connection-progress step colors, settings dialog surfaces). These need
+  the same per-composition contrast care as this pass, file by file, ideally with the app actually
+  running to visually confirm — attempting all of them at once here risked exactly the kind of
+  half-verified, rushed change this project's conventions warn against.
 - **Scan failures in `AdapterViewModel.RefreshAsync` were silently swallowed.** The method had a
   `finally { IsScanning = false; }` but no `catch` — any exception from `IWifiService.ScanAsync`
   (adapter removed, WLAN service down, permission denied, etc.) propagated into the

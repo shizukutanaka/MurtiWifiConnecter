@@ -18,7 +18,6 @@
             <conv:NullToVisibilityConverter  x:Key="InvNullToVis" Invert="True"/>
             <conv:CountToBoolConverter       x:Key="CountToBool"/>
             <conv:ZeroToVisibleConverter     x:Key="ZeroToVis"/>
-            <conv:SecurityLevelToBrushConverter x:Key="SecLevelToBrush"/>
             <conv:StringToVisibilityConverter   x:Key="StrToVis"/>
 
             <!-- フォントフォールバック (全言語対応) -->
