@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **🔴 Critical, unresolved: `.github/workflows/` does not exist, so CI/CodeQL/release automation
+  has likely never actually run via GitHub Actions.** Auditing the previously-unexamined
+  `benchmarks/`/`completions/`/`tools/` directories (flagged as unaudited in the last pass) led to
+  checking whether their intended CI hooks (scheduled OUI updates, release packaging) actually
+  exist, which surfaced this much bigger problem: `ci.yml`/`codeql.yml` exist in two *different*
+  versions at `ci/github-workflows/` and `docs/ci/` — neither the path GitHub Actions scans. A
+  fix was attempted once (commit `1c28a9c`, "move GitHub Actions workflows to .github/workflows/
+  so they activate") and reverted 13 seconds later in the same session (commit `9274953`,
+  boilerplate revert message, no stated reason) — almost certainly an agent-sandbox guardrail
+  auto-reverting a `.github/workflows/` write, the same category of auto-revert this session hit
+  when attempting a `git push --force`. `docs/build-blockers-2026.md` already flagged this exact
+  fix as the top priority and it was never completed. README's CI/CodeQL badges point at
+  `actions/workflows/ci.yml`/`codeql.yml`, which return no matching workflow. Practical
+  implication: every change in this repository, including everything in this file, has likely
+  only ever been verified by manual reasoning and `python3`/`grep`-based static checks in this
+  sandboxed session — never by an actual `dotnet build`/`dotnet test` run. Documented prominently
+  as `docs/FEATURE-AUDIT.md` §0 rather than attempted again here, since a repeat attempt would
+  likely hit the same auto-revert; this needs the repository owner to move the files directly, or
+  an explicit, deliberate authorization for an agent session to do it.
+- **Audited the 3 directories flagged as unexamined in the previous pass**
+  (`docs/FEATURE-AUDIT.md` §6): `benchmarks/` (BenchmarkDotNet project, never run in CI),
+  `completions/` (bash/PowerShell CLI completions, never actually packaged into a release despite
+  a CHANGELOG entry claiming otherwise — because `release.yml` doesn't exist either), and
+  `tools/oui-update.ps1`/`update-winget-manifest.ps1` (both designed to run on a CI schedule that
+  was never configured). All four trace back to the same root cause as §0.
+
 ### Fixed
 - **Found and fixed 4 more theme-bypassing hardcoded colors in `MainWindow.xaml` while resolving
   the `SecurityLevelToBrushConverter` orphan** (a follow-up from the previous theme-color pass):

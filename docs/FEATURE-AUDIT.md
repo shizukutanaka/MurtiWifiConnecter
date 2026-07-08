@@ -6,6 +6,26 @@
 > ファイルパス・検証コマンド・判断理由を付し、この文書単体で行動を開始できるようにしてある。
 > 記載の数値は 2026-07 時点。作業前に必ず「§5 再監査手順」のコマンドで最新状態を再検証すること。
 
+---
+
+## §0 🔴 最重要・未解決: CI が実際には実走していない(2026-07 第3パスで発見)
+
+> **`.github/workflows/` が存在せず、GitHub Actions の
+> CI/CodeQL/リリース自動化がおそらく一度も実走していない。** CLAUDE.md はこのディレクトリ構成を
+> 前提として文書化しているが、実際には CI 設定は `ci/github-workflows/*.yml` と `docs/ci/*.yml` の
+> **2箇所に別バージョンで存在**し、GitHub がワークフローとして認識する唯一のパス
+> (`.github/workflows/`)には**何も置かれていない**。過去に一度だけ正しい場所へ移設する試み
+> (コミット `1c28a9c`)があったが、**その13秒後に同一セッション内で自動的にリバートされている**
+> (コミット `9274953`、コミットメッセージは boilerplate のみで理由の記載なし — 内容と発生間隔から、
+> エージェント実行環境の `.github/workflows/` 書込み制限ガードレールによる自動差し戻しと推測される)。
+> `docs/build-blockers-2026.md` も「CI を `.github/workflows/` へ設置して実走させるのが次の最優先」と
+> 明記済みだが未達のまま。**この監査セッションを含め、このリポジトリで行われた変更はおそらく一度も
+> 実際の GitHub Actions CI で検証されていない**(このセッションの検証は `python3`/`grep` による
+> 静的チェックのみ)。この問題はエージョントによる自動修正では再度リバートされる可能性が高いため、
+> **リポジトリ所有者による直接対応、または明示的な許可の下での対応が必要**。
+> 検証: `ls .github/workflows/ 2>&1`(存在しないはず)/ `git log --oneline --all -- .github/` /
+> `diff ci/github-workflows/ci.yml docs/ci/ci.yml`(2つの別バージョンが存在することを確認)。
+
 **中心的な発見**: このコードベースには「Core にクラスがあり単体テストが通る(=実装されている)」が
 「App/CLI のどこからも呼ばれておらずユーザーが到達できない(=機能していない)」サービスが
 多数存在する。ROADMAP.md はかつてこれらを完了 `[x]` と申告していた(2026-07 に訂正済み)。
@@ -14,8 +34,8 @@
 
 ## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
-### 1a. 完全孤立サービス(2026-07 執筆時点11個 → `OweSelectionService`/`RegulatoryDomainService`
-配線済みにより現在9個)
+### 1a. 完全孤立サービス(2026-07 執筆時点11個 → `OweSelectionService`/`RegulatoryDomainService`/
+`RetryPolicy` 配線済みにより現在8個)
 
 `src/` 内で自ファイル以外からの参照が**ゼロ**の Core サービス。テストは存在する(=壊れてはいない)が、
 App/CLI という製品としては動いていない。検証コマンド:
@@ -46,8 +66,8 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
 | `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
 | `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
-| `RetryPolicy` | 接続リトライ | `ConnectionExecutor` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | executor は現在リトライなしで動いている |
-| `SignalIconService` | 信号アイコン選択 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | View 側に同等ロジックが直書きされている可能性を確認してから |
+| ~~`RetryPolicy`~~ | 接続リトライ | **✅ 配線済み(2026-07)** | `AdapterConnectExtension.ConnectWithAppleFlowAsync` に配線。一時的失敗はジッター付きバックオフで自動再試行(最大2回)、決定的失敗はユーザー承認ダイアログへ。`IsRetriable` の分類漏れ4件も同時に修正 |
+| `SignalIconService` | 信号アイコン選択 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | 確認済み: `NetworkItemViewModel.Bars`(独自の閾値ロジック)と `MainWindow.xaml` 等の信号バー表示が別実装で存在し、本サービスは未配線のまま。閾値が微妙に異なる(75/50/25 vs 80/60/40/20)ため、配線するなら表示上の挙動変化を伴う |
 | `BeaconUptimeEstimator` | AP 稼働時間推定 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | TSF タイムスタンプ入力をどの層も供給していない |
 | `AccessibilityAuditService` | WCAG コントラスト計算 | **現状維持** | 2026-07 に `tests/MWC.Core.Tests/ThemeAccessibilityAuditTests.cs` から使用開始(CI でテーマ色を検証)。製品コードからは未参照だが、これは正当な使途。SDK にも同梱 |
 
@@ -230,8 +250,19 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 自動化されていない検証(人手が必要): スクリーンリーダー実機テスト、bn/hi/ta 訳文の
 ネイティブレビュー、Windows 実機での WLAN 動作確認。
 
-**本監査の対象外(未実施。将来パスの候補)**: `benchmarks/`、`completions/`、`tools/` の
-各ディレクトリはまだ監査していない。
+### §6 `benchmarks/`・`completions/`・`tools/` の監査(2026-07 第3パスで実施)
+
+以前「未監査」としていた3ディレクトリを調査した結果:
+
+| ディレクトリ | 内容 | 状態 |
+|---|---|---|
+| `benchmarks/` | `MwcBenchmarks.cs`(BenchmarkDotNet、7クラス) | **CI 未組込み**(`grep -rln "benchmarks" .github/` — そもそも `.github/workflows/` 自体が無いため右記§0参照。ワークフローが正しい場所にあったとしても、いずれのワークフローファイルにも benchmarks 実行ステップは存在しない)。回帰検出に使われていないため、性能劣化があっても気づけない |
+| `completions/` | `mwc.bash`・`mwc.ps1`(CLI 補完スクリプト) | **配布物に未同梱**。CHANGELOG.md には「release.yml の CLI zip に含めるよう修正」という過去の記載があるが、`release.yml` 自体が存在しない(§0 参照)ため実現していない。ユーザーが実際に補完を使うには手動コピーが必要 |
+| `tools/oui-update.ps1` | IEEE OUI ベンダー DB を月次更新する想定のスクリプト(スクリプト自身のコメントに「GitHub Actions の schedule で月1回自動実行可能」と明記) | **スケジュール実行が一度も設定されていない**(§0 の CI 不在と同根)。`OuiLookupService` 内蔵 DB は最終手動更新時点で凍結されたまま古くなっていく |
+| `tools/update-winget-manifest.ps1` | winget manifest のバージョン・SHA256 自動更新 | 参照元ゼロ。リリース時に手動実行が必要だが、それを促す仕組み(CI ステップ・チェックリスト等)が存在しない |
+
+これらは全て §0 の「CI 不在」問題と同根(自動化を書いたが、実行される場所に配置・接続されていない)。
+§0 の解決が前提条件となるため、優先順位は §0 に従属する。
 
 ---
 
