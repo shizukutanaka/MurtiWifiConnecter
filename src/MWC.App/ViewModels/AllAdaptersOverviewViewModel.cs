@@ -194,6 +194,14 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
                     { Owner = Application.Current?.MainWindow }
                     .ShowDialog();
         }
+        catch (Exception ex)
+        {
+            // AsyncRelayCommand 経由の呼び出しは例外を ExecutionTask に格納するだけで
+            // UI に伝播しないため、握りつぶさずログ記録 + ユーザー向け表示を行う
+            // (AdapterViewModel.RefreshAsync と同じ 2026-07 品質パスの修正)。
+            _log.LogError(ex, "ConnectPreferred failed for adapter {AdapterId}", _adapter.Id);
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
+        }
         finally { IsConnecting = false; }
     }
 

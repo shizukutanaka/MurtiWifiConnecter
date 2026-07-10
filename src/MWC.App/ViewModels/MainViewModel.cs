@@ -180,6 +180,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
         }
+        catch (Exception ex)
+        {
+            // 個々のアダプター失敗は SafeRefreshOne が捕捉するが、Filter.SetSource 等
+            // それ以外の箇所での例外は無防備だった。RefreshCommand (手動更新ボタン) 経由の
+            // 呼び出しは AsyncEventHelper.SafeRunAsync を通らないため、ここで捕捉しないと
+            // AsyncRelayCommand の ExecutionTask に握りつぶされ、無反応に見える
+            // (AdapterViewModel.RefreshAsync と同じ 2026-07 品質パスの修正)。
+            _log.LogError(ex, "SafeRefresh failed");
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
+        }
         finally { IsScanning = false; }
     }
 

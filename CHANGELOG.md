@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Swept the whole App layer for the same silent-exception-swallowing bug fixed earlier in
+  `AdapterViewModel.RefreshAsync`** (a `finally { IsX = false; }` with no `catch`, which lets
+  exceptions vanish into `AsyncRelayCommand`'s `ExecutionTask` instead of reaching the user).
+  Found and fixed three more instances:
+  - `AdapterPanelViewModel.ConnectPreferredAsync` (`AllAdaptersOverviewViewModel.cs`) — the
+    "connect to highest-priority in-range network" flow had no catch around
+    `ConnectionExecutor.ConnectAsync`/`RefreshAsync`/`CaptivePortalDialog` construction.
+  - `MainViewModel.SafeRefresh` — the method backing the manual **Refresh button**
+    (`RefreshCommand`, bound in `MainWindow.xaml`). The auto-scan timer path already went through
+    `AsyncEventHelper.SafeRunAsync`'s exception net, but the public `RefreshAsync()` → `SafeRefresh()`
+    path a user's Refresh click actually takes did not.
+  - `ProfileManagerViewModel.LoadAsync`/`DeleteAsync` — this entire ViewModel had no `ILogger` at
+    all (added one, wired through the existing `AddTransient<ProfileManagerViewModel>` factory in
+    `App.xaml.cs`), so neither method could log a failure even in principle.
+  Verified the remaining `[RelayCommand]`-decorated async methods across `AdapterViewModel`,
+  `AllAdaptersOverviewViewModel`, and `MainViewModel`: the rest either already catch correctly, or
+  only call into methods that already contain their own catch (e.g. `ConnectionExecutor.DisconnectAsync`
+  never throws — it catches internally and returns `false`), so no further gaps found. Also confirmed
+  `SystemTrayService`'s and `AdapterFailoverService`'s `finally` blocks are legitimate resource-cleanup
+  uses (GDI handle disposal, semaphore release) that correctly let exceptions propagate — left alone.
+  New tests: `tests/MWC.Core.Tests/ProfileManagerViewModelErrorHandlingTests.cs` (a minimal throwing
+  `IWifiService` double, since no other test needs one and extending the shared `FakeWifiService`
+  wasn't warranted for this one case).
+
 ### Docs
 - **🔴 Critical, unresolved: `.github/workflows/` does not exist, so CI/CodeQL/release automation
   has likely never actually run via GitHub Actions.** Auditing the previously-unexamined

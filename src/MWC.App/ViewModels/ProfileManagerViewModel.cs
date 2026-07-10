@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
@@ -14,6 +15,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
 {
     private readonly IWifiService          _wifi;
     private readonly NetworkHistoryService _history;
+    private readonly ILogger               _log;
     private Guid _adapterId;
 
     public ObservableCollection<ProfileItem> Profiles { get; } = new();
@@ -22,10 +24,11 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
     [ObservableProperty] private bool         _isBusy;
     [ObservableProperty] private string       _statusMessage = "";
 
-    public ProfileManagerViewModel(IWifiService wifi, NetworkHistoryService history)
+    public ProfileManagerViewModel(IWifiService wifi, NetworkHistoryService history, ILogger<ProfileManagerViewModel> log)
     {
         _wifi    = wifi;
         _history = history;
+        _log     = log;
     }
 
     public async Task LoadAsync(Guid adapterId)
@@ -40,6 +43,13 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
             foreach (var n in names.OrderBy(x => x))
                 Profiles.Add(new ProfileItem(n));
             StatusMessage = MWC.App.Resources.L.StatusProfileCount(Profiles.Count);
+        }
+        catch (Exception ex)
+        {
+            // このクラスは元々 ILogger を持たず、例外は無音で握りつぶされていた
+            // (2026-07 品質パスで是正。AdapterViewModel.RefreshAsync と同じ問題)。
+            _log.LogError(ex, "ProfileManagerViewModel.LoadAsync failed for adapter {AdapterId}", adapterId);
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
         }
         finally { IsBusy = false; }
     }
@@ -63,6 +73,11 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
             {
                 StatusMessage = MWC.App.Resources.L.StatusDeleteFailed(ssid);
             }
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "ProfileManagerViewModel.DeleteAsync failed for adapter {AdapterId}", _adapterId);
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
         }
         finally { IsBusy = false; }
     }

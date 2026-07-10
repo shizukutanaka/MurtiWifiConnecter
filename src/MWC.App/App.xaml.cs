@@ -122,7 +122,8 @@ public partial class App : Application
                 s.AddSingleton<AdapterFailoverService>();
                 s.AddTransient<ProfileManagerViewModel>(sp => new ProfileManagerViewModel(
                     sp.GetRequiredService<IWifiService>(),
-                    sp.GetRequiredService<NetworkHistoryService>()));
+                    sp.GetRequiredService<NetworkHistoryService>(),
+                    sp.GetRequiredService<ILogger<ProfileManagerViewModel>>()));
 
                 // Views
                 s.AddSingleton<MainWindow>();
