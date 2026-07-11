@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **6 of `MWC.Cli/Program.cs`'s 9 command handlers had no `try/catch` at all** (`list`, `scan`,
+  `disconnect`, `profile list`, `profile delete`, `qr`), unlike every handler in the sibling files
+  `AdapterCommand.cs`/`MultiAdapterCommand.cs`/`PlanChannelsCommand.cs`, which already
+  consistently wrap their body in `catch (Exception ex) { Err(...); Environment.Exit(ExitCode.
+  GeneralError); }`. An unhandled exception in one of these six would fall through to `Main`'s
+  bare `AppDomain.UnhandledException`/`TaskScheduler.UnobservedTaskException` handlers, which only
+  print a raw `ex.Message` with no CLI-appropriate exit code — not silent like the WPF
+  `AsyncRelayCommand` bugs fixed earlier, but still an inconsistent, unprofessional failure mode
+  for a CLI tool. Brought all six in line with the established sibling-file pattern. Left
+  `qr-parse` alone: `WifiUri.Parse` is documented to return `null` on malformed input rather than
+  throw, so it was already safe. Also fixed a latent exit-code bug found along the way: `scan`,
+  `profile list`, and `profile delete` returned exit code 0 (success) when `--adapter` didn't
+  resolve to a real adapter, silently masking the failure from any script checking `$?`; now they
+  call `Environment.Exit(ExitCode.InvalidInput)` like every other adapter-resolution failure path
+  in the CLI already does.
+
 ### Added
 - **New security advisory (`MWC-SEC-008`): WPA3-SAE doesn't cryptographically bind the SSID to
   the handshake.** Based on 2025 research findings on mesh WPA3 networks, added an Info-level

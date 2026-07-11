@@ -87,61 +87,65 @@ public static partial class Program
 
         cmd.SetHandler(async (bool j, bool s) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ads = await svc.GetAdaptersAsync();
-
-            if (j)
+            try
             {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ads = await svc.GetAdaptersAsync();
+
+                if (j)
+                {
+                    if (s)
+                    {
+                        var rich = new System.Collections.Generic.List<object>();
+                        foreach (var a in ads)
+                        {
+                            var nets = await svc.ScanAsync(a.Id);
+                            var conn = nets.FirstOrDefault(n => n.IsConnected);
+                            rich.Add(new
+                            {
+                                id    = a.Id,
+                                name  = a.Name,
+                                state = a.State.ToString(),
+                                connected = conn?.Ssid,
+                                signal    = conn?.SignalQuality ?? 0,
+                                phy       = conn?.Phy.ToShortLabel(),
+                                band      = conn?.Band.ToString()
+                            });
+                        }
+                        Print(rich);
+                    }
+                    else Print(ads);
+                    return;
+                }
+
                 if (s)
                 {
-                    var rich = new System.Collections.Generic.List<object>();
+                    Console.WriteLine($"{"#",2}  {"Name",-18}  {"State",-12}  {"Connected SSID",-30}  {"Signal",6}  PHY");
+                    Console.WriteLine(new string('-', 90));
+                    int i = 1;
+                    int connectedCount = 0;
                     foreach (var a in ads)
                     {
                         var nets = await svc.ScanAsync(a.Id);
                         var conn = nets.FirstOrDefault(n => n.IsConnected);
-                        rich.Add(new
-                        {
-                            id    = a.Id,
-                            name  = a.Name,
-                            state = a.State.ToString(),
-                            connected = conn?.Ssid,
-                            signal    = conn?.SignalQuality ?? 0,
-                            phy       = conn?.Phy.ToShortLabel(),
-                            band      = conn?.Band.ToString()
-                        });
+                        if (conn is not null) connectedCount++;
+                        var phy  = conn?.Phy.ToShortLabel() ?? "";
+                        var ssid = conn?.Ssid ?? "(not connected)";
+                        var sig  = conn != null ? $"{conn.SignalQuality}%" : "-";
+                        Console.WriteLine($"{i,2}  {Trunc(a.Name,18),-18}  {a.State,-12}  {Trunc(ssid,30),-30}  {sig,6}  {phy}");
+                        i++;
                     }
-                    Print(rich);
+                    Console.WriteLine();
+                    Console.WriteLine($"{connectedCount} / {ads.Count} adapters connected");
                 }
-                else Print(ads);
-                return;
-            }
-
-            if (s)
-            {
-                Console.WriteLine($"{"#",2}  {"Name",-18}  {"State",-12}  {"Connected SSID",-30}  {"Signal",6}  PHY");
-                Console.WriteLine(new string('-', 90));
-                int i = 1;
-                int connectedCount = 0;
-                foreach (var a in ads)
+                else
                 {
-                    var nets = await svc.ScanAsync(a.Id);
-                    var conn = nets.FirstOrDefault(n => n.IsConnected);
-                    if (conn is not null) connectedCount++;
-                    var phy  = conn?.Phy.ToShortLabel() ?? "";
-                    var ssid = conn?.Ssid ?? "(not connected)";
-                    var sig  = conn != null ? $"{conn.SignalQuality}%" : "-";
-                    Console.WriteLine($"{i,2}  {Trunc(a.Name,18),-18}  {a.State,-12}  {Trunc(ssid,30),-30}  {sig,6}  {phy}");
-                    i++;
+                    Console.WriteLine($"{"GUID",-36}  {"State",-14}  Name");
+                    foreach (var a in ads)
+                        Console.WriteLine($"{a.Id}  {a.State,-14}  {a.Name}");
                 }
-                Console.WriteLine();
-                Console.WriteLine($"{connectedCount} / {ads.Count} adapters connected");
             }
-            else
-            {
-                Console.WriteLine($"{"GUID",-36}  {"State",-14}  Name");
-                foreach (var a in ads)
-                    Console.WriteLine($"{a.Id}  {a.State,-14}  {a.Name}");
-            }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, json, status);
         return cmd;
     }
@@ -162,10 +166,12 @@ public static partial class Program
         cmd.AddOption(interference); cmd.AddOption(mesh);
         cmd.SetHandler(async (string? af, bool j, bool adv, bool rec, bool et, bool ifr, bool msh) =>
         {
+          try
+          {
             var svc  = sp.GetRequiredService<IWifiService>();
             var oui  = sp.GetRequiredService<OuiLookupService>();
             var ad   = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); return; }
+            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
             Console.Error.Write("Scanning…");
             var nets = await svc.ScanAsync(ad.Id);
@@ -279,6 +285,8 @@ public static partial class Program
                     }
                 }
             }
+          }
+          catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter, json, advise, recommend, evilTwin, interference, mesh);
         return cmd;
     }
@@ -349,10 +357,14 @@ public static partial class Program
         cmd.AddOption(adapter);
         cmd.SetHandler(async (string? af) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ad  = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
-            Console.WriteLine(await svc.DisconnectAsync(ad.Id) ? "disconnected" : "no-op");
+            try
+            {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ad  = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+                Console.WriteLine(await svc.DisconnectAsync(ad.Id) ? "disconnected" : "no-op");
+            }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter);
         return cmd;
     }
@@ -367,10 +379,14 @@ public static partial class Program
         listCmd.AddOption(adapter);
         listCmd.SetHandler(async (string? af) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ad  = await Resolve(svc, af);
-            if (ad is null) return;
-            foreach (var p in await svc.ListProfilesAsync(ad.Id)) Console.WriteLine(p);
+            try
+            {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ad  = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+                foreach (var p in await svc.ListProfilesAsync(ad.Id)) Console.WriteLine(p);
+            }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter);
 
         var delArg  = new Argument<string>("name");
@@ -378,10 +394,14 @@ public static partial class Program
         delCmd.AddArgument(delArg); delCmd.AddOption(adapter);
         delCmd.SetHandler(async (string n, string? af) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var ad  = await Resolve(svc, af);
-            if (ad is null) return;
-            Console.WriteLine(await svc.DeleteProfileAsync(ad.Id, n) ? "deleted" : "not found");
+            try
+            {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ad  = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+                Console.WriteLine(await svc.DeleteProfileAsync(ad.Id, n) ? "deleted" : "not found");
+            }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, delArg, adapter);
 
         profile.AddCommand(listCmd); profile.AddCommand(delCmd);
@@ -398,8 +418,10 @@ public static partial class Program
         var cmd  = new Command("qr", "Generate WIFI: URI for QR code");
         cmd.AddArgument(ssid); cmd.AddOption(pw); cmd.AddOption(auth); cmd.AddOption(hid);
         cmd.SetHandler((string s, string? p, AuthMethod a, bool h) =>
-            Console.WriteLine(WifiUri.Build(new(){ Ssid=s, Auth=a, Passphrase=p, NonBroadcast=h })),
-            ssid, pw, auth, hid);
+        {
+            try { Console.WriteLine(WifiUri.Build(new(){ Ssid=s, Auth=a, Passphrase=p, NonBroadcast=h })); }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.InvalidInput); }
+        }, ssid, pw, auth, hid);
         return cmd;
     }
 
