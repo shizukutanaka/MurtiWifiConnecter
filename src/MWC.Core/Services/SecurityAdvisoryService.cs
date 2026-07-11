@@ -26,6 +26,11 @@ namespace MWC.Core.Services;
 ///   - **WPS PIN brute-force / Pixie-Dust**:
 ///     WPS 外部レジストラの PIN 方式は 8 桁 PIN の構造的弱点で破られうる
 ///
+///   - **WPA3 mesh SSID-binding gap (2025)**:
+///     WPA3(SAE)でも SSID はハンドシェイクや導出鍵に暗号学的に束縛されないため、
+///     同名 SSID を broadcast する rogue AP は依然構築可能(2025年前半に指摘)。
+///     本サービスは情報提供に留め、実際の検知は EvilTwinDetector(別サービス)が担う。
+///
 /// 本サービスは攻撃を実行せず、防御側の情報提供のみを行う。
 /// </summary>
 public sealed class SecurityAdvisoryService
@@ -137,6 +142,22 @@ public sealed class SecurityAdvisoryService
                 Title:      "Hardened Security Configuration",
                 Detail:     "WPA3-SAE with mandatory MFP. Resistant to both Dragonblood and deauth attacks.",
                 Reference:  "WPA3 + 802.11w"));
+        }
+
+        // 8. WPA3-SAE (transition mode を除く純 WPA3) → SSID は依然ハンドシェイクに
+        //    暗号学的に束縛されないという 2025 年の指摘。同名 rogue AP を装うこと自体は
+        //    WPA3 でも技術的に可能なため、EvilTwinDetector による検査(実装済み・別経路)が
+        //    引き続き有効であることを利用者に伝える情報提供。
+        if (network.Auth is AuthMethod.WPA3SAE && !network.IsWpa3TransitionMode)
+        {
+            advisories.Add(new SecurityAdvisory(
+                Severity:   AdvisorySeverity.Info,
+                Code:       "MWC-SEC-008",
+                Title:      "SSID Not Cryptographically Bound",
+                Detail:     "Even with WPA3-SAE, the SSID itself is not cryptographically bound to the " +
+                            "authentication handshake. A rogue AP can still broadcast the same SSID; " +
+                            "MWC's Evil Twin detection (BSSID/vendor history) remains the relevant defense.",
+                Reference:  "WPA3 mesh SSID-binding gap (2025)"));
         }
 
         return advisories;

@@ -145,3 +145,61 @@
 4. **推奨エンジンの説明可能性** (C10-2)
 
 v3.6.0 として実装する。
+
+---
+
+## 2026-H2 追補(Web 調査ベース)
+
+前サイクルの100項目に対する差分。出典は本文中の URL を参照。
+
+### 実装済み(このセッション)
+
+- **[実装済み] WPA3-SAE の SSID 非束縛に関する情報提供** — 2025年前半に指摘された
+  「WPA3(SAE)でもメッシュ等で SSID がハンドシェイクに暗号学的に束縛されない」という知見を
+  `SecurityAdvisoryService`(`MWC-SEC-008`)に追加。既存の `EvilTwinDetector` が引き続き
+  有効な防御策であることを利用者に伝える Info 級勧告。
+- **[出典更新のみ] `PrivacyAdvisoryService` の引用追加** — arXiv 2408.01578
+  (マルチチャネルスニファ+2段クラスタリングによる MAC de-randomization、2024)を
+  XML doc に追記。ロジック変更なし(引用の鮮度維持のみ)。
+
+### 発見済み・調査完了・未実装(理由付き)
+
+- **[発見] MLO(Wi-Fi 7 マルチリンク)表示が実は機能していない** —
+  `WifiNetwork.MloLinks` を供給するプラットフォームコードが Windows/Linux/macOS
+  いずれの実装にも存在しない(`grep -rn "MloLinks\s*=" src/MWC.Platform.*` は0件)ため、
+  `MloAnalyzerService` は常に早期リターンし GUI の MLO 行は永遠に非表示。ROADMAP は
+  「Wi-Fi 7 MLO サポート」を `[x]` 完了と申告しているが、この観点では未達。
+  **解決策を調査済み**: 依存ライブラリ `ManagedNativeWifi`(現行 v3.0.2、
+  `Directory.Packages.props`)は v3.0.1(2025-07-04)で
+  `NativeWifi.GetRealtimeConnectionQuality(interfaceId)` を追加済み。README
+  (`github.com/emoacht/ManagedNativeWifi`)によれば戻り値は
+  `(ActionResult result, RealtimeConnectionQualityInfo rcq)` タプルで、`rcq` は
+  `PhyType`/`LinkQuality`/`RxRate`/`TxRate`/`IsMultiLinkOperation`/`Links`
+  (各リンクは `Rssi`/`Frequency`/`Bandwidth`)を持ち、`WifiNetwork.MloLinks`
+  (`MloLink { LinkId, Band, Channel, FrequencyMhz, Rssi, ChannelWidth }`)への
+  変換は機械的に可能。**Windows 11 24H2 以降でのみ動作**。
+  **実装しなかった理由**: (a) この環境に dotnet SDK がなくコンパイル検証不能、
+  (b) `RealtimeConnectionQualityInfo.PhyType` は `ManagedNativeWifi` 名前空間の型で、
+  MWC 自身の `MWC.Core.Models.PhyType` と**名前が衝突**するため名前空間修飾が必須、
+  (c) README の記載と初期 PR ドラフト(`#71`)とで型名・戻り値の形が食い違っており
+  (`GetRealtimeConnectionQuality`/タプル戻り値 vs `GetConnectionQualityInfo`/単純クラス)、
+  2系統の情報源で完全一致が取れなかった。実装を誤ると `WindowsWifiService.cs`
+  全体がコンパイル不能になり Windows ビルドを壊すリスクがあるため、**dotnet/Windows実機
+  検証が可能なセッションでの実装を推奨**する(このドキュメントに必要な情報は揃えてある)。
+- **OpenRoaming の主流化(2026)** — WBA 2025 産業調査: 回答企業の81%が導入計画
+  (25%は既に展開中、42%が2026年内、27%が2026年目標)。孤立中の `Hotspot20Service`
+  (Passpoint 対応、`docs/FEATURE-AUDIT.md` §1a)の配線価値がこの動向により上昇したが、
+  配線を阻むブロッカー(802.11u Interworking IE をどのプラットフォーム層も抽出しない)は不変。
+- **Wi-Fi 8 (802.11bn) draft 1.0 確定(2025-07)** — 初の民生ルーターが2026年夏に出荷開始。
+  `PhyType.Dot11bn` は enum・ラベル("Wi-Fi 8 (802.11bn — Preview)")とも対応済みで
+  現状のまま適正。SMD/ELR/DSO 等の新機能はスキャンデータに現れる段階になく対応不要。
+- **Windows 11 25H2 の Wi-Fi 7 Enterprise(WPA3-Enterprise + MLO)対応強化** —
+  OS/ドライバ層の変更で、MWC 側の対応は不要(既存の `AuthMethod.WPA3Enterprise` +
+  上記 MLO 実装で対応範囲に収まる)。
+
+### 検討したが対象外と判断
+
+- **SAE commit frame CPU DoS(70フレーム/秒でAP CPU 100%)** — クライアント側 WLAN API
+  からはAP側のCPU負荷を観測できず、MWC(クライアントアプリ)の対応範囲外。
+- **WPA3 メッシュの SSID 非束縛「攻撃」の実装** — 本サービスは攻撃を実行しない防御的
+  ツールであるため、情報提供(実装済み、上記)に留める。

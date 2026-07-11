@@ -90,6 +90,37 @@ public class SecurityAdvisoryServiceTests
         advisories.First(a => a.Code == "MWC-SEC-100").Severity.Should().Be(AdvisorySeverity.Good);
     }
 
+    // 2026-07: WPA3 でも SSID がハンドシェイクに暗号学的束縛されないという 2025 年の
+    // 指摘に基づく情報提供 (Evil Twin 検査の重要性を伝える)。
+    [Fact]
+    public void Analyze_PureWpa3Sae_IncludesSsidNotBoundInfoAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: false));
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-008");
+        advisories.First(a => a.Code == "MWC-SEC-008").Severity.Should().Be(AdvisorySeverity.Info);
+    }
+
+    [Fact]
+    public void Analyze_Wpa3TransitionMode_DoesNotDuplicateSsidNotBoundAdvisory()
+    {
+        // Transition mode already gets the stricter MWC-SEC-001 (Dragonblood downgrade warning);
+        // MWC-SEC-008 is reserved for pure WPA3-SAE to avoid redundant/conflicting advice.
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Capable, transition: true));
+
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-008");
+    }
+
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.Open)]
+    public void Analyze_NonPureWpa3Sae_DoesNotIncludeSsidNotBoundAdvisory(AuthMethod auth)
+    {
+        _svc.Analyze(Net(auth, PmfStatus.Required))
+            .Should().NotContain(a => a.Code == "MWC-SEC-008");
+    }
+
     [Fact]
     public void Analyze_OpenNetwork_WarningLevel()
     {

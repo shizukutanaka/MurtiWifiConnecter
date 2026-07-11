@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **New security advisory (`MWC-SEC-008`): WPA3-SAE doesn't cryptographically bind the SSID to
+  the handshake.** Based on 2025 research findings on mesh WPA3 networks, added an Info-level
+  advisory to `SecurityAdvisoryService` for pure WPA3-SAE connections (excluding transition mode,
+  which already gets the stricter `MWC-SEC-001` Dragonblood warning) explaining that a rogue AP
+  can still broadcast the same SSID even on WPA3, and that MWC's existing `EvilTwinDetector`
+  (BSSID/vendor history) remains the relevant defense. Also added an `arXiv 2408.01578` (2024,
+  multi-channel-sniffer + two-stage-clustering MAC de-randomization) citation to
+  `PrivacyAdvisoryService`'s XML doc for citation freshness (no logic change). New tests in
+  `SecurityAdvisoryAndPredictionTests.cs` cover both the trigger and non-trigger cases (transition
+  mode, non-WPA3-SAE auth methods).
+
+### Docs
+- **Found (but did not implement — documented for a future session with dotnet/Windows access):
+  Wi-Fi 7 MLO display doesn't actually work**, despite being fully wired end-to-end.
+  `MloAnalyzerService` is correctly called from `NetworkDetailViewModel.Load()` and its output is
+  correctly bound in the GUI (`MloLabel`/`HasMlo`) — but `WifiNetwork.MloLinks` is never populated
+  by any platform layer (`grep -rn "MloLinks\s*=" src/MWC.Platform.*` returns zero hits), so
+  `MloAnalyzerService.Analyze()` always early-returns and the MLO row has likely never rendered on
+  real hardware. ROADMAP claims "Wi-Fi 7 MLO support" `[x]` complete; this is the same
+  "implemented but not functioning" pattern `docs/FEATURE-AUDIT.md` was built to catch, just one
+  layer deeper (data source, not wiring). Researched the fix: the already-referenced
+  `ManagedNativeWifi` package (v3.0.2 pinned in `Directory.Packages.props`) added
+  `NativeWifi.GetRealtimeConnectionQuality(interfaceId)` in v3.0.1 (2025-07-04, Windows 11 24H2+),
+  returning real per-link RSSI/frequency/bandwidth and `IsMultiLinkOperation` that maps cleanly
+  onto the existing `MloLink` record. Did not implement it here because (a) this sandboxed
+  environment has no dotnet SDK to verify compilation, (b) the returned type's `PhyType` property
+  collides by name with `MWC.Core.Models.PhyType` and needs careful namespace qualification, and
+  (c) two independent lookups of the library's public API (the README vs. an earlier PR draft)
+  disagreed on the exact method name and return shape (tuple-with-ActionResult vs. plain class) —
+  getting this wrong would break the entire `WindowsWifiService.cs` compilation, not just this one
+  feature. Full research trail (verified property names, version, OS requirement) is in
+  `docs/arxiv-improvement-analysis.md`'s new "2026-H2 追補" section for whoever implements this
+  with real build verification available.
+- **2026-H2 web research pass** (`docs/arxiv-improvement-analysis.md`): OpenRoaming has crossed
+  into mainstream adoption (WBA 2025 industry survey: 81% of respondents plan deployment),
+  increasing `Hotspot20Service`'s wiring value, though its blocker (no platform layer extracts
+  802.11u Interworking IEs) is unchanged. Wi-Fi 8 (802.11bn) reached draft 1.0 in July 2025 with
+  first consumer routers shipping summer 2026 — confirmed `PhyType.Dot11bn`'s existing enum/label
+  handling is already adequate for this stage. Windows 11 25H2's Wi-Fi 7 Enterprise driver-level
+  improvements need no MWC-side changes (already covered by existing `WPA3Enterprise` + the
+  MLO groundwork above). SAE commit-frame CPU DoS (2025 finding, ~70 frames/sec) is out of scope
+  — unobservable from a client-side WLAN API.
+
 ### Fixed
 - **Swept the whole App layer for the same silent-exception-swallowing bug fixed earlier in
   `AdapterViewModel.RefreshAsync`** (a `finally { IsX = false; }` with no `catch`, which lets

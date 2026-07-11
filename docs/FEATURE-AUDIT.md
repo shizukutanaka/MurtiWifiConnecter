@@ -62,7 +62,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | ~~`RegulatoryDomainService`~~ | 6GHz 帯の国別チャネル表示 | **✅ 配線済み(2026-07)** | `NetworkDetailViewModel.RegulatoryLabel`(6GHz ネットワークのみ表示、`RegionInfo.CurrentRegion` からシステムロケールで国を自動推定)。テスト: `NetworkDetailViewModelVpnEapWiringTests.cs` に追加。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | `CatImportService` | eduroam CAT XML インポート | **ブロック中** — 下記「配線できない理由」参照 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
 | ~~`OweSelectionService`~~ | 同一 SSID の Open/OWE ペア統合 | **✅ 配線済み(2026-07)** | `AdapterViewModel.RefreshAsync`・`AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`・CLI `mwc scan` の3箇所に挿入。既知の限界(Open 側が実際に接続中でも無条件除外される稀なエッジケース)をサービス自身の XML doc に明記。テスト: `tests/MWC.Core.Tests/OweWiringTests.cs` |
-| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要**。2026-H2 追補: OpenRoaming が主流化中(WBA 2025 調査で回答企業の81%が導入計画)で配線価値は上昇傾向だが、ブロッカー(802.11u Interworking IE 抽出未実装)は不変 |
 | `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
 | `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
 | `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
@@ -87,6 +87,24 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
   (詳細な罠の解説がファイル内コメントに記載済み。`NmcliWifiService` の Linux 実装が正しい手本)。
 - `src/MWC.Platform.Android/AndroidWifiService.cs`、`src/MWC.Platform.iOS/IosWifiService.cs` —
   **完全スタブ**(全メソッドが空配列/false/失敗を返す)。API 参照コメントのみ有用。
+
+### 1d. 配線されているがデータ源が空(2026-H2 Web 調査で発見)
+
+孤立サービスとは異なる新パターン: サービス自体は正しく App に配線されているが、
+入力データを供給するプラットフォーム層のコードが存在しないため**常に無効な結果を返す**。
+
+- **MLO(Wi-Fi 7 マルチリンク)表示** — `MloAnalyzerService` は
+  `NetworkDetailViewModel.Load()` から正しく呼ばれ、GUI にも `MloLabel`/`HasMlo` として
+  配線済み(ROADMAP は「Wi-Fi 7 MLO サポート」を `[x]` 完了と申告)。しかし
+  `WifiNetwork.MloLinks` を実際に埋めるプラットフォームコードが Windows/Linux/macOS
+  いずれにも存在しない(検証: `grep -rn "MloLinks\s*=" src/MWC.Platform.*` → 0件)ため、
+  `MloAnalyzerService.Analyze()` は `network.MloLinks.Count == 0` で常に早期リターンし、
+  GUI の MLO 行は実機で一度も表示されたことがないと推測される。
+  **解決策は調査済み**(依存ライブラリ `ManagedNativeWifi` v3.0.1+ の
+  `NativeWifi.GetRealtimeConnectionQuality` で実測データ取得可能。詳細と実装しなかった
+  正確な理由 — 名前空間衝突・情報源間の型定義不一致・コンパイル検証不能な環境という
+  3点 — は `docs/arxiv-improvement-analysis.md` §2026-H2追補 を参照)。
+  **次のアクション**: dotnet/Windows 実機検証が可能なセッションで実装すること。
 
 ---
 
