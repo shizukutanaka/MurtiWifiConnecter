@@ -42,7 +42,10 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsDfs));
     }
 
-    public int    Bars                 => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
+    // 段階判定は SignalIconService (Core, WCAG 1.4.1 の非色覚依存表現のために設計) に一元化。
+    // 以前はここに独自閾値 (75/50/25/>0) の重複実装があり、Core の正式基準 (80/60/40/20) と
+    // 食い違っていた (2026-07 品質パスで統一。docs/FEATURE-AUDIT.md §1a 参照)。
+    public int    Bars                 => SignalIconService.Describe(Signal).Bars;
     public string SignalAutomationLabel =>
         $"{MWC.App.Resources.L.MainSignalStrength(Signal)} · {SecurityBadgeLabel}";
 

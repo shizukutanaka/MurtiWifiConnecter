@@ -35,7 +35,7 @@
 ## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
 ### 1a. 完全孤立サービス(2026-07 執筆時点11個 → `OweSelectionService`/`RegulatoryDomainService`/
-`RetryPolicy` 配線済みにより現在8個)
+`RetryPolicy`/`SignalIconService` 配線済みにより現在7個)
 
 `src/` 内で自ファイル以外からの参照が**ゼロ**の Core サービス。テストは存在する(=壊れてはいない)が、
 App/CLI という製品としては動いていない。検証コマンド:
@@ -67,7 +67,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
 | `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
 | ~~`RetryPolicy`~~ | 接続リトライ | **✅ 配線済み(2026-07)** | `AdapterConnectExtension.ConnectWithAppleFlowAsync` に配線。一時的失敗はジッター付きバックオフで自動再試行(最大2回)、決定的失敗はユーザー承認ダイアログへ。`IsRetriable` の分類漏れ4件も同時に修正 |
-| `SignalIconService` | 信号アイコン選択 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | 確認済み: `NetworkItemViewModel.Bars`(独自の閾値ロジック)と `MainWindow.xaml` 等の信号バー表示が別実装で存在し、本サービスは未配線のまま。閾値が微妙に異なる(75/50/25 vs 80/60/40/20)ため、配線するなら表示上の挙動変化を伴う |
+| ~~`SignalIconService`~~ | 信号アイコン選択 | **✅ 配線済み(2026-07)** | `NetworkItemViewModel.Bars` が独自閾値(75/50/25/>0)の重複実装を捨てて `SignalIconService.Describe(Signal).Bars` に委譲。段階基準は Core の正式定義(80/60/40/20、WCAG 1.4.1 意図の設計)に一元化。境界値付近のバー表示が僅かに変化(例: quality 76 は旧4本→新3本)するのは意図的。`TextLabel`(英語ハードコード → i18n 規約違反になる)と `AccentHex`(テーマブラシ経由が確立方針)は使用しない。テスト: `tests/MWC.Core.Tests/SignalIconWiringTests.cs`(境界値10点+全数一致ループ) |
 | `BeaconUptimeEstimator` | AP 稼働時間推定 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | TSF タイムスタンプ入力をどの層も供給していない |
 | `AccessibilityAuditService` | WCAG コントラスト計算 | **現状維持** | 2026-07 に `tests/MWC.Core.Tests/ThemeAccessibilityAuditTests.cs` から使用開始(CI でテーマ色を検証)。製品コードからは未参照だが、これは正当な使途。SDK にも同梱 |
 

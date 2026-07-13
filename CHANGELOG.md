@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Unified the product's two competing signal-tier standards by wiring the orphaned
+  `SignalIconService` into `NetworkItemViewModel.Bars`** (the last unblocked item from
+  `docs/FEATURE-AUDIT.md` §1a — orphan count now 7). `NetworkItemViewModel.Bars` re-implemented
+  the signal-strength-to-bars calculation with ad-hoc thresholds (75/50/25/>0), diverging from
+  `SignalIconService.Describe`'s designed thresholds (80/60/40/20, chosen for the WCAG 1.4.1
+  non-color-dependent representation) — the service itself had zero call sites. `Bars` now
+  delegates to the Core service, so exactly one tier definition exists. Bar counts shift slightly
+  near the old boundaries (e.g. quality 76: 4 bars before, 3 now) — an intentional change from
+  ad-hoc values to the designed standard, not a regression. The XAML signal-bar `DataTrigger`s in
+  `MainWindow.xaml`/`AllAdaptersOverviewView.xaml` key off `Bars` values 0–4 and needed no
+  changes. Deliberately did NOT adopt the service's `TextLabel` (hardcoded English — would violate
+  the resx-only UI-string rule) or `AccentHex` (hardcoded hex — would reintroduce exactly the
+  theme-bypass defect class removed earlier this session); only the tier math is delegated. New
+  tests: `SignalIconWiringTests.cs` (10 boundary cases + a full 0–100 agreement loop that catches
+  any future re-divergence of the two implementations).
+
 - **6 of `MWC.Cli/Program.cs`'s 9 command handlers had no `try/catch` at all** (`list`, `scan`,
   `disconnect`, `profile list`, `profile delete`, `qr`), unlike every handler in the sibling files
   `AdapterCommand.cs`/`MultiAdapterCommand.cs`/`PlanChannelsCommand.cs`, which already
