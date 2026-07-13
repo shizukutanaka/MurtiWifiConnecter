@@ -35,6 +35,8 @@ public static partial class Program
         cmd.SetHandler(
             async (string? af, string? bandStr, bool dfsFlag, bool showRanked, bool j) =>
             {
+              try
+              {
                 // Validate --band before touching the adapter.
                 WifiBand? targetBand = null;
                 if (!string.IsNullOrEmpty(bandStr))
@@ -118,6 +120,8 @@ public static partial class Program
                             $"  {(s.IsDfs ? "Yes" : "No")}");
                     }
                 }
+              }
+              catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
             },
             adapterOpt, bandOpt, dfsOpt, rankedOpt, jsonOpt);
 

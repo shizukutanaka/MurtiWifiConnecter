@@ -27,49 +27,53 @@ public static partial class Program
 
         cmd.SetHandler(async (string? af, bool j) =>
         {
-            var svc  = sp.GetRequiredService<IWifiService>();
-            var ad   = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
-
-            Console.Error.Write("Scanning…");
-            var nets = await svc.ScanAsync(ad.Id);
-            Console.Error.WriteLine($" {nets.Count} networks");
-
-            var history = sp.GetRequiredService<NetworkHistoryService>();
-            var vpnSvc  = new VpnAdvisoryService();
-
-            // "既知信頼済み" は MWC 経由での過去の成功接続実績で近似する。
-            var results = nets.Select(n =>
+            try
             {
-                var known  = history.GetEntry(n.Ssid) is { ConnectCount: > 0 };
-                var advice = vpnSvc.Analyze(n, known);
-                return (Network: n, Known: known, Advice: advice);
-            }).ToList();
+                var svc  = sp.GetRequiredService<IWifiService>();
+                var ad   = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
-            if (j)
-            {
-                Print(results.Select(r => new
+                Console.Error.Write("Scanning…");
+                var nets = await svc.ScanAsync(ad.Id);
+                Console.Error.WriteLine($" {nets.Count} networks");
+
+                var history = sp.GetRequiredService<NetworkHistoryService>();
+                var vpnSvc  = new VpnAdvisoryService();
+
+                // "既知信頼済み" は MWC 経由での過去の成功接続実績で近似する。
+                var results = nets.Select(n =>
                 {
-                    ssid           = r.Network.Ssid,
-                    known_trusted  = r.Known,
-                    recommendation = r.Advice.Recommendation.ToString(),
-                    reason         = r.Advice.Reason
-                }));
-                return;
-            }
+                    var known  = history.GetEntry(n.Ssid) is { ConnectCount: > 0 };
+                    var advice = vpnSvc.Analyze(n, known);
+                    return (Network: n, Known: known, Advice: advice);
+                }).ToList();
 
-            if (results.Count == 0)
-            {
-                Console.WriteLine("No networks in range.");
-                return;
-            }
+                if (j)
+                {
+                    Print(results.Select(r => new
+                    {
+                        ssid           = r.Network.Ssid,
+                        known_trusted  = r.Known,
+                        recommendation = r.Advice.Recommendation.ToString(),
+                        reason         = r.Advice.Reason
+                    }));
+                    return;
+                }
 
-            Console.WriteLine("VPN advice (informational only — does not change VPN state):");
-            Console.WriteLine($"{"SSID",-32} {"Known",6} {"Recommendation",-20} Reason");
-            foreach (var r in results)
-                Console.WriteLine(
-                    $"{Trunc(r.Network.Ssid,32),-32} {(r.Known ? "yes" : "no"),6} " +
-                    $"{r.Advice.Recommendation,-20} {Trunc(r.Advice.Reason, 60)}");
+                if (results.Count == 0)
+                {
+                    Console.WriteLine("No networks in range.");
+                    return;
+                }
+
+                Console.WriteLine("VPN advice (informational only — does not change VPN state):");
+                Console.WriteLine($"{"SSID",-32} {"Known",6} {"Recommendation",-20} Reason");
+                foreach (var r in results)
+                    Console.WriteLine(
+                        $"{Trunc(r.Network.Ssid,32),-32} {(r.Known ? "yes" : "no"),6} " +
+                        $"{r.Advice.Recommendation,-20} {Trunc(r.Advice.Reason, 60)}");
+            }
+            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapterOpt, jsonOpt);
 
         return cmd;

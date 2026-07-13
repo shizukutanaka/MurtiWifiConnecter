@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Found and fixed 2 more CLI handlers missing `try/catch`** (`VpnAdviceCommand.cs`'s
+  `vpn-advice` and `PlanChannelsCommand.cs`'s `plan-channels`), following up on the previous
+  CLI exception-handling sweep of `Program.cs`. Both call `IWifiService.ScanAsync` with no
+  protection, unlike the sibling command files already fixed. Checked every other CLI command
+  file for the same gap: `AdapterCommand.cs`, `MultiAdapterCommand.cs`, and
+  `QualityHistoryCommand.cs` already handle exceptions correctly, and `MultiAdapterCommand.cs`'s
+  `connect` already has an explicit guard (with an inline comment) against returning exit code 0
+  when every `adapter=SSID` pair fails to resolve — no gap there.
+
 - **Unified the product's two competing signal-tier standards by wiring the orphaned
   `SignalIconService` into `NetworkItemViewModel.Bars`** (the last unblocked item from
   `docs/FEATURE-AUDIT.md` §1a — orphan count now 7). `NetworkItemViewModel.Bars` re-implemented
