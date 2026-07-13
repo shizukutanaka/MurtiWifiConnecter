@@ -138,15 +138,19 @@ public static partial class Program
 
         cmd.SetHandler((int lim, bool j, bool clr) =>
         {
-            var svc = sp.GetRequiredService<NetworkHistoryService>();
-            if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
+            try
+            {
+                var svc = sp.GetRequiredService<NetworkHistoryService>();
+                if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
 
-            var entries = svc.GetRecent(lim);
-            if (j) { Print(entries); return; }
+                var entries = svc.GetRecent(lim);
+                if (j) { Print(entries); return; }
 
-            Console.WriteLine($"{"SSID",-32} {"Success",7} {"Fail",5}  {"Last Connected"}");
-            foreach (var e in entries)
-                Console.WriteLine($"{Trunc(e.Ssid,32),-32} {e.ConnectCount,7} {e.FailCount,5}  {e.LastConnectedLabel}");
+                Console.WriteLine($"{"SSID",-32} {"Success",7} {"Fail",5}  {"Last Connected"}");
+                foreach (var e in entries)
+                    Console.WriteLine($"{Trunc(e.Ssid,32),-32} {e.ConnectCount,7} {e.FailCount,5}  {e.LastConnectedLabel}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, limit, json, clear);
         return cmd;
     }
@@ -162,35 +166,39 @@ public static partial class Program
 
         cmd.SetHandler((bool j, bool clr) =>
         {
-            var svc = sp.GetRequiredService<EapAuthStatsService>();
-            if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
-
-            var entries = svc.GetAll();
-            if (j)
+            try
             {
-                Print(entries.Select(e => new
+                var svc = sp.GetRequiredService<EapAuthStatsService>();
+                if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
+
+                var entries = svc.GetAll();
+                if (j)
                 {
-                    ssid          = e.Ssid,
-                    eap_type      = e.EapType.ToString(),
-                    success_count = e.SuccessCount,
-                    fail_count    = e.FailCount,
-                    success_rate  = e.SuccessRate,
-                    last_attempt  = e.LastAttempt
-                }));
-                return;
-            }
+                    Print(entries.Select(e => new
+                    {
+                        ssid          = e.Ssid,
+                        eap_type      = e.EapType.ToString(),
+                        success_count = e.SuccessCount,
+                        fail_count    = e.FailCount,
+                        success_rate  = e.SuccessRate,
+                        last_attempt  = e.LastAttempt
+                    }));
+                    return;
+                }
 
-            if (entries.Count == 0)
-            {
-                Console.WriteLine("No 802.1X connection attempts recorded yet.");
-                return;
-            }
+                if (entries.Count == 0)
+                {
+                    Console.WriteLine("No 802.1X connection attempts recorded yet.");
+                    return;
+                }
 
-            Console.WriteLine($"{"SSID",-32} {"EAP Type",-16} {"Success",7} {"Fail",5} {"Rate",6}  Last Attempt");
-            foreach (var e in entries)
-                Console.WriteLine(
-                    $"{Trunc(e.Ssid,32),-32} {e.EapType,-16} {e.SuccessCount,7} {e.FailCount,5} " +
-                    $"{e.SuccessRate * 100,5:F0}%  {e.LastAttempt.LocalDateTime:yyyy-MM-dd HH:mm}");
+                Console.WriteLine($"{"SSID",-32} {"EAP Type",-16} {"Success",7} {"Fail",5} {"Rate",6}  Last Attempt");
+                foreach (var e in entries)
+                    Console.WriteLine(
+                        $"{Trunc(e.Ssid,32),-32} {e.EapType,-16} {e.SuccessCount,7} {e.FailCount,5} " +
+                        $"{e.SuccessRate * 100,5:F0}%  {e.LastAttempt.LocalDateTime:yyyy-MM-dd HH:mm}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, json, clear);
         return cmd;
     }

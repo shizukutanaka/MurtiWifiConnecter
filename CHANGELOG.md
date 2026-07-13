@@ -10,6 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Exhaustive final sweep (multi-agent workflow audit) for the exception-swallowing and CLI-
+  coverage bug classes fixed piecemeal earlier this session — 7 more confirmed instances found and
+  fixed, all others cross-checked clean:**
+  - `AutoReconnectService.WatchAsync` — `Task.Delay(3000, ct)` and the `await foreach` header
+    itself sat outside the method's only `try`, so a non-cancellation exception from
+    `IWifiService.SubscribeEventsAsync`'s enumeration (or the shutdown-time `OperationCanceledException`
+    from `Task.Delay` racing `_cts.Cancel()`) escaped uncaught. Because the resulting faulted `Task`
+    sits in the singleton's `_watchLoop` field for the app's lifetime without ever being awaited
+    elsewhere, `TaskScheduler.UnobservedTaskException` never even fires — the auto-reconnect
+    background loop would silently stop watching for disconnects with zero visible symptom. Added
+    an outer `try/catch` around the whole `await foreach`, preserving the existing inner per-event
+    `try/catch` that lets the loop keep watching after one reconnect attempt fails. Also replaced
+    `DisposeAsync`'s bare `catch { }` with a logged catch. New test:
+    `AutoReconnectServiceExceptionHandlingTests.cs`, which uses a throwing fake `IWifiService` to
+    verify `DisposeAsync` no longer rethrows the fault.
+  - `AllAdaptersOverviewView.xaml.cs` — both `Loaded +=` and `OnConnectClickInPanel` passed a
+    literal `null` `ILogger?` to `AsyncEventHelper.SafeRunAsync`, so its `log?.LogError(...)` was a
+    silent no-op; `OnConnectClickInPanel`'s inner connect flow also had `try { ... } finally { ... }`
+    with no `catch`. Added a real `_log` field (resolved via `App.Host.Services`, matching the
+    existing `_executor`/`_notify` pattern) and an explicit `catch (Exception ex)` that logs, shows
+    the error on the progress dialog, and notifies the user — mirroring the
+    `AdapterConnectExtension` precedent for exceptions during a connect attempt.
+  - `AdapterCommand.cs`'s `adapter list` handler had no `try/catch`, unlike every other handler in
+    the same file (`rename`/`band`/`pin`/`unpin`/`enable`/`disable`). Brought it in line.
+  - `QualityHistoryCommand.cs`'s `history` and `eap-stats` handlers had no `try/catch`, unlike the
+    `quality` handler in the same file. Fixed both.
+  - `Program.cs`'s `connect` and `export` handlers were only *partially* protected — the DI
+    resolution and adapter-lookup steps at the top of each sat outside the existing fine-grained
+    inner `try/catch`es (which only covered profile-building/connecting, or the final file write,
+    respectively). Added an outer `try/catch` around each entire handler body while keeping the
+    more specific inner catches for their more precise error messages/exit codes.
+  - Cross-checked clean (no changes needed): `Converters.cs` (no I/O/async surface); all of
+    `src/MWC.Core/Services/*` against `docs/FEATURE-AUDIT.md`'s orphan/wired claims (fully
+    accurate); 14 of 15 `src/MWC.App/Services/*.cs` files; 11 of 13 `src/MWC.App/Views/*.xaml.cs`
+    files (`ProfileManagerDialog.xaml.cs` confirmed as the correct real-logger pattern to follow);
+    and 18 of 23 CLI `SetHandler` call sites across `AdapterCommand.cs` (5 of 6),
+    `MultiAdapterCommand.cs`, `PlanChannelsCommand.cs`, `VpnAdviceCommand.cs`, and `qr-parse`.
+
 - **Found and fixed 2 more CLI handlers missing `try/catch`** (`VpnAdviceCommand.cs`'s
   `vpn-advice` and `PlanChannelsCommand.cs`'s `plan-channels`), following up on the previous
   CLI exception-handling sweep of `Program.cs`. Both call `IWifiService.ScanAsync` with no

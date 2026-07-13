@@ -39,19 +39,23 @@ internal static class AdapterCommand
         var c = new Command("list", "List all adapters with their preferences");
         c.SetHandler(async () =>
         {
-            var wifi  = sp.GetRequiredService<IWifiService>();
-            var prefs = sp.GetRequiredService<AdapterPreferencesService>();
-            var ads   = await wifi.GetAdaptersAsync();
-            Console.WriteLine($"{"NAME",-30} {"BAND",-12} {"ENABLED",-9} {"PINNED",-7} LABEL");
-            Console.WriteLine(new string('─', 78));
-            foreach (var a in ads)
+            try
             {
-                var p = prefs.Get(a.Id);
-                Console.WriteLine(
-                    $"{Trunc(a.Name, 30),-30} {p.PreferredBand,-12} " +
-                    $"{(p.IsEnabled ? "yes" : "no"),-9} {p.PinnedSsids.Count,-7} " +
-                    $"{p.CustomLabel ?? "-"}");
+                var wifi  = sp.GetRequiredService<IWifiService>();
+                var prefs = sp.GetRequiredService<AdapterPreferencesService>();
+                var ads   = await wifi.GetAdaptersAsync();
+                Console.WriteLine($"{"NAME",-30} {"BAND",-12} {"ENABLED",-9} {"PINNED",-7} LABEL");
+                Console.WriteLine(new string('─', 78));
+                foreach (var a in ads)
+                {
+                    var p = prefs.Get(a.Id);
+                    Console.WriteLine(
+                        $"{Trunc(a.Name, 30),-30} {p.PreferredBand,-12} " +
+                        $"{(p.IsEnabled ? "yes" : "no"),-9} {p.PinnedSsids.Count,-7} " +
+                        $"{p.CustomLabel ?? "-"}");
+                }
             }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return c;
     }

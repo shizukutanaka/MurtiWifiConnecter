@@ -306,45 +306,49 @@ public static partial class Program
 
         cmd.SetHandler(async (string s, string? p, AuthMethod a, string? af, int to, bool h) =>
         {
-            if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
-
-            var svc      = sp.GetRequiredService<IWifiService>();
-            var executor = sp.GetRequiredService<ConnectionExecutor>();
-            var ad       = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
-
-            // spec を先に検証: 不正な場合は接続前に分かりやすいエラーを出す。
-            // executor 内でも同じ Build を呼ぶが、エラーが ConnectionResult.OsError に吸収されるため
-            // ここで早期エラーを返す。
-            var spec = new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
-            try { ProfileXmlBuilder.Build(spec); }
-            catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
-
-            // executor 経由で接続 (セマフォ・OTel・履歴記録を一元管理)
-            ConnectionResult res;
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(to + 5));
-            try { res = await executor.ConnectAsync(ad.Id, spec, TimeSpan.FromSeconds(to), cts.Token); }
-            catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(ExitCode.ConnectionFailed); return; }
-
-            if (res.Success)
+            try
             {
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+                if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                var svc      = sp.GetRequiredService<IWifiService>();
+                var executor = sp.GetRequiredService<ConnectionExecutor>();
+                var ad       = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                // spec を先に検証: 不正な場合は接続前に分かりやすいエラーを出す。
+                // executor 内でも同じ Build を呼ぶが、エラーが ConnectionResult.OsError に吸収されるため
+                // ここで早期エラーを返す。
+                var spec = new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+                try { ProfileXmlBuilder.Build(spec); }
+                catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                // executor 経由で接続 (セマフォ・OTel・履歴記録を一元管理)
+                ConnectionResult res;
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(to + 5));
+                try { res = await executor.ConnectAsync(ad.Id, spec, TimeSpan.FromSeconds(to), cts.Token); }
+                catch (OperationCanceledException) { Err("connection timed out"); Environment.Exit(ExitCode.ConnectionFailed); return; }
+
+                if (res.Success)
                 {
-                    ssid       = res.ConnectedSsid,
-                    internet   = res.HasInternet,
-                    captive    = res.BehindCaptivePortal
-                }));
-                Environment.Exit(ExitCode.Success);
+                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        ssid       = res.ConnectedSsid,
+                        internet   = res.HasInternet,
+                        captive    = res.BehindCaptivePortal
+                    }));
+                    Environment.Exit(ExitCode.Success);
+                }
+                else
+                {
+                    var advice = TroubleshootingHelper.GetAdvice(
+                        res.Failure ?? ConnectionFailure.Unknown, a);
+                    Err($"failed: {res.Failure} — {advice.Reason}");
+                    foreach (var step in advice.Steps)
+                        Console.Error.WriteLine($"  • {step}");
+                    Environment.Exit(ExitCode.ConnectionFailed);
+                }
             }
-            else
-            {
-                var advice = TroubleshootingHelper.GetAdvice(
-                    res.Failure ?? ConnectionFailure.Unknown, a);
-                Err($"failed: {res.Failure} — {advice.Reason}");
-                foreach (var step in advice.Steps)
-                    Console.Error.WriteLine($"  • {step}");
-                Environment.Exit(ExitCode.ConnectionFailed);
-            }
+            catch (Exception ex) { Err($"connect failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, ssid, pw, auth, adapter, timeout, hidden);
         return cmd;
     }
@@ -456,27 +460,27 @@ public static partial class Program
 
         cmd.SetHandler(async (string? af, string fmt, string outBase) =>
         {
-            var svc = sp.GetRequiredService<IWifiService>();
-            var oui = sp.GetRequiredService<OuiLookupService>();
-            var ad  = await Resolve(svc, af);
-            if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
-
-            Console.Error.Write($"Scanning {ad.Name}…");
-            var nets = await svc.ScanAsync(ad.Id);
-            Console.Error.WriteLine($" {nets.Count} networks");
-
-            // OUI解決
-            var enriched = nets.Select(n =>
-            {
-                var v = n.BssEntries.Count > 0 ? oui.Lookup(n.BssEntries[0].Bssid) : null;
-                return v is null ? n : n with { VendorName = v };
-            }).ToList();
-
-            var ext  = fmt.ToLowerInvariant() switch { "json"=>"json","txt"=>"txt",_=>"csv" };
-            var path = $"{outBase}.{ext}";
-
             try
             {
+                var svc = sp.GetRequiredService<IWifiService>();
+                var oui = sp.GetRequiredService<OuiLookupService>();
+                var ad  = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                Console.Error.Write($"Scanning {ad.Name}…");
+                var nets = await svc.ScanAsync(ad.Id);
+                Console.Error.WriteLine($" {nets.Count} networks");
+
+                // OUI解決
+                var enriched = nets.Select(n =>
+                {
+                    var v = n.BssEntries.Count > 0 ? oui.Lookup(n.BssEntries[0].Bssid) : null;
+                    return v is null ? n : n with { VendorName = v };
+                }).ToList();
+
+                var ext  = fmt.ToLowerInvariant() switch { "json"=>"json","txt"=>"txt",_=>"csv" };
+                var path = $"{outBase}.{ext}";
+
                 switch (ext)
                 {
                     case "json": ExportService.ToJson(enriched, path); break;
