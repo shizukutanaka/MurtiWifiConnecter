@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **README's i18n badge claimed 515 resx keys; the actual count is 526** (verified by parsing
+  `Strings.resx` directly — every key-adding fix this session, VPN/EAP/regulatory/auto-retry
+  advisories, added 11 keys total since that badge was last generated). Fixed the badge to 526.
+
+### Docs
+- **README's `tests-1013 passing` badge is very likely stale too, but left unfixed:** a rough
+  `grep`-based recount (`[Fact]` + `[InlineData]` rows + the three `[MemberData]`-driven theory
+  files' enumerated case counts) comes to roughly **1150+**, comfortably above 1013 — consistent
+  with this session having added several new test files
+  (`OweWiringTests`, `SignalIconWiringTests`, `ProfileManagerViewModelErrorHandlingTests`,
+  `AutoReconnectServiceExceptionHandlingTests`, plus additions to existing files). Deliberately did
+  **not** overwrite the badge with that grep-based estimate: it's an approximation (parameterized
+  `[Theory]` cases can't always be counted precisely from source text alone), and replacing one
+  unverified number with another slightly-less-wrong unverified number isn't the standard this
+  session has held itself to elsewhere. The actual precise count needs a real `dotnet test` run —
+  blocked on the same `docs/FEATURE-AUDIT.md` §0 issue (`.github/workflows/` doesn't exist, so
+  there's no CI to generate this number from). Fix the badge once §0 is resolved and a real test
+  run is available.
+
 - **Exhaustive final sweep (multi-agent workflow audit) for the exception-swallowing and CLI-
   coverage bug classes fixed piecemeal earlier this session — 7 more confirmed instances found and
   fixed, all others cross-checked clean:**
