@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Microsoft.Win32;
 
@@ -25,12 +26,12 @@ public sealed class GroupPolicyProvider
     private const string UserKeyPath  = @"SOFTWARE\MWC";
 
     // ── シングルトン ──────────────────────────────────────────────────
-    private static GroupPolicyProvider? _instance;
-    public  static GroupPolicyProvider  Instance =>
-        _instance ??= new GroupPolicyProvider();
+    private static readonly Lazy<GroupPolicyProvider> _lazy =
+        new(() => new GroupPolicyProvider());
+    public  static GroupPolicyProvider  Instance => _lazy.Value;
 
     // ── ポリシー値キャッシュ ──────────────────────────────────────────
-    private readonly Dictionary<string, object?> _cache = new();
+    private readonly ConcurrentDictionary<string, object?> _cache = new();
 
     // ── ポリシー定義 ─────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ public sealed class GroupPolicyProvider
                 result.Add(new PolicyEntry(name, val?.ToString() ?? "", key.GetValueKind(name).ToString()));
             }
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なしは空リストで正常処理 */ }
         return result;
     }
 
@@ -112,25 +113,15 @@ public sealed class GroupPolicyProvider
                 using var key = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
                 return key is not null;
             }
-            catch { return false; }
+            catch (Exception) { return false; }
         }
     }
 
     private int? GetDword(string name)
-    {
-        if (_cache.TryGetValue(name, out var cached)) return cached as int?;
-        var val = ReadValue(name);
-        _cache[name] = val;
-        return val as int?;
-    }
+        => _cache.GetOrAdd(name, static k => ReadValue(k)) as int?;
 
     private string? GetString(string name)
-    {
-        if (_cache.TryGetValue("str_" + name, out var cached)) return cached as string;
-        var val = ReadStringValue(name);
-        _cache["str_" + name] = val;
-        return val;
-    }
+        => _cache.GetOrAdd("str_" + name, static k => ReadStringValue(k[4..])) as string;
 
     private static object? ReadValue(string name)
     {
@@ -138,9 +129,16 @@ public sealed class GroupPolicyProvider
         {
             // GP キーが優先
             using var gpKey = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
-            if (gpKey?.GetValue(name) is object gpVal) return (int)gpVal;
+            var gpVal = gpKey?.GetValue(name);
+            // REG_DWORD → Int32, REG_QWORD → Int64; both accepted as policy integers.
+            return gpVal switch
+            {
+                int  i => i,
+                long l => (int)Math.Clamp(l, int.MinValue, int.MaxValue),
+                _      => null
+            };
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なし */ }
         return null;
     }
 
@@ -151,7 +149,7 @@ public sealed class GroupPolicyProvider
             using var gpKey = Registry.LocalMachine.OpenSubKey(GpKeyPath, false);
             if (gpKey?.GetValue(name) is string gpVal) return gpVal;
         }
-        catch { }
+        catch (Exception) { /* レジストリ不在・権限なし */ }
         return null;
     }
 

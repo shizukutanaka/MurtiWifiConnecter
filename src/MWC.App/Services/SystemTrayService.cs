@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
-using MWC.Core.Abstractions;
 using MWC.Core.Models;
 
 namespace MWC.App.Services;
@@ -29,24 +28,21 @@ namespace MWC.App.Services;
 public sealed class SystemTrayService : IDisposable
 {
     private readonly NotifyIcon                  _tray;
-    private readonly IWifiService                _wifi;
     private readonly Dispatcher                  _dispatcher;
     private readonly ILogger<SystemTrayService>  _log;
     private bool _disposed;
 
     public event Action? RequestOpenMainWindow;
 
-    public SystemTrayService(IWifiService wifi, Dispatcher dispatcher,
-        ILogger<SystemTrayService> log)
+    // Accept the shared NotifyIcon singleton so only one tray icon is visible.
+    // Creating a second NotifyIcon here would show two icons in the taskbar.
+    public SystemTrayService(NotifyIcon tray, Dispatcher dispatcher, ILogger<SystemTrayService> log)
     {
-        _wifi = wifi; _dispatcher = dispatcher; _log = log;
-
-        _tray = new NotifyIcon
-        {
-            Text    = "MWC",
-            Visible = true,
-            Icon    = BuildIcon(quality: 0, connected: false)
-        };
+        _dispatcher = dispatcher; _log = log;
+        _tray = tray;
+        _tray.Text    = MWC.App.Resources.L.AppTitle;
+        _tray.Visible = true;
+        _tray.Icon    = BuildIcon(quality: 0, connected: false);
         _tray.DoubleClick += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
     }
 
@@ -81,13 +77,15 @@ public sealed class SystemTrayService : IDisposable
         // ── 各アダプターのサブメニュー(子機ごとSSID選択) ──
         foreach (var a in adapters)
         {
-            var adapterItem = new ToolStripMenuItem($"📡 {a.Name}");
+            var adapterItem = new ToolStripMenuItem(MWC.App.Resources.L.Format("Tray_AdapterMenuItem", a.Name));
             if (a.Description.Length > 0)
                 adapterItem.ToolTipText = a.Description;
 
             // 接続状態表示
             var status = new ToolStripMenuItem(
-                a.ConnectedSsid is null ? MWC.App.Resources.L.Get("Tray_NotConnected") : $"接続中: {a.ConnectedSsid}")
+                a.ConnectedSsid is null
+                    ? MWC.App.Resources.L.Get("Tray_NotConnected")
+                    : MWC.App.Resources.L.Format("Status_ConnectedTo_Short", a.ConnectedSsid))
             {
                 Enabled = false,
                 Font    = new Font(SystemFonts.MenuFont!, FontStyle.Italic)
@@ -102,7 +100,7 @@ public sealed class SystemTrayService : IDisposable
             {
                 if (n++ >= 8) break;
                 var item = new ToolStripMenuItem(
-                    $"{net.Ssid}  ({net.SignalQuality}%)")
+                    MWC.App.Resources.L.Format("Tray_NetworkItem", net.Ssid, net.SignalQuality))
                 {
                     Checked      = net.IsConnected,
                     CheckOnClick = false
@@ -118,7 +116,8 @@ public sealed class SystemTrayService : IDisposable
             }
 
             if (n == 0)
-                adapterItem.DropDownItems.Add(new ToolStripMenuItem("(検出なし)") { Enabled = false });
+                adapterItem.DropDownItems.Add(
+                    new ToolStripMenuItem(MWC.App.Resources.L.TrayNoNetworks) { Enabled = false });
 
             // 切断 (接続中のみ有効)
             adapterItem.DropDownItems.Add(new ToolStripSeparator());
@@ -139,7 +138,7 @@ public sealed class SystemTrayService : IDisposable
 
         // ── 操作 ──
         menu.Items.Add(new ToolStripSeparator());
-        var openItem = new ToolStripMenuItem("MWC を開く");
+        var openItem = new ToolStripMenuItem(MWC.App.Resources.L.TrayOpenApp);
         openItem.Click += (_, _) => _dispatcher.Invoke(() => RequestOpenMainWindow?.Invoke());
         menu.Items.Add(openItem);
 
@@ -148,7 +147,10 @@ public sealed class SystemTrayService : IDisposable
             System.Windows.Application.Current.Shutdown());
         menu.Items.Add(exitItem);
 
+        // 旧メニューを破棄してから差し替え (GDI ハンドル/メモリリーク防止)
+        var oldMenu = _tray.ContextMenuStrip;
         _tray.ContextMenuStrip = menu;
+        oldMenu?.Dispose();
     }
 
     /// <summary>(後方互換) 単一アダプター用の旧 API</summary>
@@ -163,11 +165,21 @@ public sealed class SystemTrayService : IDisposable
     public void UpdateStatus(string? ssid, int signalQuality)
     {
         var text = ssid is null
-            ? "MWC — 未接続"
-            : $"MWC — {ssid} ({signalQuality}%)";
-        _tray.Text = text.Length > 127 ? text[..127] : text;
+            ? MWC.App.Resources.L.TrayNotConnected
+            : MWC.App.Resources.L.TrayStatusConnected(ssid, signalQuality);
+        // WinForms NotifyIcon.Text throws ArgumentException above 63 chars.
+        _tray.Text = text.Length > 63 ? text[..63] : text;
+        // 旧アイコンを破棄してから差し替える (各 BuildIcon は独立した GDI ハンドルを
+        // 確保するため、破棄しないと更新の度に HICON がリークする)。
+        var old = _tray.Icon;
         _tray.Icon = BuildIcon(signalQuality, ssid is not null);
+        old?.Dispose();
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(
+        System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr handle);
 
     private static Icon BuildIcon(int quality, bool connected)
     {
@@ -186,7 +198,19 @@ public sealed class SystemTrayService : IDisposable
             using var br = new SolidBrush(color);
             g.FillRectangle(br, xs[i], 15 - heights[i], 3, heights[i]);
         }
-        return Icon.FromHandle(bmp.GetHicon());
+        // GetHicon() は所有権を移さない HICON を返す。Icon.FromHandle もハンドルを
+        // 所有しないため、独立したマネージドコピー (Clone) を作ってから元の
+        // ネイティブハンドルを解放することで GDI リークを防ぐ。
+        IntPtr hicon = bmp.GetHicon();
+        try
+        {
+            using var temp = Icon.FromHandle(hicon);
+            return (Icon)temp.Clone();
+        }
+        finally
+        {
+            DestroyIcon(hicon);
+        }
     }
 
     public void Dispose()
@@ -194,7 +218,12 @@ public sealed class SystemTrayService : IDisposable
         if (_disposed) return;
         _disposed = true;
         _tray.Visible = false;
-        _tray.Dispose();
+        _tray.ContextMenuStrip?.Dispose();
+        // Dispose only the GDI icon clone created by BuildIcon/UpdateStatus.
+        // The NotifyIcon itself is owned by the DI container and disposed separately.
+        var icon = _tray.Icon;
+        _tray.Icon = null;
+        icon?.Dispose();
     }
 }
 

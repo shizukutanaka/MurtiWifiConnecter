@@ -45,7 +45,7 @@ public class HighDensityProfileXmlTests
         {
             Ssid = "Corp",
             Auth = AuthMethod.WPA3Enterprise,
-            EapType = EapType.PEAP,
+            EapType = EapType.PEAP_MSCHAPv2,
             Username = "user@corp.com",
             Password = "secret",
             ServerNames = new[] { "radius.corp.com" }
@@ -134,15 +134,15 @@ public class HighDensityAdapterPrefsTests
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
 
-        svc.Get(id).Label.Should().BeNullOrEmpty();
+        svc.Get(id).CustomLabel.Should().BeNullOrEmpty();
 
         svc.SetLabel(id, "ホーム用ドングル");
-        svc.Get(id).Label.Should().Be("ホーム用ドングル");
+        svc.Get(id).CustomLabel.Should().Be("ホーム用ドングル");
 
         svc.SetLabel(id, "Office Dongle");
-        svc.Get(id).Label.Should().Be("Office Dongle");
-        svc.Get(id).Label.Should().NotBe("ホーム用ドングル");
-        svc.Get(id).Label.Length.Should().Be("Office Dongle".Length);
+        svc.Get(id).CustomLabel.Should().Be("Office Dongle");
+        svc.Get(id).CustomLabel.Should().NotBe("ホーム用ドングル");
+        svc.Get(id).CustomLabel.Length.Should().Be("Office Dongle".Length);
     }
 }
 
@@ -293,6 +293,28 @@ public class RegulatoryDomainTests
         region.Mode.Should().Be(Band6GHzMode.None);
         region.Has6GHz.Should().BeFalse();
         _svc.GetAvailable6GHzChannels("ZZ").Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression: MaxChannelWidth used wrong spans (+64/32/16/8) that didn't account for
+    /// 6 GHz channels being 4 steps apart. Correct spans are 4*(N/20 - 1):
+    ///   320 MHz: 4*(16-1) = 60  (was 64 → ch 173 returned 160 instead of 320)
+    ///   160 MHz: 4*(8-1)  = 28  (was 32)
+    ///    80 MHz: 4*(4-1)  = 12  (was 16 → ch 221 returned 40 instead of 80)
+    ///    40 MHz: 4*(2-1)  =  4  (was  8 → ch 229 returned 20 instead of 40)
+    /// </summary>
+    [Theory]
+    [InlineData(173, 320)]  // 173+60=233 ≤ 233 → 320; old: 173+64=237 > 234 → 160 (wrong)
+    [InlineData(193, 160)]  // 193+60=253 > 233, 193+28=221 ≤ 233 → 160
+    [InlineData(221,  80)]  // 221+28=249 > 233, 221+12=233 ≤ 233 → 80;  old: 221+16=237 > 234 → 40 (wrong)
+    [InlineData(229,  40)]  // 229+12=241 > 233, 229+4=233 ≤ 233  → 40;  old: 229+8=237  > 234 → 20 (wrong)
+    [InlineData(233,  20)]  // no span fits → 20
+    public void MaxChannelWidth_US_RegressionCases(int channel, int expectedMhz)
+    {
+        var channels = _svc.GetAvailable6GHzChannels("US");
+        var info = channels.First(c => c.Channel == channel);
+        info.MaxWidthMhz.Should().Be(expectedMhz,
+            $"ch {channel} US full-band (maxChannel=233): span = 4*(N/20 - 1) sub-channel steps");
     }
 }
 
@@ -486,7 +508,7 @@ public class AccessibilityAuditTests
     [Theory]
     [InlineData("#E6E8EB", "#0F1115", false, WcagLevel.AAA)]   // Dark: fg on bg
     [InlineData("#E6E8EB", "#00C4CC", false, WcagLevel.Fail)]  // fg on accent (低コントラスト)
-    [InlineData("#001518", "#00C4CC", false, WcagLevel.AA)]    // accentText on accent
+    [InlineData("#001518", "#00C4CC", false, WcagLevel.AAA)]   // accentText on accent (~8.7:1 ≥ 7.0 AAA)
     [InlineData("#ECEFF4", "#2E3440", true,  WcagLevel.AAA)]   // Nord: fg on bg (大テキスト)
     public void EvaluateContrast_MwcThemePairs(
         string fg, string bg, bool large, WcagLevel expected)
@@ -688,38 +710,48 @@ public class BssInfoModelTests
         passpointNet.Auth.Should().Be(AuthMethod.WPA2Enterprise);
         passpointNet.BssEntries.Should().HaveCount(1);
     }
-}
-
-public class TroubleshootingHelperTests
-{
-    private readonly TroubleshootingHelper _svc = new();
 
     [Theory]
-    [InlineData(ConnectionFailure.BadCredentials,      true)]
-    [InlineData(ConnectionFailure.NotInRange,          true)]
-    [InlineData(ConnectionFailure.Timeout,             true)]
-    [InlineData(ConnectionFailure.AdapterDisabled,     true)]
-    [InlineData(ConnectionFailure.InsufficientPrivilege, true)]
-    [InlineData(ConnectionFailure.Unknown,             true)]
-    public void GetAdvice_AllFailures_ReturnsNonEmptyAdvice(ConnectionFailure f, bool _)
+    [InlineData(AuthMethod.WPA2Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise192)]
+    public void WifiNetwork_IsPasspoint_AllEnterpriseAuthMethods_Recognized(AuthMethod auth)
     {
-        var advice = _svc.GetAdvice(f);
-        advice.Should().NotBeNullOrEmpty();
-        advice.Should().HaveCountGreaterThan(0);
-        advice.Should().AllSatisfy(a =>
+        var net = new WifiNetwork
         {
-            a.Title.Should().NotBeNullOrEmpty();
-            a.Detail.Should().NotBeNullOrEmpty();
-        });
+            Ssid       = "CorpNet",
+            Auth       = auth,
+            Band       = WifiBand.Band5GHz,
+            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+        };
+        net.IsPasspoint.Should().BeTrue(
+            because: $"{auth} is an enterprise auth method and must be recognized as Passpoint-capable");
+    }
+}
+
+public class TroubleshootingHelperBasicTests
+{
+    [Theory]
+    [InlineData(ConnectionFailure.BadCredentials)]
+    [InlineData(ConnectionFailure.NotInRange)]
+    [InlineData(ConnectionFailure.Timeout)]
+    [InlineData(ConnectionFailure.AdapterDisabled)]
+    [InlineData(ConnectionFailure.InsufficientPrivilege)]
+    [InlineData(ConnectionFailure.Unknown)]
+    public void GetAdvice_AllFailures_ReturnsNonEmptyAdvice(ConnectionFailure f)
+    {
+        var advice = TroubleshootingHelper.GetAdvice(f, AuthMethod.WPA2PSK);
+        advice.Title.Should().NotBeNullOrEmpty();
+        advice.Steps.Should().NotBeEmpty();
     }
 
     [Fact]
     public void GetAdvice_BadCredentials_HasPasswordHint()
     {
-        var advice = _svc.GetAdvice(ConnectionFailure.BadCredentials);
-        var flat = string.Join(" ", advice.Select(a => a.Title + " " + a.Detail));
+        var advice = TroubleshootingHelper.GetAdvice(ConnectionFailure.BadCredentials, AuthMethod.WPA2PSK);
+        var flat = string.Join(" ", advice.Steps);
         flat.Should().NotBeNullOrEmpty();
-        advice.Count.Should().BeGreaterThan(0);
+        advice.Steps.Length.Should().BeGreaterThan(0);
     }
 }
 
@@ -756,7 +788,7 @@ public class OweSelectionServiceTests2
     }
 }
 
-public class Hotspot20ServiceTests
+public class Hotspot20ServiceBasicTests
 {
     private readonly Hotspot20Service _svc = new();
 

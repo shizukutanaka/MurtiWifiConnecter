@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace MWC.Core.Services;
 
@@ -53,8 +52,7 @@ public sealed class AccessibilityAuditService
     /// <summary>
     /// テーマのカラートークンペアを一括検証。
     /// </summary>
-    public IReadOnlyList<ContrastResult> AuditThemePairs(
-        IEnumerable<ColorPair> pairs, bool includeAaaCheck = true)
+    public IReadOnlyList<ContrastResult> AuditThemePairs(IEnumerable<ColorPair> pairs)
         => pairs
             .Select(p => EvaluateContrast(p.Foreground, p.Background, p.IsLargeText))
             .ToList();
@@ -67,10 +65,10 @@ public sealed class AccessibilityAuditService
     {
         var pairs = new[]
         {
-            new ColorPair(fgBrush,         bgBrush,      false,  "本文テキスト"),
-            new ColorPair(fgBrush,         accentBrush,  false,  "本文 on アクセント"),
-            new ColorPair(accentTextBrush, accentBrush,  false,  "アクセントテキスト"),
-            new ColorPair(accentBrush,     bgBrush,      true,   "アクセント (大テキスト)"),
+            new ColorPair(fgBrush,         bgBrush,      false,  "Body text"),
+            new ColorPair(fgBrush,         accentBrush,  false,  "Body on accent"),
+            new ColorPair(accentTextBrush, accentBrush,  false,  "Accent text"),
+            new ColorPair(accentBrush,     bgBrush,      true,   "Accent (large text)"),
         };
         return AuditThemePairs(pairs);
     }
@@ -83,41 +81,41 @@ public sealed class AccessibilityAuditService
     public IReadOnlyList<A11yCheckItem> GetScreenReaderChecklist()
         =>
         [
-            new("SR01", "全インタラクティブ要素に AutomationProperties.Name を設定",
+            new("SR01", "Set AutomationProperties.Name on all interactive elements",
                 "Button, TextBox, ComboBox, CheckBox, RadioButton, ListBox",
                 WcagCriterion.C1_3_1),
-            new("SR02", "画像専用ボタンに AutomationProperties.HelpText を設定",
-                "アイコンのみのボタン(⚙️ 設定 など)",
+            new("SR02", "Set AutomationProperties.HelpText on icon-only buttons",
+                "Icon-only buttons (e.g. ⚙️ Settings)",
                 WcagCriterion.C1_1_1),
-            new("SR03", "エラーメッセージは AutomationProperties.LiveSetting で通知",
+            new("SR03", "Announce error messages via AutomationProperties.LiveSetting",
                 "StatusMessage, ErrorLabel",
                 WcagCriterion.C4_1_3),
-            new("SR04", "フォームフィールドに AutomationProperties.LabeledBy を設定",
-                "TextBox (パスフレーズ入力等)",
+            new("SR04", "Set AutomationProperties.LabeledBy on form fields",
+                "TextBox (passphrase input, etc.)",
                 WcagCriterion.C1_3_1),
-            new("SR05", "ダイアログに AutomationProperties.AutomationId を設定",
+            new("SR05", "Set AutomationProperties.AutomationId on dialogs",
                 "Window, UserControl",
                 WcagCriterion.C4_1_2),
-            new("SR06", "接続状態変化を LiveRegion で即時読み上げ",
+            new("SR06", "Announce connection state changes via LiveRegion",
                 "ConnectedSsid, StatusMessage",
                 WcagCriterion.C4_1_3),
-            new("SR07", "進捗ダイアログは ProgressBar の Value/Maximum を設定",
+            new("SR07", "Set ProgressBar Value/Maximum in progress dialogs",
                 "ConnectionProgressDialog",
                 WcagCriterion.C4_1_2),
-            new("SR08", "タブ順序が視覚的レイアウトと一致する",
+            new("SR08", "Tab order matches visual layout",
                 "MainWindow, AdapterPreferencesDialog",
                 WcagCriterion.C2_4_3),
-            new("SR09", "全機能がキーボードのみで操作できる",
+            new("SR09", "All features operable by keyboard alone",
                 "KeyboardShortcutService 16 shortcuts",
                 WcagCriterion.C2_1_1),
-            new("SR10", "フォーカスが見える(Focus Ring が常に表示)",
-                "全コントロール: focus-visible: outline 2px",
+            new("SR10", "Focus is visible (focus ring always shown)",
+                "All controls: focus-visible: outline 2px",
                 WcagCriterion.C2_4_7),
-            new("SR11", "フォーカストラップなし(モーダル外へ Escape で脱出可能)",
+            new("SR11", "No focus trap (Escape exits modal dialogs)",
                 "ConnectDialog, SettingsDialog",
                 WcagCriterion.C2_1_2),
-            new("SR12", "テキスト 200% 拡大でレイアウト崩れなし",
-                "ScrollViewer, WrapPanel 使用箇所",
+            new("SR12", "Layout intact at 200% text zoom",
+                "ScrollViewer, WrapPanel usage sites",
                 WcagCriterion.C1_4_4),
         ];
 
@@ -151,9 +149,23 @@ public sealed class AccessibilityAuditService
 
     private static (double R, double G, double B) ParseHex(string hex)
     {
+        if (string.IsNullOrEmpty(hex))
+            throw new ArgumentException("Hex colour must not be empty.", nameof(hex));
+
         hex = hex.TrimStart('#');
+
         if (hex.Length == 3)
             hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
+
+        // CSS 8-digit (#RRGGBBAA) は先頭 6 桁のみ使用; それ以外の長さは不正
+        if (hex.Length == 8)
+            hex = hex[..6];
+
+        if (hex.Length != 6)
+            throw new ArgumentException(
+                $"Invalid hex colour '{hex}': expected 3 or 6 hex digits (with optional leading '#').",
+                nameof(hex));
+
         return (
             Convert.ToInt32(hex[..2], 16) / 255.0,
             Convert.ToInt32(hex[2..4], 16) / 255.0,

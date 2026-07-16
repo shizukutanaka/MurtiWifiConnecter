@@ -91,6 +91,42 @@ public sealed class RoamingAdvisoryService
             .FirstOrDefault();
     }
 
+    /// <summary>フラッピング判定: window 内のローミング回数がこれ以上で過剰</summary>
+    public const int FlappingThreshold = 4;
+    /// <summary>スティッキー判定: これ以下の RSSI で居座るとスティッキー候補</summary>
+    public const int StickyRssiDbm = -75;
+
+    /// <summary>
+    /// ローミングの安定性を判定する(スティッキークライアント / フラッピング検出)。
+    /// 単一スナップショットの能力判定 (Analyze) とは別に、直近のローミング履歴と
+    /// 現在の信号強度から挙動を診断する。純粋関数(履歴は呼び出し側が供給)。
+    /// </summary>
+    /// <param name="roams">直近のローミングイベント(新旧順不同)</param>
+    /// <param name="currentRssiDbm">現在の接続 RSSI (dBm, 負値)</param>
+    /// <param name="now">基準時刻</param>
+    /// <param name="window">評価ウィンドウ(既定 60 秒)</param>
+    public RoamingStability AnalyzeStability(
+        IReadOnlyList<RoamEvent> roams, int currentRssiDbm, DateTimeOffset now,
+        TimeSpan? window = null)
+    {
+        var w = window ?? TimeSpan.FromSeconds(60);
+        var cutoff = now - w;
+        int roamCount = roams.Count(r => r.At >= cutoff && r.At <= now);
+
+        if (roamCount >= FlappingThreshold)
+            return new RoamingStability(RoamingStabilityState.Flapping, roamCount,
+                $"Roamed {roamCount} times in a short period (flapping). " +
+                "Roaming threshold may be too aggressive. Review AP transmit power and placement.");
+
+        if (roamCount == 0 && currentRssiDbm <= StickyRssiDbm)
+            return new RoamingStability(RoamingStabilityState.Sticky, 0,
+                $"Weak signal ({currentRssiDbm}dBm) while staying on the same AP " +
+                "(sticky client). Recommend reconnecting manually or moving closer to a better AP.");
+
+        return new RoamingStability(RoamingStabilityState.Stable, roamCount,
+            "Roaming is stable.");
+    }
+
     /// <summary>
     /// 人間語のローミングアドバイスを生成する。
     /// </summary>
@@ -100,14 +136,14 @@ public sealed class RoamingAdvisoryService
         return profile.Tier switch
         {
             RoamingTier.Seamless =>
-                $"シームレスローミング対応 ({string.Join("/", profile.SupportedStandards)})。" +
-                $"遷移遅延 約{profile.EstimatedHandoverMs}ms — VoIP/ビデオ通話でも途切れない。",
+                $"Seamless roaming supported ({string.Join("/", profile.SupportedStandards)}). " +
+                $"Handover latency approx. {profile.EstimatedHandoverMs}ms — uninterrupted VoIP/video calls.",
             RoamingTier.Fast =>
-                $"高速ローミング対応 (802.11r)。遷移遅延 約{profile.EstimatedHandoverMs}ms。",
+                $"Fast roaming supported (802.11r). Handover latency approx. {profile.EstimatedHandoverMs}ms.",
             RoamingTier.Assisted =>
-                $"スキャン補助あり (802.11k/v)。AP候補リストでローミング判断が速い。",
+                $"Scan assistance available (802.11k/v). AP candidate list speeds up roaming decisions.",
             _ =>
-                $"標準ローミング。遷移時に約{profile.EstimatedHandoverMs}ms の中断が発生しうる。"
+                $"Standard roaming. Handover may cause a ~{profile.EstimatedHandoverMs}ms interruption."
         };
     }
 }
@@ -133,4 +169,24 @@ public enum RoamingTier
     Assisted = 2,
     /// <summary>標準ローミング</summary>
     Standard = 3
+}
+
+/// <summary>ローミングイベント(どの BSSID へいつ遷移したか)。</summary>
+public sealed record RoamEvent(string Bssid, DateTimeOffset At);
+
+/// <summary>ローミング安定性の状態。</summary>
+public enum RoamingStabilityState
+{
+    /// <summary>安定</summary>
+    Stable,
+    /// <summary>弱信号で居座り(スティッキー)</summary>
+    Sticky,
+    /// <summary>過剰な再ローミング(フラッピング)</summary>
+    Flapping
+}
+
+/// <summary>ローミング安定性の診断結果。</summary>
+public sealed record RoamingStability(RoamingStabilityState State, int RoamCount, string Advice)
+{
+    public bool NeedsAttention => State != RoamingStabilityState.Stable;
 }

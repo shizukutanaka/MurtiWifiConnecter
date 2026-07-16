@@ -1,13 +1,14 @@
 <Window x:Class="MWC.App.Views.CertificatePickerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="クライアント証明書を選択"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.CertPickerTitle}"
         Width="580" Height="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}"
         Foreground="{DynamicResource FgBrush}"
-        AutomationProperties.Name="EAP-TLS クライアント証明書の選択">
+        AutomationProperties.Name="{x:Static r:L.CertPickerAutomation}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -22,8 +23,8 @@
                 BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1"
                 Padding="20,16">
             <StackPanel>
-                <TextBlock Text="クライアント証明書を選択" FontSize="17" FontWeight="Bold"/>
-                <TextBlock Text="EAP-TLS 認証に使用する証明書を選んでください"
+                <TextBlock Text="{x:Static r:L.CertPickerTitle}" FontSize="17" FontWeight="Bold"/>
+                <TextBlock Text="{x:Static r:L.CertPickerDesc}"
                            FontSize="11" Foreground="{DynamicResource FgMutedBrush}"
                            Margin="0,4,0,0"/>
             </StackPanel>
@@ -35,7 +36,7 @@
                  BorderBrush="{DynamicResource DividerBrush}"
                  Background="{DynamicResource SurfaceBrush}"
                  SelectionChanged="OnSelectionChanged"
-                 AutomationProperties.Name="証明書一覧">
+                 AutomationProperties.Name="{x:Static r:L.CertListAutomation}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="8,6">
@@ -47,7 +48,7 @@
 
                         <!-- 有効期限インジケーター -->
                         <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14"
-                                Background="{Binding ExpiryBrush}"
+                                Background="{Binding ExpiryColor}"
                                 VerticalAlignment="Center">
                             <TextBlock Text="🔐" HorizontalAlignment="Center"
                                        VerticalAlignment="Center" FontSize="14"/>
@@ -93,13 +94,13 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="件名:" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static r:L.CertSubject}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                 <TextBlock Grid.Row="0" Grid.Column="1" x:Name="SubjectLabel" FontSize="11" TextWrapping="Wrap"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="発行者:" Foreground="{DynamicResource FgMutedBrush}" FontSize="11" Margin="0,4,0,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static r:L.CertIssuerLabel}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11" Margin="0,4,0,0"/>
                 <TextBlock Grid.Row="1" Grid.Column="1" x:Name="IssuerLabel" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="有効期限:" Foreground="{DynamicResource FgMutedBrush}" FontSize="11" Margin="0,4,0,0"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static r:L.CertExpiryLabel}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11" Margin="0,4,0,0"/>
                 <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ExpiryDetailLabel" FontSize="11" Margin="0,4,0,0"/>
             </Grid>
         </Border>
@@ -108,16 +109,21 @@
         <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}"
                 Padding="20,12">
             <DockPanel>
-                <Button DockPanel.Dock="Left" AutomationProperties.Name="証明書ストアを開く..." Content="証明書ストアを開く..."
+                <Button DockPanel.Dock="Left"
+                        Content="{x:Static r:L.CertOpenStore}"
+                        AutomationProperties.Name="{x:Static r:L.CertOpenStore}"
                         Click="OnOpenStore" Padding="12,7"
                         Background="{DynamicResource SurfaceHoverBrush}"
                         BorderThickness="0"/>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button AutomationProperties.Name="キャンセル" Content="キャンセル" IsCancel="True" Click="OnCancel"
+                    <Button Content="{x:Static r:L.ActionCancel}"
+                            AutomationProperties.Name="{x:Static r:L.ActionCancel}" IsCancel="True" Click="OnCancel"
                             Padding="16,7" Margin="0,0,8,0"
                             Background="{DynamicResource SurfaceHoverBrush}"
                             BorderThickness="0"/>
-                    <Button x:Name="OkButton" AutomationProperties.Name="この証明書を使う" Content="この証明書を使う"
+                    <Button x:Name="OkButton"
+                            Content="{x:Static r:L.CertUseThis}"
+                            AutomationProperties.Name="{x:Static r:L.CertUseThis}"
                             IsDefault="True" Click="OnOk" IsEnabled="False"
                             Padding="16,7"
                             Background="{DynamicResource AccentBrush}"

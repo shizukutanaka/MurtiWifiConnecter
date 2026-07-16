@@ -1,0 +1,36 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        基底リソース辞書。App.xaml が起動時に最初にマージし、全ブラシキーの
+        既定値 (ダーク) を保証する安全網。ThemeService が起動後に Dark/Light/Fluent 等へ
+        差し替えるが、差し替え前および ThemeService 未起動時もここで全キーが解決できる。
+        ダークが既定テーマ (SettingsService.AppTheme.Dark) のため値は Dark.xaml と一致させる。
+    -->
+
+    <!-- 背景・サーフェス -->
+    <SolidColorBrush x:Key="BgBrush"           Color="#0F1115"/>
+    <SolidColorBrush x:Key="SurfaceBrush"      Color="#1A1D23"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#252A32"/>
+    <SolidColorBrush x:Key="SurfaceSelBrush"   Color="#0A343A"/>
+
+    <!-- 前景 (テキスト) -->
+    <SolidColorBrush x:Key="FgBrush"           Color="#E6E8EB"/>
+    <SolidColorBrush x:Key="FgMutedBrush"      Color="#9AA0A8"/>
+    <SolidColorBrush x:Key="FgVeryMutedBrush"  Color="#5C636B"/>
+    <SolidColorBrush x:Key="DividerBrush"      Color="#2A2F37"/>
+
+    <!-- アクセント -->
+    <SolidColorBrush x:Key="AccentBrush"       Color="#00C4CC"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"  Color="#33D2D9"/>
+    <SolidColorBrush x:Key="AccentTextBrush"   Color="#001518"/>
+    <SolidColorBrush x:Key="FocusBrush"        Color="#00C4CC"/>
+
+    <!-- セマンティック -->
+    <SolidColorBrush x:Key="SuccessBrush"      Color="#2FBF71"/>
+    <SolidColorBrush x:Key="WarnBrush"         Color="#E0A500"/>
+    <SolidColorBrush x:Key="DangerBrush"       Color="#E5484D"/>
+    <SolidColorBrush x:Key="DangerTextBrush"   Color="#FFFFFF"/>
+
+</ResourceDictionary>

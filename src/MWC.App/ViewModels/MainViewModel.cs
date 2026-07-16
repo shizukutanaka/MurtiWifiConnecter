@@ -11,6 +11,7 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Profile;
 using MWC.Core.Services;
+using MWC.App.Services;
 
 namespace MWC.App.ViewModels;
 
@@ -23,7 +24,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ILogger<MainViewModel> _log;
     private readonly SignalHistoryService _history;
     private readonly OuiLookupService    _oui;
-    private readonly System.Timers.Timer _timer;
+    // DispatcherTimer を使う (System.Timers.Timer ではない): Tick は UI スレッドで発火し、
+    // await 後の継続も UI スレッドに戻るため、RefreshAsync が束縛済み ObservableCollection
+    // (SelectedAdapter.Networks) を安全に変更できる。ThreadPool タイマーだと
+    // SynchronizationContext が無く、コレクション変更が Dispatcher 外で起き
+    // NotSupportedException を投げて自動スキャンが無言で失敗していた。
+    private readonly System.Windows.Threading.DispatcherTimer _timer;
 
     public ObservableCollection<AdapterViewModel> Adapters { get; } = new();
 
@@ -34,7 +40,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedAdapterChanged(AdapterViewModel? v)
     {
-        if (v is not null) _ = v.RefreshAsync();
+        Filter.SetAdapter(v?.Id);
+        // fire-and-forget だが SafeRunAsync で例外を捕捉・ログ化し、未観測例外でのクラッシュを防ぐ
+        if (v is not null)
+            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => v.RefreshAsync());
     }
 
     public NetworkFilterViewModel Filter { get; }
@@ -54,8 +63,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Filter = filter;
         AdapterPreferences = adapterPrefs;
         _executor = executor;
-        _timer = new System.Timers.Timer(15_000) { AutoReset = true };
-        _timer.Elapsed += async (_, _) => await SafeRefresh();
+        _timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(15)
+        };
+        // Tick は UI スレッドで発火。SafeRunAsync で例外を捕捉し未観測例外を防ぐ。
+        _timer.Tick += (_, _) => _ = AsyncEventHelper.SafeRunAsync(_log, "AutoScan", SafeRefresh);
     }
 
     [RelayCommand]
@@ -74,12 +87,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 Adapters.Add(avm);
             }
             SelectedAdapter ??= Adapters.FirstOrDefault();
-            // 全アダプター並列スキャン (各子機独立)
-            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
+            // 全アダプター並列スキャン (各子機独立)。SafeRefreshOne で各 Task を
+            // try/catch ラップし、1 つの子機の失敗が他を巻き込まず全件ログされるようにする。
+            await Task.WhenAll(Adapters.Select(SafeRefreshOne));
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             _timer.Start();
-            StatusMessage = $"{ads.Count} アダプター";
+            StatusMessage = MWC.App.Resources.L.StatusAdapterCount(ads.Count);
         }
         catch (Exception ex) { _log.LogError(ex, "Load"); }
         finally { IsBusy = false; }
@@ -95,11 +109,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IsScanning = true;
         try
         {
-            await Task.WhenAll(Adapters.Select(a => a.RefreshAsync()));
+            // 各子機を独立に try/catch ラップ (自動スキャン経路 L176 と同じ SafeRefreshOne)。
+            await Task.WhenAll(Adapters.Select(SafeRefreshOne));
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
             int connected = Adapters.Count(a => a.ConnectedSsid is not null);
-            StatusMessage = $"{connected} / {Adapters.Count} アダプターが接続中";
+            StatusMessage = MWC.App.Resources.L.StatusAdaptersConnected(connected, Adapters.Count);
         }
         catch (Exception ex) { _log.LogWarning(ex, "RefreshAll"); }
         finally { IsScanning = false; }
@@ -128,9 +143,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             DefaultExt = fmt == "json" ? "json" : fmt == "txt" ? "txt" : "csv",
             Filter     = fmt switch
             {
-                "json" => "JSON (*.json)|*.json",
-                "txt"  => "Text (*.txt)|*.txt",
-                _      => "CSV (*.csv)|*.csv"
+                "json" => MWC.App.Resources.L.Get("Export_FilterJson"),
+                "txt"  => MWC.App.Resources.L.Get("Export_FilterTxt"),
+                _      => MWC.App.Resources.L.Get("Export_FilterCsv")
             }
         };
         if (dlg.ShowDialog() != true) return;
@@ -142,7 +157,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 case "txt":  ExportService.ToText(nets, dlg.FileName); break;
                 default:     ExportService.ToCsv (nets, dlg.FileName); break;
             }
-            StatusMessage = $"Export → {Path.GetFileName(dlg.FileName)}";
+            StatusMessage = MWC.App.Resources.L.StatusExported(Path.GetFileName(dlg.FileName));
         }
         catch (Exception ex) { _log.LogError(ex, "Export"); }
     }
@@ -165,6 +180,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
         }
+        catch (Exception ex)
+        {
+            // 個々のアダプター失敗は SafeRefreshOne が捕捉するが、Filter.SetSource 等
+            // それ以外の箇所での例外は無防備だった。RefreshCommand (手動更新ボタン) 経由の
+            // 呼び出しは AsyncEventHelper.SafeRunAsync を通らないため、ここで捕捉しないと
+            // AsyncRelayCommand の ExecutionTask に握りつぶされ、無反応に見える
+            // (AdapterViewModel.RefreshAsync と同じ 2026-07 品質パスの修正)。
+            _log.LogError(ex, "SafeRefresh failed");
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
+        }
         finally { IsScanning = false; }
     }
 
@@ -177,21 +202,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>設定変更をランタイムに即適用(スキャン間隔等)</summary>
     public void ApplySettings(AppSettings settings)
     {
-        var intervalMs = settings.AutoScanIntervalSeconds * 1000;
-        if (intervalMs > 0)
+        var intervalSeconds = settings.AutoScanIntervalSeconds;
+        if (intervalSeconds > 0)
         {
-            _timer.Interval = intervalMs;
-            _timer.Enabled  = true;
+            _timer.Interval = TimeSpan.FromSeconds(intervalSeconds);
+            _timer.Start();
         }
         else
         {
-            _timer.Enabled = false;
+            _timer.Stop();
         }
     }
 
     public void Dispose()
     {
-        _timer.Stop(); _timer.Dispose();
+        // DispatcherTimer は IDisposable ではない。Stop() で Tick を止める。
+        _timer.Stop();
     }
 }
 

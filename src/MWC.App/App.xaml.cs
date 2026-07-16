@@ -60,7 +60,7 @@ public partial class App : Application
                 {
                     var ni = new System.Windows.Forms.NotifyIcon
                     {
-                        Text    = "MWC",
+                        Text    = MWC.App.Resources.L.AppTitle,
                         Visible = true,
                         Icon    = System.Drawing.SystemIcons.Information
                     };
@@ -70,13 +70,15 @@ public partial class App : Application
                     sp.GetRequiredService<ILogger<NotificationService>>(),
                     sp.GetRequiredService<System.Windows.Forms.NotifyIcon>()));
                 s.AddSingleton<SystemTrayService>(sp => new SystemTrayService(
-                    sp.GetRequiredService<IWifiService>(),
+                    sp.GetRequiredService<System.Windows.Forms.NotifyIcon>(),
                     Dispatcher.CurrentDispatcher,
                     sp.GetRequiredService<ILogger<SystemTrayService>>()));
 
                 // ViewModels
                 s.AddSingleton<NetworkFilterViewModel>(sp =>
-                    new NetworkFilterViewModel(sp.GetRequiredService<SettingsService>()));
+                    new NetworkFilterViewModel(
+                        sp.GetRequiredService<SettingsService>(),
+                        sp.GetRequiredService<AdapterPreferencesService>()));
                 s.AddSingleton<MainViewModel>(sp => new MainViewModel(
                     sp.GetRequiredService<IWifiService>(),
                     sp.GetRequiredService<ILogger<MainViewModel>>(),
@@ -92,6 +94,7 @@ public partial class App : Application
                 s.AddSingleton<JumpListService>();
                 s.AddSingleton<AppUpdateService>();
                 s.AddSingleton<NetworkHistoryService>();
+                s.AddSingleton<EapAuthStatsService>();
                 s.AddSingleton<ConnectionExecutor>();
                 s.AddSingleton<AdapterPreferencesService>();
                 s.AddSingleton<ErrorHandlerService>();
@@ -99,12 +102,12 @@ public partial class App : Application
                 s.AddSingleton<MainWindowCommands>(sp => new MainWindowCommands(
                     sp.GetRequiredService<IWifiService>(),
                     sp.GetRequiredService<NotificationService>(),
-                    sp.GetRequiredService<NetworkHistoryService>(),
                     sp.GetRequiredService<NetworkQualityService>(),
                     sp.GetRequiredService<SettingsService>(),
                     sp.GetRequiredService<ThemeService>(),
                     sp.GetRequiredService<ErrorHandlerService>(),
                     sp.GetRequiredService<KeyboardShortcutService>(),
+                    sp.GetRequiredService<ConnectionExecutor>(),
                     sp));
                 s.AddSingleton<NetworkQualityService>();
                 s.AddTransient<AllAdaptersOverviewViewModel>(sp =>
@@ -116,8 +119,11 @@ public partial class App : Application
                         sp.GetRequiredService<OuiLookupService>(),
                         sp.GetRequiredService<ILogger<AllAdaptersOverviewViewModel>>()));
                 s.AddSingleton<AutoReconnectService>();
+                s.AddSingleton<AdapterFailoverService>();
                 s.AddTransient<ProfileManagerViewModel>(sp => new ProfileManagerViewModel(
-                    sp.GetRequiredService<IWifiService>()));
+                    sp.GetRequiredService<IWifiService>(),
+                    sp.GetRequiredService<NetworkHistoryService>(),
+                    sp.GetRequiredService<ILogger<ProfileManagerViewModel>>()));
 
                 // Views
                 s.AddSingleton<MainWindow>();
@@ -130,6 +136,13 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandled;
         TaskScheduler.UnobservedTaskException      += OnTaskUnhandled;
 
+        // 言語適用: 保存された言語設定を UI カルチャへ反映する。これが無いと
+        // CurrentUICulture が OS カルチャのままになり、設定の言語セレクタが
+        // 事実上機能しない (選んでも表示言語が変わらない)。MainWindow 生成より
+        // 前に行う必要がある (resx は CurrentUICulture で解決されるため)。
+        // 言語変更は再起動で反映。
+        ApplyLanguage(Host.Services.GetRequiredService<SettingsService>().Current.Language);
+
         // テーマ適用
         var theme = Host.Services.GetRequiredService<ThemeService>();
         theme.Apply(Host.Services.GetRequiredService<SettingsService>().Current.Theme);
@@ -141,6 +154,9 @@ public partial class App : Application
 
         // AutoReconnect 起動
         Host.Services.GetRequiredService<AutoReconnectService>().Start();
+
+        // AdapterFailover 起動
+        Host.Services.GetRequiredService<AdapterFailoverService>().Start();
 
         // MainWindow 表示
         var win = Host.Services.GetRequiredService<MainWindow>();
@@ -157,9 +173,51 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// 保存された言語コード ("en"/"ja"/"ar" 等) を UI/フォーマットカルチャへ適用する。
+    /// RTL 言語 (アラビア語等) では全 FrameworkElement の既定 FlowDirection を右→左へ反転する。
+    /// FrameworkElement 生成前に呼ぶこと (OverrideMetadata は一度きり)。
+    /// </summary>
+    private static void ApplyLanguage(string? lang)
+    {
+        if (string.IsNullOrWhiteSpace(lang) ||
+            lang.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            return;   // OS カルチャに従う
+
+        System.Globalization.CultureInfo culture;
+        try { culture = System.Globalization.CultureInfo.GetCultureInfo(lang); }
+        catch (System.Globalization.CultureNotFoundException) { return; }
+
+        System.Globalization.CultureInfo.CurrentUICulture          = culture;
+        System.Globalization.CultureInfo.CurrentCulture            = culture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture   = culture;
+
+        // RTL 言語ではレイアウトを右→左へ反転 (これが無いと UI が鏡像でなく
+        // LTR のまま表示され、ラベル位置・整列が崩れる)。生成済み要素があると
+        // OverrideMetadata が例外を投げるため best-effort: 失敗時は LTR のまま。
+        if (culture.TextInfo.IsRightToLeft)
+        {
+            try
+            {
+                FrameworkElement.FlowDirectionProperty.OverrideMetadata(
+                    typeof(FrameworkElement),
+                    new FrameworkPropertyMetadata(FlowDirection.RightToLeft));
+            }
+            catch (Exception ex) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
-        Host?.Services.GetService<AutoReconnectService>()?.Dispose();
+        // バックグラウンドタイマーをまず停止し、Host 破棄中に CheckAsync が
+        // 破棄済みの _wifi を触る競合を防ぐ (AutoReconnect と対称に明示停止する)。
+        Host?.Services.GetService<AdapterFailoverService>()?.Stop();
+
+        // 監視ループの完了を待ってから破棄 (WatchAsync は ConfigureAwait(false) のためデッドロックしない)
+        var autoReconnect = Host?.Services.GetService<AutoReconnectService>();
+        if (autoReconnect is not null)
+            autoReconnect.DisposeAsync().AsTask().GetAwaiter().GetResult();
         Host?.Services.GetService<SystemTrayService>()?.Dispose();
         Host?.Services.GetService<System.Windows.Forms.NotifyIcon>()?.Dispose();
         Log.CloseAndFlush();
@@ -179,7 +237,7 @@ public partial class App : Application
     private void OnUiUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error(e.Exception, "UI unhandled");
-        MessageBox.Show(MWC.App.Resources.L.ErrorUnexpected(e.Exception.Message), "MWC",
+        MessageBox.Show(MWC.App.Resources.L.ErrorUnexpected(e.Exception.Message), MWC.App.Resources.L.AppTitle,
             MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }

@@ -7,8 +7,7 @@ _mwc_completions()
     local cur prev words cword
     _init_completion || return
 
-    local commands="adapters scan connect disconnect profile qr qr-parse export quality history help"
-    local profile_subcommands="list delete"
+    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter help"
 
     # トップレベルコマンド
     if [[ $cword -eq 1 ]]; then
@@ -16,13 +15,37 @@ _mwc_completions()
         return
     fi
 
-    # サブコマンド
     case "${words[1]}" in
+        list)
+            COMPREPLY=( $(compgen -W "--json --status --adapter" -- "$cur") )
+            return
+            ;;
+        scan)
+            COMPREPLY=( $(compgen -W "--adapter --json --advise --recommend --evil-twin --interference --mesh" -- "$cur") )
+            return
+            ;;
+        connect)
+            COMPREPLY=( $(compgen -W "--adapter --password -p --auth --timeout --hidden" -- "$cur") )
+            return
+            ;;
+        disconnect)
+            COMPREPLY=( $(compgen -W "--adapter" -- "$cur") )
+            return
+            ;;
         profile)
             if [[ $cword -eq 2 ]]; then
-                COMPREPLY=( $(compgen -W "$profile_subcommands" -- "$cur") )
+                COMPREPLY=( $(compgen -W "list delete" -- "$cur") )
                 return
             fi
+            COMPREPLY=( $(compgen -W "--adapter" -- "$cur") )
+            return
+            ;;
+        qr)
+            COMPREPLY=( $(compgen -W "--password -p --auth --hidden" -- "$cur") )
+            return
+            ;;
+        qr-parse)
+            return
             ;;
         export)
             case "$prev" in
@@ -31,24 +54,51 @@ _mwc_completions()
                     return
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "--format --output" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--adapter --format --output" -- "$cur") )
             return
             ;;
-        connect)
-            COMPREPLY=( $(compgen -W "--adapter --password --auth --timeout" -- "$cur") )
+        quality)
+            COMPREPLY=( $(compgen -W "--host --samples --json --bufferbloat --load-url" -- "$cur") )
             return
             ;;
-        scan|adapters)
-            COMPREPLY=( $(compgen -W "--adapter --json" -- "$cur") )
+        history)
+            COMPREPLY=( $(compgen -W "--limit --json --clear" -- "$cur") )
             return
             ;;
-        history|quality)
-            COMPREPLY=( $(compgen -W "--days --json" -- "$cur") )
+        plan-channels)
+            case "$prev" in
+                --band)
+                    COMPREPLY=( $(compgen -W "2.4 5 6" -- "$cur") )
+                    return
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "--adapter --band --dfs --ranked --json" -- "$cur") )
+            return
+            ;;
+        multi)
+            if [[ $cword -eq 2 ]]; then
+                COMPREPLY=( $(compgen -W "connect disconnect-all status" -- "$cur") )
+                return
+            fi
+            if [[ "${words[2]}" == "connect" ]]; then
+                COMPREPLY=( $(compgen -W "--password" -- "$cur") )
+            fi
+            return
+            ;;
+        adapter)
+            if [[ $cword -eq 2 ]]; then
+                COMPREPLY=( $(compgen -W "list rename band pin unpin enable disable" -- "$cur") )
+                return
+            fi
+            if [[ "${words[2]}" == "band" && $cword -eq 4 ]]; then
+                COMPREPLY=( $(compgen -W "any 2.4 5 6" -- "$cur") )
+                return
+            fi
             return
             ;;
     esac
 
-    # 共通オプション
+    # 共通フォールバック
     COMPREPLY=( $(compgen -W "--help --json" -- "$cur") )
 }
 

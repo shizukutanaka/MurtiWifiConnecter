@@ -19,7 +19,10 @@ namespace MWC.App.ViewModels;
 public sealed partial class NetworkFilterViewModel : ObservableObject
 {
     private readonly SettingsService _settings;
+    private readonly AdapterPreferencesService _adapterPrefs;
     private IReadOnlyList<NetworkItemViewModel> _source = Array.Empty<NetworkItemViewModel>();
+    private Guid? _currentAdapterId;
+    private bool _loadingPreset;
 
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private bool   _isExpertMode;
@@ -28,15 +31,35 @@ public sealed partial class NetworkFilterViewModel : ObservableObject
 
     public ObservableCollection<NetworkItemViewModel> Filtered { get; } = new();
 
-    public NetworkFilterViewModel(SettingsService settings)
+    public NetworkFilterViewModel(SettingsService settings, AdapterPreferencesService adapterPrefs)
     {
         _settings     = settings;
+        _adapterPrefs = adapterPrefs;
         IsExpertMode  = settings.Current.DisplayMode == DisplayMode.Expert;
     }
 
+    /// <summary>アダプター切替時に呼び出し。アダプター固有のフィルタ設定を復元する。</summary>
+    public void SetAdapter(Guid? adapterId)
+    {
+        _currentAdapterId = adapterId;
+        if (!adapterId.HasValue) return;
+        var prefs = _adapterPrefs.Get(adapterId.Value);
+        _loadingPreset = true;
+        ShowSecuredOnly    = prefs.ShowSecuredOnly;
+        ShowFavoritesFirst = prefs.ShowFavoritesFirst;
+        _loadingPreset = false;
+        ApplyFilter();
+    }
+
     partial void OnSearchTextChanged(string value)     => ApplyFilter();
-    partial void OnShowSecuredOnlyChanged(bool value)  => ApplyFilter();
-    partial void OnShowFavoritesFirstChanged(bool value) => ApplyFilter();
+    partial void OnShowSecuredOnlyChanged(bool value)  { SaveFilterPreset(); ApplyFilter(); }
+    partial void OnShowFavoritesFirstChanged(bool value) { SaveFilterPreset(); ApplyFilter(); }
+
+    private void SaveFilterPreset()
+    {
+        if (_loadingPreset || !_currentAdapterId.HasValue) return;
+        _adapterPrefs.SetFilterPreset(_currentAdapterId.Value, ShowSecuredOnly, ShowFavoritesFirst);
+    }
 
     public void SetSource(IReadOnlyList<NetworkItemViewModel> networks)
     {
@@ -57,12 +80,17 @@ public sealed partial class NetworkFilterViewModel : ObservableObject
         });
     }
 
+    public void ReapplyFilter() => ApplyFilter();
+
     private void ApplyFilter()
     {
         var q = SearchText.Trim();
 
         var pinned  = _settings.Current.PinnedNetworks;
         var hidden  = _settings.Current.HiddenNetworks;
+
+        // Sync IsPinned on all source items so the pin indicator stays current
+        foreach (var n in _source) n.IsPinned = pinned.Contains(n.Ssid);
 
         var result = _source
             .Where(n => !hidden.Contains(n.Ssid))
@@ -75,15 +103,19 @@ public sealed partial class NetworkFilterViewModel : ObservableObject
             .ThenByDescending(n => n.Signal)
             .ToList();
 
-        // 差分更新
+        // 差分更新 (削除 → 挿入/移動の順で適用し、信号変化によるソート順変化も反映)
         for (int i = Filtered.Count - 1; i >= 0; i--)
             if (!result.Any(r => r.Ssid == Filtered[i].Ssid)) Filtered.RemoveAt(i);
         for (int i = 0; i < result.Count; i++)
         {
             var item = result[i];
-            var existing = Filtered.FirstOrDefault(f => f.Ssid == item.Ssid);
-            if (existing is null)
+            int curIdx = -1;
+            for (int j = 0; j < Filtered.Count; j++)
+                if (Filtered[j].Ssid == item.Ssid) { curIdx = j; break; }
+            if (curIdx < 0)
                 Filtered.Insert(Math.Min(i, Filtered.Count), item);
+            else if (curIdx != i)
+                Filtered.Move(curIdx, i);
         }
     }
 }

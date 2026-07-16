@@ -28,19 +28,17 @@ public static class ExportService
     };
 
     // ───── CSV ─────
-    public static void ToCsv(IEnumerable<WifiNetwork> networks, string path)
+    public static string ToCsv(IEnumerable<WifiNetwork> networks)
     {
         ArgumentNullException.ThrowIfNull(networks);
-        using var w = new StreamWriter(path, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-        // ヘッダ
-        w.WriteLine("SSID,BSSID(1st),Signal(%),RSSI(dBm),Band,Channel,ChannelWidth(MHz)," +
-                    "PHY,Auth,Cipher,MaxSpeed(Mbps),Vendor,Connected,HasProfile,ScannedAt");
-
+        var sb = new StringBuilder();
+        sb.AppendLine("SSID,BSSID(1st),Signal(%),RSSI(dBm),Band,Channel,ChannelWidth(MHz)," +
+                      "PHY,Auth,Cipher,MaxSpeed(Mbps),Vendor,Connected,HasProfile,ScannedAt");
         var at = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         foreach (var n in networks)
         {
             var bssid = n.BssEntries.Count > 0 ? n.BssEntries[0].Bssid : "";
-            w.WriteLine(string.Join(",",
+            sb.AppendLine(string.Join(",",
                 CsvEscape(n.Ssid),
                 CsvEscape(bssid),
                 n.SignalQuality,
@@ -57,24 +55,32 @@ public static class ExportService
                 n.HasProfile,
                 at));
         }
+        return sb.ToString();
+    }
+
+    public static void ToCsv(IEnumerable<WifiNetwork> networks, string path)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        File.WriteAllText(path, ToCsv(networks), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
     }
 
     // ───── JSON ─────
+    public static string ToJson(IEnumerable<WifiNetwork> networks)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        return JsonSerializer.Serialize(new List<WifiNetwork>(networks), JsonOptions);
+    }
+
     public static void ToJson(IEnumerable<WifiNetwork> networks, string path)
     {
         ArgumentNullException.ThrowIfNull(networks);
-        var payload = new ExportPayload
-        {
-            ScannedAt = DateTimeOffset.UtcNow,
-            Networks = new List<WifiNetwork>(networks)
-        };
-        File.WriteAllText(path,
-            JsonSerializer.Serialize(payload, JsonOptions),
-            Encoding.UTF8);
+        var nets = new List<WifiNetwork>(networks);
+        var payload = new ExportPayload { ScannedAt = DateTimeOffset.UtcNow, Networks = nets };
+        File.WriteAllText(path, JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8);
     }
 
     // ───── TXT ─────
-    public static void ToText(IEnumerable<WifiNetwork> networks, string path)
+    public static string ToTxt(IEnumerable<WifiNetwork> networks)
     {
         ArgumentNullException.ThrowIfNull(networks);
         var sb = new StringBuilder();
@@ -108,20 +114,33 @@ public static class ExportService
         }
         sb.AppendLine(new string('─', 72));
         sb.AppendLine($"Total: {i - 1} networks");
-        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        return sb.ToString();
+    }
+
+    public static void ToText(IEnumerable<WifiNetwork> networks, string path)
+    {
+        ArgumentNullException.ThrowIfNull(networks);
+        File.WriteAllText(path, ToTxt(networks), Encoding.UTF8);
     }
 
     // ───── helpers ─────
     private static string CsvEscape(string s)
     {
-        if (s.Contains(',') || s.Contains('"') || s.Contains('\n'))
+        // CSV インジェクション対策: 数式起動文字で始まる値は先頭にアポストロフィを付与
+        // (悪意ある SSID 例: =cmd|'/c calc'!A1 が Excel/LibreOffice で実行されるのを防ぐ)
+        if (s.Length > 0 && (s[0] is '=' or '+' or '-' or '@' or '\t' or '\r'))
+            s = "'" + s;
+
+        if (s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r'))
             return $"\"{s.Replace("\"", "\"\"")}\"";
         return s;
     }
 
     private static string BuildBar(int quality)
     {
-        int filled = (int)Math.Round(quality / 10.0);
+        // Clamp to [0,10]: SignalQuality is an unbounded int, and an out-of-range
+        // value would make one of the new string(...) lengths negative → throw.
+        int filled = Math.Clamp((int)Math.Round(quality / 10.0), 0, 10);
         return "[" + new string('█', filled) + new string('░', 10 - filled) + "]";
     }
 

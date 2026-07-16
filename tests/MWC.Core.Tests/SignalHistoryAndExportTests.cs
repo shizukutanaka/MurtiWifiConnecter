@@ -10,94 +10,91 @@ using Xunit;
 namespace MWC.Core.Tests;
 
 // ════════════════════════════════════════════════
-//  SignalHistoryService 高密度テスト
+//  SignalHistoryService 追加テスト
 // ════════════════════════════════════════════════
-public class SignalHistoryServiceTests
+public class SignalHistoryServiceAdditionalTests
 {
+    private static WifiNetwork MakeNet(string ssid, int quality, int? rssi = null) =>
+        new() { Ssid = ssid, SignalQuality = quality, Rssi = rssi };
+
     [Fact]
-    public void AddSignal_Then_GetHistory_ReturnsChronological()
+    public void Record_Then_GetHistory_ReturnsNewestFirst()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
 
-        svc.AddSignal(id, "TestNet", -50);
-        svc.AddSignal(id, "TestNet", -60);
-        svc.AddSignal(id, "TestNet", -45);
+        svc.Record(new[] { MakeNet("TestNet", 50, -70) });
+        svc.Record(new[] { MakeNet("TestNet", 60, -60) });
+        svc.Record(new[] { MakeNet("TestNet", 55, -65) });
 
-        var history = svc.GetHistory(id, "TestNet");
+        var history = svc.GetHistory("TestNet");
 
         history.Should().NotBeEmpty();
-        history.Count.Should().BeGreaterOrEqualTo(3);
+        history.Count.Should().Be(3);
+        // newest-first ordering
+        history[0].At.Should().BeOnOrAfter(history[1].At);
         history.Should().AllSatisfy(h =>
         {
-            h.Rssi.Should().BeLessOrEqualTo(0, "RSSI must be negative dBm");
-            h.Rssi.Should().BeGreaterThan(-120);
-            h.Timestamp.Should().BeBefore(DateTimeOffset.UtcNow.AddSeconds(1));
+            h.Quality.Should().BeInRange(0, 100);
+            h.At.Should().BeBefore(DateTimeOffset.UtcNow.AddSeconds(1));
         });
     }
 
     [Fact]
-    public void GetHistory_UnknownAdapter_ReturnsEmpty()
+    public void GetHistory_UnknownSsid_ReturnsEmpty()
     {
         var svc = new SignalHistoryService();
-        var history = svc.GetHistory(Guid.NewGuid(), "Ghost");
+        var history = svc.GetHistory("Ghost");
 
         history.Should().NotBeNull();
-        history.Should().BeEmpty("unknown adapter has no signal history");
+        history.Should().BeEmpty("unknown SSID has no signal history");
     }
 
     [Fact]
-    public void AddSignal_MultipleAdapters_AreSeparated()
+    public void Record_MultipleSsids_AreSeparated()
     {
         var svc = new SignalHistoryService();
-        var id1 = Guid.NewGuid();
-        var id2 = Guid.NewGuid();
+        svc.Record(new[] { MakeNet("Net1", 55, -55), MakeNet("Net2", 70, -45) });
 
-        svc.AddSignal(id1, "Net1", -55);
-        svc.AddSignal(id2, "Net1", -70);
-
-        var h1 = svc.GetHistory(id1, "Net1");
-        var h2 = svc.GetHistory(id2, "Net1");
+        var h1 = svc.GetHistory("Net1");
+        var h2 = svc.GetHistory("Net2");
 
         h1.Should().NotBeEmpty();
         h2.Should().NotBeEmpty();
-        // アダプター毎に独立
-        h1.Average(h => h.Rssi).Should().NotBe(h2.Average(h => h.Rssi));
+        h1[0].Quality.Should().NotBe(h2[0].Quality, "different SSIDs have separate histories");
     }
 
     [Fact]
     public void Clear_RemovesHistory()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
-        svc.AddSignal(id, "ClearNet", -60);
+        svc.Record(new[] { MakeNet("ClearNet", 60, -60) });
 
-        svc.Clear(id, "ClearNet");
-        var history = svc.GetHistory(id, "ClearNet");
+        svc.Clear("ClearNet");
+        var history = svc.GetHistory("ClearNet");
 
         history.Should().BeEmpty("cleared history must be empty");
     }
 
     [Fact]
-    public void GetAverageRssi_MultiplePoints_IsCorrect()
+    public void Record_MultiplePoints_AverageQualityIsCorrect()
     {
         var svc = new SignalHistoryService();
-        var id  = Guid.NewGuid();
-        svc.AddSignal(id, "AvgNet", -60);
-        svc.AddSignal(id, "AvgNet", -40);
+        svc.Record(new[] { MakeNet("AvgNet", 60, -60) });
+        svc.Record(new[] { MakeNet("AvgNet", 40, -40) });
 
-        var avg = svc.GetAverageRssi(id, "AvgNet");
+        var history = svc.GetHistory("AvgNet");
 
-        avg.Should().HaveValue();
-        avg!.Value.Should().BeApproximately(-50.0, 1.0);
-        avg.Value.Should().BeInRange(-120, 0);
+        history.Should().HaveCount(2);
+        var avgQuality = history.Average(h => h.Quality);
+        avgQuality.Should().BeApproximately(50.0, 1.0);
+        history.Should().AllSatisfy(h => h.Quality.Should().BeInRange(0, 100));
     }
 }
 
 // ════════════════════════════════════════════════
-//  ExportService 高密度テスト
+//  ExportService 文字列出力テスト
 // ════════════════════════════════════════════════
-public class ExportServiceTests
+public class ExportServiceStringOutputTests
 {
     private static WifiNetwork MakeNetwork(string ssid, AuthMethod auth, int signal, WifiBand band) =>
         new()
@@ -113,7 +110,6 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_ProducesValidCsv()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("Home",   AuthMethod.WPA3SAE,  90, WifiBand.Band5GHz),
@@ -121,7 +117,7 @@ public class ExportServiceTests
             MakeNetwork("Free",   AuthMethod.Open,     50, WifiBand.Band2_4GHz),
         };
 
-        var csv = svc.ToCsv(nets);
+        var csv = ExportService.ToCsv(nets);
 
         csv.Should().NotBeNullOrEmpty();
         csv.Should().Contain("Home");
@@ -136,19 +132,18 @@ public class ExportServiceTests
     [Fact]
     public void ExportJson_ProducesValidJson()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("JsonNet", AuthMethod.WPA2PSK, 80, WifiBand.Band5GHz),
         };
 
-        var json = svc.ToJson(nets);
+        var json = ExportService.ToJson(nets);
 
         json.Should().NotBeNullOrEmpty();
         json.Should().Contain("JsonNet");
         json.Should().Contain("[");
         json.Should().Contain("]");
-        // JSON として最低限の構造
+        // JSON として最低限の構造 (bare array)
         json.Trim().Should().StartWith("[");
         json.Trim().Should().EndWith("]");
     }
@@ -156,13 +151,12 @@ public class ExportServiceTests
     [Fact]
     public void ExportTxt_ProducesReadableText()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("TxtNet", AuthMethod.WPA3SAE, 85, WifiBand.Band6GHz),
         };
 
-        var txt = svc.ToTxt(nets);
+        var txt = ExportService.ToTxt(nets);
 
         txt.Should().NotBeNullOrEmpty();
         txt.Should().Contain("TxtNet");
@@ -172,8 +166,7 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_EmptyList_ReturnsHeaderOnly()
     {
-        var svc = new ExportService();
-        var csv = svc.ToCsv(Array.Empty<WifiNetwork>());
+        var csv = ExportService.ToCsv(Array.Empty<WifiNetwork>());
 
         csv.Should().NotBeNullOrEmpty("header row must always be present");
         // 少なくともヘッダーが出力される
@@ -185,18 +178,34 @@ public class ExportServiceTests
     [Fact]
     public void ExportCsv_EscapesCommaInSsid()
     {
-        var svc = new ExportService();
         var nets = new[]
         {
             MakeNetwork("Coffee, Shop", AuthMethod.Open, 60, WifiBand.Band2_4GHz),
         };
 
-        var csv = svc.ToCsv(nets);
+        var csv = ExportService.ToCsv(nets);
 
         csv.Should().NotBeNullOrEmpty();
         // SSID内のカンマは適切にエスケープ/クォートされる
         csv.Should().Contain("Coffee");
         csv.Should().Contain("Shop");
+    }
+
+    [Theory]
+    [InlineData(-50)]   // 負値: filled が負 → new string(..) が throw していた
+    [InlineData(0)]
+    [InlineData(100)]
+    [InlineData(150)]   // 100 超: 10 - filled が負 → throw していた
+    public void ExportTxt_OutOfRangeSignal_DoesNotThrow(int signal)
+    {
+        // SignalQuality は境界検証のない int。範囲外でも TXT の信号バーが
+        // ArgumentOutOfRangeException を投げず描画できること (BuildBar の clamp)。
+        var nets = new[] { MakeNetwork("Edge", AuthMethod.WPA2PSK, signal, WifiBand.Band5GHz) };
+
+        var act = () => ExportService.ToTxt(nets);
+
+        act.Should().NotThrow();
+        ExportService.ToTxt(nets).Should().Contain("Edge");
     }
 }
 
@@ -205,47 +214,47 @@ public class ExportServiceTests
 // ════════════════════════════════════════════════
 public class SecurityBadgeServiceAdvancedTests
 {
+    // SecurityBadgeService is a static class — no instantiation.
+    // SecurityBadge fields: Label, Level, TechLabel (no Auth/IsModern/Description).
+    // SecurityLevel enum: Excellent, Good, Fair, Weak, Danger (no Critical).
     [Theory]
-    [InlineData(AuthMethod.WPA3SAE,           SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA3Enterprise192, SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA3Enterprise,    SecurityLevel.Excellent, true)]
-    [InlineData(AuthMethod.WPA2Enterprise,    SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.WPA2PSK,           SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.OWE,               SecurityLevel.Good,      false)]
-    [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak,      false)]
-    [InlineData(AuthMethod.WEP,               SecurityLevel.Critical,  false)]
-    [InlineData(AuthMethod.Open,              SecurityLevel.Critical,  false)]
-    public void GetLevel_CorrectLevel_AndIsModern(AuthMethod auth, SecurityLevel expected, bool modern)
+    [InlineData(AuthMethod.WPA3SAE,           SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA3Enterprise192, SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA3Enterprise,    SecurityLevel.Excellent)]
+    [InlineData(AuthMethod.WPA2Enterprise,    SecurityLevel.Good)]
+    [InlineData(AuthMethod.WPA2PSK,           SecurityLevel.Good)]
+    [InlineData(AuthMethod.OWE,               SecurityLevel.Fair)]
+    [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak)]
+    [InlineData(AuthMethod.WEP,               SecurityLevel.Danger)]
+    [InlineData(AuthMethod.Open,              SecurityLevel.Danger)]
+    public void GetBadge_CorrectLevel(AuthMethod auth, SecurityLevel expected)
     {
-        var svc = new SecurityBadgeService();
-        var level = svc.GetLevel(auth);
-        var badge = svc.GetBadge(auth);
+        var badge = SecurityBadgeService.GetBadge(auth);
 
-        level.Should().Be(expected);
         badge.Level.Should().Be(expected);
-        badge.Auth.Should().Be(auth);
-        badge.IsModern.Should().Be(modern);
         badge.Label.Should().NotBeNullOrEmpty("every auth method must have a label");
+        badge.TechLabel.Should().NotBeNullOrEmpty("every auth method must have a tech label");
     }
 
     [Fact]
     public void GetBadge_AllAuthMethods_HaveNonEmptyLabels()
     {
-        var svc = new SecurityBadgeService();
         foreach (var auth in Enum.GetValues<AuthMethod>())
         {
-            var badge = svc.GetBadge(auth);
+            var badge = SecurityBadgeService.GetBadge(auth);
             badge.Label.Should().NotBeNullOrEmpty(because: $"{auth} must have a label");
-            badge.Description.Should().NotBeNullOrEmpty(because: $"{auth} must have a description");
+            badge.TechLabel.Should().NotBeNullOrEmpty(because: $"{auth} must have a tech label");
         }
     }
 
     [Fact]
     public void SecurityLevel_Ordering_IsCorrect()
     {
-        // Excellent > Good > Weak > Critical
-        ((int)SecurityLevel.Excellent).Should().BeGreaterThan((int)SecurityLevel.Good);
-        ((int)SecurityLevel.Good).Should().BeGreaterThan((int)SecurityLevel.Weak);
-        ((int)SecurityLevel.Weak).Should().BeGreaterThan((int)SecurityLevel.Critical);
+        // Enum is ordered best→worst: Excellent(0) < Good(1) < Fair(2) < Weak(3) < Danger(4)
+        // Lower ordinal = higher security (used by UI color logic: ≤Good=green, ≥Weak=red).
+        ((int)SecurityLevel.Excellent).Should().BeLessThan((int)SecurityLevel.Good);
+        ((int)SecurityLevel.Good).Should().BeLessThan((int)SecurityLevel.Fair);
+        ((int)SecurityLevel.Fair).Should().BeLessThan((int)SecurityLevel.Weak);
+        ((int)SecurityLevel.Weak).Should().BeLessThan((int)SecurityLevel.Danger);
     }
 }

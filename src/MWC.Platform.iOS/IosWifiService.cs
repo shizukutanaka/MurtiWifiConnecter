@@ -60,12 +60,13 @@ public sealed class IosWifiService : IWifiService
             Array.Empty<WifiNetwork>()).ConfigureAwait(false);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // iOS では NEHotspotConfigurationManager.shared.apply(config) を使用
         // Enterprise 向け: NEHotspotEAPSettings で EAP 設定
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(
@@ -92,5 +93,21 @@ public sealed class IosWifiService : IWifiService
         // NEHotspotConfigurationManager.removeConfiguration(forSSID:)
         // ただし接続中の SSID を直接切断する API は iOS 16 まで存在しない
         return await Task.FromResult(false).ConfigureAwait(false);
+    }
+
+    public Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+        => Task.FromResult(false);
+
+    public Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // iOS does not expose a Wi-Fi event subscription API. Stub: yields nothing.
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
     }
 }

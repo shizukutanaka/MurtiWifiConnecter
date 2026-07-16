@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using MWC.Core.Services;
 using Xunit;
@@ -229,5 +231,38 @@ public class AdapterPreferencesExtendedTests
         svc.SetAutoConnectPriority(id, new[] { "A", "B" });
         svc.MoveUp(id, "A");
         svc.GetPreferredNetworks(id).Should().ContainInOrder("A", "B");
+    }
+
+    [Fact]
+    public async Task ConcurrentSaveAndRead_NoCrash()
+    {
+        // AutoReconnectService(背景スレッド)が Get/PickBestSsid で読みつつ
+        // UI スレッドが Save する状況を再現。内部 Dictionary がロック無しだと
+        // "collection was modified" 等で落ちるため、それが起きないことを検証。
+        var svc = new AdapterPreferencesService();
+        var ids = Enumerable.Range(0, 8).Select(_ => Guid.NewGuid()).ToArray();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var writers = ids.Select(id => Task.Run(() =>
+        {
+            for (int i = 0; i < 40 && !cts.IsCancellationRequested; i++)
+                svc.PinSsid(id, $"SSID{i % 5}");
+        }, cts.Token));
+
+        var readers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+        {
+            for (int i = 0; i < 80 && !cts.IsCancellationRequested; i++)
+            {
+                _ = svc.All();
+                foreach (var id in ids)
+                {
+                    _ = svc.Get(id);
+                    _ = svc.PickBestSsid(id, new[] { "SSID0", "SSID3" });
+                }
+            }
+        }, cts.Token));
+
+        await Task.WhenAll(writers.Concat(readers));
+        svc.All().Should().NotBeEmpty();
     }
 }

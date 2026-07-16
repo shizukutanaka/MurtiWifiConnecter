@@ -191,8 +191,16 @@ public class RetryPolicyTests
     [InlineData(ConnectionFailure.BadCredentials,        false)]
     [InlineData(ConnectionFailure.InsufficientPrivilege, false)]
     [InlineData(ConnectionFailure.AdapterDisabled,       false)]
+    // 決定的失敗 — 同じ入力で必ず再発するため自動リトライは無意味 (2026-07 配線時に固定化)
+    [InlineData(ConnectionFailure.AdapterNotFound,       false)]
+    [InlineData(ConnectionFailure.InvalidProfile,        false)]
+    [InlineData(ConnectionFailure.ProfileRejected,       false)]
+    // ユーザーの意思による中断を機械が上書きして再試行してはならない
+    [InlineData(ConnectionFailure.Cancelled,             false)]
     [InlineData(ConnectionFailure.Timeout,               true)]
     [InlineData(ConnectionFailure.NotInRange,            true)]
+    [InlineData(ConnectionFailure.OsError,               true)]
+    [InlineData(ConnectionFailure.Unknown,               true)]
     public void IsRetriable_CorrectlyClassifies(ConnectionFailure failure, bool expected)
     {
         RetryPolicy.IsRetriable(failure).Should().Be(expected);
@@ -248,7 +256,7 @@ public class CaptivePortalServiceTests
 
         decision.RequiresAuth.Should().BeFalse();
         decision.PortalUrl.Should().BeNull();
-        decision.Message.Should().Contain("接続済み");
+        decision.Message.Should().Contain("connected");
     }
 
     [Fact]
@@ -273,7 +281,7 @@ public class CaptivePortalServiceTests
 
         decision.RequiresAuth.Should().BeTrue();
         decision.PortalUrl.Should().BeNull();
-        decision.Message.Should().Contain("ブラウザ");
+        decision.Message.Should().Contain("browser");
     }
 
     [Fact]
@@ -289,15 +297,47 @@ public class CaptivePortalServiceTests
 
         var desc = _svc.DescribeSession(state);
 
-        desc.Should().Contain("30 分");
+        desc.Should().Contain("30m");
         desc.Should().Contain("50 MB");
-        desc.Should().Contain("延長可能");
+        desc.Should().Contain("extendable");
     }
 
     [Fact]
     public void DescribeSession_NotCaptive_ReturnsAuthenticated()
     {
         var state = new CaptivePortalService.CaptivePortalState { Captive = false };
-        _svc.DescribeSession(state).Should().Be("認証済み");
+        _svc.DescribeSession(state).Should().Be("Authenticated");
+    }
+
+    [Fact]
+    public void ParseApiResponse_CaptiveKeyInsideStringValue_NotMisidentified()
+    {
+        // Before fix (ad-hoc string scanner): a URL whose text contains "captive"
+        // could confuse the substring-based parser and flip the captive field.
+        // After fix (JsonDocument.Parse): key-matching is structural, not substring-based.
+        var json = """
+            {
+              "captive": false,
+              "user-portal-url": "https://example.com/login?redirect=captive: true"
+            }
+            """;
+        var state = _svc.ParseApiResponse(json);
+
+        state.Captive.Should().BeFalse(
+            "the word 'captive' inside a string value must not override the actual key");
+        state.UserPortalUrl.Should().Be("https://example.com/login?redirect=captive: true");
+    }
+
+    [Fact]
+    public void ParseApiResponse_EscapedQuotesInUrl_ParsedCorrectly()
+    {
+        // Before fix: the custom string extractor mishandled escaped quotes (\"),
+        // truncating the URL at the first \".
+        var json = """{"captive": true, "user-portal-url": "https://example.com/?q=\"test\""}""";
+        var state = _svc.ParseApiResponse(json);
+
+        state.Captive.Should().BeTrue();
+        state.UserPortalUrl.Should().NotBeNull();
+        state.UserPortalUrl!.Should().Contain("test");
     }
 }

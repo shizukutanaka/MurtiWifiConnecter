@@ -10,7 +10,7 @@ namespace MWC.App.Services;
 /// ダーク/ライト/システム テーマ切替。
 /// ResourceDictionary を差し替えることで全 Window に即時反映。
 /// </summary>
-public sealed class ThemeService
+public sealed class ThemeService : IDisposable
 {
     private const string DarkUri        = "/MWC.App;component/Themes/Dark.xaml";
     private const string LightUri       = "/MWC.App;component/Themes/Light.xaml";
@@ -57,14 +57,25 @@ public sealed class ThemeService
             AppTheme.Catppuccin => CatppuccinUri,
             _                   => dark ? DarkUri : LightUri,
         };
-        var newDict = new ResourceDictionary
-            { Source = new Uri(uri, UriKind.Relative) };
+
+        // テーマ辞書の読込は失敗しうる (リソース欠落・破損)。失敗を握り潰すと
+        // 全ブラシキーが未解決になり UI が無言で壊れるため、既定の Dark へ
+        // フォールバックして起動を継続する (Dark は必ず存在する完備辞書)。
+        ResourceDictionary newDict;
+        try
+        {
+            newDict = new ResourceDictionary { Source = new Uri(uri, UriKind.Relative) };
+        }
+        catch (Exception ex) when (uri != DarkUri)
+        {
+            _log.LogWarning(ex, "Theme {theme} failed to load; falling back to Dark", _current);
+            newDict = new ResourceDictionary { Source = new Uri(DarkUri, UriKind.Relative) };
+        }
 
         var merged = Application.Current.Resources.MergedDictionaries;
         for (int i = merged.Count - 1; i >= 0; i--)
         {
-            var src = merged[i].Source?.ToString() ?? "";
-            if (src.Contains("/Themes/Dark") || src.Contains("/Themes/Light"))
+            if (merged[i].Source?.ToString().Contains("/Themes/") == true)
                 merged.RemoveAt(i);
         }
         merged.Add(newDict);
@@ -81,9 +92,17 @@ public sealed class ThemeService
 
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
+        // このハンドラは OS の SystemEvents 専用スレッドで発火する。同期 Invoke で
+        // UI スレッドの応答を待つと、(1) 共有 OS スレッドを不要に塞ぎ他アプリの
+        // SystemEvents ハンドラを待たせ、(2) アプリ終了処理中に UI スレッドが
+        // ブロックしていると相互待ちでデッドロックしうる。テーマ適用は戻り値不要の
+        // fire-and-forget なので BeginInvoke でキューに積み、即座にスレッドを返す。
         if (e.Category == UserPreferenceCategory.General && _current == AppTheme.System)
-            Application.Current?.Dispatcher.Invoke(() => Apply(AppTheme.System));
+            Application.Current?.Dispatcher.BeginInvoke(() => Apply(AppTheme.System));
     }
+
+    public void Dispose()
+        => SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 
     private static bool IsWindowsDarkMode()
     {

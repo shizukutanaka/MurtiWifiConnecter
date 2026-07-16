@@ -1,10 +1,11 @@
 <Window x:Class="MWC.App.Views.ConnectDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ネットワーク接続" Width="380" SizeToContent="Height"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.ActionConnect}" Width="380" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
-        AutomationProperties.Name="接続ダイアログ">
+        AutomationProperties.Name="{x:Static r:L.ActionConnect}">
     <Grid Margin="24,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,7 +26,7 @@
 
         <!-- パスフレーズ -->
         <StackPanel Grid.Row="2" x:Name="PasswordPanel">
-            <TextBlock Text="パスフレーズ" FontSize="12"
+            <TextBlock Text="{x:Static r:L.LabelPassphrase}" FontSize="12"
                        Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,6"/>
 
             <!-- 入力ボックス(テキスト/パスワード切替) -->
@@ -35,15 +36,16 @@
                              BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
                              PasswordChanged="OnPasswordChanged"
                              KeyDown="OnPasswordKeyDown"
-                             AutomationProperties.Name="パスフレーズ入力"/>
+                             AutomationProperties.Name="{x:Static r:L.ConnectPassphraseAutomation}"/>
                 <TextBox x:Name="PasswordVisible"
                          Padding="10,9" Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
                          BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
                          Visibility="Collapsed"
                          TextChanged="OnPasswordChanged"
-                         KeyDown="OnPasswordKeyDown"/>
+                         KeyDown="OnPasswordKeyDown"
+                         AutomationProperties.Name="{x:Static r:L.ConnectPassphraseVisibleAutomation}"/>
                 <TextBlock x:Name="PasswordPlaceholder"
-                           Text="ネットワークのパスワードを入力"
+                           Text="{x:Static r:L.LabelPasswordPlaceholder}"
                            Foreground="{DynamicResource FgVeryMutedBrush}" IsHitTestVisible="False"
                            Margin="12,10,0,0" FontSize="13"/>
             </Grid>
@@ -60,9 +62,9 @@
                 <!-- フィル -->
                 <Border Grid.Row="0" x:Name="StrengthBar" Width="0"
                         HorizontalAlignment="Left" CornerRadius="2">
-                    <Border.Fill>
+                    <Border.Background>
                         <SolidColorBrush x:Name="StrengthBarBrush" Color="{DynamicResource SuccessBrush}"/>
-                    </Border.Fill>
+                    </Border.Background>
                 </Border>
                 <!-- ラベル -->
                 <TextBlock Grid.Row="1" x:Name="StrengthLabel"
@@ -70,15 +72,16 @@
             </Grid>
 
             <!-- 表示切替 -->
-            <CheckBox x:Name="ShowPwCheck" Content="パスワードを表示"
+            <CheckBox x:Name="ShowPwCheck" Content="{x:Static r:L.LabelShowPassword}"
                       Margin="0,8,0,0" Foreground="{DynamicResource FgMutedBrush}" FontSize="12"
+                      AutomationProperties.Name="{x:Static r:L.LabelShowPassword}"
                       Click="OnTogglePassword"/>
         </StackPanel>
 
         <!-- エラーメッセージ -->
         <Border Grid.Row="3" Background="{DynamicResource DangerBrush}" CornerRadius="6"
                 Padding="10,8" Margin="0,10,0,0">
-            <TextBlock x:Name="ErrorLabel" Foreground="{DynamicResource DangerBrush}"
+            <TextBlock x:Name="ErrorLabel" Foreground="{DynamicResource DangerTextBrush}"
                        FontSize="12" TextWrapping="Wrap"/>
             <Border.Style>
                 <Style TargetType="Border">
@@ -96,10 +99,12 @@
         <!-- ボタン -->
         <StackPanel Grid.Row="5" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button AutomationProperties.Name="キャンセル" Content="キャンセル" Click="OnCancel" IsCancel="True"
+            <Button Content="{x:Static r:L.ActionCancel}"
+                    AutomationProperties.Name="{x:Static r:L.ActionCancel}" Click="OnCancel" IsCancel="True"
                     Padding="16,9" Margin="0,0,8,0"
                     Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}" BorderThickness="0"/>
-            <Button AutomationProperties.Name="接続" Content="接続" Click="OnConnect" IsDefault="True"
+            <Button Content="{x:Static r:L.ActionConnect}"
+                    AutomationProperties.Name="{x:Static r:L.ActionConnect}" Click="OnConnect" IsDefault="True"
                     Padding="20,9"
                     Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource AccentTextBrush}"
                     FontWeight="SemiBold" BorderThickness="0"/>

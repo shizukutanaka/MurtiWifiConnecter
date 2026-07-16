@@ -1,5 +1,11 @@
+using FluentAssertions;
+using MWC.Core.Models;
+using MWC.Core.Services;
+using Xunit;
 
-public class EhtCapabilityTests
+namespace MWC.Core.Tests;
+
+public class EhtCapabilityMloIntegrationTests
 {
     [Fact]
     public void EhtCapability_4096Qam_320MHz_IsHighestThroughput()

@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Navigation;
+using MWC.App.Services;
 
 namespace MWC.App.Views;
 
@@ -14,7 +14,9 @@ public partial class AboutDialog : Window
 
     private void OnHyperlinkNavigate(object sender, RequestNavigateEventArgs e)
     {
-        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        // Open via the scheme-validated launcher (http/https only) rather than
+        // shell-executing the raw NavigateUri — defense-in-depth at the sink.
+        BrowserLauncher.OpenHttp(e.Uri);
         e.Handled = true;
     }
 

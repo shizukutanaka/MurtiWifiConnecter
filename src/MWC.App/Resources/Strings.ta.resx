@@ -6,177 +6,671 @@
   <data name="Action_Disconnect"><value>இணைப்பை துண்டி</value></data>
   <data name="Action_Cancel"><value>ரத்து செய்</value></data>
   <data name="Label_Passphrase"><value>கடவுச்சொல்</value></data>
-  <data name="Label_Show"><value>Show</value></data>
-  <data name="Label_Connected"><value>Connected: {0}</value></data>
+  <data name="Label_Show"><value>காட்டு</value></data>
+  <data name="Label_Connected"><value>இணைக்கப்பட்டது: {0}</value></data>
   <data name="Label_NotConnected"><value>இணைக்கப்படவில்லை</value></data>
-  <data name="Label_AvailableNetworks"><value>Available networks</value></data>
-  <data name="Status_AdapterCount"><value>{0} adapter(s)</value></data>
+  <data name="Label_AvailableNetworks"><value>கிடைக்கும் நெட்வொர்க்குகள்</value></data>
+  <data name="Status_AdapterCount"><value>{0} அடாப்டர்(கள்)</value></data>
   <data name="Status_Scanning"><value>ஸ்கேன் ஆகிறது...</value></data>
-  <data name="Error_PassphraseTooShort"><value>Passphrase must be at least 8 characters</value></data>
-  <data name="Error_ConnectionFailed"><value>Connection failed: {0}</value></data>
-  <data name="Auth_Open"><value>Open</value></data>
-  <data name="Auth_OWE"><value>Enhanced Open (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (deprecated)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 Personal</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 Personal</value></data>
-  <data name="Auth_Enterprise"><value>Enterprise</value></data>
-  <data name="Failure_BadCredentials"><value>Wrong passphrase</value></data>
-  <data name="Failure_Timeout"><value>Connection timed out</value></data>
-  <data name="Failure_NotInRange"><value>Network out of range</value></data>
-  <data name="Failure_AdapterDisabled"><value>Wireless adapter disabled</value></data>
-  <data name="Failure_InsufficientPrivilege"><value>Administrator rights required</value></data>
-  <data name="Captive_Detected"><value>Sign-in required</value></data>
+  <data name="Error_PassphraseTooShort"><value>கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்</value></data>
+  <data name="Error_ConnectionFailed"><value>இணைப்பு தோல்வியடைந்தது: {0}</value></data>
+  <data name="Auth_Open"><value>திறந்த</value></data>
+  <data name="Auth_OWE"><value>மேம்படுத்தப்பட்ட திறந்த (OWE)</value></data>
+  <data name="Auth_WEP"><value>WEP (காலாவதியானது)</value></data>
+  <data name="Auth_WPA2PSK"><value>WPA2 தனிப்பட்ட</value></data>
+  <data name="Auth_WPA3SAE"><value>WPA3 தனிப்பட்ட</value></data>
+  <data name="Auth_Enterprise"><value>நிறுவன</value></data>
+  <data name="Failure_BadCredentials"><value>தவறான கடவுச்சொல்</value></data>
+  <data name="Failure_Timeout"><value>இணைப்பு நேரம் முடிந்தது</value></data>
+  <data name="Failure_NotInRange"><value>நெட்வொர்க் வரம்புக்கு வெளியே</value></data>
+  <data name="Failure_AdapterDisabled"><value>வயர்லெஸ் அடாப்டர் முடக்கப்பட்டுள்ளது</value></data>
+  <data name="Failure_InsufficientPrivilege"><value>நிர்வாக உரிமைகள் தேவை</value></data>
+  <data name="Captive_Detected"><value>உள்நுழைவு தேவை</value></data>
   <data name="Tab_Detail"><value>விவரங்கள்</value></data>
   <data name="Tab_Signal"><value>சிக்னல்</value></data>
   <data name="Tab_Channel"><value>சேனல்</value></data>
-  <data name="Label_Band"><value>Band</value></data>
+  <data name="Label_Band"><value>பட்டை</value></data>
   <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>Channel</value></data>
-  <data name="Label_Freq"><value>Frequency</value></data>
-  <data name="Label_Speed"><value>Max Speed</value></data>
-  <data name="Label_Signal"><value>Signal</value></data>
-  <data name="Label_Status"><value>Status</value></data>
+  <data name="Label_Channel"><value>சேனல்</value></data>
+  <data name="Label_Freq"><value>அதிர்வெண்</value></data>
+  <data name="Label_Speed"><value>அதிகபட்ச வேகம்</value></data>
+  <data name="Label_Signal"><value>சிக்னல்</value></data>
+  <data name="Label_Status"><value>நிலை</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>Vendor</value></data>
-  <data name="Action_Export_Csv"><value>Export CSV</value></data>
-  <data name="Action_Export_Json"><value>Export JSON</value></data>
-  <data name="Action_Export_Txt"><value>Export Text</value></data>
+  <data name="Label_Vendor"><value>விற்பனையாளர்</value></data>
+  <data name="Action_Export_Csv"><value>CSV ஏற்றுமதி</value></data>
+  <data name="Action_Export_Json"><value>JSON ஏற்றுமதி</value></data>
+  <data name="Action_Export_Txt"><value>உரை ஏற்றுமதி</value></data>
   <data name="Status_NoData"><value>தரவு இல்லை</value></data>
   <data name="Band_2_4"><value>2.4 GHz</value></data>
   <data name="Band_5"><value>5 GHz</value></data>
   <data name="Band_6"><value>6 GHz (Wi-Fi 6E/7)</value></data>
-  <data name="Status_Tray_NotConnected"><value>MWC — Not connected</value></data>
-  <data name="Status_Copied"><value>コピー: {0}</value></data>
-  <data name="Status_Disconnected"><value>切断: {0}</value></data>
+  <data name="Status_Tray_NotConnected"><value>MWC — இணைக்கப்படவில்லை</value></data>
+  <data name="Status_Copied"><value>நகலெடுக்கப்பட்டது: {0}</value></data>
+  <data name="Status_Disconnected"><value>துண்டிக்கப்பட்டது: {0}</value></data>
   <data name="Label_NoData"><value>— தரவு இல்லை —</value></data>
   <data name="Label_NetworksNotFound"><value>நெட்வொர்க் கிடைக்கவில்லை</value></data>
-  <data name="Label_RetryHint"><value>再スキャンを押すか、しばらくしてから再試行してください。</value></data>
-  <data name="Error_Unexpected"><value>予期しない問題: {0}</value></data>
-  <data name="Status_Deleted"><value>削除しました: {0}</value></data>
-  <data name="Status_DeleteFailed"><value>削除失敗: {0}</value></data>
-  <data name="Captive_SignInRequired"><value>サインインが必要です</value></data>
+  <data name="Label_RetryHint"><value>புதுப்பிக்கவும் அல்லது சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.</value></data>
+  <data name="Error_Unexpected"><value>எதிர்பாராத பிழை: {0}</value></data>
+  <data name="Status_Deleted"><value>நீக்கப்பட்டது: {0}</value></data>
+  <data name="Status_DeleteFailed"><value>நீக்குதல் தோல்வியடைந்தது: {0}</value></data>
+  <data name="Captive_SignInRequired"><value>உள்நுழைவு தேவை</value></data>
   <data name="Status_ConnectedOk"><value>இணைக்கப்பட்டது</value></data>
   <data name="Status_ConnectionFailed"><value>இணைப்பு தோல்வியடைந்தது</value></data>
-  <data name="Progress_Connecting"><value>ネットワークに接続しています…</value></data>
-  <data name="Progress_Authenticating"><value>認証中…</value></data>
-  <data name="Progress_CheckInternet"><value>インターネット接続を確認中…</value></data>
-  <data name="Progress_IPObtaining"><value>IPアドレスを取得中…</value></data>
-  <data name="Progress_Error"><value>エラー: {0}</value></data>
-  <data name="Detail_Connected"><value>接続中 ✓</value></data>
-  <data name="Detail_HasProfile"><value>プロファイルあり</value></data>
-  <data name="Detail_NotConnected"><value>未接続</value></data>
+  <data name="Progress_Connecting"><value>நெட்வொர்க்கிற்கு இணைக்கிறது…</value></data>
+  <data name="Progress_Authenticating"><value>அங்கீகரிக்கிறது…</value></data>
+  <data name="Progress_CheckInternet"><value>இணைய இணைப்பை சரிபார்க்கிறது…</value></data>
+  <data name="Progress_IPObtaining"><value>IP முகவரியைப் பெறுகிறது…</value></data>
+  <data name="Progress_Error"><value>பிழை: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>இணைப்பு நிலையற்றது — தானாக மீண்டும் முயற்சிக்கப்படுகிறது…</value></data>
+  <data name="Detail_Connected"><value>இணைக்கப்பட்டது ✓</value></data>
+  <data name="Detail_HasProfile"><value>சுயவிவரம் சேமிக்கப்பட்டது</value></data>
+  <data name="Detail_NotConnected"><value>இணைக்கப்படவில்லை</value></data>
   <data name="Status_Starting"><value>தொடங்குகிறது...</value></data>
-  <data name="Status_ConnectedTo"><value>Connected: {0} ({1}%)</value></data>
-  <data name="Status_PriorityOutOfRange"><value>Priority network out of range</value></data>
-  <data name="Wizard_Page1_Title"><value>Welcome to MWC</value></data>
-  <data name="Wizard_Page1_Body"><value>Manage multiple Wi-Fi adapters from a single window.&amp;#xA;&amp;#xA;WPA3, Enterprise auth, QR codes, and scan analysis — all free.</value></data>
-  <data name="Wizard_Page1_Hint"><value>Just pick a network and tap Connect</value></data>
-  <data name="Wizard_Page2_Title"><value>Your passwords are safe</value></data>
-  <data name="Wizard_Page2_Body"><value>Passwords are protected by Windows security (DPAPI).&amp;#xA;&amp;#xA;MWC never saves passwords to files or sends them externally.</value></data>
-  <data name="Wizard_Page2_Hint"><value>Passwords are tied to your user account only</value></data>
-  <data name="Wizard_Page3_Title"><value>Simple to use</value></data>
-  <data name="Wizard_Page3_Body"><value>1. Pick an SSID from the list&amp;#xA;2. Tap Connect&amp;#xA;3. Enter the passphrase&amp;#xA;&amp;#xA;More details are in the Detail tab on the right panel.</value></data>
-  <data name="Wizard_Page3_Hint"><value>Press Ctrl+R to rescan anytime</value></data>
-  <data name="Wizard_Start"><value>Get Started</value></data>
-  <data name="Wizard_Next"><value>Next</value></data>
-  <data name="Wizard_Back"><value>Back</value></data>
-  <data name="Shortcut_Navigation"><value>Navigation</value></data>
-  <data name="Shortcut_Action"><value>Actions</value></data>
-  <data name="Shortcut_View"><value>View</value></data>
+  <data name="Status_ConnectedTo"><value>இணைக்கப்பட்டது: {0} ({1}%)</value></data>
+  <data name="Status_PriorityOutOfRange"><value>முன்னுரிமை நெட்வொர்க் வரம்புக்கு வெளியே</value></data>
+  <data name="Wizard_Page1_Title"><value>MWC-க்கு வரவேற்கிறோம்</value></data>
+  <data name="Wizard_Page1_Body"><value>ஒரே சாளரத்தில் இருந்து பல Wi-Fi அடாப்டர்களை நிர்வகிக்கவும்.&#xA;&#xA;WPA3, நிறுவன அங்கீகாரம், QR குறியீடுகள், மற்றும் ஸ்கேன் பகுப்பாய்வு — அனைத்தும் இலவசம்.</value></data>
+  <data name="Wizard_Page1_Hint"><value>நெட்வொர்க்கைத் தேர்ந்தெடுத்து இணை என்பதைத் தட்டவும்</value></data>
+  <data name="Wizard_Page2_Title"><value>உங்கள் கடவுச்சொற்கள் பாதுகாப்பானவை</value></data>
+  <data name="Wizard_Page2_Body"><value>கடவுச்சொற்கள் Windows பாதுகாப்பு (DPAPI) மூலம் பாதுகாக்கப்படுகின்றன.&#xA;&#xA;MWC கடவுச்சொற்களை கோப்புகளில் சேமிக்காது அல்லது வெளியே அனுப்பாது.</value></data>
+  <data name="Wizard_Page2_Hint"><value>கடவுச்சொற்கள் உங்கள் பயனர் கணக்குடன் மட்டுமே இணைக்கப்பட்டுள்ளன</value></data>
+  <data name="Wizard_Page3_Title"><value>பயன்படுத்த எளிதானது</value></data>
+  <data name="Wizard_Page3_Body"><value>1. பட்டியலில் இருந்து SSID ஐத் தேர்ந்தெடுக்கவும்&#xA;2. இணை என்பதைத் தட்டவும்&#xA;3. கடவுச்சொல்லை உள்ளிடவும்&#xA;&#xA;மேலும் விவரங்கள் வலது பலகத்தில் உள்ள விவரம் தாவலில் உள்ளன.</value></data>
+  <data name="Wizard_Page3_Hint"><value>எப்போது வேண்டுமானாலும் மீண்டும் ஸ்கேன் செய்ய Ctrl+R ஐ அழுத்தவும்</value></data>
+  <data name="Wizard_Start"><value>தொடங்கு</value></data>
+  <data name="Wizard_Next"><value>அடுத்து</value></data>
+  <data name="Wizard_Back"><value>பின்</value></data>
+  <data name="Shortcut_Navigation"><value>வழிசெலுத்தல்</value></data>
+  <data name="Shortcut_Action"><value>செயல்கள்</value></data>
+  <data name="Shortcut_View"><value>காட்சி</value></data>
   <data name="Error_Permission"><value>நிர்வாக உரிமை தேவை.</value></data>
   <data name="Error_Network"><value>நெட்வொர்க் இணைப்பை சரிபார்க்கவும்.</value></data>
-  <data name="Error_Io"><value>File read/write error. Check disk space.</value></data>
-  <data name="Error_Timeout"><value>Operation timed out. Please try again later.</value></data>
-  <data name="Error_InvalidInput"><value>Please check your input.</value></data>
-  <data name="Error_InvalidState"><value>Cannot perform this action now. Rescan and try again.</value></data>
+  <data name="Error_Io"><value>கோப்பு படித்தல்/எழுதுதல் பிழை. வட்டு இடத்தை சரிபார்க்கவும்.</value></data>
+  <data name="Error_Timeout"><value>செயல்பாட்டிற்கான நேரம் முடிந்தது. பிறகு மீண்டும் முயற்சிக்கவும்.</value></data>
+  <data name="Error_InvalidInput"><value>உங்கள் உள்ளீட்டை சரிபார்க்கவும்.</value></data>
+  <data name="Error_InvalidState"><value>இப்போது இந்த செயலைச் செய்ய முடியாது. மீண்டும் ஸ்கேன் செய்து முயற்சிக்கவும்.</value></data>
   <data name="Error_Unknown"><value>பிழை ஏற்பட்டது. GitHub இல் தெரிவிக்கவும்.</value></data>
-  <data name="Notify_CaptivePortal"><value>Sign-in required. Authenticate in your browser.</value></data>
-  <data name="Notify_InternetOk"><value>Internet connection verified.</value></data>
-  <data name="Notify_NoInternet"><value>Connected to network, but internet may be unavailable.</value></data>
+  <data name="Notify_CaptivePortal"><value>உள்நுழைவு தேவை. உங்கள் உலாவியில் அங்கீகரிக்கவும்.</value></data>
+  <data name="Notify_InternetOk"><value>இணைய இணைப்பு சரிபார்க்கப்பட்டது.</value></data>
+  <data name="Notify_NoInternet"><value>நெட்வொர்க்கில் இணைக்கப்பட்டுள்ளது, ஆனால் இணையம் கிடைக்காமல் இருக்கலாம்.</value></data>
   <data name="Notify_BadCredentials"><value>கடவுச்சொல் தவறானது.</value></data>
-  <data name="Notify_Timeout"><value>Connection timed out. Check the access point.</value></data>
+  <data name="Notify_Timeout"><value>இணைப்பு நேரம் முடிந்தது. அணுகல் புள்ளியை சரிபார்க்கவும்.</value></data>
   <data name="Notify_NotInRange"><value>நெட்வொர்க் எட்டாத தூரத்தில் உள்ளது.</value></data>
-  <data name="Notify_AdapterDisabled"><value>Wireless adapter is disabled.</value></data>
-  <data name="Notify_InsufficientPrivilege"><value>Please run as administrator.</value></data>
-  <data name="Notify_GenericFailure"><value>Connection failed. Please try again later.</value></data>
-  <data name="Shortcut_Refresh_T"><value>Refresh</value></data>
-  <data name="Shortcut_Refresh_D"><value>Rescan networks on current adapter</value></data>
-  <data name="Shortcut_Search_T"><value>Search</value></data>
-  <data name="Shortcut_Search_D"><value>Filter by network name</value></data>
-  <data name="Shortcut_NextAdapter_T"><value>Next adapter</value></data>
-  <data name="Shortcut_NextAdapter_D"><value>Switch adapter tab</value></data>
-  <data name="Shortcut_PrevAdapter_T"><value>Previous adapter</value></data>
-  <data name="Shortcut_PrevAdapter_D"><value>Switch to previous adapter tab</value></data>
-  <data name="Shortcut_PrevNet_T"><value>Previous network</value></data>
-  <data name="Shortcut_PrevNet_D"><value>Move to previous SSID in list</value></data>
-  <data name="Shortcut_NextNet_T"><value>Next network</value></data>
-  <data name="Shortcut_NextNet_D"><value>Move to next SSID in list</value></data>
-  <data name="Shortcut_Connect_T"><value>Connect</value></data>
-  <data name="Shortcut_Connect_D"><value>Connect to selected network</value></data>
-  <data name="Shortcut_Disconnect_T"><value>Disconnect</value></data>
-  <data name="Shortcut_Disconnect_D"><value>Disconnect current adapter</value></data>
-  <data name="Shortcut_QR_T"><value>QR code</value></data>
-  <data name="Shortcut_QR_D"><value>Show QR code for selected network</value></data>
-  <data name="Shortcut_Export_T"><value>Export</value></data>
-  <data name="Shortcut_Export_D"><value>Save scan results as CSV/JSON</value></data>
-  <data name="Shortcut_Quality_T"><value>Quality check</value></data>
-  <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
-  <data name="Shortcut_Settings_T"><value>Settings</value></data>
-  <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
-  <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
-  <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
-  <data name="Shortcut_Hide_T"><value>Hide window</value></data>
-  <data name="Shortcut_Hide_D"><value>Minimize to tray</value></data>
-  <data name="Shortcut_Help_T"><value>Shortcut list</value></data>
-  <data name="Shortcut_Help_D"><value>Show this dialog</value></data>
-  <data name="Shortcut_Escape_T"><value>Clear / Close</value></data>
-  <data name="Shortcut_Escape_D"><value>Clear search or close dialog</value></data>
-  <data name="Export_NoData"><value>No networks scanned yet</value></data>
-  <data name="Export_Op"><value>Export</value></data>
-  <data name="Status_Failed"><value>Failed</value></data>
-  <data name="Quality_Op"><value>Network quality check</value></data>
-  <data name="Quality_Cancelled"><value>Measurement cancelled</value></data>
-  <data name="Quality_Failed"><value>Measurement failed</value></data>
-  <data name="Status_Pinned"><value>Pinned: {0}</value></data>
-  <data name="Tray_NotConnected"><value>Not connected</value></data>
-  <data name="Tray_Disconnect"><value>Disconnect</value></data>
-  <data name="Tray_Exit"><value>Exit</value></data>
-  <data name="Jump_CurrentNet"><value>Current connection</value></data>
-  <data name="Jump_CurrentCategory"><value>Current</value></data>
-  <data name="Jump_RecentCategory"><value>Recent networks</value></data>
-  <data name="Jump_Rescan"><value>↻ Rescan networks</value></data>
-  <data name="Jump_RescanDesc"><value>Search for available Wi-Fi</value></data>
-  <data name="Jump_ActionCategory"><value>Actions</value></data>
-  <data name="Step_Connect"><value>Connect to network</value></data>
-  <data name="Step_Auth"><value>Authenticate</value></data>
-  <data name="Step_Internet"><value>Verify internet</value></data>
-  <data name="Step_Preparing"><value>Preparing...</value></data>
+  <data name="Notify_AdapterDisabled"><value>வயர்லெஸ் அடாப்டர் முடக்கப்பட்டுள்ளது.</value></data>
+  <data name="Notify_InsufficientPrivilege"><value>நிர்வாகியாக இயக்கவும்.</value></data>
+  <data name="Notify_GenericFailure"><value>இணைப்பு தோல்வியடைந்தது. பிறகு மீண்டும் முயற்சிக்கவும்.</value></data>
+  <data name="Shortcut_Refresh_T"><value>புதுப்பிக்க</value></data>
+  <data name="Shortcut_Refresh_D"><value>தற்போதைய அடாப்டரில் நெட்வொர்க்குகளை மீண்டும் ஸ்கேன் செய்யவும்</value></data>
+  <data name="Shortcut_Search_T"><value>தேடல்</value></data>
+  <data name="Shortcut_Search_D"><value>நெட்வொர்க் பெயரால் வடிகட்டவும்</value></data>
+  <data name="Shortcut_NextAdapter_T"><value>அடுத்த அடாப்டர்</value></data>
+  <data name="Shortcut_NextAdapter_D"><value>அடாப்டர் தாவலை மாற்றவும்</value></data>
+  <data name="Shortcut_PrevAdapter_T"><value>முந்தைய அடாப்டர்</value></data>
+  <data name="Shortcut_PrevAdapter_D"><value>முந்தைய அடாப்டர் தாவலுக்கு மாறவும்</value></data>
+  <data name="Shortcut_PrevNet_T"><value>முந்தைய நெட்வொர்க்</value></data>
+  <data name="Shortcut_PrevNet_D"><value>பட்டியலில் முந்தைய SSID-க்குச் செல்லவும்</value></data>
+  <data name="Shortcut_NextNet_T"><value>அடுத்த நெட்வொர்க்</value></data>
+  <data name="Shortcut_NextNet_D"><value>பட்டியலில் அடுத்த SSID-க்குச் செல்லவும்</value></data>
+  <data name="Shortcut_Connect_T"><value>இணை</value></data>
+  <data name="Shortcut_Connect_D"><value>தேர்ந்தெடுக்கப்பட்ட நெட்வொர்க்கிற்கு இணைக்கவும்</value></data>
+  <data name="Shortcut_Disconnect_T"><value>துண்டி</value></data>
+  <data name="Shortcut_Disconnect_D"><value>தற்போதைய அடாப்டரைத் துண்டிக்கவும்</value></data>
+  <data name="Shortcut_QR_T"><value>QR குறியீடு</value></data>
+  <data name="Shortcut_QR_D"><value>தேர்ந்தெடுக்கப்பட்ட நெட்வொர்க்கிற்கான QR குறியீட்டைக் காட்டு</value></data>
+  <data name="Shortcut_Export_T"><value>ஏற்றுமதி</value></data>
+  <data name="Shortcut_Export_D"><value>ஸ்கேன் முடிவுகளை CSV/JSON ஆக சேமிக்கவும்</value></data>
+  <data name="Shortcut_Quality_T"><value>தர சோதனை</value></data>
+  <data name="Shortcut_Quality_D"><value>நெட்வொர்க் தரத்தை அளவிடவும்</value></data>
+  <data name="Shortcut_Settings_T"><value>அமைப்புகள்</value></data>
+  <data name="Shortcut_Settings_D"><value>பயன்பாட்டு அமைப்புகளைத் திற</value></data>
+  <data name="Shortcut_ToggleMode_T"><value>பயன்முறையை மாற்று</value></data>
+  <data name="Shortcut_ToggleMode_D"><value>எளிய/நிபுணர் காட்சியை மாற்று</value></data>
+  <data name="Shortcut_Hide_T"><value>சாளரத்தை மறை</value></data>
+  <data name="Shortcut_Hide_D"><value>ட்ரேயில் சிறிதாக்கு</value></data>
+  <data name="Shortcut_Help_T"><value>குறுக்குவழி பட்டியல்</value></data>
+  <data name="Shortcut_Help_D"><value>இந்த உரையாடலைக் காட்டு</value></data>
+  <data name="Shortcut_Escape_T"><value>அழி / மூடு</value></data>
+  <data name="Shortcut_Escape_D"><value>தேடலை அழி அல்லது உரையாடலை மூடு</value></data>
+  <data name="Export_NoData"><value>இதுவரை நெட்வொர்க்குகள் ஸ்கேன் செய்யப்படவில்லை</value></data>
+  <data name="Export_Op"><value>ஏற்றுமதி</value></data>
+  <data name="Status_Failed"><value>தோல்வி</value></data>
+  <data name="Quality_Op"><value>நெட்வொர்க் தர சோதனை</value></data>
+  <data name="Quality_Cancelled"><value>அளவீடு ரத்து செய்யப்பட்டது</value></data>
+  <data name="Quality_Failed"><value>அளவீடு தோல்வியடைந்தது</value></data>
+  <data name="Status_Pinned"><value>பின் செய்யப்பட்டது: {0}</value></data>
+  <data name="Tray_NotConnected"><value>இணைக்கப்படவில்லை</value></data>
+  <data name="Tray_Disconnect"><value>துண்டி</value></data>
+  <data name="Tray_Exit"><value>வெளியேறு</value></data>
+  <data name="Jump_CurrentNet"><value>தற்போதைய இணைப்பு</value></data>
+  <data name="Jump_CurrentCategory"><value>தற்போதைய</value></data>
+  <data name="Jump_RecentCategory"><value>சமீபத்திய நெட்வொர்க்குகள்</value></data>
+  <data name="Jump_Rescan"><value>↻ நெட்வொர்க்குகளை மீண்டும் ஸ்கேன் செய்</value></data>
+  <data name="Jump_RescanDesc"><value>கிடைக்கும் Wi-Fi-ஐத் தேடு</value></data>
+  <data name="Jump_ActionCategory"><value>செயல்கள்</value></data>
+  <data name="Step_Connect"><value>நெட்வொர்க்கிற்கு இணைக்கிறது</value></data>
+  <data name="Step_Auth"><value>அங்கீகரிக்கிறது</value></data>
+  <data name="Step_Internet"><value>இணையத்தை சரிபார்க்கிறது</value></data>
+  <data name="Step_Preparing"><value>தயார் செய்கிறது...</value></data>
   <data name="Action_Close"><value>மூடு</value></data>
-  <data name="Strength_Weak"><value>Weak</value></data>
-  <data name="Strength_Fair"><value>Fair</value></data>
-  <data name="Strength_Strong"><value>Strong</value></data>
-  <data name="Strength_VeryStrong"><value>Very strong</value></data>
-  <data name="Error_PassphraseShort"><value>Passphrase must be at least 8 characters</value></data>
-  <data name="Error_Startup"><value>Startup error: {0}</value></data>
-  <data name="Status_UpdateAvailable"><value>✦ New version {0} available</value></data>
-  <data name="Error_Operation"><value>Operation error: {0}</value></data>
-  <data name="Status_Hidden"><value>Hidden: {0}</value></data>
-  <data name="Captive_Loading"><value>Loading...</value></data>
-  <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
-  <data name="Captive_PageLoaded"><value>Page loaded</value></data>
-  <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
-  <data name="About_Version"><value>Version {0}</value></data>
-  <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
-  <data name="Status_ConnectedTo_Short"><value>Connected: {0}</value></data>
+  <data name="Strength_Weak"><value>பலவீனம்</value></data>
+  <data name="Strength_Fair"><value>நடுத்தரம்</value></data>
+  <data name="Strength_Strong"><value>வலிமையானது</value></data>
+  <data name="Strength_VeryStrong"><value>மிகவும் வலிமையானது</value></data>
+  <data name="Error_PassphraseShort"><value>கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்</value></data>
+  <data name="Error_Startup"><value>தொடக்கப் பிழை: {0}</value></data>
+  <data name="Status_UpdateAvailable"><value>✦ புதிய பதிப்பு {0} கிடைக்கிறது</value></data>
+  <data name="Error_Operation"><value>செயல்பாட்டுப் பிழை: {0}</value></data>
+  <data name="Status_Hidden"><value>மறைக்கப்பட்டது: {0}</value></data>
+  <data name="Captive_Loading"><value>ஏற்றுகிறது...</value></data>
+  <data name="Captive_InternetOk"><value>✓ இணைய இணைப்பு சரிபார்க்கப்பட்டது</value></data>
+  <data name="Captive_PageLoaded"><value>பக்கம் ஏற்றப்பட்டது</value></data>
+  <data name="Captive_NavigationFailed"><value>வழிசெலுத்தல் தோல்வியடைந்தது — உலாவியில் திறக்க முயற்சிக்கவும்</value></data>
+  <data name="Confirm_DeleteTitle"><value>நீக்குதலை உறுதிப்படுத்தவும்</value></data>
+  <data name="About_Version"><value>பதிப்பு {0}</value></data>
+  <data name="QR_Copied"><value>நகலெடுக்கப்பட்டது — Wi-Fi QR குறியீடு</value></data>
+  <data name="Status_ConnectedTo_Short"><value>இணைக்கப்பட்டது: {0}</value></data>
   <data name="Tray_Connected"><value>✓ {0}  ({1})</value></data>
   <data name="Jump_ConnectedSsid"><value>✓ {0}</value></data>
-  <data name="Confirm_DeleteMessage"><value>Delete profile for {0}?</value></data>
-  <data name="Theme_Solarized"><value>Solarized (Dark)</value></data>
-  <data name="Theme_Nord"><value>Nord (Dark)</value></data>
-  <data name="Theme_Catppuccin"><value>Catppuccin Macchiato</value></data>
-  <data name="Cert_Expired"><value>Expired</value></data>
-  <data name="Cert_ExpirySoon"><value>⚠ Expires in {0} days</value></data>
-  <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
-  <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
-  <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Confirm_DeleteMessage"><value>{0}-க்கான சுயவிவரத்தை நீக்கவா?</value></data>
+  <data name="Theme_Solarized"><value>சோலரைஸ்ட் (இருண்ட)</value></data>
+  <data name="Theme_Nord"><value>நார்ட் (இருண்ட)</value></data>
+  <data name="Theme_Catppuccin"><value>கேட்பூச்சின் மச்சியாட்டோ</value></data>
+  <data name="Cert_Expired"><value>காலாவதியானது</value></data>
+  <data name="Cert_ExpirySoon"><value>⚠ {0} நாட்களில் காலாவதியாகும்</value></data>
+  <data name="Cert_Expiry90"><value>{0} நாட்களில் காலாவதியாகும்</value></data>
+  <data name="Cert_ExpiryOk"><value>செல்லுபடியாகும் ({0} நாட்கள் மீதம்)</value></data>
+  <data name="Theme_Fluent"><value>ஃப்ளூயண்ட் (Windows 11 நேட்டிவ்)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
+  <data name="Tray_NoNetworks"><value>(நெட்வொர்க்குகள் இல்லை)</value></data>
+  <data name="Tray_OpenApp"><value>MWC-ஐத் திற</value></data>
+  <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} அடாப்டர்கள் இணைந்துள்ளன</value></data>
+  <data name="Status_NetworksFound"><value>{0} நெட்வொர்க்குகள்</value></data>
+  <data name="Status_ProfileCount"><value>{0} சுயவிவரங்கள்</value></data>
+
+  <data name="Settings_Title"><value>அமைப்புகள்</value></data>
+  <data name="Settings_DialogAutomation"><value>அமைப்புகள் உரையாடல்</value></data>
+  <data name="Settings_Section_Display"><value>காட்சி</value></data>
+  <data name="Settings_DisplayMode_Label"><value>காட்சி பயன்முறை</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>எளிய: இணைப்பில் கவனம் / நிபுணர்: தொழில்நுட்ப தகவல்</value></data>
+  <data name="Settings_Mode_Simple"><value>எளிய</value></data>
+  <data name="Settings_Mode_Expert"><value>நிபுணர்</value></data>
+  <data name="Settings_Theme"><value>தீம்</value></data>
+  <data name="Theme_Dark"><value>இருண்ட</value></data>
+  <data name="Theme_Light"><value>வெளிர்</value></data>
+  <data name="Theme_System"><value>கணினி இயல்புநிலை</value></data>
+  <data name="Settings_Language"><value>மொழி</value></data>
+  <data name="Settings_Section_Scan"><value>ஸ்கேனிங்</value></data>
+  <data name="Settings_ScanInterval_Label"><value>தானியங்கி ஸ்கேன் இடைவெளி</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>பேட்டரி நுகர்வை பாதிக்கிறது</value></data>
+  <data name="Settings_ScanOnStartup"><value>தொடக்கத்தில் தானியங்கி ஸ்கேன்</value></data>
+  <data name="Settings_Section_Hidden"><value>மறைக்கப்பட்ட நெட்வொர்க்குகள்</value></data>
+  <data name="Settings_Hidden_Empty"><value>மறைக்கப்பட்ட நெட்வொர்க்குகள் இல்லை</value></data>
+  <data name="Settings_Hidden_Unhide"><value>காட்டு</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>மறைக்கப்பட்ட நெட்வொர்க்குகள் பட்டியல்</value></data>
+  <data name="Settings_Section_Notify"><value>அறிவிப்புகள்</value></data>
+  <data name="Settings_Notify_Label"><value>இணைப்பு அறிவிப்புகளை காட்டு</value></data>
+  <data name="Settings_Notify_Desc"><value>அறிவிப்பு மையத்தில் டோஸ்ட் காட்டு</value></data>
+  <data name="Action_Save"><value>சேமி</value></data>
+  <data name="Action_ResetDefaults"><value>இயல்புநிலைக்கு மீட்டமை</value></data>
+  <data name="Adapter_Dialog_Title"><value>அடாப்டர் அமைப்புகள்</value></data>
+  <data name="Adapter_Dialog_Automation"><value>வயர்லெஸ் அடாப்டர் அமைப்புகள்</value></data>
+  <data name="Adapter_DisplayName_Section"><value>காட்சி பெயர்</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>எ.கா.: வீட்டு டாங்கில் / மொபைல் / 5GHz மட்டும்</value></data>
+  <data name="Adapter_Band_Section"><value>அதிர்வெண் இடம்</value></data>
+  <data name="Band_Any"><value>அனைத்து இடங்கள்</value></data>
+  <data name="Adapter_Band_6E"><value>6 GHz மட்டும் (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>இந்த அடாப்டர் பயன்படுத்தும் இடங்களை கட்டுப்படுத்து</value></data>
+  <data name="Adapter_Pinned_Section"><value>விருப்பமான SSID (தானியங்கி இணைப்பு)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>பிரி</value></data>
+  <data name="Adapter_Pinned_Empty"><value>பிரட்டப்பட்ட SSID இல்லை</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join இந்த நெட்வொர்க்குகளை வரிசையில் முயற்சிக்கும்</value></data>
+  <data name="Adapter_Enabled_Label"><value>இந்த அடாப்டரை பயன்படுத்து</value></data>
+  <data name="Adapter_Enabled_Desc"><value>முடக்கினால் பட்டியலில் இருந்து மறைக்கப்படும்</value></data>
+
+  <data name="Adapter_Band_24"><value>2.4 GHz மட்டும்</value></data>
+  <data name="Adapter_Band_5"><value>5 GHz மட்டும்</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>நெட்வொர்க் கடவுச்சொல்லை உள்ளிடுக</value></data>
+  <data name="Label_ShowPassword"><value>கடவுச்சொல்லை காட்டு</value></data>
+
+  <data name="About_Title"><value>MWC பற்றி</value></data>
+  <data name="About_Automation"><value>பயன்பாட்டு தகவல்</value></data>
+  <data name="About_Tagline"><value>மல்டி WiFi இணைப்பான்</value></data>
+  <data name="About_Desc"><value>Windows க்கான பல-அடாப்டர் Wi-Fi மேலாளர்.
+WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆதரவு.</value></data>
+  <data name="About_GitHub"><value>GitHub-ல் மூலத்தை காண்க</value></data>
+  <data name="About_ReportBug"><value>பிழை புகாரளி</value></data>
+  <data name="About_License"><value>MIT உரிமம் © 2026 Shizuku Tanaka</value></data>
+
+  <data name="Wizard_WindowTitle"><value>MWC-க்கு வரவேற்கிறோம்</value></data>
+  <data name="Wizard_DialogAutomation"><value>முதல் இயக்க வழிகாட்டி</value></data>
+  <data name="Shortcuts_Title"><value>விசைப்பலகை குறுக்குவழிகள்</value></data>
+  <data name="Shortcuts_DialogAutomation"><value>விசைப்பலகை குறுக்குவழி பட்டியல்</value></data>
+  <data name="Shortcuts_Desc"><value>மவுசு இல்லாமல் அனைத்து அம்சங்களும்</value></data>
+  <data name="QR_WindowTitle"><value>Wi-Fi QR குறியீடு</value></data>
+  <data name="QR_DialogAutomation"><value>Wi-Fi QR குறியீடு காட்சி</value></data>
+  <data name="Action_Copy"><value>நகல் எடு</value></data>
+  <data name="QR_SavePng"><value>PNG சேமி</value></data>
+  <data name="QR_PngFileFilter"><value>PNG படம் (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>உரை (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|உரை (*.txt)|*.txt</value></data>
+  <data name="Profile_WindowTitle"><value>சேமிக்கப்பட்ட நெட்வொர்க்குகள்</value></data>
+  <data name="Profile_DialogAutomation"><value>சேமிக்கப்பட்ட நெட்வொர்க் நிர்வாகம்</value></data>
+  <data name="Profile_ListAutomation"><value>சேமிக்கப்பட்ட சுயவிவர பட்டியல்</value></data>
+  <data name="Action_Delete"><value>நீக்கு</value></data>
+  <data name="Profile_DeleteWarning"><value>நீக்கப்பட்ட சுயவிவரங்களை மீட்டெடுக்க முடியாது</value></data>
+  <data name="Progress_WindowTitle"><value>இணைக்கிறது…</value></data>
+  <data name="Progress_DialogAutomation"><value>இணைப்பு முன்னேற்றம்</value></data>
+  <data name="Captive_DialogAutomation"><value>கேப்டிவ் போர்டல் உள்நுழைவு</value></data>
+  <data name="Captive_OpenExternal"><value>உலாவியில் திற</value></data>
+  <data name="Action_Skip"><value>தவிர்</value></data>
+  <data name="Captive_Done"><value>இணைக்கப்பட்டது</value></data>
+  <data name="Trouble_WindowTitle"><value>இணைப்பு சிக்கல்</value></data>
+  <data name="Trouble_DialogAutomation"><value>இணைப்பு சிக்கல் தீர்வு</value></data>
+  <data name="Trouble_Solutions"><value>தீர்வுகள்</value></data>
+  <data name="Action_Retry"><value>மீண்டும் முயற்சி</value></data>
+  <data name="Cert_PickerTitle"><value>கிளையண்ட் சான்றிதழ் தேர்ந்தெடு</value></data>
+  <data name="Cert_PickerAutomation"><value>EAP-TLS கிளையண்ட் சான்றிதழ் தேர்வு</value></data>
+  <data name="Cert_PickerDesc"><value>EAP-TLS அங்கீகாரத்திற்கு சான்றிதழ் தேர்ந்தெடுக்கவும்</value></data>
+  <data name="Cert_ListAutomation"><value>சான்றிதழ் பட்டியல்</value></data>
+  <data name="Cert_Subject"><value>விஷயம்:</value></data>
+  <data name="Cert_IssuerLabel"><value>வழங்குபவர்:</value></data>
+  <data name="Cert_ExpiryLabel"><value>காலாவதி:</value></data>
+  <data name="Cert_OpenStore"><value>சான்றிதழ் கடை திற…</value></data>
+  <data name="Cert_UseThis"><value>இந்த சான்றிதழ் பயன்படுத்து</value></data>
+  <data name="Main_WindowTitle"><value>MWC — மல்டி WiFi இணைப்பான்</value></data>
+  <data name="Main_WindowAutomation"><value>MWC முதன்மை சாளரம்</value></data>
+  <data name="Main_SearchTooltip"><value>நெட்வொர்க்குகளைத் தேடு (Ctrl+F)</value></data>
+  <data name="Main_SearchAutomation"><value>நெட்வொர்க் தேடல்</value></data>
+  <data name="Main_RescanTooltip"><value>மீண்டும் ஸ்கேன் (Ctrl+R)</value></data>
+  <data name="Main_RescanAutomation"><value>நெட்வொர்க்குகளை மீண்டும் ஸ்கேன் செய்</value></data>
+  <data name="Main_ToggleModeTooltip"><value>எளிய/நிபுணர் பயன்முறையை மாற்று</value></data>
+  <data name="Main_AllAdaptersTooltip"><value>அனைத்து அடாப்டர்களின் மேலோட்டம் (Ctrl+Shift+A)</value></data>
+  <data name="Main_AllAdaptersAutomation"><value>அனைத்து அடாப்டர் காட்சி</value></data>
+  <data name="Main_OverflowMenuAutomation"><value>மேலும் விருப்பங்கள்</value></data>
+  <data name="Main_ConnectAutomation"><value>தேர்ந்தெடுக்கப்பட்ட நெட்வொர்க்கிற்கு இணை</value></data>
+  <data name="Main_AdapterTabsAutomation"><value>வயர்லெஸ் அடாப்டர் தாவல்கள்</value></data>
+  <data name="Main_NetworkListAutomation"><value>கண்டறியப்பட்ட நெட்வொர்க் பட்டியல்</value></data>
+  <data name="Main_EmptyStateMessage"><value>உங்கள் Wi-Fi அடாப்டர் இயக்கப்பட்டுள்ளதா என்பதை உறுதிசெய்து, மீண்டும் ஸ்கேன் செய்யவும்.</value></data>
+  <data name="ContextMenu_ShowQr"><value>QR குறியீட்டைக் காட்டு</value></data>
+  <data name="ContextMenu_CopySsid"><value>SSID-ஐ நகலெடு</value></data>
+  <data name="ContextMenu_PinNetwork"><value>இந்த நெட்வொர்க்கை பின் செய்</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>இந்த நெட்வொர்க்கை அன்பின் செய்</value></data>
+  <data name="Main_PinnedTooltip"><value>பின் செய்யப்பட்டது (முதலில் காட்டப்படும்)</value></data>
+  <data name="Status_Unpinned"><value>அன்பின் செய்யப்பட்டது: {0}</value></data>
+  <data name="ContextMenu_HideNetwork"><value>இந்த நெட்வொர்க்கை மறை</value></data>
+  <data name="Main_ProfileSavedTooltip"><value>சுயவிவரம் சேமிக்கப்பட்டது</value></data>
+  <data name="Menu_ExportCsv"><value>📥  CSV ஏற்றுமதி</value></data>
+  <data name="Menu_ExportJson"><value>📥  JSON ஏற்றுமதி</value></data>
+  <data name="Menu_ExportTxt"><value>📄  உரை அறிக்கையை ஏற்றுமதி செய்</value></data>
+  <data name="Menu_ShowQr"><value>QR குறியீட்டைக் காட்டு</value></data>
+  <data name="Menu_Settings"><value>⚙️  அமைப்புகள்…</value></data>
+  <data name="Menu_About"><value>ℹ️  MWC பற்றி</value></data>
+  <data name="Menu_ScanAll"><value>↻↻  அனைத்து அடாப்டர்களையும் ஸ்கேன் செய்  Ctrl+Shift+A</value></data>
+  <data name="Menu_SavedNetworks"><value>📋  சேமிக்கப்பட்ட நெட்வொர்க்குகள்</value></data>
+  <data name="Menu_QualityMeasure"><value>📊  நெட்வொர்க் தரம்</value></data>
+  <data name="Menu_AllAdapters"><value>📡  அனைத்து வயர்லெஸ் அடாப்டர்களையும் காட்டு</value></data>
+  <data name="Detail_Auth"><value>அங்கீகாரம்</value></data>
+  <data name="Detail_Cipher"><value>சைபர்</value></data>
+  <data name="Detail_Phy"><value>தலைமுறை</value></data>
+  <data name="Detail_Vendor"><value>உற்பத்தியாளர்</value></data>
+  <data name="Detail_Score"><value>மதிப்பெண்</value></data>
+  <data name="Detail_Band"><value>பட்டை</value></data>
+  <data name="Detail_Channel"><value>சேனல்</value></data>
+  <data name="Detail_Frequency"><value>அதிர்வெண்</value></data>
+  <data name="Detail_Speed"><value>அதிகபட்ச வேகம்</value></data>
+  <data name="Detail_Signal"><value>சிக்னல்</value></data>
+  <data name="Detail_Status"><value>நிலை</value></data>
+  <data name="Main_SignalGraphAutomation"><value>சிக்னல் வலிமை வரைபடம்</value></data>
+  <data name="Main_ChannelGraphAutomation"><value>சேனல் பட்டை வரைபடம்</value></data>
+  <data name="AllAdapters_WindowTitle"><value>அனைத்து வயர்லெஸ் அடாப்டர்கள் — MWC</value></data>
+  <data name="AllAdapters_WindowAutomation"><value>அனைத்து அடாப்டர்களின் மேலோட்டம்</value></data>
+  <data name="AllAdapters_Heading"><value>அனைத்து வயர்லெஸ் அடாப்டர்கள்</value></data>
+  <data name="AllAdapters_ScanAll"><value>↻ அனைத்தையும் ஸ்கேன் செய்</value></data>
+  <data name="AllAdapters_ScanAllTooltip"><value>அனைத்து அடாப்டர்களையும் இணையாக ஸ்கேன் செய்</value></data>
+  <data name="AllAdapters_ConnectAll"><value>⚡ அனைத்தையும் விருப்பத்துடன் இணை</value></data>
+  <data name="AllAdapters_ConnectAllTooltip"><value>ஒவ்வொரு அடாப்டரையும் அதன் விருப்பமான நெட்வொர்க்குடன் தானாக இணை</value></data>
+  <data name="AllAdapters_PreferredHeader"><value>★ விருப்பமான நெட்வொர்க்குகள் (தரவரிசைப்படுத்தப்பட்டவை)</value></data>
+  <data name="AllAdapters_MoveUp"><value>முன்னுரிமையை மேலே நகர்த்து</value></data>
+  <data name="AllAdapters_RemovePreferred"><value>விருப்பப் பட்டியலிலிருந்து அகற்று</value></data>
+  <data name="AllAdapters_AddPreferred"><value>+ தேர்ந்தெடுக்கப்பட்டதை விருப்பத்தில் சேர்</value></data>
+  <data name="AllAdapters_AutoReconnect"><value>தானியங்கி மறு இணைப்பை இயக்கு</value></data>
+  <data name="Main_SelectNetworkHint"><value>ஒரு நெட்வொர்க்கைத் தேர்ந்தெடு</value></data>
+  <data name="Main_SelectHistoryHint"><value>வரலாற்றைக் காண ஒரு நெட்வொர்க்கைத் தேர்ந்தெடு</value></data>
+  <data name="Main_SignalHistoryTitle"><value>{0} — சிக்னல் வரலாறு</value></data>
+  <data name="Main_SignalStrength"><value>சிக்னல் {0}%</value></data>
+  <data name="AllAdapters_NetworkListAutomation"><value>{0} நெட்வொர்க்குகள்</value></data>
+  <data name="Notify_ConnectedTo"><value>{0}-உடன் இணைக்கப்பட்டது</value></data>
+  <data name="Notify_ConnectedComplete"><value>{0} — இணையம் சரிபார்க்கப்பட்டது</value></data>
+  <data name="Notify_Disconnected"><value>{0}-இலிருந்து துண்டிக்கப்பட்டது</value></data>
+  <data name="Notify_CannotConnect"><value>{0}-உடன் இணைக்க முடியவில்லை</value></data>
+  <data name="Announce_Connected"><value>{0}-உடன் இணைக்கப்பட்டது</value></data>
+  <data name="Announce_ConnectFailed"><value>{0}-உடன் இணைப்பதில் தோல்வி</value></data>
+  <data name="Announce_SsidCopied"><value>SSID நகலெடுக்கப்பட்டது: {0}</value></data>
+  <data name="Quality_ResultFormat"><value>RTT: {0}  இழப்பு: {1}  தரம்: {2}</value></data>
+  <data name="Step_IpAddress"><value>IP முகவரியைப் பெறுகிறது</value></data>
+  <data name="ScanInterval_Manual"><value>கைமுறை மட்டும்</value></data>
+  <data name="ScanInterval_10s"><value>10 வினாடிகள்</value></data>
+  <data name="ScanInterval_15s"><value>15 வினாடிகள்</value></data>
+  <data name="ScanInterval_30s"><value>30 வினாடிகள்</value></data>
+  <data name="ScanInterval_60s"><value>1 நிமிடம்</value></data>
+  <data name="ScanInterval_300s"><value>5 நிமிடங்கள்</value></data>
+  <data name="Jump_ConnectDescription"><value>{0}-உடன் இணை</value></data>
+  <data name="Connect_PassphraseAutomation"><value>கடவுச்சொல் உள்ளீடு</value></data>
+  <data name="Connect_PassphraseVisibleAutomation"><value>கடவுச்சொல் உள்ளீடு (தெரியும்)</value></data>
+  <data name="CertPicker_ExpiryFormat"><value>{0} ({1} நாட்களில் காலாவதியாகும்)</value></data>
+  <data name="Security_Excellent"><value>சிறந்த பாதுகாப்பு (WPA3)</value></data>
+  <data name="Security_Good"><value>நல்ல பாதுகாப்பு (WPA2)</value></data>
+  <data name="Security_Fair"><value>நடுத்தர பாதுகாப்பு</value></data>
+  <data name="Security_Weak"><value>பலவீனமான பாதுகாப்பு — பழைய குறியாக்கம்</value></data>
+  <data name="Security_Danger"><value>ஆபத்து — பாதுகாப்பற்ற நெட்வொர்க்</value></data>
+  <data name="Detail_DfsWarning"><value>DFS சேனல்</value></data>
+  <data name="Detail_DfsHint"><value>இந்த சேனல் டைனமிக் ஃப்ரீக்வென்சி செலக்ஷனைப் பயன்படுத்துகிறது. ரேடார் கண்டறியப்பட்டால் தற்காலிக தடங்கல்கள் ஏற்படலாம்.</value></data>
+  <data name="Failover_Section"><value>அடாப்டர் தோல்வி மாற்று</value></data>
+  <data name="Failover_Desc"><value>இந்த அடாப்டர் இணைய இணைப்பை இழந்தால் தானாக காப்பு அடாப்டருக்கு மாறவும்.</value></data>
+  <data name="Failover_Enable"><value>தோல்வி மாற்றை இயக்கு</value></data>
+  <data name="Failover_BackupAdapter"><value>காப்பு அடாப்டர்</value></data>
+  <data name="Failover_BackupNone"><value>(எதுவுமில்லை)</value></data>
+  <data name="Failover_BackupHint"><value>இந்த அடாப்டர் இணைப்பை இழந்தால் செயல்படுத்த வேண்டிய அடாப்டரைத் தேர்ந்தெடு.</value></data>
+  <data name="Notify_FailoverActivated"><value>தோல்வி மாற்று: {0}-க்கு மாற்றப்பட்டது</value></data>
+  <data name="Notify_FailoverRestored"><value>முதன்மை அடாப்டர் {0} மீண்டும் இணைக்கப்பட்டது</value></data>
+  <data name="Quality_Grade_Excellent"><value>மிகுந்த சிறப்பான</value></data>
+  <data name="Quality_Grade_Good"><value>நல்லது</value></data>
+  <data name="Quality_Grade_Fair"><value>சரியானது</value></data>
+  <data name="Quality_Grade_Poor"><value>மேசமான</value></data>
+  <data name="Quality_Grade_Unknown"><value>அளவிடுகிறது…</value></data>
+  <data name="Quality_Timeout"><value>காலவரம்கடந்தது</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>சானல் அதிகமாக உள்ளது ({0}% பயன்பாடு)</value></data>
+  <data name="Congestion_BusyTooltip"><value>சானல் திரக்கமாக உள்ளது ({0}% பயன்பாடு)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
+  <data name="Detail_Distance"><value>தூரம்</value></data>
+  <data name="Detail_Roaming"><value>ரோமிங்</value></data>
+  <data name="Detail_Interference"><value>குறுக்கீடு</value></data>
+  <data name="Detail_Mesh"><value>மெஷ்</value></data>
+  <data name="Detail_PowerSave"><value>சக்தி சேமிப்பு</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>தேவையில்லை</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>விருப்பத்திற்குரியது</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>பரிந்துரைக்கப்படுகிறது</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ கடுமையாக பரிந்துரைக்கப்படுகிறது</value></data>
+  <data name="Detail_EapStats"><value>802.1X வெற்றி விகிதம்</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} முயற்சிகள்)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz பகுதி</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}-இல் சட்டப்பூர்வமானது</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}-இல் அனுமதிக்கப்படவில்லை</value></data>
+  <data name="Detail_LinkEstimate"><value>இணைப்பு மதிப்பீடு</value></data>
+  <data name="Detail_Mlo"><value>MLO</value></data>
+  <data name="Detail_SignalTrend"><value>சிக்னல் போக்கு</value></data>
+  <data name="Menu_DiagnosticExport"><value>ஆதரவு அறிக்கையை ஏற்றுமதி செய்…</value></data>
+  <data name="Status_DiagnosticExported"><value>ஆதரவு அறிக்கை சேமிக்கப்பட்டது → {0}</value></data>
+  <data name="Status_Exported"><value>ஏற்றுமதி → {0}</value></data>
+  <data name="Advisory_EvilTwin_HighRisk" xml:space="preserve">
+    <value>Evil Twin: High Risk — multiple spoofing indicators detected</value>
+  </data>
+  <data name="Advisory_EvilTwin_Suspicious" xml:space="preserve">
+    <value>Evil Twin: Suspicious — possible rogue AP with same SSID</value>
+  </data>
+  <data name="Advisory_SEC001_Title" xml:space="preserve">
+    <value>WPA3 Transition Mode Detected</value>
+  </data>
+  <data name="Advisory_SEC002_Title" xml:space="preserve">
+    <value>Protected Management Frames Disabled</value>
+  </data>
+  <data name="Advisory_SEC003_Title" xml:space="preserve">
+    <value>WEP Is Broken</value>
+  </data>
+  <data name="Advisory_SEC004_Title" xml:space="preserve">
+    <value>WPA (TKIP) Is Deprecated</value>
+  </data>
+  <data name="Advisory_SEC005_Title" xml:space="preserve">
+    <value>Unencrypted Network</value>
+  </data>
+  <data name="Advisory_SEC006_Title" xml:space="preserve">
+    <value>FragAttacks Mitigation</value>
+  </data>
+  <data name="Advisory_SEC007_Title" xml:space="preserve">
+    <value>WPS Enabled</value>
+  </data>
+  <data name="Advisory_SEC100_Title" xml:space="preserve">
+    <value>Hardened Security Configuration</value>
+  </data>
+  <data name="Advisory_StickyClient" xml:space="preserve">
+    <value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value>
+  </data>
+  <data name="Auth_Compact_OWE" xml:space="preserve">
+    <value>OWE</value>
+  </data>
+  <data name="Auth_Compact_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Auth_Compact_WEP" xml:space="preserve">
+    <value>WEP</value>
+  </data>
+  <data name="Auth_Compact_WPA" xml:space="preserve">
+    <value>WPA</value>
+  </data>
+  <data name="Auth_Compact_WPA2" xml:space="preserve">
+    <value>WPA2</value>
+  </data>
+  <data name="Auth_Compact_WPA23" xml:space="preserve">
+    <value>WPA2/3</value>
+  </data>
+  <data name="Auth_Compact_WPA2Ent" xml:space="preserve">
+    <value>WPA2 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3" xml:space="preserve">
+    <value>WPA3</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent" xml:space="preserve">
+    <value>WPA3 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent192" xml:space="preserve">
+    <value>WPA3 Ent192</value>
+  </data>
+  <data name="Band_Compact_2_4" xml:space="preserve">
+    <value>2.4G</value>
+  </data>
+  <data name="Band_Compact_5" xml:space="preserve">
+    <value>5G</value>
+  </data>
+  <data name="Band_Compact_6" xml:space="preserve">
+    <value>6G</value>
+  </data>
+  <data name="Band_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Detail_Interference_Low" xml:space="preserve">
+    <value>Low  ({0}/100)</value>
+  </data>
+  <data name="Detail_Interference_Other" xml:space="preserve">
+    <value>{0}  ({1}/100)  — {2}</value>
+  </data>
+  <data name="Detail_Mesh_6GHz" xml:space="preserve">
+    <value> · 6 GHz</value>
+  </data>
+  <data name="Detail_Mesh_Confidence" xml:space="preserve">
+    <value>  ({0})</value>
+  </data>
+  <data name="Detail_Mesh_FastTransition" xml:space="preserve">
+    <value> · 802.11r</value>
+  </data>
+  <data name="Detail_Mesh_NodeCount" xml:space="preserve">
+    <value>{0} nodes</value>
+  </data>
+  <data name="Detail_Mesh_TriBand" xml:space="preserve">
+    <value> · Tri-band</value>
+  </data>
+  <data name="Detail_PowerSave_Advanced" xml:space="preserve">
+    <value>rTWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_Legacy" xml:space="preserve">
+    <value>Legacy (DTIM/PSM)</value>
+  </data>
+  <data name="Detail_PowerSave_Standard" xml:space="preserve">
+    <value>TWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi6Cap" xml:space="preserve">
+    <value>TWT capable (Wi-Fi 6) — up to ~20% saving</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi7Cap" xml:space="preserve">
+    <value>rTWT capable (Wi-Fi 7) — up to ~34% saving</value>
+  </data>
+  <data name="Detail_Roaming_Assisted" xml:space="preserve">
+    <value>Assisted (802.11k/v)</value>
+  </data>
+  <data name="Detail_Roaming_Fast" xml:space="preserve">
+    <value>Fast (802.11r) — ~{0}ms typical</value>
+  </data>
+  <data name="Detail_Roaming_Seamless" xml:space="preserve">
+    <value>Seamless ({0})</value>
+  </data>
+  <data name="Detail_Roaming_Standard" xml:space="preserve">
+    <value>Standard — no 802.11r/k/v detected (~{0}ms typical)</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0}h {1:D2}m</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="Status_ConnectedNoTimer" xml:space="preserve">
+    <value>→ {0}</value>
+  </data>
+  <data name="Status_ConnectedWithDuration" xml:space="preserve">
+    <value>→ {0}  ({1})</value>
+  </data>
+  <data name="Tray_NetworkItem" xml:space="preserve">
+    <value>{0}  ({1}%)</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Reason" xml:space="preserve">
+    <value>The Wi-Fi adapter on your PC is turned off.</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Steps" xml:space="preserve">
+    <value>Press the Airplane mode key on your keyboard to turn it off|Go to Windows Settings → Network → Wi-Fi and turn it on|Check in Device Manager that the Wi-Fi adapter is enabled</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Title" xml:space="preserve">
+    <value>Wi-Fi Adapter Disabled</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Reason" xml:space="preserve">
+    <value>The username or password is incorrect.</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Steps" xml:space="preserve">
+    <value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Title" xml:space="preserve">
+    <value>Enterprise Authentication Failed</value>
+  </data>
+  <data name="Trouble_BadCredentials_Reason" xml:space="preserve">
+    <value>The password you entered does not match the access point.</value>
+  </data>
+  <data name="Trouble_BadCredentials_Steps" xml:space="preserve">
+    <value>Double-check the password (case-sensitive)|Try the password printed on the router label or in its manual|If you recently changed the password, enter the new one</value>
+  </data>
+  <data name="Trouble_BadCredentials_Title" xml:space="preserve">
+    <value>Wrong Password</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Reason" xml:space="preserve">
+    <value>Adding a network profile requires administrator privileges.</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Steps" xml:space="preserve">
+    <value>Right-click MWC and choose Run as administrator|Or sign in with an administrator account and try again</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Title" xml:space="preserve">
+    <value>Administrator Privileges Required</value>
+  </data>
+  <data name="Trouble_NotInRange_Reason" xml:space="preserve">
+    <value>The selected network is not reachable from your current location.</value>
+  </data>
+  <data name="Trouble_NotInRange_Steps" xml:space="preserve">
+    <value>Move closer to the access point and try again|Check that the access point is powered on|Use the Rescan button to search for networks again</value>
+  </data>
+  <data name="Trouble_NotInRange_Title" xml:space="preserve">
+    <value>Network Not Found</value>
+  </data>
+  <data name="Trouble_Timeout_Reason" xml:space="preserve">
+    <value>The access point did not respond.</value>
+  </data>
+  <data name="Trouble_Timeout_Steps" xml:space="preserve">
+    <value>Make sure the access point (router) is powered on|Move closer to the access point|Restart the router (power off for 10 seconds, then on)|Check whether other devices can connect from the same location</value>
+  </data>
+  <data name="Trouble_Timeout_Title" xml:space="preserve">
+    <value>Connection Timed Out</value>
+  </data>
+  <data name="Trouble_Unknown_Reason" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="Trouble_Unknown_Steps" xml:space="preserve">
+    <value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value>
+  </data>
+  <data name="Trouble_Unknown_Title" xml:space="preserve">
+    <value>Connection Failed</value>
+  </data>
+
+  <data name="Rec_Grade_Poor"><value>மோசம்</value></data>
+  <data name="Rec_Grade_Fair"><value>நடுத்தரம்</value></data>
+  <data name="Rec_Grade_Good"><value>நல்லது</value></data>
+  <data name="Rec_Grade_Excellent"><value>சிறந்தது</value></data>
+  <data name="Rec_Profile_General"><value>அனைத்து பரிமாணங்களிலும் சமநிலையானது</value></data>
+  <data name="Rec_Profile_Realtime"><value>நிகழ்நேர தொடர்புக்கு உகந்தது (VoIP/வீடியோ)</value></data>
+  <data name="Rec_Profile_Secure"><value>இரகசிய பயன்பாட்டிற்கு உகந்தது</value></data>
+  <data name="Rec_Profile_Throughput"><value>மொத்த பரிமாற்றத்திற்கு உகந்தது</value></data>
+  <data name="Rec_Dim_Security"><value>பாதுகாப்பு</value></data>
+  <data name="Rec_Dim_Roaming"><value>ரோமிங்</value></data>
+  <data name="Rec_Dim_Channel"><value>பட்டை / சேனல்</value></data>
+  <data name="Rec_Dim_Signal"><value>சிக்னல் வலிமை</value></data>
+  <data name="Rec_Summary"><value>மொத்த மதிப்பெண் {0}/100 ({1}). {2}. முதன்மை காரணி: &quot;{3}&quot; (மதிப்பெண் {4}).</value></data>
+
+  <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} மாதிரிகள்)</value></data>
+  <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps பயனுள்ள, 2-ஸ்ட்ரீம் மதிப்பீடு)  SNR {3} dB</value></data>
+  <data name="Detail_Mlo_Format"><value>{0} இணைப்புகள்  ({1})  {2} Mbps திரட்டப்பட்டது  ({3})</value></data>
+  <data name="Mlo_Reliability_SingleLink"><value>ஒற்றை இணைப்பு</value></data>
+  <data name="Mlo_Reliability_DualLink"><value>இரட்டை இணைப்பு</value></data>
+  <data name="Mlo_Reliability_TripleLink"><value>மூன்று இணைப்பு</value></data>
+  <data name="Detail_DistanceLabel"><value>~{0} m ({1}–{2} m)</value></data>
+
+  <data name="Phy_Gen_b"><value>Wi-Fi 1 (802.11b)</value></data>
+  <data name="Phy_Gen_a"><value>Wi-Fi 2 (802.11a)</value></data>
+  <data name="Phy_Gen_g"><value>Wi-Fi 3 (802.11g)</value></data>
+  <data name="Phy_Gen_n"><value>Wi-Fi 4 (802.11n)</value></data>
+  <data name="Phy_Gen_ac"><value>Wi-Fi 5 (802.11ac)</value></data>
+  <data name="Phy_Gen_ax"><value>Wi-Fi 6/6E (802.11ax)</value></data>
+  <data name="Phy_Gen_be"><value>Wi-Fi 7 (802.11be)</value></data>
+  <data name="Phy_Gen_bn"><value>Wi-Fi 8 (802.11bn — முன்னோட்டம்)</value></data>
+  <data name="Phy_Gen_Unknown"><value>தெரியாதது</value></data>
+  <data name="Phy_Short_b"><value>Wi-Fi 1</value></data>
+  <data name="Phy_Short_a"><value>Wi-Fi 2</value></data>
+  <data name="Phy_Short_g"><value>Wi-Fi 3</value></data>
+  <data name="Phy_Short_n"><value>Wi-Fi 4</value></data>
+  <data name="Phy_Short_ac"><value>Wi-Fi 5</value></data>
+  <data name="Phy_Short_ax"><value>Wi-Fi 6/6E</value></data>
+  <data name="Phy_Short_be"><value>Wi-Fi 7</value></data>
+  <data name="Phy_Short_bn"><value>Wi-Fi 8</value></data>
+  <data name="Phy_Short_Unknown"><value>?</value></data>
+
+  <data name="Cipher_None"><value>எதுவுமில்லை</value></data>
+  <data name="Cipher_WEP"><value>WEP</value></data>
+  <data name="Cipher_TKIP"><value>TKIP</value></data>
+  <data name="Cipher_AES"><value>AES (CCMP)</value></data>
+  <data name="Cipher_GCMP256"><value>GCMP-256</value></data>
+
+  <data name="Interference_Factor_CoChannel"><value>சேனல் {1}-இல் {0} AP(கள்) — கோ-சேனல் குறுக்கீடு</value></data>
+  <data name="Interference_Factor_Adjacent"><value>{0} அருகிலுள்ள-சேனல் AP(கள்) — அருகிலுள்ள-சேனல் குறுக்கீடு (2.4 GHz)</value></data>
+  <data name="Interference_Factor_Bluetooth"><value>2.4 GHz ப்ளூடூத்/ஜிக்பீ உடன் நிறமாலையைப் பகிர்கிறது — இணை-இருப்பு அபாயம்</value></data>
+  <data name="Interference_Rec_24GHz"><value>அதிக குறுக்கீடு. 5 GHz/6 GHz-க்கு மாற பரிசீலிக்கவும். 2.4 GHz-இல் இருந்தால், சேனல் 1, 6, அல்லது 11-ஐ விரும்பவும்.</value></data>
+  <data name="Interference_Rec_5or6GHz"><value>கோ-சேனல் நெரிசல் கண்டறியப்பட்டது. வேறு சேனலைப் பரிசீலிக்கவும் அல்லது 6 GHz-க்கு மாறவும்.</value></data>
+
+  <data name="Failure_Unknown"><value>தெரியாத பிழை</value></data>
+  <data name="Failure_InvalidProfile"><value>தவறான நெட்வொர்க் சுயவிவரம்</value></data>
+  <data name="Failure_AdapterNotFound"><value>வயர்லெஸ் அடாப்டர் கிடைக்கவில்லை</value></data>
+  <data name="Failure_Cancelled"><value>ரத்து செய்யப்பட்டது</value></data>
+  <data name="Failure_ProfileRejected"><value>கணினியால் சுயவிவரம் நிராகரிக்கப்பட்டது</value></data>
+  <data name="Failure_OsError"><value>கணினி பிழை</value></data>
+
+  <data name="Adapter_Pinned_ListAutomation"><value>பின் செய்யப்பட்ட நெட்வொர்க் பட்டியல்</value></data>
 </root>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace MWC.Core.Services;
 
@@ -24,24 +25,46 @@ public sealed class AdapterPreferencesService
         "MWC", "adapters.json");
 
     private readonly Dictionary<Guid, AdapterPreferences> _store;
+    private readonly ILogger<AdapterPreferencesService> _log;
+    // _store 保護用。AutoReconnectService(バックグラウンド)が Get/PickBestSsid で読み取る一方、
+    // UI スレッドが Save するため、ロック無しでは Dictionary の並行読み書きで
+    // InvalidOperationException("collection was modified") やデータ破損が起きうる。
+    private readonly object _lock = new();
+    // ディスク書き込み直列化用。_lock とは分離し、I/O 中に読み取りをブロックしない。
+    private readonly object _saveLock = new();
 
-    /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。</summary>
-    public AdapterPreferencesService()
+    /// <summary>コンストラクタ。永続化ファイルから設定を読み込む。
+    /// logger 省略時は NullLogger を使う (テスト容易性のため)。</summary>
+    public AdapterPreferencesService(ILogger<AdapterPreferencesService>? log = null)
     {
+        _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AdapterPreferencesService>.Instance;
         _store = Load();
     }
 
     public AdapterPreferences Get(Guid adapterId)
-        => _store.TryGetValue(adapterId, out var p) ? p
-           : new AdapterPreferences { AdapterId = adapterId };
+    {
+        lock (_lock)
+        {
+            return _store.TryGetValue(adapterId, out var p) ? p
+                : new AdapterPreferences { AdapterId = adapterId };
+        }
+    }
 
     public void Save(AdapterPreferences prefs)
     {
-        _store[prefs.AdapterId] = prefs;
-        Persist();
+        List<AdapterPreferences> snapshot;
+        lock (_lock)
+        {
+            _store[prefs.AdapterId] = prefs;
+            snapshot = _store.Values.ToList();
+        }
+        Persist(snapshot);
     }
 
-    public IReadOnlyList<AdapterPreferences> All() => _store.Values.ToList();
+    public IReadOnlyList<AdapterPreferences> All()
+    {
+        lock (_lock) { return _store.Values.ToList(); }
+    }
 
     /// <summary>子機Aで使ったSSIDを子機Bに自動共有(任意)</summary>
     public void PinSsid(Guid adapterId, string ssid)
@@ -75,12 +98,18 @@ public sealed class AdapterPreferencesService
     public void SetLabel(Guid adapterId, string? label)
         => Save(Get(adapterId) with { CustomLabel = label });
 
+    public void SetFailover(Guid adapterId, Guid? failoverAdapterId, bool enabled)
+        => Save(Get(adapterId) with { FailoverAdapterId = failoverAdapterId, EnableFailover = enabled });
 
-    /// <summary>この子機で自動再接続が有効か(IsEnabled かつ PinnedSsids > 0)</summary>
+    public void SetFilterPreset(Guid adapterId, bool showSecuredOnly, bool showFavoritesFirst)
+        => Save(Get(adapterId) with { ShowSecuredOnly = showSecuredOnly, ShowFavoritesFirst = showFavoritesFirst });
+
+
+    /// <summary>この子機で自動再接続が有効か(IsEnabled かつ候補SSIDが1件以上設定されているか)</summary>
     public bool IsAutoReconnectEnabled(Guid adapterId)
     {
         var p = Get(adapterId);
-        return p.IsEnabled && p.PinnedSsids.Count > 0;
+        return p.IsEnabled && (p.PinnedSsids.Count > 0 || p.AutoConnectPriority.Count > 0);
     }
 
     /// <summary>
@@ -137,42 +166,72 @@ public sealed class AdapterPreferencesService
     public IReadOnlyList<string> GetPreferredNetworks(Guid adapterId)
         => Get(adapterId).AutoConnectPriority;
 
-    /// <summary>自動再接続の有効/無効を設定</summary>
+    /// <summary>
+    /// 自動再接続の有効/無効を設定。
+    /// <para>
+    /// <paramref name="enabled"/> = false: 優先 SSID リスト両方をクリアする。
+    /// 以後 <see cref="IsAutoReconnectEnabled"/> は false を返す(SSID が空のため)。
+    /// </para>
+    /// <para>
+    /// <paramref name="enabled"/> = true: 意図的に何もしない。
+    /// 自動再接続は SSID の明示登録(<see cref="PinSsid"/> / <see cref="AddPreferred"/>)によって
+    /// 有効化するものであり、このメソッドで「スイッチを入れる」概念はない。
+    /// </para>
+    /// </summary>
     public void SetAutoReconnect(Guid adapterId, bool enabled)
     {
-        var p = Get(adapterId);
-        // IsEnabled は子機全体の有効化、ここでは PinnedSsids の有無で判定
-        // 明示的な AutoReconnect フラグが欲しい場合はレコードに追加が必要
-        // 暫定: enabled=false なら PinnedSsids をクリア、true なら何もしない
         if (!enabled)
-            Save(p with { AutoConnectPriority = Array.Empty<string>() });
+        {
+            var p = Get(adapterId);
+            Save(p with
+            {
+                AutoConnectPriority = Array.Empty<string>(),
+                PinnedSsids         = Array.Empty<string>()
+            });
+        }
+        // enabled=true は意図的な no-op。上記 XML doc 参照。
     }
 
     private Dictionary<Guid, AdapterPreferences> Load()
     {
+        if (!File.Exists(ConfigPath)) return new();
         try
         {
-            if (File.Exists(ConfigPath))
-            {
-                var json = File.ReadAllText(ConfigPath);
-                var list = JsonSerializer.Deserialize<List<AdapterPreferences>>(json);
-                return list?.ToDictionary(p => p.AdapterId) ?? new();
-            }
+            var json = File.ReadAllText(ConfigPath);
+            var list = JsonSerializer.Deserialize<List<AdapterPreferences>>(json);
+            return list?.ToDictionary(p => p.AdapterId) ?? new();
         }
-        catch { }
-        return new();
+        catch (JsonException ex)
+        {
+            _log.LogWarning(ex, "Adapter prefs file corrupted, moved to {Path}.corrupt", ConfigPath);
+            try { File.Move(ConfigPath, ConfigPath + ".corrupt", overwrite: true); }
+            catch (IOException moveEx)             { _log.LogDebug(moveEx, "Could not move corrupted adapter prefs file to .corrupt"); }
+            catch (UnauthorizedAccessException moveEx) { _log.LogDebug(moveEx, "Could not move corrupted adapter prefs file to .corrupt"); }
+            return new();
+        }
+        catch (IOException ex) { _log.LogWarning(ex, "Failed to read adapter prefs {Path}", ConfigPath); return new(); }
+        catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied reading adapter prefs {Path}", ConfigPath); return new(); }
     }
 
-    private void Persist()
+    // スナップショットをディスクへ書き込む。_lock の外で呼び、I/O 中に
+    // 読み取りをブロックしない。_saveLock で書き込み同士のみ直列化する。
+    private void Persist(List<AdapterPreferences> snapshot)
     {
-        try
+        lock (_saveLock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            File.WriteAllText(ConfigPath,
-                JsonSerializer.Serialize(_store.Values.ToList(),
-                    new JsonSerializerOptions { WriteIndented = true }));
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
+                var tmp = ConfigPath + ".tmp";
+                File.WriteAllText(tmp,
+                    JsonSerializer.Serialize(snapshot,
+                        new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(tmp, ConfigPath, overwrite: true);
+            }
+            catch (IOException ex) { _log.LogWarning(ex, "Failed to save adapter prefs {Path}", ConfigPath); }
+            catch (UnauthorizedAccessException ex) { _log.LogWarning(ex, "Access denied saving adapter prefs {Path}", ConfigPath); }
         }
-        catch { }
     }
 }
 
@@ -189,6 +248,14 @@ public sealed record AdapterPreferences
     public IReadOnlyList<string> PinnedSsids { get; init; } = Array.Empty<string>();
     /// <summary>このアダプターで使うバンド(例: 5GHz専用ドングル)</summary>
     public BandPreference    PreferredBand { get; init; } = BandPreference.Any;
+    /// <summary>フェイルオーバー先アダプターID。このアダプターが切断時に自動切替 (null = 無効)</summary>
+    public Guid?             FailoverAdapterId { get; init; }
+    /// <summary>フェイルオーバー機能を有効にする</summary>
+    public bool              EnableFailover { get; init; } = false;
+    /// <summary>ネットワーク一覧フィルタ: セキュアのみ表示</summary>
+    public bool              ShowSecuredOnly { get; init; } = false;
+    /// <summary>ネットワーク一覧フィルタ: お気に入りを先頭表示</summary>
+    public bool              ShowFavoritesFirst { get; init; } = true;
 }
 
 public enum BandPreference

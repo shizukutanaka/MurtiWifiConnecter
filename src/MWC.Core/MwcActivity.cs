@@ -19,7 +19,7 @@ namespace MWC.Core;
 public static class MwcActivity
 {
     public const string ServiceName    = "MWC";
-    public const string ServiceVersion = "2.4.1";
+    public const string ServiceVersion = "3.11.0";
 
     /// <summary>分散トレーシング用 ActivitySource</summary>
     public static readonly ActivitySource Source =

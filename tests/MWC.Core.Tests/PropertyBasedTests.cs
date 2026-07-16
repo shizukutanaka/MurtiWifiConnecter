@@ -137,7 +137,7 @@ public class RegulatoryDomainPropertyTests
         return Prop.ForAll(Arb.From(ccGen), cc =>
         {
             var channels = _svc.GetAvailable6GHzChannels(cc);
-            return channels.All(c => c.FrequencyMhz == 5950 + (c.Channel - 1) * 5);
+            return channels.All(c => c.FrequencyMhz == 5950 + c.Channel * 5);
         });
     }
 }

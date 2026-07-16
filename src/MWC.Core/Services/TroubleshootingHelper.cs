@@ -14,81 +14,83 @@ public static class TroubleshootingHelper
     {
         return failure switch
         {
-            ConnectionFailure.BadCredentials => new TroubleshootingAdvice(
-                Title:   "パスワードが違います",
-                Reason:  "入力されたパスワードがアクセスポイントと一致しませんでした。",
+            // Guarded cases must precede unguarded cases for the same discriminant.
+            ConnectionFailure.BadCredentials when auth == AuthMethod.WPA2Enterprise
+                || auth == AuthMethod.WPA3Enterprise
+                || auth == AuthMethod.WPA3Enterprise192 => new TroubleshootingAdvice(
+                Title:   "Enterprise Authentication Failed",
+                Reason:  "The username or password is incorrect.",
                 Steps:
                 [
-                    "パスワードをもう一度確認してください(大文字・小文字に注意)",
-                    "ルーターの裏面やマニュアルに記載されたパスワードを使ってみてください",
-                    "パスワードを変更した場合は新しいパスワードを入力してください"
+                    "Verify your credentials with the network administrator",
+                    "If a domain is required, enter it as DOMAIN\\username",
+                    "Ask your administrator whether the certificate has expired"
+                ],
+                Icon: "🏢"),
+
+            ConnectionFailure.BadCredentials => new TroubleshootingAdvice(
+                Title:   "Wrong Password",
+                Reason:  "The password you entered does not match the access point.",
+                Steps:
+                [
+                    "Double-check the password (case-sensitive)",
+                    "Try the password printed on the router label or in its manual",
+                    "If you recently changed the password, enter the new one"
                 ],
                 Icon: "🔑"),
 
             ConnectionFailure.Timeout => new TroubleshootingAdvice(
-                Title:   "接続がタイムアウトしました",
-                Reason:  "アクセスポイントからの応答がありませんでした。",
+                Title:   "Connection Timed Out",
+                Reason:  "The access point did not respond.",
                 Steps:
                 [
-                    "アクセスポイント(ルーター)の電源が入っているか確認してください",
-                    "電波が届く範囲に移動してください",
-                    "ルーターを再起動してみてください(電源を10秒オフ→オン)",
-                    "同じ場所に他のデバイスが接続できるか確認してください"
+                    "Make sure the access point (router) is powered on",
+                    "Move closer to the access point",
+                    "Restart the router (power off for 10 seconds, then on)",
+                    "Check whether other devices can connect from the same location"
                 ],
                 Icon: "⏱"),
 
             ConnectionFailure.NotInRange => new TroubleshootingAdvice(
-                Title:   "ネットワークが見つかりません",
-                Reason:  "選択したネットワークが現在の場所では受信できません。",
+                Title:   "Network Not Found",
+                Reason:  "The selected network is not reachable from your current location.",
                 Steps:
                 [
-                    "アクセスポイントに近づいてから再試行してください",
-                    "アクセスポイントの電源が入っているか確認してください",
-                    "「再スキャン」ボタンでネットワークを再検索してください"
+                    "Move closer to the access point and try again",
+                    "Check that the access point is powered on",
+                    "Use the Rescan button to search for networks again"
                 ],
                 Icon: "📡"),
 
             ConnectionFailure.AdapterDisabled => new TroubleshootingAdvice(
-                Title:   "無線アダプターが無効です",
-                Reason:  "お使いのPCの無線LANアダプターがオフになっています。",
+                Title:   "Wi-Fi Adapter Disabled",
+                Reason:  "The Wi-Fi adapter on your PC is turned off.",
                 Steps:
                 [
-                    "キーボードの機内モードキー(飛行機マーク)を押してオフにしてください",
-                    "Windows の設定 → ネットワーク → Wi-Fi をオンにしてください",
-                    "デバイスマネージャーで無線LANアダプターが有効か確認してください"
+                    "Press the Airplane mode key on your keyboard to turn it off",
+                    "Go to Windows Settings → Network → Wi-Fi and turn it on",
+                    "Check in Device Manager that the Wi-Fi adapter is enabled"
                 ],
                 Icon: "📵"),
 
             ConnectionFailure.InsufficientPrivilege => new TroubleshootingAdvice(
-                Title:   "管理者権限が必要です",
-                Reason:  "ネットワークプロファイルの追加には管理者権限が必要です。",
+                Title:   "Administrator Privileges Required",
+                Reason:  "Adding a network profile requires administrator privileges.",
                 Steps:
                 [
-                    "MWC を右クリック → 「管理者として実行」で起動してください",
-                    "または管理者アカウントでサインインして再試行してください"
+                    "Right-click MWC and choose Run as administrator",
+                    "Or sign in with an administrator account and try again"
                 ],
                 Icon: "🔒"),
 
-            ConnectionFailure.BadCredentials when auth == AuthMethod.WPA2Enterprise
-                or auth == AuthMethod.WPA3Enterprise => new TroubleshootingAdvice(
-                Title:   "企業認証に失敗しました",
-                Reason:  "ユーザー名またはパスワードが正しくありません。",
-                Steps:
-                [
-                    "ネットワーク管理者に正しい認証情報を確認してください",
-                    "ドメイン名が必要な場合は「ドメイン\\ユーザー名」の形式で入力してください",
-                    "証明書の有効期限が切れていないか管理者に確認してください"
-                ],
-                Icon: "🏢"),
-
             _ => new TroubleshootingAdvice(
-                Title:   "接続できませんでした",
-                Reason:  "予期しない問題が発生しました。",
+                Title:   "Connection Failed",
+                Reason:  "An unexpected error occurred.",
                 Steps:
                 [
-                    "しばらく待ってから再試行してください",
-                    "MWC のログ(%LocalAppData%\\MWC\\logs\\)をご確認ください",
-                    "問題が続く場合は GitHub Issues にご報告ください"
+                    "Wait a moment and try again",
+                    "Check the MWC log files (%LocalAppData%\\MWC\\logs\\)",
+                    "If the problem persists, report it on GitHub Issues"
                 ],
                 Icon: "❓")
         };

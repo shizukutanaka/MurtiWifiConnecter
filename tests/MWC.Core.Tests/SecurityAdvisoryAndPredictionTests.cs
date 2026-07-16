@@ -36,7 +36,7 @@ public class SecurityAdvisoryServiceTests
         var dragonblood = advisories.First(a => a.Code == "MWC-SEC-001");
         dragonblood.Severity.Should().Be(AdvisorySeverity.Warning);
         dragonblood.Reference.Should().Contain("Dragonblood");
-        dragonblood.Detail.Should().Contain("ダウングレード");
+        dragonblood.Detail.Should().Contain("downgrade");
     }
 
     [Fact]
@@ -57,6 +57,30 @@ public class SecurityAdvisoryServiceTests
         advisories.Should().Contain(a => a.Code == "MWC-SEC-003" && a.Severity == AdvisorySeverity.Critical);
     }
 
+    // WEP networks that were previously misclassified as Open (Auth=Open, Cipher=WEP)
+    // must trigger MWC-SEC-003, NOT MWC-SEC-005. This test documents the expectation
+    // that the platform layer (WindowsWifiService) sets Auth=WEP when Cipher=WEP,
+    // regardless of the underlying 802.11 auth algorithm (Open or SharedKey both use WEP cipher).
+    [Fact]
+    public void Analyze_Wep_DoesNotTriggerOpenNetworkAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WEP));
+        // Open-network advisory must NOT fire for WEP — WEP has its own, stronger advisory
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-005",
+            because: "WEP triggers MWC-SEC-003 (Critical) which is stricter than the open-network Warning");
+    }
+
+    [Fact]
+    public void Analyze_Wep_SecurityScoreIsLowerThanOpen()
+    {
+        // WEP score=10 must be below Open score=20 — false-sense-of-security makes
+        // WEP worse than openly admitting no encryption.
+        var wepScore  = _svc.ComputeScore(Net(AuthMethod.WEP));
+        var openScore = _svc.ComputeScore(Net(AuthMethod.Open));
+        wepScore.Should().BeLessThan(openScore,
+            because: "false sense of security makes WEP more dangerous than unencrypted Open");
+    }
+
     [Fact]
     public void Analyze_HardenedNetwork_GivesPositiveFeedback()
     {
@@ -66,11 +90,88 @@ public class SecurityAdvisoryServiceTests
         advisories.First(a => a.Code == "MWC-SEC-100").Severity.Should().Be(AdvisorySeverity.Good);
     }
 
+    // 2026-07: WPA3 でも SSID がハンドシェイクに暗号学的束縛されないという 2025 年の
+    // 指摘に基づく情報提供 (Evil Twin 検査の重要性を伝える)。
     [Fact]
-    public void Analyze_OpenNetwork_InfoLevel()
+    public void Analyze_PureWpa3Sae_IncludesSsidNotBoundInfoAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: false));
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-008");
+        advisories.First(a => a.Code == "MWC-SEC-008").Severity.Should().Be(AdvisorySeverity.Info);
+    }
+
+    [Fact]
+    public void Analyze_Wpa3TransitionMode_DoesNotDuplicateSsidNotBoundAdvisory()
+    {
+        // Transition mode already gets the stricter MWC-SEC-001 (Dragonblood downgrade warning);
+        // MWC-SEC-008 is reserved for pure WPA3-SAE to avoid redundant/conflicting advice.
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Capable, transition: true));
+
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-008");
+    }
+
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.Open)]
+    public void Analyze_NonPureWpa3Sae_DoesNotIncludeSsidNotBoundAdvisory(AuthMethod auth)
+    {
+        _svc.Analyze(Net(auth, PmfStatus.Required))
+            .Should().NotContain(a => a.Code == "MWC-SEC-008");
+    }
+
+    [Fact]
+    public void Analyze_OpenNetwork_WarningLevel()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.Open));
-        advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Info);
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Warning);
+    }
+
+    [Fact]
+    public void Analyze_EncryptedWithoutMfpRequired_InfoFragAttacks()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Capable));
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-006" && a.Severity == AdvisorySeverity.Info);
+        var frag = advisories.First(a => a.Code == "MWC-SEC-006");
+        frag.Reference.Should().Contain("FragAttacks");
+        frag.Detail.Should().Contain("CVE-2020-24586");
+    }
+
+    [Fact]
+    public void Analyze_WpsEnabled_WarnsPinBruteForce()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required) with { WpsEnabled = true });
+
+        advisories.Should().Contain(a => a.Code == "MWC-SEC-007" && a.Severity == AdvisorySeverity.Warning);
+        advisories.First(a => a.Code == "MWC-SEC-007").Detail.Should().Contain("WPS");
+    }
+
+    [Fact]
+    public void Analyze_WpsDisabled_NoWpsAdvisory()
+    {
+        var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required));
+        advisories.Should().NotContain(a => a.Code == "MWC-SEC-007");
+    }
+
+    [Fact]
+    public void ComputeScore_WpsEnabled_LowersScore()
+    {
+        var baseNet = Net(AuthMethod.WPA2PSK, PmfStatus.Required);
+        var withWps = baseNet with { WpsEnabled = true };
+        _svc.ComputeScore(withWps).Should().BeLessThan(_svc.ComputeScore(baseNet));
+    }
+
+    [Fact]
+    public void Analyze_MfpRequiredOrOpen_NoFragAttacksAdvisory()
+    {
+        // MFP 必須 (緩和済み) では FragAttacks 情報を出さない
+        _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required))
+            .Should().NotContain(a => a.Code == "MWC-SEC-006");
+        // 非暗号化 (別のより強い勧告あり) では出さない
+        _svc.Analyze(Net(AuthMethod.Open))
+            .Should().NotContain(a => a.Code == "MWC-SEC-006");
     }
 
     [Theory]
@@ -202,6 +303,24 @@ public class SignalQualityPredictorTests
 
         // fast の方が新しい値 (-40) に近い
         fast.Predict()!.Value.Should().BeGreaterThan(slow.Predict()!.Value);
+    }
+
+    [Fact]
+    public void Ctor_ZeroWeightSum_Throws()
+    {
+        // 重み合計0だと正規化で 0/0 = NaN が全予測に伝播する
+        var act = () => new SignalQualityPredictor(wFast: 0, wMid: 0, wSlow: 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData(0.0)]    // alpha は (0,1] 範囲外不可
+    [InlineData(1.5)]
+    [InlineData(-0.1)]
+    public void Ctor_AlphaOutOfRange_Throws(double alpha)
+    {
+        var act = () => new SignalQualityPredictor(alphaFast: alpha);
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 }
 

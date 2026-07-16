@@ -1,4 +1,9 @@
+using System;
 using System.CommandLine;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using MWC.Core.Services;
 
@@ -13,32 +18,113 @@ public static partial class Program
         var host    = new Option<string>("--host", () => "8.8.8.8", "Ping target");
         var samples = new Option<int>("--samples", () => 5, "Ping count");
         var json    = new Option<bool>("--json");
+        var bloat   = new Option<bool>("--bufferbloat", "Also measure working latency (RPM + bufferbloat grade) under download load, plus per-application suitability");
+        var loadUrl = new Option<string>("--load-url",
+            () => "https://speed.cloudflare.com/__down?bytes=104857600",
+            "Download URL used to generate load for --bufferbloat");
         var cmd     = new Command("quality", "Measure network quality (latency + packet loss)");
         cmd.AddOption(host); cmd.AddOption(samples); cmd.AddOption(json);
+        cmd.AddOption(bloat); cmd.AddOption(loadUrl);
 
-        cmd.SetHandler(async (string h, int s, bool j) =>
+        cmd.SetHandler(async (string h, int s, bool j, bool bb, string url) =>
         {
-            var svc = sp.GetRequiredService<NetworkQualityService>();
-            Console.Error.Write($"Measuring quality to {h} ({s} pings)…");
-            var r = await svc.MeasureAsync(h, s);
-            Console.Error.WriteLine();
-            if (j)
+            try
             {
-                Print(new {
-                    grade        = r.GradeLabel,
-                    latency_avg  = r.LatencyAvgMs,
-                    latency_min  = r.LatencyMinMs,
-                    latency_max  = r.LatencyMaxMs,
-                    packet_loss  = r.PacketLossPct
-                });
-                return;
+                var svc = sp.GetRequiredService<NetworkQualityService>();
+
+                if (bb)
+                {
+                    Console.Error.Write($"Measuring responsiveness to {h} under load…");
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                    var rr = await svc.MeasureResponsivenessAsync(
+                        h, ct => GenerateLoadAsync(url, ct), s, cts.Token);
+                    Console.Error.WriteLine();
+
+                    // 用途別適性 (QosAdvisoryService) を併せて提示する。
+                    // ping ベースの計測では AP の WMM IE を観測できないため wmm=null
+                    // (= 優先制御なしの保守的判定) を渡す。
+                    var qos = new QosAdvisoryService().Evaluate(rr, wmm: null);
+                    static string AppLabel(AppClass a) => a switch
+                    {
+                        AppClass.RealtimeGaming    => "Online Gaming",
+                        AppClass.VideoConferencing => "Video Conferencing",
+                        AppClass.VideoStreaming    => "Video Streaming",
+                        _                          => "Web Browsing",
+                    };
+
+                    if (j)
+                    {
+                        Print(new {
+                            idle_latency_ms     = rr.IdleLatencyMs,
+                            working_latency_ms  = rr.WorkingLatencyMs,
+                            latency_increase_ms = rr.LatencyIncreaseMs,
+                            rpm                 = rr.Rpm,
+                            bufferbloat_grade   = rr.Grade.ToString(),
+                            app_suitability     = qos.Select(a => new {
+                                app   = a.App.ToString(),
+                                level = a.Level.ToString()
+                            })
+                        });
+                        return;
+                    }
+                    Console.WriteLine($"Idle RTT:        {rr.IdleLatencyMs} ms");
+                    Console.WriteLine($"Working RTT:     {rr.WorkingLatencyMs} ms (+{rr.LatencyIncreaseMs} ms under load)");
+                    Console.WriteLine($"Responsiveness:  {rr.RpmLabel}");
+                    Console.WriteLine($"Bufferbloat:     {rr.GradeLabel}");
+                    Console.WriteLine();
+                    Console.WriteLine("Application suitability (from bufferbloat; AP WMM priority not observed via ping):");
+                    foreach (var a in qos)
+                        Console.WriteLine($"  {AppLabel(a.App),-20} {a.Level}");
+                    return;
+                }
+
+                Console.Error.Write($"Measuring quality to {h} ({s} pings)…");
+                var r = await svc.MeasureAsync(h, s);
+                Console.Error.WriteLine();
+                if (j)
+                {
+                    Print(new {
+                        grade        = r.GradeLabel,
+                        latency_avg  = r.LatencyAvgMs,
+                        latency_min  = r.LatencyMinMs,
+                        latency_max  = r.LatencyMaxMs,
+                        packet_loss  = r.PacketLossPct
+                    });
+                    return;
+                }
+                Console.WriteLine($"Grade:        {r.GradeLabel}");
+                Console.WriteLine($"RTT (avg):    {r.LatencyLabel}");
+                Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
+                Console.WriteLine($"Packet loss:  {r.LossLabel}");
             }
-            Console.WriteLine($"Grade:        {r.GradeLabel}");
-            Console.WriteLine($"RTT (avg):    {r.LatencyLabel}");
-            Console.WriteLine($"RTT min/max:  {r.LatencyMinMs} ms / {r.LatencyMaxMs} ms");
-            Console.WriteLine($"Packet loss:  {r.LossLabel}");
-        }, host, samples, json);
+            catch (OperationCanceledException) { Console.Error.WriteLine("Measurement cancelled."); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+        }, host, samples, json, bloat, loadUrl);
         return cmd;
+    }
+
+    /// <summary>--bufferbloat 用の負荷生成: 指定 URL を並列ダウンロードし続け、ct で停止。</summary>
+    private static async Task GenerateLoadAsync(string url, CancellationToken ct)
+    {
+        using var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        var workers = Enumerable.Range(0, 4).Select(async _ =>
+        {
+            var buf = new byte[65536];
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    using var resp = await http.GetAsync(
+                        url, HttpCompletionOption.ResponseHeadersRead, ct);
+                    using var stream = await resp.Content.ReadAsStreamAsync(ct);
+                    while (!ct.IsCancellationRequested && await stream.ReadAsync(buf, ct) > 0) { }
+                }
+                catch (OperationCanceledException) { break; }
+                catch { /* 一時的失敗はキャンセルまで再試行 */ }
+            }
+        });
+        try { await Task.WhenAll(workers); }
+        catch (OperationCanceledException) { /* 正常停止 */ }
     }
 
 // ── history ──────────────────────────────────────────
@@ -52,16 +138,68 @@ public static partial class Program
 
         cmd.SetHandler((int lim, bool j, bool clr) =>
         {
-            var svc = sp.GetRequiredService<NetworkHistoryService>();
-            if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
+            try
+            {
+                var svc = sp.GetRequiredService<NetworkHistoryService>();
+                if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
 
-            var entries = svc.GetRecent(lim);
-            if (j) { Print(entries); return; }
+                var entries = svc.GetRecent(lim);
+                if (j) { Print(entries); return; }
 
-            Console.WriteLine($"{"SSID",-32} {"Success",7} {"Fail",5}  {"Last Connected"}");
-            foreach (var e in entries)
-                Console.WriteLine($"{Trunc(e.Ssid,32),-32} {e.ConnectCount,7} {e.FailCount,5}  {e.LastConnectedLabel}");
+                Console.WriteLine($"{"SSID",-32} {"Success",7} {"Fail",5}  {"Last Connected"}");
+                foreach (var e in entries)
+                    Console.WriteLine($"{Trunc(e.Ssid,32),-32} {e.ConnectCount,7} {e.FailCount,5}  {e.LastConnectedLabel}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, limit, json, clear);
+        return cmd;
+    }
+
+    // ── eap-stats ────────────────────────────────────────
+    private static Command BuildEapStats(ServiceProvider sp)
+    {
+        var json  = new Option<bool>("--json");
+        var clear = new Option<bool>("--clear", "Clear all recorded EAP statistics");
+        var cmd   = new Command("eap-stats",
+            "Show 802.1X (Enterprise) authentication success rate by SSID and EAP type");
+        cmd.AddOption(json); cmd.AddOption(clear);
+
+        cmd.SetHandler((bool j, bool clr) =>
+        {
+            try
+            {
+                var svc = sp.GetRequiredService<EapAuthStatsService>();
+                if (clr) { svc.ClearAll(); Console.WriteLine("cleared"); return; }
+
+                var entries = svc.GetAll();
+                if (j)
+                {
+                    Print(entries.Select(e => new
+                    {
+                        ssid          = e.Ssid,
+                        eap_type      = e.EapType.ToString(),
+                        success_count = e.SuccessCount,
+                        fail_count    = e.FailCount,
+                        success_rate  = e.SuccessRate,
+                        last_attempt  = e.LastAttempt
+                    }));
+                    return;
+                }
+
+                if (entries.Count == 0)
+                {
+                    Console.WriteLine("No 802.1X connection attempts recorded yet.");
+                    return;
+                }
+
+                Console.WriteLine($"{"SSID",-32} {"EAP Type",-16} {"Success",7} {"Fail",5} {"Rate",6}  Last Attempt");
+                foreach (var e in entries)
+                    Console.WriteLine(
+                        $"{Trunc(e.Ssid,32),-32} {e.EapType,-16} {e.SuccessCount,7} {e.FailCount,5} " +
+                        $"{e.SuccessRate * 100,5:F0}%  {e.LastAttempt.LocalDateTime:yyyy-MM-dd HH:mm}");
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+        }, json, clear);
         return cmd;
     }
 

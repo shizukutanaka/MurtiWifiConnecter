@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, 'claude/**', 'feature/**', 'fix/**' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ── Windows: full build + test ──────────────────────────────────────────────
+  build-windows:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore (Windows solution filter)
+        run: dotnet restore MWC.ci-win.slnf
+
+      - name: Build
+        run: dotnet build MWC.ci-win.slnf -c Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test tests/MWC.Core.Tests/MWC.Core.Tests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          --results-directory TestResults
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat=cobertura
+          /p:CoverletOutput=TestResults/coverage.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-windows
+          path: TestResults/
+
+  # ── Ubuntu: Core-only build (no WPF, no tests) ─────────────────────────────
+  build-linux:
+    name: Build Core (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore (Linux solution filter)
+        run: dotnet restore MWC.ci-linux.slnf
+
+      - name: Build
+        run: dotnet build MWC.ci-linux.slnf -c Release --no-restore

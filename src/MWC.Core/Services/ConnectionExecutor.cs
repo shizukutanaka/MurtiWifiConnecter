@@ -11,46 +11,60 @@ namespace MWC.Core.Services;
 
 /// <summary>
 /// IWifiService.ConnectAsync の単一エントリポイント。
-/// プロジェクト内 4箇所に散在していた接続フローを統一。
+/// プロジェクト内に散在していた接続フローを統一。
 ///
 /// 責務:
 ///   - WifiProfileSpec → XML 変換
 ///   - プロファイル登録 (オーバーライト)
+///     ただし PSK 系でパスフレーズが空の場合は既存保存プロファイルを再利用するためスキップ
 ///   - 実接続 + タイムアウト
 ///   - History 自動記録
-///   - 構造化ログ
+///   - 構造化ログ / OTel
 ///
-/// 4箇所の呼出元:
-///   - MainViewModel.AdapterViewModel.ConnectAsync
-///   - AdapterConnectExtension.ConnectWithAppleFlowAsync (内部呼出)
+/// 呼出元:
+///   - AdapterViewModel.ConnectAsync / ConnectToSsidAsync
+///   - AdapterConnectExtension.ConnectWithAppleFlowAsync
 ///   - AutoReconnectService.WatchAsync
-///   - AllAdaptersOverviewViewModel.ConnectBestAsync
+///   - AdapterFailoverService.ConnectAsync
+///   - AllAdaptersOverviewViewModel.AdapterPanelViewModel.ConnectPreferredAsync
+///   - MultiAdapterCommand.ConnectOneAsync (CLI)
+///   - MainWindow.UpdateTray (トレイメニュー接続)
 /// </summary>
 public sealed class ConnectionExecutor
 {
     private readonly IWifiService               _wifi;
     private readonly NetworkHistoryService      _history;
     private readonly ILogger<ConnectionExecutor> _log;
-    // アダプターごとの排他ロック(並列接続によるドライバー不整合を防止)
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim>
+    // アダプターごとの排他ロック(並列接続によるドライバー不整合を防止)。
+    // インスタンスフィールドにすることでテスト分離とアダプター抜き差し時のリークを防ぐ。
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, SemaphoreSlim>
         _perAdapterLocks = new();
+    // ユーザーが意図的に切断したアダプターと時刻を記録
+    // AutoReconnect / Failover が誤って再接続しないよう使う
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, DateTimeOffset>
+        _userDisconnects = new();
+
+    // 802.1X (Enterprise) 接続試行の EAP タイプ別成否を記録する(任意注入)。
+    // 未指定(null)の場合は記録をスキップする — 既存の 3 引数コンストラクタ呼び出し
+    // (テスト等)との後方互換性を保つため required にしない。
+    private readonly EapAuthStatsService? _eapStats;
 
     public ConnectionExecutor(
         IWifiService wifi,
         NetworkHistoryService history,
-        ILogger<ConnectionExecutor> log)
+        ILogger<ConnectionExecutor> log,
+        EapAuthStatsService? eapStats = null)
     {
-        _wifi = wifi; _history = history; _log = log;
+        _wifi = wifi; _history = history; _log = log; _eapStats = eapStats;
     }
 
     /// <summary>
     /// 接続実行(プロファイル登録 → ConnectAsync → 履歴記録の一連フロー)。
+    /// NonBroadcast などのすべての接続パラメータを <see cref="WifiProfileSpec"/> で渡す。
     /// </summary>
     public async Task<ConnectionResult> ConnectAsync(
         Guid adapterId,
-        string ssid,
-        AuthMethod auth,
-        string passphrase = "",
+        WifiProfileSpec spec,
         TimeSpan? timeout = null,
         CancellationToken ct = default)
     {
@@ -60,24 +74,40 @@ public sealed class ConnectionExecutor
         {
         var to = timeout ?? TimeSpan.FromSeconds(25);
         MwcActivity.ConnectAttempts.Add(1,
-            new System.Collections.Generic.KeyValuePair<string,object?>("wifi.auth", auth.ToString()));
+            new System.Collections.Generic.KeyValuePair<string,object?>("wifi.auth", spec.Auth.ToString()));
 
-        using var activity = MwcActivity.StartConnectActivity(ssid, auth.ToString());
+        using var activity = MwcActivity.StartConnectActivity(spec.Ssid, spec.Auth.ToString());
         var sw = Stopwatch.StartNew();
 
         try
         {
             // 1. プロファイル登録
-            var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
-            var xml  = ProfileXmlBuilder.Build(spec);
-            await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false);
+            // パスフレーズが空でPSK系認証の場合、既存保存プロファイルを再利用するためスキップ。
+            // (AutoReconnect / Failover パスが passphrase="" で呼ぶケースに対応)
+            bool needsPassphrase = spec.Auth is AuthMethod.WPAPSK or AuthMethod.WPA2PSK
+                                   or AuthMethod.WPA3SAE or AuthMethod.WPA3Transition or AuthMethod.WEP;
+            bool shouldRegister  = !needsPassphrase || !string.IsNullOrEmpty(spec.Passphrase);
+            if (shouldRegister)
+            {
+                var xml = ProfileXmlBuilder.Build(spec);
+                if (!await _wifi.RegisterProfileAsync(adapterId, xml, overwrite: true, ct).ConfigureAwait(false))
+                {
+                    _history.RecordConnection(spec.Ssid, false);
+                    return ConnectionResult.Fail(ConnectionFailure.OsError);
+                }
+            }
 
             // 2. 接続実行
-            _log.LogInformation("Connecting to {ssid} on adapter {id}", ssid, adapterId);
-            var result = await _wifi.ConnectAsync(adapterId, ssid, ssid, to, ct).ConfigureAwait(false);
+            _log.ConnectAttempt(adapterId, MwcLog.HashSsid(spec.Ssid), spec.Auth);
+            var result = await _wifi.ConnectAsync(adapterId, spec.Ssid, spec.Ssid, to, ct).ConfigureAwait(false);
 
             // 3. 履歴記録
-            _history.RecordConnection(ssid, result.Success);
+            _history.RecordConnection(spec.Ssid, result.Success);
+
+            // 3b. 802.1X (Enterprise) 接続なら EAP タイプ別統計も記録する
+            // (ROADMAP.md 「802.1X 自動テスト(EAP 認証成功率を計測)」の計測基盤)。
+            if (spec.EapType is { } eap)
+                _eapStats?.RecordAttempt(spec.Ssid, eap, result.Success);
 
             sw.Stop();
             MwcActivity.ConnectDurationMs.Record(sw.Elapsed.TotalMilliseconds);
@@ -86,28 +116,27 @@ public sealed class ConnectionExecutor
             {
                 MwcActivity.ConnectSuccesses.Add(1);
                 activity?.SetStatus(ActivityStatusCode.Ok);
+                _log.ConnectSucceeded(adapterId, MwcLog.HashSsid(spec.Ssid), sw.ElapsedMilliseconds);
             }
             else
             {
                 MwcActivity.ConnectFailures.Add(1,
                     new System.Collections.Generic.KeyValuePair<string,object?>("failure", result.Failure?.ToString()));
                 activity?.SetStatus(ActivityStatusCode.Error, result.Failure?.ToString() ?? "unknown");
+                _log.ConnectFailed(adapterId, MwcLog.HashSsid(spec.Ssid), result.Failure ?? ConnectionFailure.Unknown, 0);
             }
-
-            _log.LogInformation("Connection {res}: {ssid} ({ms:F1}ms)",
-                result.Success ? "success" : $"failed ({result.Failure})", ssid, sw.Elapsed.TotalMilliseconds);
 
             return result;
         }
         catch (OperationCanceledException)
         {
-            _history.RecordConnection(ssid, false);
+            _history.RecordConnection(spec.Ssid, false);
             throw;
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "ConnectAsync exception: {ssid}", ssid);
-            _history.RecordConnection(ssid, false);
+            _log.LogError(ex, "ConnectAsync exception: {ssid}", PiiMask.Ssid(spec.Ssid));
+            _history.RecordConnection(spec.Ssid, false);
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }
         }
@@ -115,10 +144,25 @@ public sealed class ConnectionExecutor
     }
 
     /// <summary>
-    /// 切断 + 履歴更新。
+    /// 便利オーバーロード: SSID/Auth/Passphrase で接続。NonBroadcast 等が不要な場合に使用。
+    /// </summary>
+    public Task<ConnectionResult> ConnectAsync(
+        Guid adapterId,
+        string ssid,
+        AuthMethod auth,
+        string passphrase = "",
+        TimeSpan? timeout = null,
+        CancellationToken ct = default)
+        => ConnectAsync(adapterId,
+            new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase },
+            timeout, ct);
+
+    /// <summary>
+    /// 切断 + 履歴更新。ユーザー起因の切断として記録し、自動再接続を抑制する。
     /// </summary>
     public async Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
     {
+        _userDisconnects[adapterId] = DateTimeOffset.UtcNow;
         try
         {
             return await _wifi.DisconnectAsync(adapterId, ct).ConfigureAwait(false);
@@ -129,4 +173,12 @@ public sealed class ConnectionExecutor
             return false;
         }
     }
+
+    /// <summary>
+    /// 指定アダプターがユーザー操作により切断されてから <paramref name="within"/> 以内か確認。
+    /// true なら AutoReconnect / Failover はスキップすべき。
+    /// </summary>
+    public bool WasRecentlyDisconnectedByUser(Guid adapterId, TimeSpan within)
+        => _userDisconnects.TryGetValue(adapterId, out var t)
+           && DateTimeOffset.UtcNow - t <= within;
 }

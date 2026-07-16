@@ -1,16 +1,17 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using MWC.App.Resources;
 using MWC.App.Services;
 using MWC.App.ViewModels;
 using MWC.App.Views;
 using MWC.Core.Models;
-
-using MWC.App.Resources;
 namespace MWC.App;
 
 /// <summary>
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
     private AppUpdateService?         _updater;
     private JumpListService?          _jumpList;
     private NetworkHistoryService?    _history;
+    private SystemTrayService?        _tray;
 
     public MainWindow()
     {
@@ -48,7 +50,10 @@ public partial class MainWindow : Window
             // (ここで二重購読すると前面化処理が 2 回走るため購読しない)
 
             if (DataContext is not MainViewModel vm) return;
+            _tray = svc.GetService<SystemTrayService>();
             await vm.LoadCommand.ExecuteAsync(null);
+            vm.PropertyChanged += OnViewModelPropertyChanged;
+            UpdateTray(vm);
             UpdateJumpList(vm);
             CheckForUpdatesAsync(vm).Forget();
         }
@@ -61,7 +66,11 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        if (DataContext is MainViewModel vm) vm.Dispose();
+        if (DataContext is MainViewModel vm)
+        {
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+            vm.Dispose();
+        }
     }
 
     private async Task CheckForUpdatesAsync(MainViewModel vm)
@@ -74,7 +83,7 @@ public partial class MainWindow : Window
             if (r.HasUpdate)
                 Dispatcher.Invoke(() => vm.StatusMessage = MWC.App.Resources.L.Format("Status_UpdateAvailable", r.LatestVersion));
         }
-        catch { /* バックグラウンド更新の失敗は静かに */ }
+        catch (Exception ex) { Log.Debug(ex, "Background update check failed"); }
     }
 
     // ── キーボードショートカット ──────────────────────
@@ -98,12 +107,14 @@ public partial class MainWindow : Window
                 case (Key.E,      ModifierKeys.Control):
                     vm.StatusMessage = await _cmd.ExportAsync(vm, "csv"); e.Handled = true; break;
                 case (Key.K,      ModifierKeys.Control):
-                    vm.StatusMessage = await _cmd.MeasureQualityAsync(vm.StatusMessage);
+                    vm.StatusMessage = await _cmd.MeasureQualityAsync();
                     e.Handled = true; break;
                 case (Key.OemComma, ModifierKeys.Control):
                     _cmd.ShowSettings(this, vm); e.Handled = true; break;
                 case (Key.M,      ModifierKeys.Control):
                     vm.Filter.ToggleExpertModeCommand.Execute(null); e.Handled = true; break;
+                case (Key.A,      ModifierKeys.Control | ModifierKeys.Shift):
+                    _cmd.ShowAllAdapters(this); e.Handled = true; break;
                 case (Key.F1,     ModifierKeys.None):
                     _cmd.ShowShortcutHelp(this); e.Handled = true; break;
                 case (Key.Escape, ModifierKeys.None) when !string.IsNullOrEmpty(vm.Filter.SearchText):
@@ -158,10 +169,7 @@ public partial class MainWindow : Window
 
     private void OnHideNetwork(object sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel vm) return;
-        var ssid = vm.SelectedAdapter?.Selected?.Ssid;
-        if (string.IsNullOrEmpty(ssid)) return;
-        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Hidden", ssid);
+        if (DataContext is MainViewModel vm) _cmd?.HideNetwork(vm);
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
@@ -184,12 +192,22 @@ public partial class MainWindow : Window
         {
             if (DataContext is not MainViewModel vm || _cmd is null) return;
             vm.StatusMessage = L.Get("Status_Scanning");
-            vm.StatusMessage = await _cmd.MeasureQualityAsync(vm.StatusMessage);
+            vm.StatusMessage = await _cmd.MeasureQualityAsync();
         });
     }
 
     private void OnAboutClick(object sender, RoutedEventArgs e)
         => _cmd?.ShowAbout(this);
+
+    private void OnExportDiagnostic(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || _cmd is null) return;
+        _ = AsyncEventHelper.SafeRunAsync(null, "ExportDiagnostic",
+            () => _cmd.ExportDiagnosticAsync(vm, this));
+    }
+
+    private void OnAllAdaptersClick(object sender, RoutedEventArgs e)
+        => _cmd?.ShowAllAdapters(this);
 
     // ── 子機(アダプター)固有メニュー ────────────────
     private static AdapterViewModel? GetAdapterFromMenu(object sender)
@@ -204,7 +222,8 @@ public partial class MainWindow : Window
     {
         var ad = GetAdapterFromMenu(sender);
         if (ad is null || _cmd is null) return;
-        var prefs = _cmd.OpenAdapterPreferences(ad, this);
+        var allAdapters = DataContext is MainViewModel mvm ? mvm.Adapters.ToList() : null;
+        var prefs = _cmd.OpenAdapterPreferences(ad, this, allAdapters);
         if (prefs is not null && DataContext is MainViewModel vm)
             vm.LoadCommand.ExecuteAsync(null).Forget();
     }
@@ -214,7 +233,12 @@ public partial class MainWindow : Window
         await AsyncEventHelper.SafeRunAsync(null, "OnAdapterRefreshClick", async () =>
         {
             var ad = GetAdapterFromMenu(sender);
-            if (ad is not null) await ad.RefreshAsync();
+            if (ad is null) return;
+            await ad.RefreshAsync();
+            // After a manual per-adapter refresh, re-sort/filter if this is the active adapter.
+            // SafeRefresh() normally does this for the timer path, but context-menu refresh bypasses it.
+            if (DataContext is MainViewModel vm && ad == vm.SelectedAdapter)
+                vm.Filter.ReapplyFilter();
         });
     }
 
@@ -237,6 +261,62 @@ public partial class MainWindow : Window
         => ChannelCanvas.BandFilter = WifiBand.Band5GHz;
     private void OnBandSelect6(object sender, RoutedEventArgs e)
         => ChannelCanvas.BandFilter = WifiBand.Band6GHz;
+
+    // ── トレイ更新 ────────────────────────────────────
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // IsScanning が false に戻った = スキャン完了 → トレイ同期
+        if (e.PropertyName == nameof(MainViewModel.IsScanning) &&
+            sender is MainViewModel vm && !vm.IsScanning)
+        {
+            UpdateTray(vm);
+        }
+    }
+
+    private void UpdateTray(MainViewModel vm)
+    {
+        if (_tray is null) return;
+        var executor = App.Host.Services.GetService<ConnectionExecutor>();
+        if (executor is null) return;
+
+        // UI スレッドでスナップショットを取得 (ObservableCollection は UI スレッド専用)
+        var models = vm.Adapters
+            .Select(a => new AdapterMenuModel(a.Id, a.Name, a.Description, a.ConnectedSsid, a.SourceNetworks))
+            .ToList();
+        // WifiNetwork record は不変なのでスナップショットはスレッドセーフ
+        var networkSnapshot = vm.Adapters.ToDictionary(
+            a => a.Id,
+            a => (IReadOnlyList<WifiNetwork>)a.SourceNetworks.ToList());
+
+        _tray.UpdateAdapterMenus(
+            models,
+            async (adapterId, ssid) =>
+            {
+                // WinForms スレッドからの呼び出し。スナップショットを参照してスレッドセーフに接続
+                if (!networkSnapshot.TryGetValue(adapterId, out var nets)) return;
+                var net = nets.FirstOrDefault(n => n.Ssid == ssid && n.HasProfile);
+                if (net is null) return;
+                var result = await executor.ConnectAsync(adapterId, ssid, net.Auth, "", TimeSpan.FromSeconds(20));
+                // 接続完了後、UI スレッドでトレイ再同期＋キャプティブポータル判定
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (DataContext is MainViewModel v) UpdateTray(v);
+                    if (result.Success && result.BehindCaptivePortal)
+                        new Views.CaptivePortalDialog(ssid) { Owner = this }.ShowDialog();
+                });
+            },
+            async (adapterId) =>
+            {
+                // DisconnectCommand は UI スレッドで実行
+                var ad = Dispatcher.Invoke(() => vm.Adapters.FirstOrDefault(a => a.Id == adapterId));
+                if (ad is null) return;
+                await ad.DisconnectCommand.ExecuteAsync(null);
+                Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
+            });
+
+        if (vm.SelectedAdapter is { } sel)
+            _tray.UpdateStatus(sel.ConnectedSsid, sel.CurrentSignal);
+    }
 
     // ── JumpList更新 ──────────────────────────────────
     private void UpdateJumpList(MainViewModel vm)

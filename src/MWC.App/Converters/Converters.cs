@@ -81,42 +81,6 @@ public sealed class NullToVisibilityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
-// ── SecurityLevel → Brush ────────────────────────────
-[ValueConversion(typeof(SecurityLevel), typeof(System.Windows.Media.Brush))]
-public sealed class SecurityLevelToBrushConverter : IValueConverter
-{
-    public static readonly SecurityLevelToBrushConverter Instance = new();
-
-    private static System.Windows.Media.Brush Mk(string hex)
-    {
-        var b = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
-        b.Freeze();
-        return b;
-    }
-
-    private static readonly System.Windows.Media.Brush Excellent = Mk("#22C55E");
-    private static readonly System.Windows.Media.Brush Good      = Mk("#3B82F6");
-    private static readonly System.Windows.Media.Brush Fair      = Mk("#F59E0B");
-    private static readonly System.Windows.Media.Brush Weak      = Mk("#F97316");
-    private static readonly System.Windows.Media.Brush Danger    = Mk("#EF4444");
-    private static readonly System.Windows.Media.Brush Unknown   = Mk("#9CA3AF");
-
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is SecurityLevel l ? l switch
-        {
-            SecurityLevel.Excellent => Excellent,
-            SecurityLevel.Good      => Good,
-            SecurityLevel.Fair      => Fair,
-            SecurityLevel.Weak      => Weak,
-            SecurityLevel.Danger    => Danger,
-            _ => Unknown
-        } : Unknown;
-
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
-        => throw new NotSupportedException();
-}
-
 // ── bool → DisplayMode RadioButton helper ────────────
 [ValueConversion(typeof(bool), typeof(bool))]
 public sealed class ExpertModeToBoolConverter : IValueConverter

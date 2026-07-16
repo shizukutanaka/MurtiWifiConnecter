@@ -30,7 +30,7 @@ public sealed class PowerSaveAdvisorService
                 SupportsTwt:      true,
                 SupportsRtwt:     true,
                 EstimatedSavingPercent: 34,   // TASPER の上限値
-                Summary:          "rTWT 対応。リアルタイムトラフィックの低遅延と省電力を両立。最大34%のエネルギー削減。");
+                Summary:          "rTWT supported. Combines low latency for real-time traffic with power saving. Up to 34% energy reduction.");
 
         if (network.TargetWakeTime)
             return new PowerSaveProfile(
@@ -38,14 +38,14 @@ public sealed class PowerSaveAdvisorService
                 SupportsTwt:      true,
                 SupportsRtwt:     false,
                 EstimatedSavingPercent: 20,
-                Summary:          "TWT 対応。Service Period 外で doze 状態に入りバッテリーを節約。約20%のエネルギー削減。");
+                Summary:          "TWT supported. Enters doze state outside Service Periods to save battery. Approximately 20% energy reduction.");
 
         return new PowerSaveProfile(
             Tier:             PowerSaveTier.Legacy,
             SupportsTwt:      false,
             SupportsRtwt:     false,
             EstimatedSavingPercent: 0,
-            Summary:          "TWT 非対応。レガシー省電力 (DTIM/PSM) のみ。");
+            Summary:          "TWT not supported. Legacy power saving (DTIM/PSM) only.");
     }
 
     /// <summary>

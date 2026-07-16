@@ -40,9 +40,7 @@ public sealed record WifiProfileSpec
         {
             AuthMethod.Open or AuthMethod.OWE => ProfileValidation.Ok,
 
-            AuthMethod.WEP => string.IsNullOrEmpty(Passphrase)
-                ? ProfileValidation.Fail("WEP key required")
-                : ProfileValidation.Ok,
+            AuthMethod.WEP => ValidateWepKey(),
 
             AuthMethod.WPAPSK or AuthMethod.WPA2PSK
                 or AuthMethod.WPA3SAE or AuthMethod.WPA3Transition =>
@@ -60,11 +58,37 @@ public sealed record WifiProfileSpec
     {
         if (string.IsNullOrEmpty(Passphrase))
             return ProfileValidation.Fail("Passphrase required");
-        // WPA/WPA2 PSK: 8-63 ASCII or 64-hex
         int len = Passphrase.Length;
-        if (len < 8 || len > 64)
-            return ProfileValidation.Fail("Passphrase length must be 8-63 chars or 64 hex");
+        // WPA/WPA2/WPA3 PSK: 64 桁 hex の raw PSK は別扱い
+        if (len == 64 && IsHex(Passphrase))
+            return ProfileValidation.Ok;
+        // それ以外は 8-63 ASCII printable (0x20-0x7E)
+        if (len < 8 || len > 63)
+            return ProfileValidation.Fail("Passphrase must be 8-63 ASCII chars or exactly 64 hex digits");
+        foreach (var c in Passphrase)
+            if (c < 0x20 || c > 0x7E)
+                return ProfileValidation.Fail(
+                    $"Passphrase contains non-ASCII printable character U+{(int)c:X4}; WPA passphrases must use ASCII 0x20-0x7E");
         return ProfileValidation.Ok;
+    }
+
+    private ProfileValidation ValidateWepKey()
+    {
+        if (string.IsNullOrEmpty(Passphrase))
+            return ProfileValidation.Fail("WEP key required");
+        int len = Passphrase.Length;
+        bool ascii = (len == 5 || len == 13);
+        bool hex   = (len == 10 || len == 26) && IsHex(Passphrase);
+        return ascii || hex
+            ? ProfileValidation.Ok
+            : ProfileValidation.Fail("WEP key must be 5/13 ASCII chars or 10/26 hex digits");
+    }
+
+    private static bool IsHex(string s)
+    {
+        foreach (var c in s)
+            if (!Uri.IsHexDigit(c)) return false;
+        return true;
     }
 
     private ProfileValidation ValidateEnterprise()
@@ -76,11 +100,17 @@ public sealed record WifiProfileSpec
             if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
                 return ProfileValidation.Fail("PEAP needs username+password");
         }
-        if (EapType == Models.EapType.EAP_TLS)
+        // EAP-TLS: ClientCertThumbprint is accepted as metadata but Windows WLAN profile XML
+        // does not support specifying a client cert by thumbprint — SimpleCertSelection is used
+        // and Windows auto-selects from the user cert store at connection time. No validation
+        // error is raised here; a missing thumbprint means auto-selection without a hint.
+        if (EapType == Models.EapType.EAP_TTLS)
         {
-            if (string.IsNullOrEmpty(ClientCertThumbprint))
-                return ProfileValidation.Fail("EAP-TLS needs client cert");
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+                return ProfileValidation.Fail("EAP-TTLS needs username+password");
         }
+        if (EapType == Models.EapType.EAP_AKA)
+            return ProfileValidation.Fail("EAP-AKA (SIM-based) is not supported");
         return ProfileValidation.Ok;
     }
 }

@@ -84,19 +84,19 @@ public sealed class ErrorHandlerService
     private static string BuildUserMessage(ErrorCategory cat, string operation) => cat switch
     {
         ErrorCategory.Permission   =>
-            $MWC.App.Resources.L.Get("Error_Permission"),
+            MWC.App.Resources.L.Get("Error_Permission"),
         ErrorCategory.Network      =>
-            $MWC.App.Resources.L.Get("Error_Network"),
+            MWC.App.Resources.L.Get("Error_Network"),
         ErrorCategory.Io           =>
-            $MWC.App.Resources.L.Get("Error_Io"),
+            MWC.App.Resources.L.Get("Error_Io"),
         ErrorCategory.Timeout      =>
-            $MWC.App.Resources.L.Get("Error_Timeout"),
+            MWC.App.Resources.L.Get("Error_Timeout"),
         ErrorCategory.InvalidInput =>
-            $MWC.App.Resources.L.Get("Error_InvalidInput"),
+            MWC.App.Resources.L.Get("Error_InvalidInput"),
         ErrorCategory.InvalidState =>
-            $MWC.App.Resources.L.Get("Error_InvalidState"),
+            MWC.App.Resources.L.Get("Error_InvalidState"),
         _                          =>
-            $MWC.App.Resources.L.Get("Error_Unknown")
+            MWC.App.Resources.L.Get("Error_Unknown")
     };
 
     private static ConnectionFailure MapToFailure(ErrorCategory cat) => cat switch

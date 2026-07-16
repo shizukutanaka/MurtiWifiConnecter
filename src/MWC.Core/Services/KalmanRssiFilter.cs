@@ -36,6 +36,14 @@ public sealed class KalmanRssiFilter
     /// </summary>
     public KalmanRssiFilter(double processNoise = 0.5, double measurementNoise = 4.0)
     {
+        // R は更新ステップで (Pₖ⁻ + R) として除算の基になる。R<=0 だと収束後に
+        // Pₖ⁻+R=0 → ゲインが 0/0 = NaN になりうるため正値を要求する
+        // (RssiDistanceEstimator が指数 n>0 を要求するのと同じ防衛)。
+        if (processNoise < 0)
+            throw new ArgumentOutOfRangeException(nameof(processNoise), "Process noise Q must be >= 0.");
+        if (measurementNoise <= 0)
+            throw new ArgumentOutOfRangeException(nameof(measurementNoise),
+                "Measurement noise R must be > 0 (it is the Kalman-gain denominator).");
         _processNoise     = processNoise;
         _measurementNoise = measurementNoise;
         _errorCovariance  = 1.0;

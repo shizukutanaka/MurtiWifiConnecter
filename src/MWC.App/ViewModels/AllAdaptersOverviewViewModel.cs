@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using MWC.App.Views;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
@@ -79,7 +81,7 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
     public void UpdateSummary()
     {
         int connected = Panels.Count(p => !string.IsNullOrEmpty(p.ConnectedSsid));
-        SummaryStatus = $"{connected} / {Panels.Count} 子機が接続中";
+        SummaryStatus = MWC.App.Resources.L.StatusAdaptersConnected(connected, Panels.Count);
     }
 }
 
@@ -96,6 +98,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
     public Guid    Id          => _adapter.Id;
     public string  Name        => _adapter.Name;
     public string  Description => _adapter.Description;
+    public string  NetworkListAutomationLabel => MWC.App.Resources.L.AllAdaptersNetworkListAutomation(Name);
 
     /// <summary>このアダプタで利用可能な全ネットワーク</summary>
     public ObservableCollection<NetworkItemViewModel> Networks { get; } = new();
@@ -130,7 +133,10 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
         IsScanning = true;
         try
         {
-            var nets = await _wifi.ScanAsync(_adapter.Id);
+            var rawNets = await _wifi.ScanAsync(_adapter.Id);
+            // OWE Transition Mode: 同一 SSID の Open ビーコンは後方互換用のプレースホルダーであり
+            // (RFC 8110)、OWE 対応クライアントは常に暗号化された OWE 側を使うべき。重複表示を防ぐ。
+            var nets = new OweSelectionService().ApplyOwePreference(rawNets);
             SourceNetworks = nets;
 
             var byKey = nets.ToDictionary(n => n.Ssid);
@@ -152,7 +158,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
             ConnectedSsid    = connected?.Ssid;
             ConnectedSignal  = connected?.SignalQuality ?? 0;
             StatusMessage    = ConnectedSsid is null
-                ? $"{nets.Count} 個のネットワーク"
+                ? MWC.App.Resources.L.StatusNetworksFound(nets.Count)
                 : MWC.App.Resources.L.Format("Status_ConnectedTo", ConnectedSsid, ConnectedSignal);
         }
         catch (Exception ex) { _log.LogWarning(ex, "Panel refresh: {n}", _adapter.Name); }
@@ -172,14 +178,29 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
         IsConnecting = true;
         try
         {
-            StatusMessage = MWC.App.Resources.L.Format("Progress_Connecting");
-            var net = SourceNetworks.First(n => n.Ssid == best);
+            StatusMessage = MWC.App.Resources.L.Get("Progress_Connecting");
+            var net = SourceNetworks.FirstOrDefault(n => n.Ssid == best);
+            if (net is null) { StatusMessage = MWC.App.Resources.L.Get("Status_PriorityOutOfRange"); return; }
             var res = await _executor.ConnectAsync(
                 _adapter.Id, best, net.Auth, "", TimeSpan.FromSeconds(20));
             await RefreshAsync();
             StatusMessage = res.Success
                 ? MWC.App.Resources.L.Format("Status_ConnectedTo_Short", best)
-                : $MWC.App.Resources.L.ErrorConnectionFailed(res.Failure?.ToString() ?? "");
+                : MWC.App.Resources.L.ErrorConnectionFailed(
+                    MWC.App.Resources.L.ConnectionFailureLabel(
+                        res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown));
+            if (res.Success && res.BehindCaptivePortal)
+                new CaptivePortalDialog(best)
+                    { Owner = Application.Current?.MainWindow }
+                    .ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            // AsyncRelayCommand 経由の呼び出しは例外を ExecutionTask に格納するだけで
+            // UI に伝播しないため、握りつぶさずログ記録 + ユーザー向け表示を行う
+            // (AdapterViewModel.RefreshAsync と同じ 2026-07 品質パスの修正)。
+            _log.LogError(ex, "ConnectPreferred failed for adapter {AdapterId}", _adapter.Id);
+            StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);
         }
         finally { IsConnecting = false; }
     }

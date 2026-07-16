@@ -79,7 +79,7 @@ public sealed class EvilTwinDetector
             string.Equals(n.Ssid, ssid, StringComparison.Ordinal)).ToList();
         var distinctAuth = sameSsid.Select(n => n.Auth).Distinct().Count();
         if (distinctAuth > 1)
-            reasons.Add($"同一 SSID に {distinctAuth} 種類の異なるセキュリティ設定が混在");
+            reasons.Add($"Same SSID has {distinctAuth} different security configurations");
 
         // 2. 既知 BSSID との不一致 (過去に接続したのに BSSID が違う)
         if (_knownBssids.TryGetValue(ssid, out var known) && known.Count > 0)
@@ -93,25 +93,28 @@ public sealed class EvilTwinDetector
                     var oui = b.Length >= 8 ? b[..8] : b;
                     bool ouiKnown = known.Any(k => k.StartsWith(oui, StringComparison.OrdinalIgnoreCase));
                     if (!ouiKnown)
-                        reasons.Add("以前と異なるベンダー (OUI) の BSSID を検出");
+                    {
+                        // Only report here when the OUI DB cannot resolve a vendor name.
+                        // When the DB *can* name it, check 4 adds a richer reason for the
+                        // same signal — adding both would double-count one indicator.
+                        var vendorFromDb = _oui.Lookup(b);
+                        if (vendorFromDb is null)
+                            reasons.Add("BSSID detected with a different vendor (OUI) than previously seen");
+                    }
                 }
             }
         }
 
         // 3. 既知のセキュリティ設定からの降格 (WPA3 → Open 等)
+        // Note: "appearing as open" is the most severe downgrade case and is fully
+        // covered here — a separate check would double-count it as two reasons.
         if (_knownAuth.TryGetValue(ssid, out var trustedAuth))
         {
             if (IsSecurityDowngrade(trustedAuth, network.Auth))
-                reasons.Add($"既知の {trustedAuth} から {network.Auth} へのセキュリティ降格");
+                reasons.Add($"Security downgrade detected: known {trustedAuth} vs current {network.Auth}");
         }
 
-        // 4. オープンネットワークで既知の暗号化 SSID を名乗る
-        if (network.Auth == AuthMethod.Open &&
-            _knownAuth.TryGetValue(ssid, out var auth2) &&
-            auth2 != AuthMethod.Open)
-            reasons.Add("既知の暗号化ネットワークがオープンとして出現 (なりすまし濃厚)");
-
-        // 5. ベンダー (OUI) 照合 — 既知と異なるベンダーの機器
+        // 4. ベンダー (OUI) 照合 — 既知と異なるベンダーの機器
         if (_knownVendors.TryGetValue(ssid, out var knownVendors) && knownVendors.Count > 0)
         {
             var bssids2 = network.BssEntries?.Select(b => b.Bssid) ?? Array.Empty<string>();
@@ -119,7 +122,7 @@ public sealed class EvilTwinDetector
             {
                 var vendor = _oui.Lookup(b);
                 if (vendor != null && !knownVendors.Contains(vendor))
-                    reasons.Add($"既知と異なる機器ベンダー ({vendor}) を検出");
+                    reasons.Add($"Device vendor different from known vendor detected ({vendor})");
             }
         }
 

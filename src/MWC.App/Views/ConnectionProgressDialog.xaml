@@ -1,11 +1,12 @@
 <Window x:Class="MWC.App.Views.ConnectionProgressDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="接続中" Width="360" SizeToContent="Height"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        Title="{x:Static r:L.ProgressWindowTitle}" Width="360" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         ShowInTaskbar="False"
-        AutomationProperties.Name="接続進行状況">
+        AutomationProperties.Name="{x:Static r:L.ProgressDialogAutomation}">
     <StackPanel Margin="28,24">
         <TextBlock x:Name="SsidLabel" FontSize="17" FontWeight="Bold"
                    HorizontalAlignment="Center" Margin="0,0,0,6"/>
@@ -26,38 +27,58 @@
                                 VerticalAlignment="Center">
                             <Border.Style>
                                 <Style TargetType="Border">
-                                    <Setter Property="Background" Value="#2B313A"/>
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Active">
-                                            <Setter Property="Background" Value="#00C4CC"/>
+                                            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Done">
-                                            <Setter Property="Background" Value="#22C55E"/>
+                                            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Error">
-                                            <Setter Property="Background" Value="#EF4444"/>
+                                            <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
+                            <!-- ドットの前景色: Pending は中立の FgMutedBrush、それ以外は円の色に対して
+                                 実際にコントラスト検証済みの AccentTextBrush/DangerTextBrush を流用する
+                                 (固定 White だと Active の AccentBrush 背景で AA 未達になりうる —
+                                 ThemeAccessibilityAuditTests の AccentTextBrush 検証はまさにこの組合せ用) -->
                             <TextBlock x:Name="StepIcon" Text="●" FontSize="8"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="White"/>
+                                       Foreground="{DynamicResource FgMutedBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding State}" Value="Active">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding State}" Value="Done">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding State}" Value="Error">
+                                                <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Border>
                         <!-- ステップ名 -->
                         <TextBlock Grid.Column="1" Text="{Binding Name}"
                                    VerticalAlignment="Center" Margin="8,0,0,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#9CA3AF"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource FgMutedBrush}"/>
                                     <Setter Property="FontSize" Value="13"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State}" Value="Active">
-                                            <Setter Property="Foreground" Value="#E6E8EB"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource FgBrush}"/>
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Done">
-                                            <Setter Property="Foreground" Value="#4ADE80"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -69,7 +90,9 @@
         </ItemsControl>
 
         <!-- キャンセル -->
-        <Button x:Name="CancelBtn" AutomationProperties.Name="キャンセル" Content="キャンセル"
+        <Button x:Name="CancelBtn"
+                Content="{x:Static r:L.ActionCancel}"
+                AutomationProperties.Name="{x:Static r:L.ActionCancel}"
                 Click="OnCancel" HorizontalAlignment="Center"
                 Padding="20,8" Background="{DynamicResource SurfaceHoverBrush}" Foreground="{DynamicResource FgMutedBrush}"
                 BorderThickness="0"/>

@@ -9,6 +9,7 @@ using ManagedNativeWifi;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
 using MWC.Core.Models;
+using MWC.Core.Services;
 
 namespace MWC.Platform.Windows;
 
@@ -21,11 +22,18 @@ public sealed class WindowsWifiService : IWifiService
 {
     private readonly ILogger<WindowsWifiService> _log;
     private readonly IConnectivityChecker        _connectivity;
+    private readonly IBeaconIeProvider           _ieProvider;
+    private readonly BeaconEnrichmentService     _enrichment = new();
 
-    public WindowsWifiService(ILogger<WindowsWifiService> log, IConnectivityChecker connectivity)
+    public WindowsWifiService(
+        ILogger<WindowsWifiService> log,
+        IConnectivityChecker connectivity,
+        IBeaconIeProvider? ieProvider = null)
     {
         _log          = log;
         _connectivity = connectivity;
+        // 生 IE 供給源が無ければ Null オブジェクト (基本スキャンのみ、劣化なし)
+        _ieProvider   = ieProvider ?? NullBeaconIeProvider.Instance;
     }
 
     // ── Adapters ────────────────────────────────────────────────────
@@ -36,10 +44,14 @@ public sealed class WindowsWifiService : IWifiService
             var list = NativeWifi.EnumerateInterfaces()
                 .Select(i => new WifiAdapter
                 {
-                    Id          = i.Id,
-                    Name        = i.Description ?? i.Id.ToString(),
-                    Description = i.Description ?? "",
-                    State       = MapState(i.State)
+                    Id            = i.Id,
+                    Name          = i.Description ?? i.Id.ToString(),
+                    Description   = i.Description ?? "",
+                    State         = MapState(i.State),
+                    // ConnectedSsid must be set here; AdapterFailoverService reads it
+                    // to detect link-loss transitions. Without this, currentSsid is
+                    // always null and the failover trigger never fires.
+                    ConnectedSsid = GetConnectedSsid(i.Id)
                 })
                 .ToList();
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(list);
@@ -52,6 +64,12 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Scan ─────────────────────────────────────────────────────────
+    /// <summary>
+    /// 利用可能なネットワークをスキャンする。
+    /// 注意: Windows 11 24H2 以降は Wi-Fi スキャン / SSID 列挙に「位置情報」プライバシー
+    /// 許可が必要。未許可だと Native Wifi が <see cref="UnauthorizedAccessException"/> を
+    /// 投げ、列挙結果が空になる。本実装はこれを区別して実用的な案内をログに出す。
+    /// </summary>
     public async Task<IReadOnlyList<WifiNetwork>> ScanAsync(
         Guid adapterId, CancellationToken ct = default)
     {
@@ -60,6 +78,11 @@ public sealed class WindowsWifiService : IWifiService
             await NativeWifi.ScanNetworksAsync(adapterId, TimeSpan.FromSeconds(8), ct);
         }
         catch (OperationCanceledException) { throw; }
+        catch (UnauthorizedAccessException ex)
+        {
+            _log.LogWarning(ex, "Wi-Fi scan denied — grant Location permission in " +
+                "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
+        }
         catch (Exception ex) { _log.LogWarning(ex, "ScanNetworks warning"); }
 
         try
@@ -67,6 +90,11 @@ public sealed class WindowsWifiService : IWifiService
             // BSS 情報(BSSID/RSSI/Channel)を取得
             var bssMap = BuildBssMap(adapterId);
 
+            // 既知の制限: SSID は仕様上 UTF-8 が保証されず、日本では Shift-JIS(cp932)で
+            // 設定された AP が存在する。ManagedNativeWifi の Ssid.ToString() は UTF-8 として
+            // 解釈するため、非 UTF-8 SSID は文字化けしうる。厳密対応には Ssid.ToBytes() を
+            // 取得し UTF-8 検証 → 失敗時 cp932 フォールバック(System.Text.Encoding.CodePages)
+            // が必要。実機(Windows)での検証が要るため将来対応とする。
             var networks = NativeWifi.EnumerateAvailableNetworks()
                 .Where(n => n.Interface.Id == adapterId)
                 .GroupBy(n => n.Ssid.ToString())
@@ -88,7 +116,9 @@ public sealed class WindowsWifiService : IWifiService
                         BssEntries   = bssList,
                         SignalQuality = (int)first.SignalQuality,
                         Rssi         = rssi != 0 ? rssi : null,
-                        Auth         = MapAuth(first.AuthAlgorithm),
+                        Auth         = first.CipherAlgorithm is CipherAlgorithm.Wep
+                                       ? AuthMethod.WEP
+                                       : MapAuth(first.AuthAlgorithm),
                         Cipher       = MapCipher(first.CipherAlgorithm),
                         Band         = FreqToBand(freq > 0 ? freq : ChannelToFreq(ch)),
                         Channel      = ch,
@@ -105,9 +135,31 @@ public sealed class WindowsWifiService : IWifiService
 
             // 接続中 SSID をマーク
             string? conn = GetConnectedSsid(adapterId);
-            return networks
+            var marked = networks
                 .Select(n => n with { IsConnected = n.Ssid == conn })
                 .ToList();
+
+            // 生 IE が供給される環境では詳細解析で強化 (Country/TPC/BSS Load/FT/MDID 等)。
+            // 供給源が無い (Null プロバイダ) 場合は marked をそのまま返す。
+            try
+            {
+                var rawBeacons = _ieProvider.GetRawBeacons(adapterId);
+                return _enrichment.Enrich(marked, rawBeacons);
+            }
+            catch (Exception ex)
+            {
+                _log.LogDebug(ex, "Beacon IE enrichment skipped");
+                return marked;
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // Windows 11 24H2+ gates network enumeration behind the Location
+            // privacy permission. Surface this distinctly so an empty scan is
+            // diagnosable rather than reported as a generic failure.
+            _log.LogWarning(ex, "Wi-Fi network enumeration denied — grant Location permission in " +
+                "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
+            return Array.Empty<WifiNetwork>();
         }
         catch (Exception ex)
         {
@@ -115,8 +167,6 @@ public sealed class WindowsWifiService : IWifiService
             return Array.Empty<WifiNetwork>();
         }
     }
-
-    private BssInfo[] BuildBssMap_Empty() => Array.Empty<BssInfo>();
 
     private Dictionary<string, BssInfo[]> BuildBssMap(Guid adapterId)
     {
@@ -176,7 +226,7 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            using var waiter = new ConnectionWaiter(adapterId, ssid, _log);
+            using var waiter = new ConnectionWaiter(adapterId, _log);
             bool req = NativeWifi.ConnectNetwork(adapterId, profileName, BssType.Any);
             if (!req) return ConnectionResult.Fail(ConnectionFailure.ProfileRejected);
 
@@ -185,12 +235,15 @@ public sealed class WindowsWifiService : IWifiService
                 return ConnectionResult.Fail(outcome switch
                 {
                     ConnectionOutcome.BadCredentials => ConnectionFailure.BadCredentials,
+                    ConnectionOutcome.NotInRange     => ConnectionFailure.NotInRange,
                     ConnectionOutcome.Timeout        => ConnectionFailure.Timeout,
                     ConnectionOutcome.Cancelled      => ConnectionFailure.Cancelled,
                     _ => ConnectionFailure.Unknown
                 });
 
-            var conn = await _connectivity.CheckAsync(ct);
+            // 疎通確認は「今接続したこのアダプター」に束縛して行う。既定ルートが
+            // 別アダプター(有線/別 Wi-Fi)の場合、束縛しないとそちらの疎通を誤報告する。
+            var conn = await _connectivity.CheckAsync(adapterId, ct);
             return ConnectionResult.Ok(ssid, conn.HasInternet, conn.CaptivePortalDetected);
         }
         catch (OperationCanceledException)
@@ -199,14 +252,21 @@ public sealed class WindowsWifiService : IWifiService
             { return ConnectionResult.Fail(ConnectionFailure.InsufficientPrivilege); }
         catch (Exception ex)
         {
-            _log.LogError(ex, "ConnectAsync failed");
+            _log.LogError(ex, "ConnectAsync failed for {Ssid}", PiiMask.Ssid(ssid));
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }
     }
 
     // ── Misc ─────────────────────────────────────────────────────────
     public Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
-        => Task.FromResult(NativeWifi.DisconnectNetwork(adapterId));
+    {
+        try   { return Task.FromResult(NativeWifi.DisconnectNetwork(adapterId)); }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "DisconnectAsync failed for adapter {Id}", adapterId);
+            return Task.FromResult(false);
+        }
+    }
 
     public Task<bool> DeleteProfileAsync(Guid adapterId, string profileName,
         CancellationToken ct = default)
@@ -238,7 +298,7 @@ public sealed class WindowsWifiService : IWifiService
 
         // ManagedNativeWifi が NetworkStateChanged を公開している場合のみ購読
         // (バージョンによりイベント名が異なるため型で安全に判定)
-        NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged);
+        NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged, _log);
         try
         {
             await foreach (var ev in ch.Reader.ReadAllAsync(ct))
@@ -256,10 +316,11 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            return NativeWifi.EnumerateConnectedNetworkSsids()
-                .FirstOrDefault()?.ToString();
+            return NativeWifi.EnumerateConnectedNetworks()
+                .FirstOrDefault(n => n.Interface.Id == adapterId)
+                ?.Ssid.ToString();
         }
-        catch { return null; }
+        catch (Exception ex) { _log.LogDebug(ex, "GetConnectedSsid failed for adapter {Id}", adapterId); return null; }
     }
 
     private static AdapterState MapState(InterfaceState s) => s switch
@@ -331,15 +392,16 @@ public sealed class WindowsWifiService : IWifiService
     /// 注意: 6GHz(802.11ax 6E)はチャンネル番号 1〜233 を再利用するため、
     /// 2.4GHz(1〜14)/5GHz(32〜177)と数値が重複し、チャンネル番号のみでは
     /// バンドを一意に判別できない。ここでは普及度の高い 2.4GHz / 5GHz を優先し、
-    /// 既存帯域に該当しないチャンネルのみ 6GHz として扱う。
+    /// どの帯域とも重複しない 178〜233 のみ 6GHz と確定する。
+    /// 15〜31 のような無効チャンネルは 0(不明)を返す。
     /// </summary>
     private static int ChannelToFreq(int ch)
     {
-        if (ch == 14)              return 2484;                 // 2.4GHz ch14 (日本)
-        if (ch >= 1  && ch <= 13)  return 2412 + (ch - 1) * 5;  // 2.4GHz
-        if (ch >= 32 && ch <= 177) return 5000 + ch * 5;        // 5GHz UNII
-        if (ch >= 1  && ch <= 233) return 5950 + ch * 5;        // 6GHz 6E
-        return 0;
+        if (ch == 14)               return 2484;                 // 2.4GHz ch14 (日本)
+        if (ch >= 1   && ch <= 13)  return 2412 + (ch - 1) * 5;  // 2.4GHz
+        if (ch >= 32  && ch <= 177) return 5000 + ch * 5;        // 5GHz UNII
+        if (ch >= 178 && ch <= 233) return 5950 + ch * 5;        // 6GHz 6E (非重複域のみ)
+        return 0;                                                // 不明 / 無効チャンネル
     }
 
     private static WifiEventType MapEventType(string? s) => (s ?? "").ToLowerInvariant() switch

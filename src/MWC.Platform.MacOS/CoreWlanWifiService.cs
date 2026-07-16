@@ -32,7 +32,7 @@ public sealed class CoreWlanWifiService : IWifiService
     public async Task<IReadOnlyList<WifiAdapter>> GetAdaptersAsync(CancellationToken ct = default)
     {
         // networksetup -listnetworkserviceorder でWi-Fiサービス一覧を取得
-        var output = await RunAsync("networksetup", "-listallhardwareports", ct)
+        var output = await RunAsync("networksetup", ["-listallhardwareports"], ct)
             .ConfigureAwait(false);
 
         var adapters = new List<WifiAdapter>();
@@ -69,16 +69,30 @@ public sealed class CoreWlanWifiService : IWifiService
         Guid adapterId, CancellationToken ct = default)
     {
         // airport --scan でスキャン(要 sudo または Location Services 許可)
-        var output = await RunAsync(AirportPath, "--scan", ct).ConfigureAwait(false);
+        var output = await RunAsync(AirportPath, ["--scan"], ct).ConfigureAwait(false);
         return ParseAirportScan(output);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // macOS では /Library/Preferences/SystemConfiguration/com.apple.wifi.plist
         // または networksetup -addpreferredwirelessnetworkatindex で管理
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        //
+        // ⚠ 実装時の注意 (他メソッドと違いここは「見た目は動くが実は罠」になりやすい):
+        // ConnectionExecutor.ConnectAsync はパスフレーズが必要な認証方式の場合、
+        // まず RegisterProfileAsync(profileXml) を呼び、false が返ると即座に
+        // ConnectionFailure.OsError で失敗させ、下の ConnectAsync(adapterId, ssid,
+        // profileName, ...) 自体を一切呼ばない。しかもこの ConnectAsync のシグネチャは
+        // パスフレーズを引数に取らないため、ここでスタブを解除する場合は
+        // RegisterProfileAsync 側で profileXml から SSID/keyMaterial を抽出し
+        // (NmcliWifiService.RegisterProfileAsync と同じパターン)、インスタンスの
+        // 辞書等にキャッシュしておき、ConnectAsync がそのキャッシュを参照して
+        // "networksetup -setairportnetwork <iface> <ssid> <password>" を呼ぶ必要がある。
+        // RegisterProfileAsync を安易に true 固定へ変えるだけでは、
+        // パスフレーズ無しで networksetup が呼ばれ全接続が失敗する。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(
@@ -88,7 +102,7 @@ public sealed class CoreWlanWifiService : IWifiService
         // networksetup -setairportnetwork en0 <ssid> [password]
         var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
         var (exit, _, stderr) = await RunFullAsync(
-            "networksetup", $"-setairportnetwork {iface} \"{ssid}\"", ct)
+            "networksetup", ["-setairportnetwork", iface, ssid], ct)
             .ConfigureAwait(false);
 
         if (exit == 0)
@@ -104,9 +118,9 @@ public sealed class CoreWlanWifiService : IWifiService
     {
         var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
         var (exit, _, _) = await RunFullAsync(
-            "networksetup", $"-setairportpower {iface} off", ct).ConfigureAwait(false);
+            "networksetup", ["-setairportpower", iface, "off"], ct).ConfigureAwait(false);
         // 再度ONにして切断のみ実施
-        await RunFullAsync("networksetup", $"-setairportpower {iface} on", ct).ConfigureAwait(false);
+        await RunFullAsync("networksetup", ["-setairportpower", iface, "on"], ct).ConfigureAwait(false);
         return exit == 0;
     }
 
@@ -114,7 +128,10 @@ public sealed class CoreWlanWifiService : IWifiService
 
     private static IReadOnlyList<WifiNetwork> ParseAirportScan(string output)
     {
-        var results = new List<WifiNetwork>();
+        // SSID 単位で集約する (IWifiService.ScanAsync の契約: 1 SSID = 1 WifiNetwork)。
+        // airport は BSS 毎に 1 行出力するため、同一 SSID の複数バンド/AP は
+        // BssEntries に束ね、最強 RSSI の行を代表値とする。隠し SSID は除外。
+        var groups = new Dictionary<string, ScanGroup>(StringComparer.Ordinal);
         foreach (var line in output.Split('\n').Skip(1))  // ヘッダー行スキップ
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
@@ -123,6 +140,9 @@ public sealed class CoreWlanWifiService : IWifiService
             if (parts.Length < 5) continue;
 
             var ssid    = parts[0].Trim();
+            if (string.IsNullOrEmpty(ssid)) continue;   // 隠しネットワークは除外
+
+            var bssid   = parts[1].Trim();
             var rssi    = int.TryParse(parts[2], out var r) ? r : -80;
             var chanStr = parts[3].Trim();
             var chan    = int.TryParse(chanStr.Split(',')[0], out var c) ? c : 0;
@@ -132,18 +152,43 @@ public sealed class CoreWlanWifiService : IWifiService
                         : secStr.Contains("WPA")  ? AuthMethod.WPAPSK
                         : AuthMethod.Open;
             var band    = chan > 14 ? WifiBand.Band5GHz : WifiBand.Band2_4GHz;
+            var phy     = band == WifiBand.Band5GHz ? PhyType.Dot11ac : PhyType.Dot11n;
 
-            results.Add(new WifiNetwork
+            if (!groups.TryGetValue(ssid, out var g))
+                groups[ssid] = g = new ScanGroup();
+
+            g.Bss.Add(new BssInfo { Bssid = bssid, Rssi = rssi, Channel = chan, Phy = phy });
+            // 最強 RSSI の行を代表にする (RSSI は負値なので大きいほど強い)。
+            if (g.Representative is null || rssi > g.BestRssi)
             {
-                Ssid          = ssid,
-                Auth          = auth,
-                Band          = band,
-                Channel       = chan,
-                SignalQuality = Math.Clamp(100 + rssi, 0, 100),
-                Phy           = band == WifiBand.Band5GHz ? PhyType.Dot11ac : PhyType.Dot11n,
-            });
+                g.BestRssi = rssi;
+                g.Representative = new WifiNetwork
+                {
+                    Ssid          = ssid,
+                    Auth          = auth,
+                    Band          = band,
+                    Channel       = chan,
+                    SignalQuality = Math.Clamp(100 + rssi, 0, 100),
+                    Phy           = phy,
+                };
+            }
+        }
+
+        var results = new List<WifiNetwork>(groups.Count);
+        foreach (var g in groups.Values)
+        {
+            if (g.Representative is null) continue;
+            results.Add(g.Representative with { BssEntries = g.Bss.ToArray() });
         }
         return results;
+    }
+
+    // SSID 単位のスキャン集約用の作業バッファ。
+    private sealed class ScanGroup
+    {
+        public WifiNetwork? Representative;
+        public int BestRssi = int.MinValue;
+        public readonly List<BssInfo> Bss = new();
     }
 
     private static async Task<string> GetIfaceAsync(Guid id, CancellationToken ct)
@@ -155,39 +200,80 @@ public sealed class CoreWlanWifiService : IWifiService
     private static async Task<bool> CheckConnectivityAsync(CancellationToken ct)
     {
         var (exit, _, _) = await RunFullAsync(
-            "curl", "-s --max-time 3 https://connectivitycheck.gstatic.com/generate_204", ct)
+            "curl", ["-s", "--max-time", "3",
+                     "https://connectivitycheck.gstatic.com/generate_204"], ct)
             .ConfigureAwait(false);
         return exit == 0;
     }
 
-    private static async Task<string> RunAsync(string cmd, string args, CancellationToken ct)
+    private static async Task<string> RunAsync(string cmd, string[] args, CancellationToken ct)
     {
         var (_, stdout, _) = await RunFullAsync(cmd, args, ct).ConfigureAwait(false);
         return stdout;
     }
 
     private static async Task<(int exit, string stdout, string stderr)> RunFullAsync(
-        string cmd, string args, CancellationToken ct)
+        string cmd, string[] args, CancellationToken ct)
     {
         using var proc = new Process();
         proc.StartInfo = new ProcessStartInfo
         {
             FileName               = cmd,
-            Arguments              = args,
+            UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
-            UseShellExecute        = false,
         };
+        foreach (var a in args)
+            proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
-        var stdout = await proc.StandardOutput.ReadToEndAsync(ct).ConfigureAwait(false);
-        var stderr = await proc.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
-        await proc.WaitForExitAsync(ct).ConfigureAwait(false);
-        return (proc.ExitCode, stdout, stderr);
+        try
+        {
+            // Drain stdout and stderr concurrently — sequential reads can deadlock if
+            // the child fills the stderr pipe buffer (~64KB) before stdout reaches EOF.
+            Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+            Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
+            string stdout = await stdoutTask.ConfigureAwait(false);
+            string stderr = await stderrTask.ConfigureAwait(false);
+            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
+            return (proc.ExitCode, stdout, stderr);
+        }
+        catch (OperationCanceledException)
+        {
+            // Dispose() does not terminate a running child — kill it so a
+            // cancelled call does not leave an orphaned process behind.
+            try { if (!proc.HasExited) proc.Kill(); } catch { /* best effort */ }
+            throw;
+        }
+    }
+
+    public Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+    {
+        // macOS: networksetup -removepreferredwirelessnetwork <device> <ssid>
+        // Stubbed — full implementation requires entitlement validation
+        return Task.FromResult(false);
+    }
+
+    public Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+    {
+        // macOS: networksetup -listpreferredwirelessnetworks <device>
+        return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+    }
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // macOS CoreWLAN does not expose .NET-friendly event streams without ObjCRuntime.
+        // Stub: yields nothing.
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
     }
 
     private static Guid GuidFromString(string s)
     {
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        return new Guid(md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(s)));
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(s));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MWC.Core.Models;
 
@@ -49,6 +50,9 @@ public sealed record WifiNetwork
     /// <summary>WPA3 transition mode (WPA2/WPA3 混在) — Dragonblood ダウングレード攻撃に脆弱</summary>
     public bool IsWpa3TransitionMode { get; init; }
 
+    /// <summary>WPS (Wi-Fi Protected Setup) 有効 — 外部レジストラ PIN 方式は総当たり/Pixie-Dust に脆弱</summary>
+    public bool WpsEnabled { get; init; }
+
     public bool IsMlo { get; init; }
     /// <summary>MLO リンク一覧(Wi-Fi 7 のみ有効)</summary>
     public IReadOnlyList<MloLink> MloLinks { get; init; } = Array.Empty<MloLink>();
@@ -83,7 +87,8 @@ public sealed record WifiNetwork
         }
     }
 
-    public bool IsPasspoint => Auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise
+    public bool IsPasspoint =>
+        Auth is AuthMethod.WPA2Enterprise or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192
         && BssEntries.Any(b => b.HasInterworkingElement);
 
     public int? MloAggregatedSpeedMbps => IsMlo && MloLinks.Count > 0
@@ -103,6 +108,11 @@ public sealed record BssInfo
     public bool HasInterworkingElement { get; init; }
     /// <summary>Protected Management Frames (802.11w) 状態</summary>
     public PmfStatus Pmf { get; init; } = PmfStatus.Unknown;
+    /// <summary>BSS Load (Element ID 11) — チャネル混雑情報 (null = 要素なし)</summary>
+    public BssLoad? BssLoad { get; init; }
+    /// <summary>802.11r Mobility Domain ID (Element ID 54) — null = FT 非対応/未取得。
+    /// 同一 SSID の BSS 間で一致すれば高速ローミング (FT) が網羅展開済み。</summary>
+    public ushort? MobilityDomainId { get; init; }
 }
 
 /// <summary>Protected Management Frames (802.11w) 状態</summary>
@@ -229,9 +239,9 @@ public sealed record WiFi7Capability
 
 public static class MloExtensions
 {
-    /// <summary>MLO リンクの集約スループット上限を推定 (Mbps)</summary>
+    /// <summary>MLO リンクの集約スループット上限を推定 (Mbps、MCS13 理論値ベース)</summary>
     public static int EstimatedAggregatedSpeedMbps(
-        this IReadOnlyList<MloLink> links, int mcsIndex = 13)
+        this IReadOnlyList<MloLink> links)
     {
         // 帯域幅→空間ストリーム1本のMCS13理論値 (近似)
         static int BwToMbps(int chanWidthMhz) => chanWidthMhz switch
@@ -310,3 +320,20 @@ public sealed record WiFi8Capability
     public bool SupportsUltraHighThroughput { get; init; }
 }
 
+// ══ BSS Load (802.11e/ax) ════════════════════════════════════════════════
+
+/// <summary>AP ビーコンの BSS Load 要素 (Element ID 11) から得たチャネル負荷スナップショット。</summary>
+public sealed record BssLoad(
+    ushort StationCount,
+    byte   ChannelUtilization,
+    ushort AvailableAdmissionCapacity)
+{
+    /// <summary>チャネル占有率 0.0–1.0 (255 → 100%)。</summary>
+    public double UtilizationFraction => ChannelUtilization / 255.0;
+
+    /// <summary>占有率を 0–100% の整数で返す (表示用)。</summary>
+    public int UtilizationPercent => (int)Math.Round(UtilizationFraction * 100.0);
+
+    /// <summary>チャネルが過負荷かどうか (占有率 75% 超)。</summary>
+    public bool IsOverloaded => ChannelUtilization > 191; // 191/255 ≈ 75%
+}

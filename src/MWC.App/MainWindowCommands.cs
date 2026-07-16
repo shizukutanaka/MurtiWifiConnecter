@@ -28,28 +28,29 @@ public sealed class MainWindowCommands
 {
     private readonly IWifiService              _wifi;
     private readonly NotificationService       _notify;
-    private readonly NetworkHistoryService     _history;
     private readonly NetworkQualityService     _quality;
     private readonly SettingsService           _settings;
     private readonly ThemeService              _theme;
     private readonly ErrorHandlerService       _errors;
     private readonly KeyboardShortcutService   _shortcuts;
+    private readonly ConnectionExecutor        _executor;
     private readonly IServiceProvider          _services;
 
     public MainWindowCommands(
         IWifiService wifi,
         NotificationService notify,
-        NetworkHistoryService history,
         NetworkQualityService quality,
         SettingsService settings,
         ThemeService theme,
         ErrorHandlerService errors,
         KeyboardShortcutService shortcuts,
+        ConnectionExecutor executor,
         IServiceProvider services)
     {
-        _wifi = wifi; _notify = notify; _history = history;
+        _wifi = wifi; _notify = notify;
         _quality = quality; _settings = settings; _theme = theme;
-        _errors = errors; _shortcuts = shortcuts; _services = services;
+        _errors = errors; _shortcuts = shortcuts; _executor = executor;
+        _services = services;
     }
 
     /// <summary>
@@ -72,19 +73,19 @@ public sealed class MainWindowCommands
         if (vm.SelectedAdapter is null) return false;
 
         await AdapterConnectExtension.ConnectWithAppleFlowAsync(
-            vm.SelectedAdapter, _wifi, net.Ssid, passphrase, net.Auth,
-            _notify, _history, owner: owner);
+            vm.SelectedAdapter, _executor, net.Ssid, passphrase, net.Auth,
+            _notify, owner: owner);
 
         bool success = vm.SelectedAdapter.ConnectedSsid == net.Ssid;
         if (success)
         {
             AnimationHelper.PulseSuccessAsync(owner).Forget();
-            AccessibilityService.AnnounceConnectionStatus($"{net.Ssid} に接続しました");
+            AccessibilityService.AnnounceConnectionStatus(L.AnnounceConnected(net.Ssid));
         }
         else
         {
             AnimationHelper.ShakeAsync(owner).Forget();
-            AccessibilityService.AnnounceError($"{net.Ssid} に接続できませんでした");
+            AccessibilityService.AnnounceError(L.AnnounceConnectFailed(net.Ssid));
         }
         return success;
     }
@@ -105,7 +106,7 @@ public sealed class MainWindowCommands
         {
             Clipboard.SetText(ssid);
             vm.StatusMessage = L.Format("Status_Copied", ssid);
-            AccessibilityService.AnnounceConnectionStatus($"SSID をコピーしました: {ssid}");
+            AccessibilityService.AnnounceConnectionStatus(L.AnnounceSsidCopied(ssid));
         }
         catch (Exception ex)
         {
@@ -132,9 +133,9 @@ public sealed class MainWindowCommands
             DefaultExt = format == "json" ? "json" : format == "txt" ? "txt" : "csv",
             Filter     = format switch
             {
-                "json" => "JSON (*.json)|*.json",
-                "txt"  => "Text (*.txt)|*.txt",
-                _      => "CSV (*.csv)|*.csv"
+                "json" => MWC.App.Resources.L.Get("Export_FilterJson"),
+                "txt"  => MWC.App.Resources.L.Get("Export_FilterTxt"),
+                _      => MWC.App.Resources.L.Get("Export_FilterCsv")
             }
         };
         if (dlg.ShowDialog() != true) return "";
@@ -154,36 +155,57 @@ public sealed class MainWindowCommands
         }, MWC.App.Resources.L.Get("Export_Op"), $"format={format}");
 
         return result.Success
-            ? $"Export → {result.Value}"
+            ? MWC.App.Resources.L.Format("Status_Exported", result.Value)
             : result.ErrorMessage ?? MWC.App.Resources.L.Get("Status_Failed");
     }
 
-    public async Task<string> MeasureQualityAsync(string statusMessage)
+    public async Task<string> MeasureQualityAsync()
     {
         var result = await _errors.TryAsync(
-            () => _quality.MeasureAsync().AsTask(),
+            () => _quality.MeasureAsync(),
             MWC.App.Resources.L.Get("Quality_Op"));
         if (result.IsCancelled) return MWC.App.Resources.L.Get("Quality_Cancelled");
         if (!result.Success)    return result.ErrorMessage ?? MWC.App.Resources.L.Get("Quality_Failed");
-        var r = result.Value;
-        return $"RTT: {r.LatencyLabel}  ロス: {r.LossLabel}  評価: {r.GradeLabel}";
+        var r     = result.Value;
+        var rtt   = r.LatencyAvgMs >= 999 ? L.QualityTimeout : $"{r.LatencyAvgMs} ms";
+        var grade = L.QualityGradeLabel(r.Grade);
+        return L.QualityResultFormat(rtt, r.LossLabel, grade);
+    }
+
+    public void HideNetwork(MainViewModel vm)
+    {
+        var ssid = vm.SelectedAdapter?.Selected?.Ssid;
+        if (string.IsNullOrEmpty(ssid)) return;
+        _settings.HideNetwork(ssid);
+        vm.Filter.ReapplyFilter();
+        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Hidden", ssid);
     }
 
     public void ShowSettings(Window owner, MainViewModel vm)
     {
         var svm = _services.GetService(typeof(SettingsViewModel)) as SettingsViewModel;
         if (svm is null) return;
+        svm.LoadHiddenNetworks();
         var dlg = new SettingsDialog(svm) { Owner = owner };
         if (dlg.ShowDialog() == true)
         {
             // 即時反映
             _theme.Apply(_settings.Current.Theme);
             vm.ApplySettings(_settings.Current);
+            vm.Filter.ReapplyFilter();
         }
     }
 
     public void ShowAbout(Window owner)
         => new AboutDialog { Owner = owner }.ShowDialog();
+
+    /// <summary>全無線子機を俯瞰するウィンドウを表示する。</summary>
+    public void ShowAllAdapters(Window owner)
+    {
+        if (_services.GetService(typeof(AllAdaptersOverviewViewModel)) is not AllAdaptersOverviewViewModel vm)
+            return;
+        new AllAdaptersOverviewView(vm) { Owner = owner }.ShowDialog();
+    }
 
     public void ShowShortcutHelp(Window owner)
         => new ShortcutHelpDialog(_shortcuts) { Owner = owner }.ShowDialog();
@@ -192,24 +214,65 @@ public sealed class MainWindowCommands
     {
         var ad = vm.SelectedAdapter;
         if (ad is null) return;
-        var pmVm = _services.GetService(typeof(ProfileManagerViewModel)) as ProfileManagerViewModel;
-        if (pmVm is null) return;
-        await pmVm.LoadAsync(ad.Id);
-        new ProfileManagerDialog(pmVm) { Owner = owner }.ShowDialog();
+        // Resolve through DI so ILogger<ProfileManagerDialog> is injected automatically.
+        // ProfileManagerViewModel is transient; a fresh instance is created here.
+        var dlg = _services.GetRequiredService<ProfileManagerDialog>();
+        dlg.Owner = owner;
+        await dlg.ViewModel.LoadAsync(ad.Id);
+        dlg.ShowDialog();
         await ad.RefreshAsync();
     }
 
     public void PinNetwork(MainViewModel vm)
     {
         var ssid = vm.SelectedAdapter?.Selected?.Ssid;
-        if (string.IsNullOrEmpty(ssid) || vm.SelectedAdapter is null) return;
-        vm.SelectedAdapter.PinSsid(ssid);
-        vm.StatusMessage = MWC.App.Resources.L.Format("Status_Pinned", ssid);
+        if (string.IsNullOrEmpty(ssid)) return;
+        _settings.TogglePin(ssid);
+        vm.Filter.ReapplyFilter();
+        vm.StatusMessage = _settings.IsPinned(ssid)
+            ? MWC.App.Resources.L.Format("Status_Pinned", ssid)
+            : MWC.App.Resources.L.Format("Status_Unpinned", ssid);
     }
 
-    public AdapterPreferences? OpenAdapterPreferences(AdapterViewModel adapter, Window owner)
+    public async Task ExportDiagnosticAsync(MainViewModel vm, Window owner)
     {
-        var dlg = new AdapterPreferencesDialog(adapter) { Owner = owner };
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName   = $"mwc-diagnostic-{DateTime.Now:yyyyMMdd-HHmmss}",
+            DefaultExt = "md",
+            Filter     = MWC.App.Resources.L.Get("Export_FilterDiagnostic")
+        };
+        if (dlg.ShowDialog(owner) != true) return;
+
+        try
+        {
+            var adapters = await _wifi.GetAdaptersAsync();
+            var health   = new HealthCheckService().CheckAdapters(adapters);
+            var ctx      = new DiagnosticContext
+            {
+                AppVersion    = System.Reflection.Assembly
+                                    .GetExecutingAssembly()
+                                    .GetName().Version?.ToString() ?? "unknown",
+                OsDescription = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
+                Adapters      = adapters,
+                Health        = health,
+            };
+            var markdown = new DiagnosticBundleService().Build(ctx);
+            await System.IO.File.WriteAllTextAsync(dlg.FileName, markdown);
+            vm.StatusMessage = L.StatusDiagnosticExported(System.IO.Path.GetFileName(dlg.FileName));
+        }
+        catch (Exception ex)
+        {
+            vm.StatusMessage = _errors.Handle(ex, "Diagnostic export");
+        }
+    }
+
+    public AdapterPreferences? OpenAdapterPreferences(
+        AdapterViewModel adapter,
+        Window owner,
+        System.Collections.Generic.IReadOnlyList<AdapterViewModel>? allAdapters = null)
+    {
+        var dlg = new AdapterPreferencesDialog(adapter, allAdapters) { Owner = owner };
         return dlg.ShowDialog() == true ? adapter.Preferences : null;
     }
 }

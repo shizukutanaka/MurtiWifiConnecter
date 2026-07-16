@@ -6,177 +6,671 @@
   <data name="Action_Disconnect"><value>সংযোগ বিচ্ছিন্ন করুন</value></data>
   <data name="Action_Cancel"><value>বাতিল করুন</value></data>
   <data name="Label_Passphrase"><value>পাসফ্রেজ</value></data>
-  <data name="Label_Show"><value>Show</value></data>
-  <data name="Label_Connected"><value>Connected: {0}</value></data>
+  <data name="Label_Show"><value>দেখান</value></data>
+  <data name="Label_Connected"><value>সংযুক্ত: {0}</value></data>
   <data name="Label_NotConnected"><value>সংযুক্ত নয়</value></data>
-  <data name="Label_AvailableNetworks"><value>Available networks</value></data>
-  <data name="Status_AdapterCount"><value>{0} adapter(s)</value></data>
+  <data name="Label_AvailableNetworks"><value>উপলব্ধ নেটওয়ার্ক</value></data>
+  <data name="Status_AdapterCount"><value>{0}টি অ্যাডাপ্টার</value></data>
   <data name="Status_Scanning"><value>স্ক্যান হচ্ছে...</value></data>
-  <data name="Error_PassphraseTooShort"><value>Passphrase must be at least 8 characters</value></data>
-  <data name="Error_ConnectionFailed"><value>Connection failed: {0}</value></data>
-  <data name="Auth_Open"><value>Open</value></data>
-  <data name="Auth_OWE"><value>Enhanced Open (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (deprecated)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 Personal</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 Personal</value></data>
-  <data name="Auth_Enterprise"><value>Enterprise</value></data>
-  <data name="Failure_BadCredentials"><value>Wrong passphrase</value></data>
-  <data name="Failure_Timeout"><value>Connection timed out</value></data>
-  <data name="Failure_NotInRange"><value>Network out of range</value></data>
-  <data name="Failure_AdapterDisabled"><value>Wireless adapter disabled</value></data>
-  <data name="Failure_InsufficientPrivilege"><value>Administrator rights required</value></data>
-  <data name="Captive_Detected"><value>Sign-in required</value></data>
+  <data name="Error_PassphraseTooShort"><value>পাসফ্রেজ কমপক্ষে ৮ অক্ষরের হতে হবে</value></data>
+  <data name="Error_ConnectionFailed"><value>সংযোগ ব্যর্থ হয়েছে: {0}</value></data>
+  <data name="Auth_Open"><value>ওপেন</value></data>
+  <data name="Auth_OWE"><value>এনহ্যান্সড ওপেন (OWE)</value></data>
+  <data name="Auth_WEP"><value>WEP (অপ্রচলিত)</value></data>
+  <data name="Auth_WPA2PSK"><value>WPA2 পার্সোনাল</value></data>
+  <data name="Auth_WPA3SAE"><value>WPA3 পার্সোনাল</value></data>
+  <data name="Auth_Enterprise"><value>এন্টারপ্রাইজ</value></data>
+  <data name="Failure_BadCredentials"><value>ভুল পাসফ্রেজ</value></data>
+  <data name="Failure_Timeout"><value>সংযোগের সময় শেষ হয়েছে</value></data>
+  <data name="Failure_NotInRange"><value>নেটওয়ার্ক সীমার বাইরে</value></data>
+  <data name="Failure_AdapterDisabled"><value>ওয়্যারলেস অ্যাডাপ্টার নিষ্ক্রিয়</value></data>
+  <data name="Failure_InsufficientPrivilege"><value>প্রশাসকের অনুমতি প্রয়োজন</value></data>
+  <data name="Captive_Detected"><value>সাইন-ইন প্রয়োজন</value></data>
   <data name="Tab_Detail"><value>বিস্তারিত</value></data>
   <data name="Tab_Signal"><value>সংকেত</value></data>
   <data name="Tab_Channel"><value>চ্যানেল</value></data>
-  <data name="Label_Band"><value>Band</value></data>
+  <data name="Label_Band"><value>ব্যান্ড</value></data>
   <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>Channel</value></data>
-  <data name="Label_Freq"><value>Frequency</value></data>
-  <data name="Label_Speed"><value>Max Speed</value></data>
-  <data name="Label_Signal"><value>Signal</value></data>
-  <data name="Label_Status"><value>Status</value></data>
+  <data name="Label_Channel"><value>চ্যানেল</value></data>
+  <data name="Label_Freq"><value>ফ্রিকোয়েন্সি</value></data>
+  <data name="Label_Speed"><value>সর্বোচ্চ গতি</value></data>
+  <data name="Label_Signal"><value>সংকেত</value></data>
+  <data name="Label_Status"><value>অবস্থা</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>Vendor</value></data>
-  <data name="Action_Export_Csv"><value>Export CSV</value></data>
-  <data name="Action_Export_Json"><value>Export JSON</value></data>
-  <data name="Action_Export_Txt"><value>Export Text</value></data>
+  <data name="Label_Vendor"><value>বিক্রেতা</value></data>
+  <data name="Action_Export_Csv"><value>CSV এক্সপোর্ট করুন</value></data>
+  <data name="Action_Export_Json"><value>JSON এক্সপোর্ট করুন</value></data>
+  <data name="Action_Export_Txt"><value>টেক্সট এক্সপোর্ট করুন</value></data>
   <data name="Status_NoData"><value>কোনো ডেটা নেই</value></data>
   <data name="Band_2_4"><value>2.4 GHz</value></data>
   <data name="Band_5"><value>5 GHz</value></data>
   <data name="Band_6"><value>6 GHz (Wi-Fi 6E/7)</value></data>
-  <data name="Status_Tray_NotConnected"><value>MWC — Not connected</value></data>
-  <data name="Status_Copied"><value>コピー: {0}</value></data>
-  <data name="Status_Disconnected"><value>切断: {0}</value></data>
+  <data name="Status_Tray_NotConnected"><value>MWC — সংযুক্ত নয়</value></data>
+  <data name="Status_Copied"><value>কপি করা হয়েছে: {0}</value></data>
+  <data name="Status_Disconnected"><value>সংযোগ বিচ্ছিন্ন: {0}</value></data>
   <data name="Label_NoData"><value>— কোনো ডেটা নেই —</value></data>
   <data name="Label_NetworksNotFound"><value>কোনো নেটওয়ার্ক পাওয়া যায়নি</value></data>
-  <data name="Label_RetryHint"><value>再スキャンを押すか、しばらくしてから再試行してください。</value></data>
-  <data name="Error_Unexpected"><value>予期しない問題: {0}</value></data>
-  <data name="Status_Deleted"><value>削除しました: {0}</value></data>
-  <data name="Status_DeleteFailed"><value>削除失敗: {0}</value></data>
-  <data name="Captive_SignInRequired"><value>サインインが必要です</value></data>
+  <data name="Label_RetryHint"><value>রিফ্রেশ চাপুন অথবা একটু পরে আবার চেষ্টা করুন।</value></data>
+  <data name="Error_Unexpected"><value>অপ্রত্যাশিত ত্রুটি: {0}</value></data>
+  <data name="Status_Deleted"><value>মুছে ফেলা হয়েছে: {0}</value></data>
+  <data name="Status_DeleteFailed"><value>মুছে ফেলা ব্যর্থ হয়েছে: {0}</value></data>
+  <data name="Captive_SignInRequired"><value>সাইন-ইন প্রয়োজন</value></data>
   <data name="Status_ConnectedOk"><value>সংযুক্ত হয়েছে</value></data>
   <data name="Status_ConnectionFailed"><value>সংযোগ ব্যর্থ হয়েছে</value></data>
-  <data name="Progress_Connecting"><value>ネットワークに接続しています…</value></data>
-  <data name="Progress_Authenticating"><value>認証中…</value></data>
-  <data name="Progress_CheckInternet"><value>インターネット接続を確認中…</value></data>
-  <data name="Progress_IPObtaining"><value>IPアドレスを取得中…</value></data>
-  <data name="Progress_Error"><value>エラー: {0}</value></data>
-  <data name="Detail_Connected"><value>接続中 ✓</value></data>
-  <data name="Detail_HasProfile"><value>プロファイルあり</value></data>
-  <data name="Detail_NotConnected"><value>未接続</value></data>
+  <data name="Progress_Connecting"><value>নেটওয়ার্কে সংযোগ করা হচ্ছে…</value></data>
+  <data name="Progress_Authenticating"><value>প্রমাণীকরণ করা হচ্ছে…</value></data>
+  <data name="Progress_CheckInternet"><value>ইন্টারনেট সংযোগ পরীক্ষা করা হচ্ছে…</value></data>
+  <data name="Progress_IPObtaining"><value>IP ঠিকানা প্রাপ্ত করা হচ্ছে…</value></data>
+  <data name="Progress_Error"><value>ত্রুটি: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>সংযোগ অস্থির — স্বয়ংক্রিয়ভাবে পুনরায় চেষ্টা করা হচ্ছে…</value></data>
+  <data name="Detail_Connected"><value>সংযুক্ত ✓</value></data>
+  <data name="Detail_HasProfile"><value>প্রোফাইল সংরক্ষিত</value></data>
+  <data name="Detail_NotConnected"><value>সংযুক্ত নয়</value></data>
   <data name="Status_Starting"><value>শুরু হচ্ছে...</value></data>
-  <data name="Status_ConnectedTo"><value>Connected: {0} ({1}%)</value></data>
-  <data name="Status_PriorityOutOfRange"><value>Priority network out of range</value></data>
-  <data name="Wizard_Page1_Title"><value>Welcome to MWC</value></data>
-  <data name="Wizard_Page1_Body"><value>Manage multiple Wi-Fi adapters from a single window.&amp;#xA;&amp;#xA;WPA3, Enterprise auth, QR codes, and scan analysis — all free.</value></data>
-  <data name="Wizard_Page1_Hint"><value>Just pick a network and tap Connect</value></data>
-  <data name="Wizard_Page2_Title"><value>Your passwords are safe</value></data>
-  <data name="Wizard_Page2_Body"><value>Passwords are protected by Windows security (DPAPI).&amp;#xA;&amp;#xA;MWC never saves passwords to files or sends them externally.</value></data>
-  <data name="Wizard_Page2_Hint"><value>Passwords are tied to your user account only</value></data>
-  <data name="Wizard_Page3_Title"><value>Simple to use</value></data>
-  <data name="Wizard_Page3_Body"><value>1. Pick an SSID from the list&amp;#xA;2. Tap Connect&amp;#xA;3. Enter the passphrase&amp;#xA;&amp;#xA;More details are in the Detail tab on the right panel.</value></data>
-  <data name="Wizard_Page3_Hint"><value>Press Ctrl+R to rescan anytime</value></data>
-  <data name="Wizard_Start"><value>Get Started</value></data>
-  <data name="Wizard_Next"><value>Next</value></data>
-  <data name="Wizard_Back"><value>Back</value></data>
-  <data name="Shortcut_Navigation"><value>Navigation</value></data>
-  <data name="Shortcut_Action"><value>Actions</value></data>
-  <data name="Shortcut_View"><value>View</value></data>
+  <data name="Status_ConnectedTo"><value>সংযুক্ত: {0} ({1}%)</value></data>
+  <data name="Status_PriorityOutOfRange"><value>অগ্রাধিকার নেটওয়ার্ক সীমার বাইরে</value></data>
+  <data name="Wizard_Page1_Title"><value>MWC-তে স্বাগতম</value></data>
+  <data name="Wizard_Page1_Body"><value>একটি উইন্ডো থেকে একাধিক Wi-Fi অ্যাডাপ্টার পরিচালনা করুন।&#xA;&#xA;WPA3, এন্টারপ্রাইজ প্রমাণীকরণ, QR কোড, এবং স্ক্যান বিশ্লেষণ — সবই বিনামূল্যে।</value></data>
+  <data name="Wizard_Page1_Hint"><value>শুধু একটি নেটওয়ার্ক বেছে নিন এবং সংযোগ চাপুন</value></data>
+  <data name="Wizard_Page2_Title"><value>আপনার পাসওয়ার্ড নিরাপদ</value></data>
+  <data name="Wizard_Page2_Body"><value>পাসওয়ার্ড Windows নিরাপত্তা (DPAPI) দ্বারা সুরক্ষিত।&#xA;&#xA;MWC কখনও পাসওয়ার্ড ফাইলে সংরক্ষণ করে না বা বাহ্যিকভাবে পাঠায় না।</value></data>
+  <data name="Wizard_Page2_Hint"><value>পাসওয়ার্ড শুধুমাত্র আপনার ব্যবহারকারী অ্যাকাউন্টের সাথে যুক্ত</value></data>
+  <data name="Wizard_Page3_Title"><value>ব্যবহার করা সহজ</value></data>
+  <data name="Wizard_Page3_Body"><value>১. তালিকা থেকে একটি SSID বেছে নিন&#xA;২. সংযোগ চাপুন&#xA;৩. পাসফ্রেজ লিখুন&#xA;&#xA;আরও বিস্তারিত ডান প্যানেলের বিস্তারিত ট্যাবে পাওয়া যাবে।</value></data>
+  <data name="Wizard_Page3_Hint"><value>যেকোনো সময় পুনরায় স্ক্যান করতে Ctrl+R চাপুন</value></data>
+  <data name="Wizard_Start"><value>শুরু করুন</value></data>
+  <data name="Wizard_Next"><value>পরবর্তী</value></data>
+  <data name="Wizard_Back"><value>পূর্ববর্তী</value></data>
+  <data name="Shortcut_Navigation"><value>নেভিগেশন</value></data>
+  <data name="Shortcut_Action"><value>কার্যক্রম</value></data>
+  <data name="Shortcut_View"><value>ভিউ</value></data>
   <data name="Error_Permission"><value>প্রশাসক অধিকার প্রয়োজন।</value></data>
   <data name="Error_Network"><value>নেটওয়ার্ক সংযোগ যাচাই করুন।</value></data>
-  <data name="Error_Io"><value>File read/write error. Check disk space.</value></data>
-  <data name="Error_Timeout"><value>Operation timed out. Please try again later.</value></data>
-  <data name="Error_InvalidInput"><value>Please check your input.</value></data>
-  <data name="Error_InvalidState"><value>Cannot perform this action now. Rescan and try again.</value></data>
+  <data name="Error_Io"><value>ফাইল পড়া/লেখার ত্রুটি। ডিস্ক স্পেস পরীক্ষা করুন।</value></data>
+  <data name="Error_Timeout"><value>অপারেশনের সময় শেষ হয়েছে। পরে আবার চেষ্টা করুন।</value></data>
+  <data name="Error_InvalidInput"><value>অনুগ্রহ করে আপনার ইনপুট পরীক্ষা করুন।</value></data>
+  <data name="Error_InvalidState"><value>এখন এই কাজটি করা যাবে না। পুনরায় স্ক্যান করে চেষ্টা করুন।</value></data>
   <data name="Error_Unknown"><value>সমস্যা হয়েছে। GitHub-এ রিপোর্ট করুন।</value></data>
-  <data name="Notify_CaptivePortal"><value>Sign-in required. Authenticate in your browser.</value></data>
-  <data name="Notify_InternetOk"><value>Internet connection verified.</value></data>
-  <data name="Notify_NoInternet"><value>Connected to network, but internet may be unavailable.</value></data>
+  <data name="Notify_CaptivePortal"><value>সাইন-ইন প্রয়োজন। আপনার ব্রাউজারে প্রমাণীকরণ করুন।</value></data>
+  <data name="Notify_InternetOk"><value>ইন্টারনেট সংযোগ যাচাই করা হয়েছে।</value></data>
+  <data name="Notify_NoInternet"><value>নেটওয়ার্কে সংযুক্ত, তবে ইন্টারনেট উপলব্ধ নাও থাকতে পারে।</value></data>
   <data name="Notify_BadCredentials"><value>পাসফ্রেজ ভুল।</value></data>
-  <data name="Notify_Timeout"><value>Connection timed out. Check the access point.</value></data>
+  <data name="Notify_Timeout"><value>সংযোগের সময় শেষ হয়েছে। অ্যাক্সেস পয়েন্ট পরীক্ষা করুন।</value></data>
   <data name="Notify_NotInRange"><value>নেটওয়ার্ক সীমার বাইরে।</value></data>
-  <data name="Notify_AdapterDisabled"><value>Wireless adapter is disabled.</value></data>
-  <data name="Notify_InsufficientPrivilege"><value>Please run as administrator.</value></data>
-  <data name="Notify_GenericFailure"><value>Connection failed. Please try again later.</value></data>
-  <data name="Shortcut_Refresh_T"><value>Refresh</value></data>
-  <data name="Shortcut_Refresh_D"><value>Rescan networks on current adapter</value></data>
-  <data name="Shortcut_Search_T"><value>Search</value></data>
-  <data name="Shortcut_Search_D"><value>Filter by network name</value></data>
-  <data name="Shortcut_NextAdapter_T"><value>Next adapter</value></data>
-  <data name="Shortcut_NextAdapter_D"><value>Switch adapter tab</value></data>
-  <data name="Shortcut_PrevAdapter_T"><value>Previous adapter</value></data>
-  <data name="Shortcut_PrevAdapter_D"><value>Switch to previous adapter tab</value></data>
-  <data name="Shortcut_PrevNet_T"><value>Previous network</value></data>
-  <data name="Shortcut_PrevNet_D"><value>Move to previous SSID in list</value></data>
-  <data name="Shortcut_NextNet_T"><value>Next network</value></data>
-  <data name="Shortcut_NextNet_D"><value>Move to next SSID in list</value></data>
-  <data name="Shortcut_Connect_T"><value>Connect</value></data>
-  <data name="Shortcut_Connect_D"><value>Connect to selected network</value></data>
-  <data name="Shortcut_Disconnect_T"><value>Disconnect</value></data>
-  <data name="Shortcut_Disconnect_D"><value>Disconnect current adapter</value></data>
-  <data name="Shortcut_QR_T"><value>QR code</value></data>
-  <data name="Shortcut_QR_D"><value>Show QR code for selected network</value></data>
-  <data name="Shortcut_Export_T"><value>Export</value></data>
-  <data name="Shortcut_Export_D"><value>Save scan results as CSV/JSON</value></data>
-  <data name="Shortcut_Quality_T"><value>Quality check</value></data>
-  <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
-  <data name="Shortcut_Settings_T"><value>Settings</value></data>
-  <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
-  <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
-  <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
-  <data name="Shortcut_Hide_T"><value>Hide window</value></data>
-  <data name="Shortcut_Hide_D"><value>Minimize to tray</value></data>
-  <data name="Shortcut_Help_T"><value>Shortcut list</value></data>
-  <data name="Shortcut_Help_D"><value>Show this dialog</value></data>
-  <data name="Shortcut_Escape_T"><value>Clear / Close</value></data>
-  <data name="Shortcut_Escape_D"><value>Clear search or close dialog</value></data>
-  <data name="Export_NoData"><value>No networks scanned yet</value></data>
-  <data name="Export_Op"><value>Export</value></data>
-  <data name="Status_Failed"><value>Failed</value></data>
-  <data name="Quality_Op"><value>Network quality check</value></data>
-  <data name="Quality_Cancelled"><value>Measurement cancelled</value></data>
-  <data name="Quality_Failed"><value>Measurement failed</value></data>
-  <data name="Status_Pinned"><value>Pinned: {0}</value></data>
-  <data name="Tray_NotConnected"><value>Not connected</value></data>
-  <data name="Tray_Disconnect"><value>Disconnect</value></data>
-  <data name="Tray_Exit"><value>Exit</value></data>
-  <data name="Jump_CurrentNet"><value>Current connection</value></data>
-  <data name="Jump_CurrentCategory"><value>Current</value></data>
-  <data name="Jump_RecentCategory"><value>Recent networks</value></data>
-  <data name="Jump_Rescan"><value>↻ Rescan networks</value></data>
-  <data name="Jump_RescanDesc"><value>Search for available Wi-Fi</value></data>
-  <data name="Jump_ActionCategory"><value>Actions</value></data>
-  <data name="Step_Connect"><value>Connect to network</value></data>
-  <data name="Step_Auth"><value>Authenticate</value></data>
-  <data name="Step_Internet"><value>Verify internet</value></data>
-  <data name="Step_Preparing"><value>Preparing...</value></data>
+  <data name="Notify_AdapterDisabled"><value>ওয়্যারলেস অ্যাডাপ্টার নিষ্ক্রিয় করা আছে।</value></data>
+  <data name="Notify_InsufficientPrivilege"><value>অনুগ্রহ করে প্রশাসক হিসেবে চালান।</value></data>
+  <data name="Notify_GenericFailure"><value>সংযোগ ব্যর্থ হয়েছে। পরে আবার চেষ্টা করুন।</value></data>
+  <data name="Shortcut_Refresh_T"><value>রিফ্রেশ</value></data>
+  <data name="Shortcut_Refresh_D"><value>বর্তমান অ্যাডাপ্টারে নেটওয়ার্ক পুনরায় স্ক্যান করুন</value></data>
+  <data name="Shortcut_Search_T"><value>অনুসন্ধান</value></data>
+  <data name="Shortcut_Search_D"><value>নেটওয়ার্ক নাম দ্বারা ফিল্টার করুন</value></data>
+  <data name="Shortcut_NextAdapter_T"><value>পরবর্তী অ্যাডাপ্টার</value></data>
+  <data name="Shortcut_NextAdapter_D"><value>অ্যাডাপ্টার ট্যাব পরিবর্তন করুন</value></data>
+  <data name="Shortcut_PrevAdapter_T"><value>পূর্ববর্তী অ্যাডাপ্টার</value></data>
+  <data name="Shortcut_PrevAdapter_D"><value>পূর্ববর্তী অ্যাডাপ্টার ট্যাবে পরিবর্তন করুন</value></data>
+  <data name="Shortcut_PrevNet_T"><value>পূর্ববর্তী নেটওয়ার্ক</value></data>
+  <data name="Shortcut_PrevNet_D"><value>তালিকায় পূর্ববর্তী SSID-তে যান</value></data>
+  <data name="Shortcut_NextNet_T"><value>পরবর্তী নেটওয়ার্ক</value></data>
+  <data name="Shortcut_NextNet_D"><value>তালিকায় পরবর্তী SSID-তে যান</value></data>
+  <data name="Shortcut_Connect_T"><value>সংযোগ</value></data>
+  <data name="Shortcut_Connect_D"><value>নির্বাচিত নেটওয়ার্কে সংযোগ করুন</value></data>
+  <data name="Shortcut_Disconnect_T"><value>সংযোগ বিচ্ছিন্ন করুন</value></data>
+  <data name="Shortcut_Disconnect_D"><value>বর্তমান অ্যাডাপ্টার সংযোগ বিচ্ছিন্ন করুন</value></data>
+  <data name="Shortcut_QR_T"><value>QR কোড</value></data>
+  <data name="Shortcut_QR_D"><value>নির্বাচিত নেটওয়ার্কের জন্য QR কোড দেখান</value></data>
+  <data name="Shortcut_Export_T"><value>এক্সপোর্ট</value></data>
+  <data name="Shortcut_Export_D"><value>স্ক্যান ফলাফল CSV/JSON হিসেবে সংরক্ষণ করুন</value></data>
+  <data name="Shortcut_Quality_T"><value>গুণমান পরীক্ষা</value></data>
+  <data name="Shortcut_Quality_D"><value>নেটওয়ার্কের গুণমান পরিমাপ করুন</value></data>
+  <data name="Shortcut_Settings_T"><value>সেটিংস</value></data>
+  <data name="Shortcut_Settings_D"><value>অ্যাপ সেটিংস খুলুন</value></data>
+  <data name="Shortcut_ToggleMode_T"><value>মোড পরিবর্তন করুন</value></data>
+  <data name="Shortcut_ToggleMode_D"><value>সিম্পল/এক্সপার্ট ভিউ পরিবর্তন করুন</value></data>
+  <data name="Shortcut_Hide_T"><value>উইন্ডো লুকান</value></data>
+  <data name="Shortcut_Hide_D"><value>ট্রেতে ছোট করুন</value></data>
+  <data name="Shortcut_Help_T"><value>শর্টকাট তালিকা</value></data>
+  <data name="Shortcut_Help_D"><value>এই ডায়ালগ দেখান</value></data>
+  <data name="Shortcut_Escape_T"><value>সাফ / বন্ধ করুন</value></data>
+  <data name="Shortcut_Escape_D"><value>অনুসন্ধান সাফ করুন বা ডায়ালগ বন্ধ করুন</value></data>
+  <data name="Export_NoData"><value>এখনও কোনো নেটওয়ার্ক স্ক্যান করা হয়নি</value></data>
+  <data name="Export_Op"><value>এক্সপোর্ট</value></data>
+  <data name="Status_Failed"><value>ব্যর্থ হয়েছে</value></data>
+  <data name="Quality_Op"><value>নেটওয়ার্ক গুণমান পরীক্ষা</value></data>
+  <data name="Quality_Cancelled"><value>পরিমাপ বাতিল করা হয়েছে</value></data>
+  <data name="Quality_Failed"><value>পরিমাপ ব্যর্থ হয়েছে</value></data>
+  <data name="Status_Pinned"><value>পিন করা হয়েছে: {0}</value></data>
+  <data name="Tray_NotConnected"><value>সংযুক্ত নয়</value></data>
+  <data name="Tray_Disconnect"><value>সংযোগ বিচ্ছিন্ন করুন</value></data>
+  <data name="Tray_Exit"><value>প্রস্থান করুন</value></data>
+  <data name="Jump_CurrentNet"><value>বর্তমান সংযোগ</value></data>
+  <data name="Jump_CurrentCategory"><value>বর্তমান</value></data>
+  <data name="Jump_RecentCategory"><value>সাম্প্রতিক নেটওয়ার্ক</value></data>
+  <data name="Jump_Rescan"><value>↻ নেটওয়ার্ক পুনরায় স্ক্যান করুন</value></data>
+  <data name="Jump_RescanDesc"><value>উপলব্ধ Wi-Fi অনুসন্ধান করুন</value></data>
+  <data name="Jump_ActionCategory"><value>কার্যক্রম</value></data>
+  <data name="Step_Connect"><value>নেটওয়ার্কে সংযোগ করা হচ্ছে</value></data>
+  <data name="Step_Auth"><value>প্রমাণীকরণ করা হচ্ছে</value></data>
+  <data name="Step_Internet"><value>ইন্টারনেট যাচাই করা হচ্ছে</value></data>
+  <data name="Step_Preparing"><value>প্রস্তুত করা হচ্ছে...</value></data>
   <data name="Action_Close"><value>বন্ধ করুন</value></data>
-  <data name="Strength_Weak"><value>Weak</value></data>
-  <data name="Strength_Fair"><value>Fair</value></data>
-  <data name="Strength_Strong"><value>Strong</value></data>
-  <data name="Strength_VeryStrong"><value>Very strong</value></data>
-  <data name="Error_PassphraseShort"><value>Passphrase must be at least 8 characters</value></data>
-  <data name="Error_Startup"><value>Startup error: {0}</value></data>
-  <data name="Status_UpdateAvailable"><value>✦ New version {0} available</value></data>
-  <data name="Error_Operation"><value>Operation error: {0}</value></data>
-  <data name="Status_Hidden"><value>Hidden: {0}</value></data>
-  <data name="Captive_Loading"><value>Loading...</value></data>
-  <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
-  <data name="Captive_PageLoaded"><value>Page loaded</value></data>
-  <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
-  <data name="About_Version"><value>Version {0}</value></data>
-  <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
-  <data name="Status_ConnectedTo_Short"><value>Connected: {0}</value></data>
+  <data name="Strength_Weak"><value>দুর্বল</value></data>
+  <data name="Strength_Fair"><value>মাঝারি</value></data>
+  <data name="Strength_Strong"><value>শক্তিশালী</value></data>
+  <data name="Strength_VeryStrong"><value>অত্যন্ত শক্তিশালী</value></data>
+  <data name="Error_PassphraseShort"><value>পাসফ্রেজ কমপক্ষে ৮ অক্ষরের হতে হবে</value></data>
+  <data name="Error_Startup"><value>চালু করার ত্রুটি: {0}</value></data>
+  <data name="Status_UpdateAvailable"><value>✦ নতুন সংস্করণ {0} উপলব্ধ</value></data>
+  <data name="Error_Operation"><value>অপারেশন ত্রুটি: {0}</value></data>
+  <data name="Status_Hidden"><value>লুকানো হয়েছে: {0}</value></data>
+  <data name="Captive_Loading"><value>লোড হচ্ছে...</value></data>
+  <data name="Captive_InternetOk"><value>✓ ইন্টারনেট সংযোগ যাচাই করা হয়েছে</value></data>
+  <data name="Captive_PageLoaded"><value>পৃষ্ঠা লোড হয়েছে</value></data>
+  <data name="Captive_NavigationFailed"><value>নেভিগেশন ব্যর্থ হয়েছে — ব্রাউজারে খোলার চেষ্টা করুন</value></data>
+  <data name="Confirm_DeleteTitle"><value>মুছে ফেলা নিশ্চিত করুন</value></data>
+  <data name="About_Version"><value>সংস্করণ {0}</value></data>
+  <data name="QR_Copied"><value>কপি করা হয়েছে — Wi-Fi QR কোড</value></data>
+  <data name="Status_ConnectedTo_Short"><value>সংযুক্ত: {0}</value></data>
   <data name="Tray_Connected"><value>✓ {0}  ({1})</value></data>
   <data name="Jump_ConnectedSsid"><value>✓ {0}</value></data>
-  <data name="Confirm_DeleteMessage"><value>Delete profile for {0}?</value></data>
-  <data name="Theme_Solarized"><value>Solarized (Dark)</value></data>
-  <data name="Theme_Nord"><value>Nord (Dark)</value></data>
-  <data name="Theme_Catppuccin"><value>Catppuccin Macchiato</value></data>
-  <data name="Cert_Expired"><value>Expired</value></data>
-  <data name="Cert_ExpirySoon"><value>⚠ Expires in {0} days</value></data>
-  <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
-  <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
-  <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Confirm_DeleteMessage"><value>{0}-এর জন্য প্রোফাইল মুছে ফেলবেন?</value></data>
+  <data name="Theme_Solarized"><value>সোলারাইজড (ডার্ক)</value></data>
+  <data name="Theme_Nord"><value>নর্ড (ডার্ক)</value></data>
+  <data name="Theme_Catppuccin"><value>ক্যাটপুচিন মাচিয়াতো</value></data>
+  <data name="Cert_Expired"><value>মেয়াদ শেষ</value></data>
+  <data name="Cert_ExpirySoon"><value>⚠ {0} দিনে মেয়াদ শেষ হবে</value></data>
+  <data name="Cert_Expiry90"><value>{0} দিনে মেয়াদ শেষ হবে</value></data>
+  <data name="Cert_ExpiryOk"><value>বৈধ ({0} দিন বাকি)</value></data>
+  <data name="Theme_Fluent"><value>ফ্লুয়েন্ট (Windows 11 নেটিভ)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
+  <data name="Tray_NoNetworks"><value>(কোনো নেটওয়ার্ক নেই)</value></data>
+  <data name="Tray_OpenApp"><value>MWC খুলুন</value></data>
+  <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} অ্যাডাপ্টার সংযুক্ত</value></data>
+  <data name="Status_NetworksFound"><value>{0}টি নেটওয়ার্ক</value></data>
+  <data name="Status_ProfileCount"><value>{0}টি প্রোফাইল</value></data>
+
+  <data name="Settings_Title"><value>সেটিংস</value></data>
+  <data name="Settings_DialogAutomation"><value>সেটিংস ডায়ালগ</value></data>
+  <data name="Settings_Section_Display"><value>প্রদর্শন</value></data>
+  <data name="Settings_DisplayMode_Label"><value>প্রদর্শন মোড</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>সহজ: সংযোগে ফোকাস / বিশেষজ্ঞ: প্রযুক্তিগত তথ্য</value></data>
+  <data name="Settings_Mode_Simple"><value>সহজ</value></data>
+  <data name="Settings_Mode_Expert"><value>বিশেষজ্ঞ</value></data>
+  <data name="Settings_Theme"><value>থিম</value></data>
+  <data name="Theme_Dark"><value>গাঢ়</value></data>
+  <data name="Theme_Light"><value>হালকা</value></data>
+  <data name="Theme_System"><value>সিস্টেম ডিফল্ট</value></data>
+  <data name="Settings_Language"><value>ভাষা</value></data>
+  <data name="Settings_Section_Scan"><value>স্ক্যানিং</value></data>
+  <data name="Settings_ScanInterval_Label"><value>স্বয়ংক্রিয় স্ক্যান বিরতি</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>ব্যাটারি খরচকে প্রভাবিত করে</value></data>
+  <data name="Settings_ScanOnStartup"><value>স্টার্টআপে স্বয়ংক্রিয় স্ক্যান</value></data>
+  <data name="Settings_Section_Hidden"><value>লুকানো নেটওয়ার্ক</value></data>
+  <data name="Settings_Hidden_Empty"><value>কোনো লুকানো নেটওয়ার্ক নেই</value></data>
+  <data name="Settings_Hidden_Unhide"><value>দেখান</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>লুকানো নেটওয়ার্কের তালিকা</value></data>
+  <data name="Settings_Section_Notify"><value>বিজ্ঞপ্তি</value></data>
+  <data name="Settings_Notify_Label"><value>সংযোগ বিজ্ঞপ্তি দেখান</value></data>
+  <data name="Settings_Notify_Desc"><value>অ্যাকশন সেন্টারে টোস্ট দেখান</value></data>
+  <data name="Action_Save"><value>সংরক্ষণ করুন</value></data>
+  <data name="Action_ResetDefaults"><value>ডিফল্টে রিসেট করুন</value></data>
+  <data name="Adapter_Dialog_Title"><value>অ্যাডাপ্টার সেটিংস</value></data>
+  <data name="Adapter_Dialog_Automation"><value>ওয়্যারলেস অ্যাডাপ্টার সেটিংস</value></data>
+  <data name="Adapter_DisplayName_Section"><value>প্রদর্শন নাম</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>উদা.: হোম ডঙ্গল / মোবাইল / শুধু 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>ফ্রিকোয়েন্সি ব্যান্ড</value></data>
+  <data name="Band_Any"><value>সব ব্যান্ড</value></data>
+  <data name="Adapter_Band_6E"><value>শুধু 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>এই অ্যাডাপ্টারের ব্যান্ড সীমিত করুন</value></data>
+  <data name="Adapter_Pinned_Section"><value>পছন্দের SSID (স্বয়ংক্রিয় সংযোগ)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>আনপিন করুন</value></data>
+  <data name="Adapter_Pinned_Empty"><value>কোনো পিন করা SSID নেই</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join এই নেটওয়ার্কগুলি ক্রমে চেষ্টা করবে</value></data>
+  <data name="Adapter_Enabled_Label"><value>এই অ্যাডাপ্টার ব্যবহার করুন</value></data>
+  <data name="Adapter_Enabled_Desc"><value>অক্ষম করলে তালিকা থেকে লুকিয়ে যাবে</value></data>
+
+  <data name="Adapter_Band_24"><value>শুধু 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>শুধু 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>নেটওয়ার্ক পাসওয়ার্ড লিখুন</value></data>
+  <data name="Label_ShowPassword"><value>পাসওয়ার্ড দেখান</value></data>
+
+  <data name="About_Title"><value>MWC সম্পর্কে</value></data>
+  <data name="About_Automation"><value>অ্যাপ তথ্য</value></data>
+  <data name="About_Tagline"><value>মাল্টি WiFi কানেক্টর</value></data>
+  <data name="About_Desc"><value>Windows এর জন্য মাল্টি-অ্যাডাপ্টার Wi-Fi ম্যানেজার।
+WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data>
+  <data name="About_GitHub"><value>GitHub-এ সোর্স দেখুন</value></data>
+  <data name="About_ReportBug"><value>বাগ রিপোর্ট করুন</value></data>
+  <data name="About_License"><value>MIT লাইসেন্স © ২০২৬ Shizuku Tanaka</value></data>
+
+  <data name="Wizard_WindowTitle"><value>MWC-তে স্বাগতম</value></data>
+  <data name="Wizard_DialogAutomation"><value>প্রথম-রান উইজার্ড</value></data>
+  <data name="Shortcuts_Title"><value>কীবোর্ড শর্টকাট</value></data>
+  <data name="Shortcuts_DialogAutomation"><value>কীবোর্ড শর্টকাট তালিকা</value></data>
+  <data name="Shortcuts_Desc"><value>মাউস ছাড়া সব ফিচার ব্যবহারযোগ্য</value></data>
+  <data name="QR_WindowTitle"><value>Wi-Fi QR কোড</value></data>
+  <data name="QR_DialogAutomation"><value>Wi-Fi QR কোড প্রদর্শন</value></data>
+  <data name="Action_Copy"><value>কপি করুন</value></data>
+  <data name="QR_SavePng"><value>PNG সংরক্ষণ করুন</value></data>
+  <data name="QR_PngFileFilter"><value>PNG চিত্র (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>টেক্সট (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|টেক্সট (*.txt)|*.txt</value></data>
+  <data name="Profile_WindowTitle"><value>সংরক্ষিত নেটওয়ার্ক</value></data>
+  <data name="Profile_DialogAutomation"><value>সংরক্ষিত নেটওয়ার্ক ব্যবস্থাপনা</value></data>
+  <data name="Profile_ListAutomation"><value>সংরক্ষিত প্রোফাইল তালিকা</value></data>
+  <data name="Action_Delete"><value>মুছুন</value></data>
+  <data name="Profile_DeleteWarning"><value>মুছে ফেলা প্রোফাইল পুনরুদ্ধার করা যাবে না</value></data>
+  <data name="Progress_WindowTitle"><value>সংযোগ হচ্ছে…</value></data>
+  <data name="Progress_DialogAutomation"><value>সংযোগ অগ্রগতি</value></data>
+  <data name="Captive_DialogAutomation"><value>ক্যাপটিভ পোর্টাল সাইন-ইন</value></data>
+  <data name="Captive_OpenExternal"><value>ব্রাউজারে খুলুন</value></data>
+  <data name="Action_Skip"><value>এড়িয়ে যান</value></data>
+  <data name="Captive_Done"><value>সংযুক্ত</value></data>
+  <data name="Trouble_WindowTitle"><value>সংযোগ সমস্যা</value></data>
+  <data name="Trouble_DialogAutomation"><value>সংযোগ ট্রাবলশুটিং</value></data>
+  <data name="Trouble_Solutions"><value>সমাধান</value></data>
+  <data name="Action_Retry"><value>পুনরায় চেষ্টা করুন</value></data>
+  <data name="Cert_PickerTitle"><value>ক্লায়েন্ট সার্টিফিকেট নির্বাচন করুন</value></data>
+  <data name="Cert_PickerAutomation"><value>EAP-TLS ক্লায়েন্ট সার্টিফিকেট নির্বাচন</value></data>
+  <data name="Cert_PickerDesc"><value>EAP-TLS প্রমাণীকরণের জন্য একটি সার্টিফিকেট নির্বাচন করুন</value></data>
+  <data name="Cert_ListAutomation"><value>সার্টিফিকেট তালিকা</value></data>
+  <data name="Cert_Subject"><value>বিষয়:</value></data>
+  <data name="Cert_IssuerLabel"><value>জারিকারী:</value></data>
+  <data name="Cert_ExpiryLabel"><value>মেয়াদ শেষ:</value></data>
+  <data name="Cert_OpenStore"><value>সার্টিফিকেট স্টোর খুলুন…</value></data>
+  <data name="Cert_UseThis"><value>এই সার্টিফিকেট ব্যবহার করুন</value></data>
+  <data name="Main_WindowTitle"><value>MWC — মাল্টি WiFi কানেক্টর</value></data>
+  <data name="Main_WindowAutomation"><value>MWC প্রধান উইন্ডো</value></data>
+  <data name="Main_SearchTooltip"><value>নেটওয়ার্ক অনুসন্ধান করুন (Ctrl+F)</value></data>
+  <data name="Main_SearchAutomation"><value>নেটওয়ার্ক অনুসন্ধান</value></data>
+  <data name="Main_RescanTooltip"><value>পুনরায় স্ক্যান (Ctrl+R)</value></data>
+  <data name="Main_RescanAutomation"><value>নেটওয়ার্ক পুনরায় স্ক্যান করুন</value></data>
+  <data name="Main_ToggleModeTooltip"><value>সিম্পল/এক্সপার্ট মোড পরিবর্তন করুন</value></data>
+  <data name="Main_AllAdaptersTooltip"><value>সব অ্যাডাপ্টার ওভারভিউ (Ctrl+Shift+A)</value></data>
+  <data name="Main_AllAdaptersAutomation"><value>সব অ্যাডাপ্টার ভিউ</value></data>
+  <data name="Main_OverflowMenuAutomation"><value>আরও অপশন</value></data>
+  <data name="Main_ConnectAutomation"><value>নির্বাচিত নেটওয়ার্কে সংযোগ করুন</value></data>
+  <data name="Main_AdapterTabsAutomation"><value>ওয়্যারলেস অ্যাডাপ্টার ট্যাব</value></data>
+  <data name="Main_NetworkListAutomation"><value>সনাক্ত করা নেটওয়ার্ক তালিকা</value></data>
+  <data name="Main_EmptyStateMessage"><value>আপনার Wi-Fi অ্যাডাপ্টার সক্রিয় আছে তা নিশ্চিত করুন, তারপর পুনরায় স্ক্যান করুন।</value></data>
+  <data name="ContextMenu_ShowQr"><value>QR কোড দেখান</value></data>
+  <data name="ContextMenu_CopySsid"><value>SSID কপি করুন</value></data>
+  <data name="ContextMenu_PinNetwork"><value>এই নেটওয়ার্ক পিন করুন</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>এই নেটওয়ার্কটি আনপিন করুন</value></data>
+  <data name="Main_PinnedTooltip"><value>পিন করা হয়েছে (প্রথমে দেখানো হয়)</value></data>
+  <data name="Status_Unpinned"><value>আনপিন করা হয়েছে: {0}</value></data>
+  <data name="ContextMenu_HideNetwork"><value>এই নেটওয়ার্ক লুকান</value></data>
+  <data name="Main_ProfileSavedTooltip"><value>প্রোফাইল সংরক্ষিত</value></data>
+  <data name="Menu_ExportCsv"><value>📥  CSV এক্সপোর্ট করুন</value></data>
+  <data name="Menu_ExportJson"><value>📥  JSON এক্সপোর্ট করুন</value></data>
+  <data name="Menu_ExportTxt"><value>📄  টেক্সট রিপোর্ট এক্সপোর্ট করুন</value></data>
+  <data name="Menu_ShowQr"><value>QR কোড দেখান</value></data>
+  <data name="Menu_Settings"><value>⚙️  সেটিংস…</value></data>
+  <data name="Menu_About"><value>ℹ️  MWC সম্পর্কে</value></data>
+  <data name="Menu_ScanAll"><value>↻↻  সব অ্যাডাপ্টার স্ক্যান করুন  Ctrl+Shift+A</value></data>
+  <data name="Menu_SavedNetworks"><value>📋  সংরক্ষিত নেটওয়ার্ক</value></data>
+  <data name="Menu_QualityMeasure"><value>📊  নেটওয়ার্ক গুণমান</value></data>
+  <data name="Menu_AllAdapters"><value>📡  সব ওয়্যারলেস অ্যাডাপ্টার দেখান</value></data>
+  <data name="Detail_Auth"><value>প্রমাণীকরণ</value></data>
+  <data name="Detail_Cipher"><value>সাইফার</value></data>
+  <data name="Detail_Phy"><value>প্রজন্ম</value></data>
+  <data name="Detail_Vendor"><value>বিক্রেতা</value></data>
+  <data name="Detail_Score"><value>স্কোর</value></data>
+  <data name="Detail_Band"><value>ব্যান্ড</value></data>
+  <data name="Detail_Channel"><value>চ্যানেল</value></data>
+  <data name="Detail_Frequency"><value>ফ্রিকোয়েন্সি</value></data>
+  <data name="Detail_Speed"><value>সর্বোচ্চ গতি</value></data>
+  <data name="Detail_Signal"><value>সংকেত</value></data>
+  <data name="Detail_Status"><value>অবস্থা</value></data>
+  <data name="Main_SignalGraphAutomation"><value>সংকেত শক্তি গ্রাফ</value></data>
+  <data name="Main_ChannelGraphAutomation"><value>চ্যানেল ব্যান্ড গ্রাফ</value></data>
+  <data name="AllAdapters_WindowTitle"><value>সব ওয়্যারলেস অ্যাডাপ্টার — MWC</value></data>
+  <data name="AllAdapters_WindowAutomation"><value>সব অ্যাডাপ্টার ওভারভিউ</value></data>
+  <data name="AllAdapters_Heading"><value>সব ওয়্যারলেস অ্যাডাপ্টার</value></data>
+  <data name="AllAdapters_ScanAll"><value>↻ সব স্ক্যান করুন</value></data>
+  <data name="AllAdapters_ScanAllTooltip"><value>সব অ্যাডাপ্টার সমান্তরালভাবে স্ক্যান করুন</value></data>
+  <data name="AllAdapters_ConnectAll"><value>⚡ সব পছন্দের সাথে সংযোগ করুন</value></data>
+  <data name="AllAdapters_ConnectAllTooltip"><value>প্রতিটি অ্যাডাপ্টারকে তার পছন্দের নেটওয়ার্কে স্বয়ংক্রিয়ভাবে সংযোগ করুন</value></data>
+  <data name="AllAdapters_PreferredHeader"><value>★ পছন্দের নেটওয়ার্ক (র‍্যাঙ্কড)</value></data>
+  <data name="AllAdapters_MoveUp"><value>অগ্রাধিকার উপরে সরান</value></data>
+  <data name="AllAdapters_RemovePreferred"><value>পছন্দের তালিকা থেকে সরান</value></data>
+  <data name="AllAdapters_AddPreferred"><value>+ নির্বাচিত পছন্দে যোগ করুন</value></data>
+  <data name="AllAdapters_AutoReconnect"><value>স্বয়ংক্রিয়-পুনঃসংযোগ সক্ষম করুন</value></data>
+  <data name="Main_SelectNetworkHint"><value>একটি নেটওয়ার্ক নির্বাচন করুন</value></data>
+  <data name="Main_SelectHistoryHint"><value>ইতিহাস দেখতে একটি নেটওয়ার্ক নির্বাচন করুন</value></data>
+  <data name="Main_SignalHistoryTitle"><value>{0} — সংকেত ইতিহাস</value></data>
+  <data name="Main_SignalStrength"><value>সংকেত {0}%</value></data>
+  <data name="AllAdapters_NetworkListAutomation"><value>{0}টি নেটওয়ার্ক</value></data>
+  <data name="Notify_ConnectedTo"><value>{0}-এর সাথে সংযুক্ত</value></data>
+  <data name="Notify_ConnectedComplete"><value>{0} — ইন্টারনেট যাচাই করা হয়েছে</value></data>
+  <data name="Notify_Disconnected"><value>{0} থেকে সংযোগ বিচ্ছিন্ন হয়েছে</value></data>
+  <data name="Notify_CannotConnect"><value>{0}-এর সাথে সংযোগ করা যাচ্ছে না</value></data>
+  <data name="Announce_Connected"><value>{0}-এর সাথে সংযুক্ত হয়েছে</value></data>
+  <data name="Announce_ConnectFailed"><value>{0}-এর সাথে সংযোগ ব্যর্থ হয়েছে</value></data>
+  <data name="Announce_SsidCopied"><value>SSID কপি করা হয়েছে: {0}</value></data>
+  <data name="Quality_ResultFormat"><value>RTT: {0}  ক্ষতি: {1}  গ্রেড: {2}</value></data>
+  <data name="Step_IpAddress"><value>IP ঠিকানা প্রাপ্ত করা হচ্ছে</value></data>
+  <data name="ScanInterval_Manual"><value>শুধু ম্যানুয়াল</value></data>
+  <data name="ScanInterval_10s"><value>১০ সেকেন্ড</value></data>
+  <data name="ScanInterval_15s"><value>১৫ সেকেন্ড</value></data>
+  <data name="ScanInterval_30s"><value>৩০ সেকেন্ড</value></data>
+  <data name="ScanInterval_60s"><value>১ মিনিট</value></data>
+  <data name="ScanInterval_300s"><value>৫ মিনিট</value></data>
+  <data name="Jump_ConnectDescription"><value>{0}-এর সাথে সংযোগ করুন</value></data>
+  <data name="Connect_PassphraseAutomation"><value>পাসফ্রেজ ইনপুট</value></data>
+  <data name="Connect_PassphraseVisibleAutomation"><value>পাসফ্রেজ ইনপুট (দৃশ্যমান)</value></data>
+  <data name="CertPicker_ExpiryFormat"><value>{0} ({1} দিনে মেয়াদ শেষ)</value></data>
+  <data name="Security_Excellent"><value>চমৎকার নিরাপত্তা (WPA3)</value></data>
+  <data name="Security_Good"><value>ভালো নিরাপত্তা (WPA2)</value></data>
+  <data name="Security_Fair"><value>মাঝারি নিরাপত্তা</value></data>
+  <data name="Security_Weak"><value>দুর্বল নিরাপত্তা — পুরানো এনক্রিপশন</value></data>
+  <data name="Security_Danger"><value>বিপদ — অনিরাপদ নেটওয়ার্ক</value></data>
+  <data name="Detail_DfsWarning"><value>DFS চ্যানেল</value></data>
+  <data name="Detail_DfsHint"><value>এই চ্যানেল ডাইনামিক ফ্রিকোয়েন্সি সিলেকশন ব্যবহার করে। রাডার সনাক্ত হলে সাময়িক বিঘ্ন ঘটতে পারে।</value></data>
+  <data name="Failover_Section"><value>অ্যাডাপ্টার ফেইলওভার</value></data>
+  <data name="Failover_Desc"><value>এই অ্যাডাপ্টার ইন্টারনেট সংযোগ হারালে স্বয়ংক্রিয়ভাবে একটি ব্যাকআপ অ্যাডাপ্টারে পরিবর্তন করুন।</value></data>
+  <data name="Failover_Enable"><value>ফেইলওভার সক্ষম করুন</value></data>
+  <data name="Failover_BackupAdapter"><value>ব্যাকআপ অ্যাডাপ্টার</value></data>
+  <data name="Failover_BackupNone"><value>(কোনটিই না)</value></data>
+  <data name="Failover_BackupHint"><value>এই অ্যাডাপ্টার সংযোগ হারালে সক্রিয় করার জন্য অ্যাডাপ্টার নির্বাচন করুন।</value></data>
+  <data name="Notify_FailoverActivated"><value>ফেইলওভার: {0}-এ পরিবর্তন করা হয়েছে</value></data>
+  <data name="Notify_FailoverRestored"><value>প্রাথমিক অ্যাডাপ্টার {0} পুনরায় সংযুক্ত হয়েছে</value></data>
+  <data name="Quality_Grade_Excellent"><value>অত্যুত্তম</value></data>
+  <data name="Quality_Grade_Good"><value>ভালো</value></data>
+  <data name="Quality_Grade_Fair"><value>মোটামুটি</value></data>
+  <data name="Quality_Grade_Poor"><value>খারাপ</value></data>
+  <data name="Quality_Grade_Unknown"><value>মাপ চলছে…</value></data>
+  <data name="Quality_Timeout"><value>সময় শেষ</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>চ্যানেল অতিবোঝাই ({0}% ব্যবহার)</value></data>
+  <data name="Congestion_BusyTooltip"><value>চ্যানেল ব্যস্ত ({0}% ব্যবহার)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
+  <data name="Detail_Distance"><value>দূরত্ব</value></data>
+  <data name="Detail_Roaming"><value>রোমিং</value></data>
+  <data name="Detail_Interference"><value>হস্তক্ষেপ</value></data>
+  <data name="Detail_Mesh"><value>মেশ</value></data>
+  <data name="Detail_PowerSave"><value>শক্তি সাশ্রয়</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>প্রয়োজন নেই</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>ঐচ্ছিক</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>সুপারিশকৃত</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ দৃঢ়ভাবে সুপারিশকৃত</value></data>
+  <data name="Detail_EapStats"><value>802.1X সাফল্যের হার</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2}টি প্রচেষ্টা)</value></data>
+  <data name="Detail_Regulatory"><value>6GHz অঞ্চল</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ {0}-এ বৈধ</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ {0}-এ অনুমোদিত নয়</value></data>
+  <data name="Detail_LinkEstimate"><value>লিংক অনুমান</value></data>
+  <data name="Detail_Mlo"><value>MLO</value></data>
+  <data name="Detail_SignalTrend"><value>সিগন্যাল প্রবণতা</value></data>
+  <data name="Menu_DiagnosticExport"><value>সাপোর্ট রিপোর্ট রপ্তানি করুন…</value></data>
+  <data name="Status_DiagnosticExported"><value>সাপোর্ট রিপোর্ট সংরক্ষিত → {0}</value></data>
+  <data name="Status_Exported"><value>রপ্তানি → {0}</value></data>
+  <data name="Advisory_EvilTwin_HighRisk" xml:space="preserve">
+    <value>Evil Twin: High Risk — multiple spoofing indicators detected</value>
+  </data>
+  <data name="Advisory_EvilTwin_Suspicious" xml:space="preserve">
+    <value>Evil Twin: Suspicious — possible rogue AP with same SSID</value>
+  </data>
+  <data name="Advisory_SEC001_Title" xml:space="preserve">
+    <value>WPA3 Transition Mode Detected</value>
+  </data>
+  <data name="Advisory_SEC002_Title" xml:space="preserve">
+    <value>Protected Management Frames Disabled</value>
+  </data>
+  <data name="Advisory_SEC003_Title" xml:space="preserve">
+    <value>WEP Is Broken</value>
+  </data>
+  <data name="Advisory_SEC004_Title" xml:space="preserve">
+    <value>WPA (TKIP) Is Deprecated</value>
+  </data>
+  <data name="Advisory_SEC005_Title" xml:space="preserve">
+    <value>Unencrypted Network</value>
+  </data>
+  <data name="Advisory_SEC006_Title" xml:space="preserve">
+    <value>FragAttacks Mitigation</value>
+  </data>
+  <data name="Advisory_SEC007_Title" xml:space="preserve">
+    <value>WPS Enabled</value>
+  </data>
+  <data name="Advisory_SEC100_Title" xml:space="preserve">
+    <value>Hardened Security Configuration</value>
+  </data>
+  <data name="Advisory_StickyClient" xml:space="preserve">
+    <value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value>
+  </data>
+  <data name="Auth_Compact_OWE" xml:space="preserve">
+    <value>OWE</value>
+  </data>
+  <data name="Auth_Compact_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Auth_Compact_WEP" xml:space="preserve">
+    <value>WEP</value>
+  </data>
+  <data name="Auth_Compact_WPA" xml:space="preserve">
+    <value>WPA</value>
+  </data>
+  <data name="Auth_Compact_WPA2" xml:space="preserve">
+    <value>WPA2</value>
+  </data>
+  <data name="Auth_Compact_WPA23" xml:space="preserve">
+    <value>WPA2/3</value>
+  </data>
+  <data name="Auth_Compact_WPA2Ent" xml:space="preserve">
+    <value>WPA2 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3" xml:space="preserve">
+    <value>WPA3</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent" xml:space="preserve">
+    <value>WPA3 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent192" xml:space="preserve">
+    <value>WPA3 Ent192</value>
+  </data>
+  <data name="Band_Compact_2_4" xml:space="preserve">
+    <value>2.4G</value>
+  </data>
+  <data name="Band_Compact_5" xml:space="preserve">
+    <value>5G</value>
+  </data>
+  <data name="Band_Compact_6" xml:space="preserve">
+    <value>6G</value>
+  </data>
+  <data name="Band_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Detail_Interference_Low" xml:space="preserve">
+    <value>Low  ({0}/100)</value>
+  </data>
+  <data name="Detail_Interference_Other" xml:space="preserve">
+    <value>{0}  ({1}/100)  — {2}</value>
+  </data>
+  <data name="Detail_Mesh_6GHz" xml:space="preserve">
+    <value> · 6 GHz</value>
+  </data>
+  <data name="Detail_Mesh_Confidence" xml:space="preserve">
+    <value>  ({0})</value>
+  </data>
+  <data name="Detail_Mesh_FastTransition" xml:space="preserve">
+    <value> · 802.11r</value>
+  </data>
+  <data name="Detail_Mesh_NodeCount" xml:space="preserve">
+    <value>{0} nodes</value>
+  </data>
+  <data name="Detail_Mesh_TriBand" xml:space="preserve">
+    <value> · Tri-band</value>
+  </data>
+  <data name="Detail_PowerSave_Advanced" xml:space="preserve">
+    <value>rTWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_Legacy" xml:space="preserve">
+    <value>Legacy (DTIM/PSM)</value>
+  </data>
+  <data name="Detail_PowerSave_Standard" xml:space="preserve">
+    <value>TWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi6Cap" xml:space="preserve">
+    <value>TWT capable (Wi-Fi 6) — up to ~20% saving</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi7Cap" xml:space="preserve">
+    <value>rTWT capable (Wi-Fi 7) — up to ~34% saving</value>
+  </data>
+  <data name="Detail_Roaming_Assisted" xml:space="preserve">
+    <value>Assisted (802.11k/v)</value>
+  </data>
+  <data name="Detail_Roaming_Fast" xml:space="preserve">
+    <value>Fast (802.11r) — ~{0}ms typical</value>
+  </data>
+  <data name="Detail_Roaming_Seamless" xml:space="preserve">
+    <value>Seamless ({0})</value>
+  </data>
+  <data name="Detail_Roaming_Standard" xml:space="preserve">
+    <value>Standard — no 802.11r/k/v detected (~{0}ms typical)</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0}h {1:D2}m</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="Status_ConnectedNoTimer" xml:space="preserve">
+    <value>→ {0}</value>
+  </data>
+  <data name="Status_ConnectedWithDuration" xml:space="preserve">
+    <value>→ {0}  ({1})</value>
+  </data>
+  <data name="Tray_NetworkItem" xml:space="preserve">
+    <value>{0}  ({1}%)</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Reason" xml:space="preserve">
+    <value>The Wi-Fi adapter on your PC is turned off.</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Steps" xml:space="preserve">
+    <value>Press the Airplane mode key on your keyboard to turn it off|Go to Windows Settings → Network → Wi-Fi and turn it on|Check in Device Manager that the Wi-Fi adapter is enabled</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Title" xml:space="preserve">
+    <value>Wi-Fi Adapter Disabled</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Reason" xml:space="preserve">
+    <value>The username or password is incorrect.</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Steps" xml:space="preserve">
+    <value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Title" xml:space="preserve">
+    <value>Enterprise Authentication Failed</value>
+  </data>
+  <data name="Trouble_BadCredentials_Reason" xml:space="preserve">
+    <value>The password you entered does not match the access point.</value>
+  </data>
+  <data name="Trouble_BadCredentials_Steps" xml:space="preserve">
+    <value>Double-check the password (case-sensitive)|Try the password printed on the router label or in its manual|If you recently changed the password, enter the new one</value>
+  </data>
+  <data name="Trouble_BadCredentials_Title" xml:space="preserve">
+    <value>Wrong Password</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Reason" xml:space="preserve">
+    <value>Adding a network profile requires administrator privileges.</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Steps" xml:space="preserve">
+    <value>Right-click MWC and choose Run as administrator|Or sign in with an administrator account and try again</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Title" xml:space="preserve">
+    <value>Administrator Privileges Required</value>
+  </data>
+  <data name="Trouble_NotInRange_Reason" xml:space="preserve">
+    <value>The selected network is not reachable from your current location.</value>
+  </data>
+  <data name="Trouble_NotInRange_Steps" xml:space="preserve">
+    <value>Move closer to the access point and try again|Check that the access point is powered on|Use the Rescan button to search for networks again</value>
+  </data>
+  <data name="Trouble_NotInRange_Title" xml:space="preserve">
+    <value>Network Not Found</value>
+  </data>
+  <data name="Trouble_Timeout_Reason" xml:space="preserve">
+    <value>The access point did not respond.</value>
+  </data>
+  <data name="Trouble_Timeout_Steps" xml:space="preserve">
+    <value>Make sure the access point (router) is powered on|Move closer to the access point|Restart the router (power off for 10 seconds, then on)|Check whether other devices can connect from the same location</value>
+  </data>
+  <data name="Trouble_Timeout_Title" xml:space="preserve">
+    <value>Connection Timed Out</value>
+  </data>
+  <data name="Trouble_Unknown_Reason" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="Trouble_Unknown_Steps" xml:space="preserve">
+    <value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value>
+  </data>
+  <data name="Trouble_Unknown_Title" xml:space="preserve">
+    <value>Connection Failed</value>
+  </data>
+
+  <data name="Rec_Grade_Poor"><value>দুর্বল</value></data>
+  <data name="Rec_Grade_Fair"><value>মাঝারি</value></data>
+  <data name="Rec_Grade_Good"><value>ভালো</value></data>
+  <data name="Rec_Grade_Excellent"><value>চমৎকার</value></data>
+  <data name="Rec_Profile_General"><value>সব মাত্রায় ভারসাম্যপূর্ণ</value></data>
+  <data name="Rec_Profile_Realtime"><value>রিয়েল-টাইম যোগাযোগের জন্য অপ্টিমাইজড (VoIP/ভিডিও)</value></data>
+  <data name="Rec_Profile_Secure"><value>গোপনীয় ব্যবহারের জন্য অপ্টিমাইজড</value></data>
+  <data name="Rec_Profile_Throughput"><value>বাল্ক ট্রান্সফারের জন্য অপ্টিমাইজড</value></data>
+  <data name="Rec_Dim_Security"><value>নিরাপত্তা</value></data>
+  <data name="Rec_Dim_Roaming"><value>রোমিং</value></data>
+  <data name="Rec_Dim_Channel"><value>ব্যান্ড / চ্যানেল</value></data>
+  <data name="Rec_Dim_Signal"><value>সংকেত শক্তি</value></data>
+  <data name="Rec_Summary"><value>সামগ্রিক স্কোর {0}/১০০ ({1})। {2}। শীর্ষ ফ্যাক্টর: &quot;{3}&quot; (স্কোর {4})।</value></data>
+
+  <data name="Detail_PredictedSignal"><value>~{0} dBm ({1}টি নমুনা)</value></data>
+  <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps কার্যকর, ২-স্ট্রিম আনুমানিক)  SNR {3} dB</value></data>
+  <data name="Detail_Mlo_Format"><value>{0}টি লিংক  ({1})  {2} Mbps একত্রিত  ({3})</value></data>
+  <data name="Mlo_Reliability_SingleLink"><value>একক লিংক</value></data>
+  <data name="Mlo_Reliability_DualLink"><value>দ্বৈত লিংক</value></data>
+  <data name="Mlo_Reliability_TripleLink"><value>ত্রিগুণ লিংক</value></data>
+  <data name="Detail_DistanceLabel"><value>~{0} m ({1}–{2} m)</value></data>
+
+  <data name="Phy_Gen_b"><value>Wi-Fi 1 (802.11b)</value></data>
+  <data name="Phy_Gen_a"><value>Wi-Fi 2 (802.11a)</value></data>
+  <data name="Phy_Gen_g"><value>Wi-Fi 3 (802.11g)</value></data>
+  <data name="Phy_Gen_n"><value>Wi-Fi 4 (802.11n)</value></data>
+  <data name="Phy_Gen_ac"><value>Wi-Fi 5 (802.11ac)</value></data>
+  <data name="Phy_Gen_ax"><value>Wi-Fi 6/6E (802.11ax)</value></data>
+  <data name="Phy_Gen_be"><value>Wi-Fi 7 (802.11be)</value></data>
+  <data name="Phy_Gen_bn"><value>Wi-Fi 8 (802.11bn — প্রিভিউ)</value></data>
+  <data name="Phy_Gen_Unknown"><value>অজানা</value></data>
+  <data name="Phy_Short_b"><value>Wi-Fi 1</value></data>
+  <data name="Phy_Short_a"><value>Wi-Fi 2</value></data>
+  <data name="Phy_Short_g"><value>Wi-Fi 3</value></data>
+  <data name="Phy_Short_n"><value>Wi-Fi 4</value></data>
+  <data name="Phy_Short_ac"><value>Wi-Fi 5</value></data>
+  <data name="Phy_Short_ax"><value>Wi-Fi 6/6E</value></data>
+  <data name="Phy_Short_be"><value>Wi-Fi 7</value></data>
+  <data name="Phy_Short_bn"><value>Wi-Fi 8</value></data>
+  <data name="Phy_Short_Unknown"><value>?</value></data>
+
+  <data name="Cipher_None"><value>কোনোটি নয়</value></data>
+  <data name="Cipher_WEP"><value>WEP</value></data>
+  <data name="Cipher_TKIP"><value>TKIP</value></data>
+  <data name="Cipher_AES"><value>AES (CCMP)</value></data>
+  <data name="Cipher_GCMP256"><value>GCMP-256</value></data>
+
+  <data name="Interference_Factor_CoChannel"><value>চ্যানেল {1}-এ {0}টি AP — কো-চ্যানেল হস্তক্ষেপ</value></data>
+  <data name="Interference_Factor_Adjacent"><value>{0}টি পার্শ্ববর্তী-চ্যানেল AP — পার্শ্ববর্তী-চ্যানেল হস্তক্ষেপ (2.4 GHz)</value></data>
+  <data name="Interference_Factor_Bluetooth"><value>2.4 GHz ব্লুটুথ/জিগবির সাথে স্পেকট্রাম ভাগ করে — সহাবস্থান ঝুঁকি</value></data>
+  <data name="Interference_Rec_24GHz"><value>উচ্চ হস্তক্ষেপ। 5 GHz/6 GHz-এ পরিবর্তনের কথা বিবেচনা করুন। 2.4 GHz-এ থাকলে, চ্যানেল ১, ৬, বা ১১ পছন্দ করুন।</value></data>
+  <data name="Interference_Rec_5or6GHz"><value>কো-চ্যানেল কনজেশন সনাক্ত করা হয়েছে। ভিন্ন চ্যানেল বা 6 GHz-এ যাওয়ার কথা বিবেচনা করুন।</value></data>
+
+  <data name="Failure_Unknown"><value>অজানা ত্রুটি</value></data>
+  <data name="Failure_InvalidProfile"><value>অবৈধ নেটওয়ার্ক প্রোফাইল</value></data>
+  <data name="Failure_AdapterNotFound"><value>ওয়্যারলেস অ্যাডাপ্টার পাওয়া যায়নি</value></data>
+  <data name="Failure_Cancelled"><value>বাতিল করা হয়েছে</value></data>
+  <data name="Failure_ProfileRejected"><value>সিস্টেম দ্বারা প্রোফাইল প্রত্যাখ্যাত হয়েছে</value></data>
+  <data name="Failure_OsError"><value>সিস্টেম ত্রুটি</value></data>
+
+  <data name="Adapter_Pinned_ListAutomation"><value>পিন করা নেটওয়ার্ক তালিকা</value></data>
 </root>

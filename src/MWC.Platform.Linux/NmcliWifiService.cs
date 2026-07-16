@@ -39,12 +39,12 @@ public sealed class NmcliWifiService : IWifiService
     {
         // nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device
         var output = await RunNmcliAsync(
-            "-t -f DEVICE,TYPE,STATE,CONNECTION device", ct).ConfigureAwait(false);
+            ["-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device"], ct).ConfigureAwait(false);
 
         var adapters = new List<WifiAdapter>();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var cols = line.Split(':');
+            var cols = SplitTerse(line);
             if (cols.Length < 3) continue;
             if (!cols[1].Contains("wifi", StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -71,17 +71,21 @@ public sealed class NmcliWifiService : IWifiService
 
         // --rescan yes で強制再スキャン(3秒程度かかる)
         var output = await RunNmcliAsync(
-            $"-t -f SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY,IN-USE " +
-            $"dev wifi list ifname {iface} --rescan yes", ct).ConfigureAwait(false);
+            ["-t", "-f", "SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY,IN-USE",
+             "dev", "wifi", "list", "ifname", iface, "--rescan", "yes"], ct).ConfigureAwait(false);
 
-        var networks = new Dictionary<string, WifiNetwork>(StringComparer.Ordinal);
+        var networks = new Dictionary<string, ScanGroup>(StringComparer.Ordinal);
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            var cols = line.Split(':');
+            var cols = SplitTerse(line);
             if (cols.Length < 8) continue;
 
             var ssid     = cols[0].Trim();
+            // 隠し (空 SSID) ネットワークは契約上除外する (Windows 実装と一致)。
+            if (string.IsNullOrEmpty(ssid)) continue;
+
+            var bssid    = cols[1].Trim();
             var chan     = int.TryParse(cols[3], out var ch) ? ch : 0;
             var freq     = int.TryParse(Regex.Replace(cols[4], @"[^\d]", ""), out var f) ? f : 0;
             var signal   = int.TryParse(cols[6], out var s) ? s : 0;
@@ -93,29 +97,64 @@ public sealed class NmcliWifiService : IWifiService
             var phy      = band == WifiBand.Band6GHz ? PhyType.Dot11ax
                          : chan > 14                 ? PhyType.Dot11ac
                                                      : PhyType.Dot11n;
+            // 品質(0-100%) を概算 RSSI(-100..-30 dBm) に変換。
+            // signal-100 だと 0 dBm(非現実的に強い)になるため 0.7 係数で圧縮
+            // (RssiDistanceEstimator.QualityToRssi と一致)。
+            var rssi = (int)Math.Round(-100 + Math.Clamp(signal, 0, 100) * 0.7);
 
-            if (string.IsNullOrEmpty(ssid)) ssid = "<hidden>";
+            // SSID 単位で集約 (IWifiService.ScanAsync の契約)。同一 SSID が複数バンド/
+            // AP で見える場合は各 BSS を BssEntries に束ね、最強シグナルを代表にする。
+            if (!networks.TryGetValue(ssid, out var g))
+                networks[ssid] = g = new ScanGroup();
 
-            networks[ssid + cols[1]] = new WifiNetwork
+            g.Bss.Add(new BssInfo
             {
-                Ssid          = ssid,
-                Auth          = auth,
-                Band          = band,
-                Channel       = chan,
-                FrequencyMhz  = freq,
-                SignalQuality = signal,
-                Phy           = phy,
-                IsConnected   = inUse,
-                BssEntries    = new[]
+                Bssid        = bssid,
+                Rssi         = rssi,
+                Channel      = chan,
+                FrequencyMhz = freq,
+                Phy          = phy,
+            });
+            g.InUse |= inUse;
+            if (g.Representative is null || signal > g.BestSignal)
+            {
+                g.BestSignal = signal;
+                g.Representative = new WifiNetwork
                 {
-                    new BssInfo { Bssid = cols[1].Trim(), Rssi = (signal - 100) }
-                }
-            };
+                    Ssid          = ssid,
+                    Auth          = auth,
+                    Band          = band,
+                    Channel       = chan,
+                    FrequencyMhz  = freq,
+                    SignalQuality = signal,
+                    Phy           = phy,
+                };
+            }
         }
-        return networks.Values.ToList();
+
+        var result = new List<WifiNetwork>(networks.Count);
+        foreach (var g in networks.Values)
+        {
+            if (g.Representative is null) continue;
+            result.Add(g.Representative with
+            {
+                IsConnected = g.InUse,
+                BssEntries  = g.Bss.ToArray(),
+            });
+        }
+        return result;
     }
 
-    public async Task RegisterProfileAsync(
+    // SSID 単位のスキャン集約用の作業バッファ。
+    private sealed class ScanGroup
+    {
+        public WifiNetwork? Representative;
+        public int BestSignal = -1;
+        public bool InUse;
+        public readonly List<BssInfo> Bss = new();
+    }
+
+    public async Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // Windows WLAN XML からキー情報を抽出して nmcli connection として登録
@@ -125,27 +164,34 @@ public sealed class NmcliWifiService : IWifiService
         var keyMatch  = System.Text.RegularExpressions.Regex.Match(
             profileXml, @"<keyMaterial>([^<]+)</keyMaterial>");
 
-        if (!ssidMatch.Success) return;
-        var ssid = ssidMatch.Groups[1].Value;
-        var pass = keyMatch.Success ? keyMatch.Groups[1].Value : "";
+        if (!ssidMatch.Success) return false;
+        // XML 実体参照をデコードする。ProfileXmlBuilder は XElement で値を組むため、
+        // SSID/パスフレーズに含まれる '&' '<' '>' (いずれも正当な WPA-PSK 文字) は
+        // '&amp;' '&lt;' '&gt;' へエンコードされている。デコードせず nmcli へ渡すと
+        // 例えば "a&b" が "a&amp;b" のまま PSK になり認証に失敗する。
+        var ssid = System.Net.WebUtility.HtmlDecode(ssidMatch.Groups[1].Value);
+        var pass = keyMatch.Success ? System.Net.WebUtility.HtmlDecode(keyMatch.Groups[1].Value) : "";
 
         // nmcli connection add で登録(既存があれば modify)
-        var op = overwrite ? "modify" : "add";
+        // NOTE: パスフレーズはプロセス引数として渡すため /proc/<pid>/cmdline に表示される。
+        // 本番実装では NetworkManager D-Bus API か libnm P/Invoke を使い引数渡しを避けること。
         if (overwrite)
         {
             // 既存の接続設定を更新
-            var (exitMod, _, _) = await RunNmcliFullAsync(
-                $"connection modify "{EscapeShell(ssid)}" wifi-sec.psk "{EscapeShell(pass)}"", ct)
-                .ConfigureAwait(false);
-            if (exitMod == 0) return;
+            var modArgs = string.IsNullOrEmpty(pass)
+                ? new[] { "connection", "modify", ssid }
+                : new[] { "connection", "modify", ssid, "wifi-sec.psk", pass };
+            var (exitMod, _, _) = await RunNmcliFullAsync(modArgs, ct).ConfigureAwait(false);
+            if (exitMod == 0) return true;
         }
 
         // 新規追加
-        var secType = string.IsNullOrEmpty(pass) ? "none" : "wpa-psk";
         var args = string.IsNullOrEmpty(pass)
-            ? $"connection add type wifi ssid "{EscapeShell(ssid)}""
-            : $"connection add type wifi ssid "{EscapeShell(ssid)}" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "{EscapeShell(pass)}"";
-        await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
+            ? new[] { "connection", "add", "type", "wifi", "ssid", ssid }
+            : new[] { "connection", "add", "type", "wifi", "ssid", ssid,
+                      "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", pass };
+        var (exitAdd, _, _) = await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
+        return exitAdd == 0;
     }
 
     public async Task<ConnectionResult> ConnectAsync(
@@ -156,7 +202,7 @@ public sealed class NmcliWifiService : IWifiService
 
         // nmcli device wifi connect <ssid> ifname <iface>
         var (exit, stdout, stderr) = await RunNmcliFullAsync(
-            $"device wifi connect \"{EscapeShell(ssid)}\" ifname {iface}",
+            ["device", "wifi", "connect", ssid, "ifname", iface],
             ct).ConfigureAwait(false);
 
         if (exit == 0)
@@ -175,11 +221,45 @@ public sealed class NmcliWifiService : IWifiService
     {
         var iface = await ResolveIface(adapterId, ct).ConfigureAwait(false);
         var (exit, _, _) = await RunNmcliFullAsync(
-            $"device disconnect {iface}", ct).ConfigureAwait(false);
+            ["device", "disconnect", iface], ct).ConfigureAwait(false);
         return exit == 0;
     }
 
     // ── Private helpers ──────────────────────────────────────────────
+
+    // nmcli terse(-t)モードはフィールド内の ':' を '\:'、'\' を '\\' にエスケープする。
+    // 単純な Split(':') では BSSID(AA:BB:...) が列にまたがり位置がズレる。
+    // 旧実装は Regex (?<!\\): を使っていたが、これは「値が '\' で終わる」場合に破綻する:
+    //   SSID "foo\" → エンコード "foo\\" → 区切りは "foo\\:..." となり、'\:' の lookbehind が
+    //   区切りコロンを「エスケープ済み」と誤認して分割せず、SSID と BSSID が結合する。
+    //   (lookbehind ではバックスラッシュの偶奇を数えられないため原理的に不可能。)
+    // バックスラッシュ状態を追う逐次スキャナに置き換え、'\X' を X として取り込み、
+    // 非エスケープの ':' のみを区切りとする。アンエスケープも同時に行う。
+    private static string[] SplitTerse(string line)
+    {
+        var cols = new List<string>();
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (c == '\\' && i + 1 < line.Length)
+            {
+                sb.Append(line[i + 1]);   // エスケープされた文字をそのまま取り込む
+                i++;
+            }
+            else if (c == ':')
+            {
+                cols.Add(sb.ToString());  // 非エスケープのコロン = フィールド区切り
+                sb.Clear();
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        cols.Add(sb.ToString());
+        return cols.ToArray();
+    }
 
     private async Task<string> ResolveIface(Guid adapterId, CancellationToken ct)
     {
@@ -188,30 +268,48 @@ public sealed class NmcliWifiService : IWifiService
         return adapters.FirstOrDefault(a => a.Id == adapterId)?.Name ?? "wlan0";
     }
 
-    private static async Task<string> RunNmcliAsync(string args, CancellationToken ct)
+    private static async Task<string> RunNmcliAsync(string[] args, CancellationToken ct)
     {
         var (_, stdout, _) = await RunNmcliFullAsync(args, ct).ConfigureAwait(false);
         return stdout;
     }
 
     private static async Task<(int exit, string stdout, string stderr)> RunNmcliFullAsync(
-        string args, CancellationToken ct)
+        string[] args, CancellationToken ct)
     {
         using var proc = new Process();
         proc.StartInfo = new ProcessStartInfo
         {
             FileName               = "nmcli",
-            Arguments              = args,
+            UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
-            UseShellExecute        = false,
             CreateNoWindow         = true,
         };
+        foreach (var a in args)
+            proc.StartInfo.ArgumentList.Add(a);
         proc.Start();
-        var stdout = await proc.StandardOutput.ReadToEndAsync(ct).ConfigureAwait(false);
-        var stderr = await proc.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
-        await proc.WaitForExitAsync(ct).ConfigureAwait(false);
-        return (proc.ExitCode, stdout, stderr);
+        try
+        {
+            // Drain stdout and stderr concurrently. Reading them sequentially
+            // (stdout to EOF, then stderr) can deadlock: if nmcli writes more to
+            // stderr than the OS pipe buffer (~64KB) before closing stdout, it
+            // blocks on the stderr write while we await stdout that never ends.
+            // With ct often defaulted (no timeout), that hang would be permanent.
+            Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+            Task<string> stderrTask = proc.StandardError.ReadToEndAsync(ct);
+            string stdout = await stdoutTask.ConfigureAwait(false);
+            string stderr = await stderrTask.ConfigureAwait(false);
+            await proc.WaitForExitAsync(ct).ConfigureAwait(false);
+            return (proc.ExitCode, stdout, stderr);
+        }
+        catch (OperationCanceledException)
+        {
+            // Dispose() does not terminate a running child — kill it so a
+            // cancelled scan does not leave an orphaned nmcli process behind.
+            try { if (!proc.HasExited) proc.Kill(); } catch { /* best effort */ }
+            throw;
+        }
     }
 
     private static async Task<bool> CheckInternetAsync(CancellationToken ct)
@@ -219,7 +317,7 @@ public sealed class NmcliWifiService : IWifiService
         try
         {
             var (exit, _, _) = await RunNmcliFullAsync(
-                "networking connectivity check", ct).ConfigureAwait(false);
+                ["networking", "connectivity", "check"], ct).ConfigureAwait(false);
             return exit == 0;
         }
         catch { return false; }
@@ -227,23 +325,121 @@ public sealed class NmcliWifiService : IWifiService
 
     private static AuthMethod ParseSecurity(string security)
     {
-        if (security.Contains("WPA3"))   return AuthMethod.WPA3SAE;
-        if (security.Contains("WPA2"))   return AuthMethod.WPA2PSK;
-        if (security.Contains("WPA"))    return AuthMethod.WPAPSK;
-        if (security.Contains("WEP"))    return AuthMethod.WEP;
-        if (security.Contains("OWE"))    return AuthMethod.OWE;
-        if (security == "--")            return AuthMethod.Open;
+        // nmcli の SECURITY 列は 802.1X (Enterprise) キー管理の場合 "WPA2 802.1X" /
+        // "WPA3 802.1X" のように末尾へ "802.1X" を付加する (NetworkManager の
+        // nm_utils_ap_mode_security_flags2str 相当の出力形式)。802.1X チェックを
+        // WPA バージョンチェックより先に行わないと、Enterprise ネットワークが
+        // Personal (PSK/SAE) と誤判定され、証明書ベースの接続フローが選ばれず
+        // 接続に失敗する。
+        bool enterprise = security.Contains("802.1X");
+        if (security.Contains("WPA3")) return enterprise ? AuthMethod.WPA3Enterprise : AuthMethod.WPA3SAE;
+        if (security.Contains("WPA2")) return enterprise ? AuthMethod.WPA2Enterprise : AuthMethod.WPA2PSK;
+        if (security.Contains("WPA"))  return AuthMethod.WPAPSK;
+        if (security.Contains("WEP"))  return AuthMethod.WEP;
+        if (security.Contains("OWE"))  return AuthMethod.OWE;
+        if (security == "--")          return AuthMethod.Open;
         return AuthMethod.Open;
     }
 
     private static Guid GuidFromString(string s)
     {
-        // 決定論的 Guid: デバイス名から生成
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(s));
-        return new Guid(hash);
+        // 決定論的 Guid: SHA-256 先頭 16 バイト。MD5 は FIPS 強制環境で例外を投げるため不使用。
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(s));
+        return new Guid(hash.AsSpan(0, 16));
     }
 
-    private static string EscapeShell(string s)
-        => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    public async Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+    {
+        var (exit, _, _) = await RunNmcliFullAsync(
+            ["connection", "delete", profileName], ct).ConfigureAwait(false);
+        return exit == 0;
+    }
+
+    public async Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+    {
+        var output = await RunNmcliAsync(
+            ["-t", "-f", "NAME,TYPE", "connection", "show"], ct).ConfigureAwait(false);
+        var profiles = new List<string>();
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var cols = SplitTerse(line);
+            if (cols.Length >= 2 && cols[1].Contains("wifi", StringComparison.OrdinalIgnoreCase))
+                profiles.Add(cols[0].Trim());
+        }
+        return profiles;
+    }
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // nmcli monitor はイベント発生時に行を出力する。
+        // 例: "wlan0: connected to \"HomeWifi\""  / "wlan0: disconnected"
+        // プロセスが予期せず死んだ場合は 3 秒後に再起動する。
+        var adapterCache = await GetAdaptersAsync(ct).ConfigureAwait(false);
+        var ifaceToId    = adapterCache.ToDictionary(a => a.Name, a => a.Id);
+
+        while (!ct.IsCancellationRequested)
+        {
+            using var proc = new Process();
+            proc.StartInfo = new ProcessStartInfo
+            {
+                FileName               = "nmcli",
+                UseShellExecute        = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError  = true,
+                CreateNoWindow         = true,
+            };
+            proc.StartInfo.ArgumentList.Add("monitor");
+
+            Process? started = null;
+            try
+            {
+                proc.Start();
+                started = proc;
+                // stdout を非同期で行単位に読み込む
+                while (!ct.IsCancellationRequested)
+                {
+                    var readTask = proc.StandardOutput.ReadLineAsync(ct).AsTask();
+                    var line = await readTask.ConfigureAwait(false);
+                    if (line is null) break;  // プロセス終了
+
+                    // 形式: "<iface>: connected to \"<ssid>\""  or  "<iface>: disconnected"
+                    var colonIdx = line.IndexOf(':', StringComparison.Ordinal);
+                    if (colonIdx <= 0) continue;
+
+                    var iface = line[..colonIdx].Trim();
+                    var rest  = line[(colonIdx + 1)..].Trim();
+
+                    if (!ifaceToId.TryGetValue(iface, out var adapterId)) continue;
+
+                    if (rest.StartsWith("connected to", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // connected to "SSID" — SSID は引用符で囲まれていることがある
+                        var ssid = rest["connected to".Length..].Trim().Trim('"');
+                        yield return new WifiEvent(adapterId, WifiEventType.Connected,
+                            string.IsNullOrEmpty(ssid) ? null : ssid, DateTimeOffset.UtcNow);
+                    }
+                    else if (rest.StartsWith("disconnected", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return new WifiEvent(adapterId, WifiEventType.Disconnected,
+                            null, DateTimeOffset.UtcNow);
+                    }
+                }
+            }
+            catch (OperationCanceledException) { break; }
+            catch { /* nmcli が見つからない等は再試行 */ }
+            finally
+            {
+                if (started is not null && !started.HasExited)
+                    try { started.Kill(); } catch { }
+            }
+
+            // プロセス死亡後は 3 秒待って再起動
+            if (!ct.IsCancellationRequested)
+                await Task.Delay(3000, ct).ConfigureAwait(false);
+        }
+    }
 }

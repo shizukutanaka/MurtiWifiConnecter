@@ -104,31 +104,31 @@ public sealed class NetworkRecommendationEngine
     {
         var w = GetWeights(score.Profile);
 
-        // 各次元の重み付き寄与を計算
+        // Weighted contribution per dimension
         var contributions = new List<DimensionContribution>
         {
-            new("セキュリティ", score.SecurityScore, w.Security, score.SecurityScore * w.Security),
-            new("ローミング",   score.RoamingScore,  w.Roaming,  score.RoamingScore  * w.Roaming),
-            new("帯域/チャネル", score.ChannelScore,  w.Channel,  score.ChannelScore  * w.Channel),
-            new("信号強度",     score.SignalScore,   w.Signal,   score.SignalScore   * w.Signal),
+            new("Security",        score.SecurityScore, w.Security, score.SecurityScore * w.Security),
+            new("Roaming",         score.RoamingScore,  w.Roaming,  score.RoamingScore  * w.Roaming),
+            new("Band / Channel",  score.ChannelScore,  w.Channel,  score.ChannelScore  * w.Channel),
+            new("Signal Strength", score.SignalScore,   w.Signal,   score.SignalScore   * w.Signal),
         };
 
-        // 寄与の大きい順
+        // Rank by contribution descending
         var ranked = contributions.OrderByDescending(c => c.WeightedContribution).ToList();
         var top    = ranked.First();
 
-        // 用途プロファイルの説明
+        // Usage profile description
         string profileDesc = score.Profile switch
         {
-            UsageProfile.Realtime   => "リアルタイム通信 (VoIP/ビデオ会議) 向けにローミングと信号安定性を重視",
-            UsageProfile.Secure     => "機密業務向けにセキュリティを最重視",
-            UsageProfile.Throughput => "大容量転送向けに帯域を重視",
-            _                       => "バランス重視"
+            UsageProfile.Realtime   => "Optimised for real-time communication (VoIP/video) — prioritises roaming and signal stability",
+            UsageProfile.Secure     => "Optimised for confidential use — security is the primary factor",
+            UsageProfile.Throughput => "Optimised for bulk transfer — band width is the primary factor",
+            _                       => "Balanced across all dimensions"
         };
 
-        // サマリ文
-        string summary = $"総合スコア {score.Total:F0}/100 ({score.Grade})。" +
-                         $"{profileDesc}。最大の寄与は「{top.Dimension}」(スコア {top.Score:F0})。";
+        // Summary sentence
+        string summary = $"Overall score {score.Total:F0}/100 ({score.Grade}). " +
+                         $"{profileDesc}. Top factor: \"{top.Dimension}\" (score {top.Score:F0}).";
 
         return new RecommendationExplanation(
             Summary:       summary,

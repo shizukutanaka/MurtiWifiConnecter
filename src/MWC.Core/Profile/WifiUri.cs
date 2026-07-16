@@ -54,13 +54,19 @@ public static class WifiUri
         if (string.IsNullOrEmpty(uri) || !uri.StartsWith("WIFI:", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        string body = uri[5..].TrimEnd(';');
+        // NOTE: do NOT TrimEnd(';') here — a value that legitimately ends in an
+        // escaped special (e.g. a password "p;" → "...P:p\;;;") would lose its
+        // trailing "\;" to the trim and be corrupted. The loop below instead skips
+        // empty segments, which handles the format's trailing ";;" terminator safely.
+        string body = uri[5..];
         string? type = null, ssid = null, password = null;
         bool hidden = false;
 
         int i = 0;
         while (i < body.Length)
         {
+            // skip empty segments (notably the trailing ";;" terminator)
+            if (body[i] == ';') { i++; continue; }
             // key
             if (i + 1 >= body.Length || body[i + 1] != ':') return null;
             char key = body[i];

@@ -160,7 +160,7 @@ public class MloAnalyzerServiceTests
 
         analysis.ReliabilityTier.Should().Be(MloReliability.TripleLink);
         analysis.LinkCount.Should().Be(3);
-        analysis.Summary.Should().Contain("継続");
+        analysis.Summary.Should().Contain("Continues");
     }
 
     [Fact]

@@ -128,7 +128,7 @@ public sealed class RegulatoryDomainService
             .Where(ch => ch <= maxChannel)
             .Select(ch => new ChannelInfo(
                 Channel:       ch,
-                FrequencyMhz:  5950 + (ch - 1) * 5,     // 802.11 規定式
+                FrequencyMhz:  5950 + ch * 5,          // 6GHz: ch1=5955MHz (SixGhzChannelHelper と一致)
                 IsPsc:         PscChannels.Contains(ch),
                 MaxWidthMhz:   MaxChannelWidth(ch, maxChannel)))
             .ToList();
@@ -161,11 +161,13 @@ public sealed class RegulatoryDomainService
 
     private static int MaxChannelWidth(int channel, int maxChannel)
     {
-        // 320MHz: チャネル +64 まで空いていれば可
-        if (channel + 64 <= maxChannel + 1) return 320;
-        if (channel + 32 <= maxChannel + 1) return 160;
-        if (channel + 16 <= maxChannel + 1) return 80;
-        if (channel + 8  <= maxChannel + 1) return 40;
+        // 6GHz チャネルは 4 刻み (1, 5, 9 …)。N MHz ブロックは (N/20) sub-ch からなり、
+        // 先頭 ch から最後 sub-ch までのスパンは 4*(N/20 - 1)。
+        // 例: 320MHz = 16 sub-ch → スパン = 4*15 = 60 → 最後 sub-ch = channel + 60
+        if (channel + 60 <= maxChannel) return 320;
+        if (channel + 28 <= maxChannel) return 160;
+        if (channel + 12 <= maxChannel) return 80;
+        if (channel + 4  <= maxChannel) return 40;
         return 20;
     }
 }

@@ -10,6 +10,7 @@ internal enum ConnectionOutcome
 {
     Connected,
     BadCredentials,
+    NotInRange,
     Timeout,
     Cancelled,
     Failed
@@ -22,16 +23,19 @@ internal enum ConnectionOutcome
 internal sealed class ConnectionWaiter : IDisposable
 {
     private readonly Guid _adapterId;
-    private readonly string _ssid;
     private readonly ILogger _log;
-    private readonly TaskCompletionSource<ConnectionOutcome> _tcs = new();
+    // RunContinuationsAsynchronously 必須: TrySetResult はネイティブ WLAN 通知の
+    // コールバックスレッドから呼ばれる。これが無いと WaitAsync の await 以降
+    // (疎通確認の HTTP プローブや waiter の Dispose) が通知スレッド上で同期実行され、
+    // 以降の WLAN 通知配信を遅延/デッドロックさせうる。
+    private readonly TaskCompletionSource<ConnectionOutcome> _tcs =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly EventHandler<NetworkStateChangedEventArgs> _handler;
     private bool _disposed;
 
-    public ConnectionWaiter(Guid adapterId, string ssid, ILogger log)
+    public ConnectionWaiter(Guid adapterId, ILogger log)
     {
         _adapterId = adapterId;
-        _ssid = ssid;
         _log = log;
 
         _handler = (sender, e) =>
@@ -54,6 +58,10 @@ internal sealed class ConnectionWaiter : IDisposable
                     e.Reason?.Contains("key",  StringComparison.OrdinalIgnoreCase) == true)
                 {
                     _tcs.TrySetResult(ConnectionOutcome.BadCredentials);
+                }
+                else if (IsNotInRangeReason(e.Reason))
+                {
+                    _tcs.TrySetResult(ConnectionOutcome.NotInRange);
                 }
                 else
                 {
@@ -87,6 +95,17 @@ internal sealed class ConnectionWaiter : IDisposable
         _disposed = true;
         NativeWifi.NetworkStateChanged -= _handler;
     }
+
+    // Match WLAN reason code strings that indicate the BSS/network was not found.
+    // Covers both enum-style names (e.g. "network_not_available") and fragments of
+    // localized WlanReasonCodeToString output (e.g. "cannot be found").
+    private static bool IsNotInRangeReason(string? reason) =>
+        reason is not null &&
+        (reason.Contains("not_available",   StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("not_found",       StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("no_match",        StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("cannot be found", StringComparison.OrdinalIgnoreCase) ||
+         reason.Contains("not available",   StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>

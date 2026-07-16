@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
+using MWC.App.Resources;
 using MWC.Core.Services;
+using Serilog;
 
 namespace MWC.App.Views;
 
@@ -47,7 +49,7 @@ public partial class CertificatePickerDialog : Window
 
         SubjectLabel.Text     = vm.Cert.Subject;
         IssuerLabel.Text      = vm.Cert.Issuer;
-        ExpiryDetailLabel.Text = $"{vm.Cert.NotAfter:yyyy-MM-dd} (残 {vm.Cert.DaysUntilExpiry} 日)";
+        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd"), vm.Cert.DaysUntilExpiry);
     }
 
     private void OnOk(object sender, RoutedEventArgs e)
@@ -66,7 +68,7 @@ public partial class CertificatePickerDialog : Window
     {
         // certmgr.msc を起動
         try { Process.Start(new ProcessStartInfo("certmgr.msc") { UseShellExecute = true }); }
-        catch { }
+        catch (Exception ex) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
     }
 
     // ── ViewModel ───────────────────────────────────────────────────
@@ -81,10 +83,21 @@ public partial class CertificatePickerDialog : Window
             DisplayLabel   = cert.DisplayLabel;
             Issuer         = FormatIssuer(cert.Issuer);
             ExpiryLabel    = BuildExpiryLabel(cert.DaysUntilExpiry);
-            ThumbprintShort = cert.Thumbprint[..8] + "…";
-            ExpiryColor    = cert.DaysUntilExpiry < 30 ? Brushes.OrangeRed
-                           : cert.DaysUntilExpiry < 90 ? Brushes.Orange
-                           : Brushes.LightGreen;
+            ThumbprintShort = cert.Thumbprint.Length > 8 ? cert.Thumbprint[..8] + "…" : cert.Thumbprint;
+            ExpiryColor    = ResolveExpiryBrush(cert.DaysUntilExpiry);
+        }
+
+        // 他の全要素は {DynamicResource ...Brush} でテーマに追従するが、この一覧は
+        // C# 側で Brush を確定させる必要がある(バインディング先が ItemsSource の POCO)。
+        // ハードコードした Brushes.OrangeRed 等は現在のテーマ(Dark/Light/Solarized/...)を
+        // 無視し、アクセシビリティコントラスト監査の対象外になってしまうため、
+        // 16-brush contract のキー (DangerBrush/WarnBrush/SuccessBrush) を都度解決する。
+        private static Brush ResolveExpiryBrush(int daysUntilExpiry)
+        {
+            string key = daysUntilExpiry < 30 ? "DangerBrush"
+                       : daysUntilExpiry < 90 ? "WarnBrush"
+                       : "SuccessBrush";
+            return (Application.Current?.TryFindResource(key) as Brush) ?? Brushes.Gray;
         }
 
         public string  DisplayLabel    { get; }

@@ -1,0 +1,27 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Catppuccin Mocha パレット。全ブラシキーを完備。 -->
+
+    <SolidColorBrush x:Key="BgBrush"           Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="SurfaceBrush"      Color="#313244"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#45475A"/>
+    <SolidColorBrush x:Key="SurfaceSelBrush"   Color="#585B70"/>
+
+    <SolidColorBrush x:Key="FgBrush"           Color="#CDD6F4"/>
+    <SolidColorBrush x:Key="FgMutedBrush"      Color="#A6ADC8"/>
+    <SolidColorBrush x:Key="FgVeryMutedBrush"  Color="#6C7086"/>
+    <SolidColorBrush x:Key="DividerBrush"      Color="#45475A"/>
+
+    <SolidColorBrush x:Key="AccentBrush"       Color="#94E2D5"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"  Color="#89DCEB"/>
+    <SolidColorBrush x:Key="AccentTextBrush"   Color="#1E1E2E"/>
+    <SolidColorBrush x:Key="FocusBrush"        Color="#94E2D5"/>
+
+    <SolidColorBrush x:Key="SuccessBrush"      Color="#A6E3A1"/>
+    <SolidColorBrush x:Key="WarnBrush"         Color="#F9E2AF"/>
+    <SolidColorBrush x:Key="DangerBrush"       Color="#F38BA8"/>
+    <SolidColorBrush x:Key="DangerTextBrush"   Color="#1E1E2E"/>
+
+</ResourceDictionary>

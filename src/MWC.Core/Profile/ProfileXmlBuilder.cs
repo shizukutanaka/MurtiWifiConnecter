@@ -21,6 +21,7 @@ public static class ProfileXmlBuilder
 {
     // ───── 名前空間定義 ─────
     private static readonly XNamespace WlanNs   = "http://www.microsoft.com/networking/WLAN/profile/v1";
+    private static readonly XNamespace WlanV4Ns = "http://www.microsoft.com/networking/WLAN/profile/v4";
     private static readonly XNamespace OneXNs   = "http://www.microsoft.com/networking/OneX/v1";
     private static readonly XNamespace EhcNs    = "http://www.microsoft.com/provisioning/EapHostConfig";
     private static readonly XNamespace EcNs     = "http://www.microsoft.com/provisioning/EapCommon";
@@ -29,14 +30,17 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
     private static readonly XNamespace McNs     = "http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1";
     private static readonly XNamespace EtNs     = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+    private static readonly XNamespace EtV2Ns   = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
+    private static readonly XNamespace EttNs    = "http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
 
-    /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
     /// <summary>WifiProfileSpec から Windows WLAN プロファイル XML を生成する。</summary>
     /// <exception cref="ArgumentException">SSID / Passphrase が無効な場合</exception>
     public static string Build(WifiProfileSpec spec)
     {
-        WifiProfileValidator.Validate(spec);
         ArgumentNullException.ThrowIfNull(spec);
+        // 文字種・制御文字まで含む厳密検証 (例外送出)
+        WifiProfileValidator.Validate(spec);
+        // 認証方式別の整合性検証 (Result 形式)
         var v = spec.Validate();
         if (!v.IsValid) throw new ArgumentException(v.Error);
 
@@ -71,17 +75,25 @@ public static class ProfileXmlBuilder
 
         var authEnc = new XElement(WlanNs + "authEncryption",
             new XElement(WlanNs + "authentication", auth),
-            new XElement(WlanNs + "encryption", enc),
-            new XElement(WlanNs + "useOneX", useOneX ? "true" : "false"));
+            new XElement(WlanNs + "encryption", enc));
 
-        // WPA3-Transitionは追加要素
+        // useOneX は 802.1X (Enterprise) のときだけ出力する。PSK/Open/OWE/WEP では
+        // 要素自体を省略する (Windows は不在を false と解釈する)。これは Windows の
+        // 実プロファイル慣行およびゴールデンテスト (WPAPSK は useOneX なし) と一致する。
+        if (useOneX)
+            authEnc.Add(new XElement(WlanNs + "useOneX", "true"));
+
+        // WPA3-Transitionは追加要素 (v4 スキーマの transitionMode 要素)
         if (spec.Auth == AuthMethod.WPA3Transition)
-            authEnc.Add(new XElement(WlanNs + "transitionMode",
-                XNamespace.Get("http://www.microsoft.com/networking/WLAN/profile/v4") + "transitionMode", "true"));
+            authEnc.Add(new XElement(WlanV4Ns + "transitionMode", "true"));
 
         var security = new XElement(WlanNs + "security", authEnc);
 
-        // PMF(Protected Management Frames): WPA3 では required
+        // PMK caching (fast reconnect) for WPA3. NOTE: this is *not* PMF/802.11w —
+        // Protected Management Frames are mandatory for WPA3 and enforced automatically
+        // by Windows from the WPA3SAE/WPA3 auth type, so no explicit MFP element is needed.
+        // (Transition mode is intentionally excluded: it must remain MFP-optional so WPA2
+        // clients can still associate.)
         if (spec.Auth is AuthMethod.WPA3SAE or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192)
         {
             security.Add(new XElement(
@@ -161,8 +173,10 @@ public static class ProfileXmlBuilder
 
     private static XElement BuildWepKey(string key)
     {
-        // 16進(10/26/32桁)= networkKey、平文 = passPhrase
-        bool isHex = key.Length is 10 or 26 or 32 &&
+        // 16進(10/26桁)= networkKey、平文(5/13文字)= passPhrase
+        // ※ WifiProfileValidator は 5/13 ASCII or 10/26 hex のみ許可するため、
+        //   32 桁 hex は Build() 到達前に拒否される。
+        bool isHex = key.Length is 10 or 26 &&
                      System.Linq.Enumerable.All(key, c =>
                          c is (>= '0' and <= '9') or (>= 'a' and <= 'f') or (>= 'A' and <= 'F'));
         return new XElement(WlanNs + "sharedKey",
@@ -195,7 +209,10 @@ public static class ProfileXmlBuilder
         {
             EapType.PEAP_MSCHAPv2 => BuildPeapConfig(spec),
             EapType.EAP_TLS       => BuildEapTlsConfig(spec),
-            _ => throw new NotSupportedException($"EAP type {eapType} not implemented yet")
+            EapType.EAP_TTLS      => BuildEapTtlsConfig(spec),
+            EapType.EAP_AKA       => throw new NotSupportedException(
+                "EAP-AKA (SIM-based auth) is not supported. Requires SIM hardware and device testing (see docs/specification.md)."),
+            _ => throw new NotSupportedException($"EAP type {eapType} not implemented")
         });
         eapHost.Add(config);
         return eapHost;
@@ -225,12 +242,16 @@ public static class ProfileXmlBuilder
                 new XElement(MsPeapNs + "PeapExtensions")));
     }
 
+    // Windows WLAN profile XML does not expose a way to pin a client cert by thumbprint.
+    // SimpleCertSelection instructs Windows to auto-select from the user cert store using
+    // the Client Authentication EKU filter. spec.ClientCertThumbprint is preserved in the
+    // spec for UI display/logging only and cannot be embedded here.
     private static XElement BuildEapTlsConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(EtNs + "ServerValidation",
             new XElement(EtNs + "DisableUserPromptForServerValidation", "false"),
             new XElement(EtNs + "ServerNames",
-                string.Join(";", spec.ServerNames)));
+                spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
             serverValidation.Add(new XElement(EtNs + "TrustedRootCA", thumb));
 
@@ -242,11 +263,32 @@ public static class ProfileXmlBuilder
                         new XElement(EtNs + "SimpleCertSelection", "true"))),
                 serverValidation,
                 new XElement(EtNs + "DifferentUsername", "false"),
-                new XElement(EtNs + "PerformServerValidation",
-                    XNamespace.Get("http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2") + "PerformServerValidation",
-                    "true"),
-                new XElement(EtNs + "AcceptServerName",
-                    XNamespace.Get("http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2") + "AcceptServerName",
-                    "true")));
+                // PerformServerValidation / AcceptServerName は V2 スキーマ要素
+                new XElement(EtV2Ns + "PerformServerValidation", "true"),
+                new XElement(EtV2Ns + "AcceptServerName", "true")));
+    }
+
+    // ───── EAP-TTLS (Type 21) ─────
+    // Windows EAP-TTLS スキーマ (EapTtlsConnectionPropertiesV1)。
+    // Config 直下に <EapTtls> を置く (PEAP/TLS のような BaseEap ラップは無い)。
+    // 内側認証 (Phase2) は MSCHAPv2 を既定とし、Username/Password を使用する。
+    private static XElement BuildEapTtlsConfig(WifiProfileSpec spec)
+    {
+        var serverValidation = new XElement(EttNs + "ServerValidation",
+            new XElement(EttNs + "ServerNames",
+                spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
+        foreach (var thumb in spec.TrustedRootCaThumbprints)
+            serverValidation.Add(new XElement(EttNs + "TrustedRootCAHash", thumb));
+        serverValidation.Add(new XElement(EttNs + "DisablePrompt", "false"));
+
+        return new XElement(EttNs + "EapTtls",
+            serverValidation,
+            new XElement(EttNs + "Phase1Identity",
+                new XElement(EttNs + "IdentityPrivacy", "true"),
+                new XElement(EttNs + "AnonymousIdentity",
+                    string.IsNullOrEmpty(spec.Domain) ? "anonymous" : spec.Domain)),
+            new XElement(EttNs + "Phase2Authentication",
+                new XElement(EttNs + "MSCHAPv2Authentication",
+                    new XElement(EttNs + "UseWinlogonCredentials", "false"))));
     }
 }

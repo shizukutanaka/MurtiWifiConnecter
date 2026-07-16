@@ -4,13 +4,15 @@
         xmlns:ctrl="clr-namespace:MWC.App.Controls"
         xmlns:conv="clr-namespace:MWC.App.Converters"
         xmlns:vm="clr-namespace:MWC.App.ViewModels"
-        Title="MWC — Multi WiFi Connector" Width="880" Height="620"
+        xmlns:r="clr-namespace:MWC.App.Resources"
+        xmlns:svc="clr-namespace:MWC.Core.Services;assembly=MWC.Core"
+        Title="{x:Static r:L.MainWindowTitle}" Width="880" Height="620"
         MinWidth="540" MinHeight="420"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI Variable, Segoe UI, Yu Gothic UI, sans-serif"
         FontSize="13"
-        AutomationProperties.Name="MWC メインウィンドウ">
+        AutomationProperties.Name="{x:Static r:L.MainWindowAutomation}">
 
     <Window.Resources>
         <!-- カラートークンは Dark.xaml/Light.xaml から DynamicResource で供給 -->
@@ -18,10 +20,13 @@
         <!-- ── ボタンスタイル ── -->
         <Style x:Key="BtnPrimary" TargetType="Button">
             <Setter Property="Background"     Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="Foreground"     Value="#001518"/>
+            <!-- ハードコード #001518 は Dark/Fluent 以外のテーマで想定外の色になっていた
+                 (2026-07 監査で発覚)。全テーマで正しくコントラスト検証済みの
+                 AccentTextBrush を使うよう修正。 -->
+            <Setter Property="Foreground"     Value="{DynamicResource AccentTextBrush}"/>
             <Setter Property="FontWeight"     Value="SemiBold"/>
             <Setter Property="Padding"        Value="14,7"/>
-            <Setter Property="BorderThickness"Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="MinHeight"      Value="32"/>
             <Setter Property="Cursor"         Value="Hand"/>
             <Setter Property="Template">
@@ -61,7 +66,7 @@
             <Setter Property="Foreground"     Value="{DynamicResource FgBrush}"/>
             <Setter Property="CaretBrush"     Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderBrush"    Value="{DynamicResource DividerBrush}"/>
-            <Setter Property="BorderThickness"Value="1"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"        Value="30,7,8,7"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -86,7 +91,7 @@
         <!-- ── ListBoxItem ── -->
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding"                   Value="10,9"/>
-            <Setter Property="HorizontalContentAlignment"Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Background"                Value="Transparent"/>
             <Setter Property="BorderThickness"           Value="0"/>
             <Setter Property="Template">
@@ -114,11 +119,10 @@
     </Window.Resources>
 
     <Grid>
-        <!-- スクリーンリーダー Live Region (Apple A11y) -->
-        <TextBlock x:Name="_srLiveRegion"
-                   Visibility="Collapsed"
-                   AutomationProperties.LiveSetting="Polite"
-                   AutomationProperties.IsLiveRegion="True"/>
+        <!-- スクリーンリーダー通知は AccessibilityService.RaiseNotificationEvent で行う
+             (要素の可視性に依存せず読み上げられる)。旧来の Collapsed TextBlock を
+             Live Region にする方式は、Collapsed 要素がオートメーションツリーから
+             除外され一切読み上げられないため廃止した。 -->
 
         <Grid.RowDefinitions>
             <RowDefinition Height="52"/>    <!-- ツールバー -->
@@ -151,8 +155,8 @@
                          Style="{StaticResource SearchBox}"
                          Text="{Binding Filter.SearchText, UpdateSourceTrigger=PropertyChanged}"
                          Margin="16,0,0,0"
-                         ToolTip="ネットワーク名で検索 (Ctrl+F)"
-                         AutomationProperties.Name="ネットワーク検索"/>
+                         ToolTip="{x:Static r:L.MainSearchTooltip}"
+                         AutomationProperties.Name="{x:Static r:L.MainSearchAutomation}"/>
 
                 <!-- 接続状態インジケーター -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,12,0">
@@ -170,8 +174,8 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock Text="{Binding SelectedAdapter.ConnectedSsid,
-                                     StringFormat=接続中: {0}, FallbackValue=未接続}"
+                    <TextBlock Text="{Binding SelectedAdapter.ToolbarStatusText,
+                                     FallbackValue={x:Static r:L.LabelNotConnected}}"
                                FontSize="12" Foreground="{DynamicResource FgMutedBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -179,18 +183,16 @@
                 <!-- アクションボタン群 -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
                     <!-- 再スキャン -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="ネットワークを再スキャン" Content="↻"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainRescanAutomation}" Content="↻"
                             Command="{Binding RefreshCommand}"
-                            ToolTip="再スキャン (Ctrl+R)"
-                            Margin="0,0,4,0"
-                            AutomationProperties.Name="再スキャン"/>
+                            ToolTip="{x:Static r:L.MainRescanTooltip}"
+                            Margin="0,0,4,0"/>
 
                     <!-- Simple/Expert 切替 -->
-                    <Button AutomationProperties.Name="シンプル/詳細モードを切り替え" Style="{StaticResource BtnIcon}"
+                    <Button AutomationProperties.Name="{x:Static r:L.MainToggleModeTooltip}" Style="{StaticResource BtnIcon}"
                             Command="{Binding Filter.ToggleExpertModeCommand}"
                             Margin="0,0,4,0"
-                            ToolTip="シンプル/詳細モードを切り替え"
-                            AutomationProperties.Name="表示モード切替">
+                            ToolTip="{x:Static r:L.MainToggleModeTooltip}">
                         <Button.Content>
                             <TextBlock>
                                 <TextBlock.Style>
@@ -209,58 +211,58 @@
                     </Button>
 
                     <!-- 全子機俯瞰ビュー (新規) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="Wi-Fiスキャン" Content="📡"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainAllAdaptersAutomation}" Content="📡"
                             Click="OnAllAdaptersClick"
                             Margin="0,0,4,0"
-                            ToolTip="すべての無線子機を俯瞰 (Ctrl+Shift+A)"
-                            AutomationProperties.Name="全子機俯瞰ビュー"/>
+                            ToolTip="{x:Static r:L.MainAllAdaptersTooltip}"/>
 
                     <!-- ⋯ オーバーフローメニュー (Apple HIG: 頻度低アクションを隠す) -->
-                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="その他のオプション" Content="⋯"
+                    <Button Style="{StaticResource BtnIcon}" AutomationProperties.Name="{x:Static r:L.MainOverflowMenuAutomation}" Content="⋯"
                             Margin="0,0,4,0"
-                            Click="OnOverflowMenu"
-                            AutomationProperties.Name="その他のメニュー">
+                            Click="OnOverflowMenu">
                         <Button.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="📥  CSV エクスポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportCsv}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="csv"/>
-                                <MenuItem Header="📥  JSON エクスポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportJson}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="json"/>
-                                <MenuItem Header="📄  テキストレポート"
+                                <MenuItem Header="{x:Static r:L.MenuExportTxt}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="txt"/>
                                 <Separator/>
-                                <MenuItem Header="QR コード表示"
+                                <MenuItem Header="{x:Static r:L.MenuShowQr}"
                                           Click="OnShowQrClick"/>
                                 <Separator/>
-                                <MenuItem Header="⚙️  設定…"
+                                <MenuItem Header="{x:Static r:L.MenuSettings}"
                                           Click="OnSettingsClick"/>
-                                <MenuItem Header="ℹ️  MWC について"
+                                <MenuItem Header="{x:Static r:L.MenuAbout}"
                                           Click="OnAboutClick"/>
                                 <Separator/>
-                                <MenuItem Header="↻↻  全アダプターを並列スキャン  Ctrl+Shift+A"
+                                <MenuItem Header="{x:Static r:L.MenuScanAll}"
                                           Command="{Binding RefreshAllCommand}"/>
-                                <MenuItem Header="📋  保存済みネットワーク"
+                                <MenuItem Header="{x:Static r:L.MenuSavedNetworks}"
                                           Click="OnProfileManagerClick"/>
-                                <MenuItem Header="📊  ネットワーク品質計測"
+                                <MenuItem Header="{x:Static r:L.MenuQualityMeasure}"
                                           Click="OnMeasureQualityClick"/>
                                 <Separator/>
-                                <MenuItem Header="📡  すべての無線子機を表示"
+                                <MenuItem Header="{x:Static r:L.MenuAllAdapters}"
                                           Click="OnAllAdaptersClick"
                                           InputGestureText="Ctrl+Shift+A"/>
+                                <Separator/>
+                                <MenuItem Header="{x:Static r:L.MenuDiagnosticExport}"
+                                          Click="OnExportDiagnostic"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
 
                     <!-- 接続ボタン -->
-                    <Button AutomationProperties.Name="ネットワークに接続" Style="{StaticResource BtnPrimary}"
-                            Content="接続…"
+                    <Button AutomationProperties.Name="{x:Static r:L.MainConnectAutomation}" Style="{StaticResource BtnPrimary}"
+                            Content="{x:Static r:L.ActionConnect}"
                             Click="OnConnectClick"
                             IsEnabled="{Binding SelectedAdapter.Selected,
-                                        Converter={x:Null}, FallbackValue=False}"
-                            AutomationProperties.Name="選択したネットワークに接続"/>
+                                        Converter={x:Null}, FallbackValue=False}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -289,7 +291,7 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          Margin="0,0,0,6"
-                         AutomationProperties.Name="無線アダプタータブ">
+                         AutomationProperties.Name="{x:Static r:L.MainAdapterTabsAutomation}">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"/>
@@ -313,8 +315,10 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
+                                                <!-- #2B313A は SettingsDialog.xaml の BorderBrush と厳密一致し
+                                                     DividerBrush に対応することが判明 (2026-07 品質パス) -->
                                                 <Setter TargetName="bd" Property="Background"
-                                                        Value="#2B313A"/>
+                                                        Value="{DynamicResource DividerBrush}"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter TargetName="bd" Property="Background"
@@ -419,6 +423,25 @@
                 <!-- ネットワーク一覧 (EmptyState対応) -->
                 <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="10">
                     <Grid>
+                        <!-- スキャン失敗バナー — 前回成功時の一覧はそのまま残し、上に軽い警告のみ重ねる
+                             (RefreshAsync が例外時に一覧を空にしないため。2026-07 品質パスで追加)。
+                             文字色は FgBrush-on-SurfaceHoverBrush (BodyText_MeetsAaa で検証済みの
+                             組み合わせと同一階調) を使い、WarnBrush は左端のアクセント縦線のみに限定する
+                             — セキュリティ勧告パネルと同じ「色は付随情報、本文は常時 AAA 配色」方針 -->
+                        <Border Panel.ZIndex="9" VerticalAlignment="Top" CornerRadius="8,8,0,0"
+                                Background="{DynamicResource SurfaceHoverBrush}"
+                                Visibility="{Binding SelectedAdapter.ScanErrorMessage,
+                                             Converter={StaticResource StrToVis}}">
+                            <StackPanel Orientation="Horizontal" Margin="10,6">
+                                <Border Width="4" CornerRadius="2" Margin="0,0,8,0"
+                                        Background="{DynamicResource WarnBrush}"/>
+                                <TextBlock Text="{Binding SelectedAdapter.ScanErrorMessage}"
+                                           FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource FgBrush}"
+                                           AutomationProperties.Name="{Binding SelectedAdapter.ScanErrorMessage}"/>
+                            </StackPanel>
+                        </Border>
+
                         <!-- スキャン中オーバーレイ -->
                         <Border CornerRadius="10" Panel.ZIndex="10">
                             <Border.Style>
@@ -452,7 +475,7 @@
                                         </EventTrigger>
                                     </TextBlock.Triggers>
                                 </TextBlock>
-                                <TextBlock Text="スキャン中…" FontSize="12"
+                                <TextBlock Text="{x:Static r:L.StatusScanning}" FontSize="12"
                                            Foreground="{DynamicResource FgMutedBrush}"
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -461,9 +484,9 @@
                         <!-- 空状態 (Empty State) -->
                         <ctrl:EmptyStateControl
                             Icon="📡"
-                            Title="ネットワークが見つかりません"
-                            Message="Wi-Fi アダプターが有効であることを確認してから、再スキャンしてください。"
-                            ActionLabel="再スキャン"
+                            Title="{x:Static r:L.LabelNetworksNotFound}"
+                            Message="{x:Static r:L.MainEmptyStateMessage}"
+                            ActionLabel="{x:Static r:L.ActionRefresh}"
                             ActionCommand="{Binding RefreshCommand}">
                             <ctrl:EmptyStateControl.Style>
                                 <Style TargetType="ctrl:EmptyStateControl">
@@ -486,18 +509,20 @@
                                  VirtualizingPanel.IsVirtualizing="True"
                                  VirtualizingPanel.VirtualizationMode="Recycling"
                                  Padding="4"
-                                 AutomationProperties.Name="検出ネットワーク一覧">
+                                 AutomationProperties.Name="{x:Static r:L.MainNetworkListAutomation}">
 
                             <!-- 右クリックコンテキストメニュー -->
                             <ListBox.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="接続…" Click="OnConnectClick" FontWeight="SemiBold"/>
+                                    <MenuItem Header="{x:Static r:L.ActionConnect}" Click="OnConnectClick" FontWeight="SemiBold"/>
                                     <Separator/>
-                                    <MenuItem Header="QR コードを表示" Click="OnShowQrClick"/>
-                                    <MenuItem Header="SSID をコピー"   Click="OnCopySsid"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuShowQr}" Click="OnShowQrClick"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuCopySsid}" Click="OnCopySsid"/>
                                     <Separator/>
-                                    <MenuItem Header="このネットワークをピン留め" Click="OnPinNetwork"/>
-                                    <MenuItem Header="このネットワークを非表示"   Click="OnHideNetwork"/>
+                                    <MenuItem Header="{Binding SelectedAdapter.Selected.PinMenuHeader,
+                                                       FallbackValue={x:Static r:L.ContextMenuPinNetwork}}"
+                                              Click="OnPinNetwork"/>
+                                    <MenuItem Header="{x:Static r:L.ContextMenuHideNetwork}" Click="OnHideNetwork"/>
                                 </ContextMenu>
                             </ListBox.ContextMenu>
 
@@ -510,36 +535,41 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- 信号バー (色で強度を示す) -->
-                                        <TextBlock Grid.Column="0" FontSize="15"
-                                                   VerticalAlignment="Center" TextAlignment="Center"
-                                                   AutomationProperties.Name="{Binding Signal,
-                                                   StringFormat=信号強度{0}%}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text"       Value="▁"/>
-                                                    <Setter Property="Foreground" Value="#EF4444"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="4">
-                                                            <Setter Property="Text"       Value="▄"/>
-                                                            <Setter Property="Foreground" Value="#22C55E"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="3">
-                                                            <Setter Property="Text"       Value="▄"/>
-                                                            <Setter Property="Foreground" Value="#A3E635"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="2">
-                                                            <Setter Property="Text"       Value="▃"/>
-                                                            <Setter Property="Foreground" Value="#F59E0B"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Bars}" Value="1">
-                                                            <Setter Property="Text"       Value="▂"/>
-                                                            <Setter Property="Foreground" Value="#F97316"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <!-- 信号バー + トレンド矢印 -->
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center">
+                                            <TextBlock FontSize="15" TextAlignment="Center"
+                                                       AutomationProperties.Name="{Binding SignalAutomationLabel}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text"       Value="▁"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="4">
+                                                                <Setter Property="Text"       Value="▄"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="3">
+                                                                <Setter Property="Text"       Value="▄"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="2">
+                                                                <Setter Property="Text"       Value="▃"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Bars}" Value="1">
+                                                                <Setter Property="Text"       Value="▂"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding SignalTrendLabel}"
+                                                       FontSize="8" TextAlignment="Center"
+                                                       Foreground="{DynamicResource FgVeryMutedBrush}"
+                                                       Margin="0,-2,0,0"/>
+                                        </StackPanel>
 
                                         <!-- SSID + セキュリティ(人間語) + 詳細情報 -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -588,14 +618,99 @@
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <!-- 右端: 接続中バッジ or プロファイルアイコン -->
+                                        <!-- 右端: セキュリティバッジ + 接続中バッジ or プロファイルアイコン -->
                                         <StackPanel Grid.Column="2" Orientation="Horizontal"
                                                     VerticalAlignment="Center">
+                                            <!-- セキュリティレベルインジケーター (色付き点) -->
+                                            <Border Width="7" Height="7" CornerRadius="3.5"
+                                                    VerticalAlignment="Center" Margin="0,0,5,0"
+                                                    ToolTip="{Binding SecurityBadgeLabel}"
+                                                    AutomationProperties.Name="{Binding SecurityBadgeLabel}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <!-- 5段階を3ブラシに縮約 (signal-bar と同じ既存パターン) -->
+                                                        <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Excellent}">
+                                                                <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Good}">
+                                                                <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Fair}">
+                                                                <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Weak}">
+                                                                <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding SecurityLevel}"
+                                                                         Value="{x:Static svc:SecurityLevel.Danger}">
+                                                                <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <!-- DFS チャンネル警告 -->
+                                            <TextBlock Text="⚡" FontSize="10"
+                                                       Foreground="{DynamicResource WarnBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,4,0"
+                                                       ToolTip="{x:Static r:L.DetailDfsHint}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDfs}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- チャンネル混雑インジケーター -->
+                                            <Border Width="7" Height="7" CornerRadius="3.5"
+                                                    VerticalAlignment="Center" Margin="0,0,4,0"
+                                                    ToolTip="{Binding CongestionTooltip}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChannelCrowded}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsChannelOverloaded}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <!-- ピン留め済みインジケーター -->
+                                            <TextBlock Text="📌" FontSize="10"
+                                                       VerticalAlignment="Center" Margin="0,0,3,0"
+                                                       ToolTip="{x:Static r:L.MainPinnedTooltip}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <!-- プロファイル保存済み -->
                                             <TextBlock Text="★" FontSize="10"
                                                        Foreground="{DynamicResource WarnBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,4,0"
-                                                       ToolTip="プロファイル保存済み">
+                                                       ToolTip="{x:Static r:L.MainProfileSavedTooltip}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -622,7 +737,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="接続中" FontSize="10"
+                                                <TextBlock Text="{x:Static r:L.DetailConnected}" FontSize="10"
                                                            FontWeight="Bold"
                                                            Foreground="{DynamicResource SuccessBrush}"/>
                                             </Border>
@@ -646,11 +761,10 @@
                                    Text="{Binding StatusMessage}"
                                    Foreground="{DynamicResource FgMutedBrush}" FontSize="11"
                                    VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" AutomationProperties.Name="切断" Content="切断"
+                        <Button Grid.Column="1" AutomationProperties.Name="{x:Static r:L.ActionDisconnect}" Content="{x:Static r:L.ActionDisconnect}"
                                 Style="{StaticResource BtnGhost}"
                                 Command="{Binding SelectedAdapter.DisconnectCommand}"
-                                Padding="10,5" FontSize="11"
-                                AutomationProperties.Name="切断"/>
+                                Padding="10,5" FontSize="11"/>
                     </Grid>
                 </Border>
             </Grid>
@@ -668,18 +782,18 @@
                         <Style TargetType="TabItem">
                             <Setter Property="Foreground"     Value="{DynamicResource FgMutedBrush}"/>
                             <Setter Property="Background"     Value="Transparent"/>
-                            <Setter Property="BorderThickness"Value="0"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="Padding"        Value="12,9"/>
                             <Setter Property="FontSize"       Value="12"/>
                         </Style>
                     </TabControl.Resources>
 
                     <!-- ── 詳細タブ ── -->
-                    <TabItem Header="詳細">
+                    <TabItem Header="{x:Static r:L.TabDetail}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
                             <StackPanel>
-                                <TextBlock Text="{Binding SelectedAdapter.Detail.Ssid,
-                                                  FallbackValue='ネットワークを選択'}"
+                                <TextBlock Text="{Binding SelectedAdapter.Detail.SsidOrHint,
+                                                  FallbackValue={x:Static r:L.MainSelectNetworkHint}}"
                                            FontSize="15" FontWeight="Bold" Margin="0,0,0,12"/>
 
                                 <!-- 詳細フィールド — Apple "Clarity" 人間語ラベル -->
@@ -697,7 +811,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">認証</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailAuth}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.AuthLabel}"
                                                FontSize="11"/>
@@ -708,7 +822,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">暗号</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailCipher}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.CipherLabel}"
                                                FontSize="11"/>
@@ -719,9 +833,20 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">世代</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailPhy}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.PhyLabel}"
+                                               FontSize="11"/>
+                                </Grid>
+                                <!-- ベンダー -->
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailVendor}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.VendorLabel}"
                                                FontSize="11"/>
                                 </Grid>
                                 <!-- バンド -->
@@ -730,7 +855,7 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">バンド</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailBand}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.BandLabel}"
                                                FontSize="11"/>
@@ -741,18 +866,47 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">チャンネル</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailChannel}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.ChannelLabel}"
                                                FontSize="11"/>
                                 </Grid>
+                                <!-- DFS 警告バナー — 本文は常時 AAA 検証済みの FgBrush/FgMutedBrush、
+                                     WarnBrush は左端の縦線のみに限定 (scan-error banner と同じ方針) -->
+                                <Border CornerRadius="6" Padding="0" Margin="0,4,0,0"
+                                        Background="{DynamicResource SurfaceHoverBrush}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding SelectedAdapter.Detail.IsDfs}"
+                                                    Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="4" CornerRadius="2" Margin="0,0,8,0"
+                                                Background="{DynamicResource WarnBrush}"/>
+                                        <StackPanel Margin="0,5,8,5">
+                                            <TextBlock Text="{x:Static r:L.DetailDfsWarning}"
+                                                       FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource FgBrush}"/>
+                                            <TextBlock Text="{x:Static r:L.DetailDfsHint}"
+                                                       FontSize="10" Foreground="{DynamicResource FgMutedBrush}"
+                                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
                                 <!-- 周波数 -->
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">周波数</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailFrequency}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.FrequencyLabel}"
                                                FontSize="11"/>
@@ -763,10 +917,36 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">最大速度</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailSpeed}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.SpeedLabel}"
                                                FontSize="11"/>
+                                </Grid>
+                                <!-- Link rate estimate — Wi-Fi 6+ only (HE/EHT model); collapsed otherwise -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasLinkEstimate, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailLinkEstimate}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.LinkEstimateLabel}"
+                                               FontSize="11" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.LinkEstimateLabel}"/>
+                                </Grid>
+                                <!-- MLO (Wi-Fi 7) — MLO 非対応ネットワークでは非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasMlo, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailMlo}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.MloLabel}"
+                                               FontSize="11" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.MloLabel}"/>
                                 </Grid>
                                 <!-- 信号 -->
                                 <Grid Margin="0,4">
@@ -774,11 +954,24 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">信号</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailSignal}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.SignalLabel}"
                                                FontSize="11"
                                                FontFamily="Cascadia Mono, Consolas, monospace"/>
+                                </Grid>
+                                <!-- Predicted signal (from history) — 履歴が貯まるまで非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasPredictedSignal, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailSignalTrend}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.PredictedSignalLabel}"
+                                               FontSize="11"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.PredictedSignalLabel}"/>
                                 </Grid>
                                 <!-- 状態 -->
                                 <Grid Margin="0,4,0,12">
@@ -786,13 +979,188 @@
                                         <ColumnDefinition Width="82"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Foreground="{DynamicResource FgMutedBrush}" FontSize="11">状態</TextBlock>
+                                    <TextBlock Text="{x:Static r:L.DetailStatus}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding SelectedAdapter.Detail.StatusLabel}"
                                                FontSize="11" FontWeight="SemiBold"/>
                                 </Grid>
 
-                                <TextBlock Text="BSSID" FontSize="11"
+                                <!-- 推奨スコア -->
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailScore}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.RecommendationScore,
+                                                      StringFormat={}{0}/100}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               ToolTip="{Binding SelectedAdapter.Detail.RecommendationSummary}"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.RecommendationSummary}"/>
+                                </Grid>
+
+                                <!-- Distance estimate -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailDistance}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.DistanceLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.DistanceLabel}"/>
+                                </Grid>
+
+                                <!-- Roaming capability -->
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailRoaming}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.RoamingLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.RoamingLabel}"/>
+                                </Grid>
+
+                                <!-- Interference level -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailInterference}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.InterferenceLabel}"
+                                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.InterferenceLabel}"/>
+                                </Grid>
+
+                                <!-- Mesh detection — メッシュ未検出時は非表示 -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasMesh, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailMesh}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.MeshLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.MeshLabel}"/>
+                                </Grid>
+
+                                <!-- Power saving capability -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailPowerSave}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.PowerSaveLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.PowerSaveLabel}"/>
+                                </Grid>
+
+                                <!-- VPN usage advice — advisory only, never changes VPN state.
+                                     VpnAdvisoryService (Core) was previously CLI-only (`mwc vpn-advice`);
+                                     wired here as the App-layer equivalent (2026-07 audit follow-up). -->
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailVpn}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.VpnAdviceLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.VpnAdviceLabel}"/>
+                                </Grid>
+
+                                <!-- 802.1X (Enterprise) auth success rate — only shown when a prior
+                                     attempt was recorded (EapAuthStatsService, previously CLI-only
+                                     `mwc eap-stats`; 2026-07 audit follow-up). -->
+                                <Grid Margin="0,4,0,12"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasEapStats, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailEapStats}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.EapStatsLabel}"
+                                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.EapStatsLabel}"/>
+                                </Grid>
+
+                                <!-- 6GHz regulatory-domain legality — only shown for 6GHz networks
+                                     (RegulatoryDomainService, previously fully orphaned; 2026-07
+                                     audit follow-up). -->
+                                <Grid Margin="0,4,0,12"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasRegulatoryInfo, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailRegulatory}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.RegulatoryLabel}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.RegulatoryLabel}"/>
+                                </Grid>
+
+                                <!-- セキュリティ勧告 -->
+                                <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.SecurityAdvisories}"
+                                              Margin="0,0,0,12">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding SelectedAdapter.Detail.HasSecurityAdvisories}"
+                                                    Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="5" Padding="8,5" Margin="0,2"
+                                                    Background="{DynamicResource SurfaceHoverBrush}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="5" CornerRadius="2.5" Margin="0,0,8,0"
+                                                            Background="{DynamicResource DangerBrush}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                                                                        <Setter Property="Background" Value="{DynamicResource WarnBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Good">
+                                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontSize="10" TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource FgBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="{x:Static r:L.LabelBssid}" FontSize="11"
                                            Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,4"/>
                                 <ItemsControl ItemsSource="{Binding SelectedAdapter.Detail.BssRows}">
                                     <ItemsControl.ItemTemplate>
@@ -823,7 +1191,7 @@
                     </TabItem>
 
                     <!-- ── 信号履歴タブ ── -->
-                    <TabItem Header="信号履歴">
+                    <TabItem Header="{x:Static r:L.TabSignal}">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -831,31 +1199,33 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" Margin="0,0,0,8" FontSize="11"
                                        Foreground="{DynamicResource FgMutedBrush}"
-                                       Text="{Binding SelectedAdapter.Selected.Ssid,
-                                              StringFormat={}{0} — 信号品質推移,
-                                              FallbackValue='ネットワークを選択してください'}"/>
+                                       Text="{Binding SelectedAdapter.SignalHistoryTitle,
+                                              FallbackValue={x:Static r:L.MainSelectHistoryHint}}"/>
                             <ctrl:SignalHistoryCanvas Grid.Row="1" MinHeight="160"
                                 History="{Binding SelectedAdapter.SelectedHistory}"
                                 Ssid="{Binding SelectedAdapter.Selected.Ssid}"
-                                AutomationProperties.Name="信号強度グラフ"/>
+                                AutomationProperties.Name="{x:Static r:L.MainSignalGraphAutomation}"/>
                         </Grid>
                     </TabItem>
 
                     <!-- ── チャンネルタブ ── -->
-                    <TabItem Header="チャンネル">
+                    <TabItem Header="{x:Static r:L.TabChannel}">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                <RadioButton Content="2.4G" GroupName="band" IsChecked="True"
+                                <RadioButton Content="{x:Static r:L.BandFilter24}" GroupName="band" IsChecked="True"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter24}"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect2_4"/>
-                                <RadioButton Content="5G"   GroupName="band"
+                                <RadioButton Content="{x:Static r:L.BandFilter5}" GroupName="band"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter5}"
                                              Foreground="{DynamicResource FgBrush}" Margin="0,0,10,0"
                                              Click="OnBandSelect5"/>
-                                <RadioButton Content="6G"   GroupName="band"
+                                <RadioButton Content="{x:Static r:L.BandFilter6}" GroupName="band"
+                                             AutomationProperties.Name="{x:Static r:L.BandFilter6}"
                                              Foreground="{DynamicResource FgBrush}"
                                              Click="OnBandSelect6"/>
                             </StackPanel>
@@ -863,7 +1233,7 @@
                                 MinHeight="140"
                                 Networks="{Binding SelectedAdapter.SourceNetworks}"
                                 BandFilter="Band2_4GHz"
-                                AutomationProperties.Name="チャンネル帯域グラフ"/>
+                                AutomationProperties.Name="{x:Static r:L.MainChannelGraphAutomation}"/>
                         </Grid>
                     </TabItem>
                 </TabControl>

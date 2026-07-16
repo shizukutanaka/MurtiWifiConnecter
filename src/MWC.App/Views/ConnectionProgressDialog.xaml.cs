@@ -19,7 +19,7 @@ public partial class ConnectionProgressDialog : Window
     {
         new StepItem(MWC.App.Resources.L.Get("Step_Connect")),
         new StepItem(MWC.App.Resources.L.Get("Step_Auth")),
-        new StepItem("IPアドレス取得"),
+        new StepItem(MWC.App.Resources.L.StepIpAddress),
         new StepItem(MWC.App.Resources.L.Get("Step_Internet"))
     };
 

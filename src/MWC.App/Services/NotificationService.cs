@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
+using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
 
 namespace MWC.App.Services;
 
@@ -33,26 +34,40 @@ public sealed class NotificationService
     {
         if (captive)
         {
-            Show($"{ssid} に接続",
+            Show(MWC.App.Resources.L.NotifyConnectedTo(ssid),
                 MWC.App.Resources.L.Get("Notify_CaptivePortal"),
                 ToolTipIcon.Warning);
         }
         else if (hasInternet)
         {
-            Show($"{ssid} に接続完了",
+            Show(MWC.App.Resources.L.NotifyConnectedComplete(ssid),
                 MWC.App.Resources.L.Get("Notify_InternetOk"),
                 ToolTipIcon.Info);
         }
         else
         {
-            Show($"{ssid} に接続",
+            Show(MWC.App.Resources.L.NotifyConnectedTo(ssid),
                 MWC.App.Resources.L.Get("Notify_NoInternet"),
                 ToolTipIcon.Warning);
         }
     }
 
+    /// <summary>
+    /// フェイルオーバー専用の通知。<paramref name="title"/> は SSID ではなく
+    /// アダプター名を含む定型文 ("Failover: switched to …") であるため、
+    /// <see cref="NotifyConnected"/> が付加する "Connected to {0}" プレフィックスを
+    /// 使わずに直接 <paramref name="title"/> をトースト題として表示する。
+    /// </summary>
+    public void NotifyFailover(string title, bool hasInternet, bool captive)
+    {
+        string body = captive     ? MWC.App.Resources.L.Get("Notify_CaptivePortal")
+                    : hasInternet ? MWC.App.Resources.L.Get("Notify_InternetOk")
+                    :               MWC.App.Resources.L.Get("Notify_NoInternet");
+        Show(title, body, captive ? ToolTipIcon.Warning : ToolTipIcon.Info);
+    }
+
     public void NotifyDisconnected(string ssid)
-        => Show($"{ssid} から切断", "", ToolTipIcon.Info);
+        => Show(MWC.App.Resources.L.NotifyDisconnected(ssid), "", ToolTipIcon.Info);
 
     public void NotifyFailed(string ssid, ConnectionFailure failure)
     {
@@ -65,12 +80,15 @@ public sealed class NotificationService
             ConnectionFailure.InsufficientPrivilege => MWC.App.Resources.L.Get("Notify_InsufficientPrivilege"),
             _ => MWC.App.Resources.L.Get("Notify_GenericFailure")
         };
-        Show($"{ssid} に接続できません", msg, ToolTipIcon.Error);
+        Show(MWC.App.Resources.L.NotifyCannotConnect(ssid), msg, ToolTipIcon.Error);
     }
 
     private void Show(string title, string text, ToolTipIcon icon)
     {
-        _log.LogInformation("Notification: {title} / {text}", title, text);
+        // タイトル/本文には SSID が埋め込まれているため(例: "Connected to MyWifi")、
+        // 永続ログには内容を出さず重要度のみ記録する。SSID の平文ログ化を防ぐ
+        // (DiagnosticBundle / 各接続ログと同じ PII 方針)。
+        _log.LogInformation("Notification shown (severity={icon})", icon);
         try
         {
             _tray?.ShowBalloonTip(3000,
@@ -84,6 +102,3 @@ public sealed class NotificationService
         }
     }
 }
-
-// System.Windows.Forms 型エイリアス
-using ToolTipIcon = System.Windows.Forms.ToolTipIcon;

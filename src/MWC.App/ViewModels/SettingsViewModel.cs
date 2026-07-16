@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MWC.App.Resources;
 using MWC.App.Services;
 
 namespace MWC.App.ViewModels;
@@ -21,29 +23,62 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool   _scanOnStartup   = true;
     [ObservableProperty] private bool   _showNotifications = true;
 
+    /// <summary>Hidden Networks — Settings dialog で管理</summary>
+    public ObservableCollection<string> HiddenNetworks { get; } = new();
+
+    public void LoadHiddenNetworks()
+    {
+        HiddenNetworks.Clear();
+        foreach (var ssid in _svc.Current.HiddenNetworks)
+            HiddenNetworks.Add(ssid);
+    }
+
+    [RelayCommand]
+    public void Unhide(string ssid)
+    {
+        _svc.UnhideNetwork(ssid);
+        HiddenNetworks.Remove(ssid);
+    }
+
     // RadioButton 相互排他
     partial void OnIsSimpleModeChanged(bool v)  { if (v) _isExpertMode = false; OnPropertyChanged(nameof(IsExpertMode)); }
     partial void OnIsExpertModeChanged(bool v)  { if (v) _isSimpleMode = false; OnPropertyChanged(nameof(IsSimpleMode)); }
 
     // 公開プロパティ (SettingsService 向け変換)
-    public AppTheme    Theme       => _themeIndex switch { 1 => AppTheme.Light, 2 => AppTheme.System, _ => AppTheme.Dark };
+    public AppTheme    Theme       => _themeIndex switch
+    {
+        1 => AppTheme.Light,
+        2 => AppTheme.System,
+        3 => AppTheme.Fluent,
+        4 => AppTheme.Solarized,
+        5 => AppTheme.Nord,
+        6 => AppTheme.Catppuccin,
+        _ => AppTheme.Dark
+    };
     public DisplayMode DisplayMode => _isExpertMode ? DisplayMode.Expert : DisplayMode.Simple;
 
     public IReadOnlyList<(string Code, string Label)> Languages { get; } = new[]
     {
-        ("ja","日本語"), ("en","English"), ("zh-Hans","中文(简体)"),
+        ("ja","日本語"), ("en","English"), ("zh-Hans","中文(简体)"), ("zh-Hant","中文(繁體)"),
         ("ko","한국어"), ("ar","العربية"), ("es","Español"),
-        ("fr","Français"), ("de","Deutsch"), ("ru","Русский"), ("pt-BR","Português")
+        ("fr","Français"), ("de","Deutsch"), ("ru","Русский"), ("pt-BR","Português"),
+        ("hi","हिन्दी"), ("bn","বাংলা"), ("ta","தமிழ்")
     };
 
-    public IReadOnlyList<(int Secs, string Label)> ScanIntervals { get; } = new[]
-    {
-        (0,"手動のみ"),(10,"10秒"),(15,"15秒"),(30,"30秒"),(60,"1分"),(300,"5分")
-    };
+    public IReadOnlyList<(int Secs, string Label)> ScanIntervals { get; }
 
     public SettingsViewModel(SettingsService svc)
     {
         _svc = svc;
+        ScanIntervals = new[]
+        {
+            (0,   L.ScanIntervalManual),
+            (10,  L.ScanInterval10s),
+            (15,  L.ScanInterval15s),
+            (30,  L.ScanInterval30s),
+            (60,  L.ScanInterval60s),
+            (300, L.ScanInterval300s),
+        };
         Load();
     }
 
@@ -52,7 +87,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = _svc.Current;
         _isSimpleMode     = s.DisplayMode == DisplayMode.Simple;
         _isExpertMode     = s.DisplayMode == DisplayMode.Expert;
-        _themeIndex       = s.Theme switch { AppTheme.Light => 1, AppTheme.System => 2, _ => 0 };
+        _themeIndex       = s.Theme switch
+        {
+            AppTheme.Light      => 1,
+            AppTheme.System     => 2,
+            AppTheme.Fluent     => 3,
+            AppTheme.Solarized  => 4,
+            AppTheme.Nord       => 5,
+            AppTheme.Catppuccin => 6,
+            _                   => 0
+        };
         _language         = s.Language;
         _autoScanInterval = s.AutoScanIntervalSeconds;
         _scanOnStartup    = s.ScanOnStartup;
@@ -61,6 +105,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsExpertMode));
         OnPropertyChanged(nameof(ThemeIndex));
         OnPropertyChanged(nameof(Language));
+        OnPropertyChanged(nameof(AutoScanInterval));
+        OnPropertyChanged(nameof(ScanOnStartup));
+        OnPropertyChanged(nameof(ShowNotifications));
     }
 
     [RelayCommand]

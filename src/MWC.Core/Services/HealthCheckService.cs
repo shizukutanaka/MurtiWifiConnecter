@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MWC.Core.Models;
 
 namespace MWC.Core.Services;
@@ -17,6 +18,12 @@ namespace MWC.Core.Services;
 /// </summary>
 public sealed class HealthCheckService
 {
+    // Compiled once at class-load time; safe to share across calls (read-only use).
+    private static readonly Regex _ipv4Rx  = new(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",          RegexOptions.Compiled);
+    private static readonly Regex _macRx   = new(@"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b",        RegexOptions.Compiled);
+    private static readonly Regex _emailRx = new(@"\b[\w.+-]+@[\w-]+\.[\w.-]+\b",                       RegexOptions.Compiled);
+    private static readonly Regex _phoneRx = new(@"\b0\d{1,4}-\d{1,4}-\d{4}\b",                        RegexOptions.Compiled);
+
     /// <summary>
     /// アダプター群の総合ヘルスを評価する。
     /// </summary>
@@ -25,7 +32,7 @@ public sealed class HealthCheckService
         if (adapters.Count == 0)
             return new HealthReport(
                 Status:  HealthStatus.Unhealthy,
-                Checks:  new[] { new HealthCheck("adapters", false, "Wi-Fi アダプターが見つからない") });
+                Checks:  new[] { new HealthCheck("adapters", false, "No Wi-Fi adapters found") });
 
         var checks = new List<HealthCheck>();
 
@@ -33,14 +40,14 @@ public sealed class HealthCheckService
         checks.Add(new HealthCheck(
             "adapters.enabled",
             enabled > 0,
-            enabled > 0 ? $"{enabled}/{adapters.Count} アダプター準備完了"
-                        : "全アダプター未準備"));
+            enabled > 0 ? $"{enabled}/{adapters.Count} adapters ready"
+                        : "No adapters ready"));
 
         int connected = adapters.Count(a => a.State == AdapterState.Connected);
         checks.Add(new HealthCheck(
             "adapters.connected",
             true,  // 接続なしは異常ではない (情報のみ)
-            $"{connected} アダプター接続中"));
+            $"{connected} adapter(s) connected"));
 
         var status = checks.All(c => c.Passed)
             ? HealthStatus.Healthy
@@ -60,24 +67,13 @@ public sealed class HealthCheckService
         var found = new List<string>();
 
         // IPv4 アドレス
-        if (System.Text.RegularExpressions.Regex.IsMatch(
-            logLine, @"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"))
-            found.Add("IPv4 アドレス");
-
+        if (_ipv4Rx.IsMatch(logLine))  found.Add("IPv4 address");
         // MAC アドレス (BSSID は許容されるが、ログでは avoid)
-        if (System.Text.RegularExpressions.Regex.IsMatch(
-            logLine, @"\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b"))
-            found.Add("MAC アドレス");
-
+        if (_macRx.IsMatch(logLine))   found.Add("MAC address");
         // メールアドレス
-        if (System.Text.RegularExpressions.Regex.IsMatch(
-            logLine, @"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"))
-            found.Add("メールアドレス");
-
+        if (_emailRx.IsMatch(logLine)) found.Add("email address");
         // 電話番号 (日本形式の簡易検出)
-        if (System.Text.RegularExpressions.Regex.IsMatch(
-            logLine, @"\b0\d{1,4}-\d{1,4}-\d{4}\b"))
-            found.Add("電話番号");
+        if (_phoneRx.IsMatch(logLine)) found.Add("phone number");
 
         detected = found;
         return found.Count == 0;

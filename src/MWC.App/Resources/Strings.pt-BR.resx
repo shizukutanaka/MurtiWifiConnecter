@@ -67,6 +67,7 @@
   <data name="Progress_CheckInternet"><value>Checking internet connection…</value></data>
   <data name="Progress_IPObtaining"><value>Obtaining IP address…</value></data>
   <data name="Progress_Error"><value>Error: {0}</value></data>
+  <data name="Progress_AutoRetry"><value>Conexão instável — tentando novamente automaticamente…</value></data>
   <data name="Detail_Connected"><value>Connected ✓</value></data>
   <data name="Detail_HasProfile"><value>Profile saved</value></data>
   <data name="Detail_NotConnected"><value>Not connected</value></data>
@@ -169,6 +170,7 @@
   <data name="Captive_Loading"><value>Loading...</value></data>
   <data name="Captive_InternetOk"><value>✓ Internet connection verified</value></data>
   <data name="Captive_PageLoaded"><value>Page loaded</value></data>
+  <data name="Captive_NavigationFailed"><value>Falha na navegação — tente abrir no navegador</value></data>
   <data name="Confirm_DeleteTitle"><value>Confirm deletion</value></data>
   <data name="About_Version"><value>Version {0}</value></data>
   <data name="QR_Copied"><value>Copied — Wi-Fi QR code</value></data>
@@ -184,4 +186,496 @@
   <data name="Cert_Expiry90"><value>Expires in {0} days</value></data>
   <data name="Cert_ExpiryOk"><value>Valid ({0} days left)</value></data>
   <data name="Theme_Fluent"><value>Fluent (Windows 11 Native)</value></data>
+  <data name="Tray_AdapterMenuItem"><value>📡 {0}</value></data>
+  <data name="Tray_NoNetworks"><value>(Sem redes)</value></data>
+  <data name="Tray_OpenApp"><value>Abrir MWC</value></data>
+  <data name="Tray_StatusConnected"><value>MWC — {0} ({1}%)</value></data>
+  <data name="Status_AdaptersConnected"><value>{0} / {1} adaptadores conectados</value></data>
+  <data name="Status_NetworksFound"><value>{0} redes</value></data>
+  <data name="Status_ProfileCount"><value>{0} perfis</value></data>
+
+  <data name="Settings_Title"><value>Configurações</value></data>
+  <data name="Settings_DialogAutomation"><value>Caixa de configurações</value></data>
+  <data name="Settings_Section_Display"><value>Exibição</value></data>
+  <data name="Settings_DisplayMode_Label"><value>Modo de exibição</value></data>
+  <data name="Settings_DisplayMode_Desc"><value>Simples: foco na conexão / Especialista: informações técnicas</value></data>
+  <data name="Settings_Mode_Simple"><value>Simples</value></data>
+  <data name="Settings_Mode_Expert"><value>Especialista</value></data>
+  <data name="Settings_Theme"><value>Tema</value></data>
+  <data name="Theme_Dark"><value>Escuro</value></data>
+  <data name="Theme_Light"><value>Claro</value></data>
+  <data name="Theme_System"><value>Padrão do sistema</value></data>
+  <data name="Settings_Language"><value>Idioma</value></data>
+  <data name="Settings_Section_Scan"><value>Varredura</value></data>
+  <data name="Settings_ScanInterval_Label"><value>Intervalo de varredura</value></data>
+  <data name="Settings_ScanInterval_Desc"><value>Afeta o consumo de bateria</value></data>
+  <data name="Settings_ScanOnStartup"><value>Varrer ao iniciar</value></data>
+  <data name="Settings_Section_Hidden"><value>Redes ocultas</value></data>
+  <data name="Settings_Hidden_Empty"><value>Nenhuma rede oculta</value></data>
+  <data name="Settings_Hidden_Unhide"><value>Exibir</value></data>
+  <data name="Settings_Hidden_ListAutomation"><value>Lista de redes ocultas</value></data>
+  <data name="Settings_Section_Notify"><value>Notificações</value></data>
+  <data name="Settings_Notify_Label"><value>Mostrar notificações de conexão</value></data>
+  <data name="Settings_Notify_Desc"><value>Exibir no Centro de Ações</value></data>
+  <data name="Action_Save"><value>Salvar</value></data>
+  <data name="Action_ResetDefaults"><value>Redefinir padrões</value></data>
+  <data name="Adapter_Dialog_Title"><value>Configurações do adaptador</value></data>
+  <data name="Adapter_Dialog_Automation"><value>Configurações do adaptador sem fio</value></data>
+  <data name="Adapter_DisplayName_Section"><value>Nome de exibição</value></data>
+  <data name="Adapter_DisplayName_Hint"><value>ex.: dongle casa / móvel / apenas 5GHz</value></data>
+  <data name="Adapter_Band_Section"><value>Banda de frequência</value></data>
+  <data name="Band_Any"><value>Todas as bandas</value></data>
+  <data name="Adapter_Band_6E"><value>Somente 6 GHz (Wi-Fi 6E/7)</value></data>
+  <data name="Adapter_Band_Desc"><value>Restringir as bandas usadas por este adaptador</value></data>
+  <data name="Adapter_Pinned_Section"><value>SSIDs preferidos (conexão automática)</value></data>
+  <data name="Adapter_Pinned_Unpin"><value>Desafixar</value></data>
+  <data name="Adapter_Pinned_Empty"><value>Nenhum SSID fixado</value></data>
+  <data name="Adapter_AutoJoin_Desc"><value>Auto-Join tentará essas redes em ordem</value></data>
+  <data name="Adapter_Enabled_Label"><value>Usar este adaptador</value></data>
+  <data name="Adapter_Enabled_Desc"><value>Desativar oculta da lista</value></data>
+
+  <data name="Adapter_Band_24"><value>Somente 2.4 GHz</value></data>
+  <data name="Adapter_Band_5"><value>Somente 5 GHz</value></data>
+
+  <data name="Label_PasswordPlaceholder"><value>Digite a senha da rede</value></data>
+  <data name="Label_ShowPassword"><value>Mostrar senha</value></data>
+
+  <data name="About_Title"><value>Sobre o MWC</value></data>
+  <data name="About_Automation"><value>Informações do app</value></data>
+  <data name="About_Tagline"><value>Multi WiFi Connector</value></data>
+  <data name="About_Desc"><value>Gerenciador Wi-Fi multi-adaptador para Windows.
+Suporta WPA3, Enterprise, QR code e CLI.</value></data>
+  <data name="About_GitHub"><value>Ver código no GitHub</value></data>
+  <data name="About_ReportBug"><value>Reportar bug</value></data>
+  <data name="About_License"><value>MIT License © 2026 Shizuku Tanaka</value></data>
+
+  <data name="Wizard_WindowTitle"><value>Bem-vindo ao MWC</value></data>
+  <data name="Wizard_DialogAutomation"><value>Assistente de primeira execução</value></data>
+  <data name="Shortcuts_Title"><value>Atalhos de teclado</value></data>
+  <data name="Shortcuts_DialogAutomation"><value>Lista de atalhos de teclado</value></data>
+  <data name="Shortcuts_Desc"><value>Todas as funções acessíveis sem mouse</value></data>
+  <data name="QR_WindowTitle"><value>QR Code Wi-Fi</value></data>
+  <data name="QR_DialogAutomation"><value>Exibição do QR Code Wi-Fi</value></data>
+  <data name="Action_Copy"><value>Copiar</value></data>
+  <data name="QR_SavePng"><value>Salvar PNG</value></data>
+  <data name="QR_PngFileFilter"><value>PNG Imagem (*.png)|*.png</value></data>
+  <data name="Export_FilterJson"><value>JSON (*.json)|*.json</value></data>
+  <data name="Export_FilterTxt"><value>Texto (*.txt)|*.txt</value></data>
+  <data name="Export_FilterCsv"><value>CSV (*.csv)|*.csv</value></data>
+  <data name="Export_FilterDiagnostic"><value>Markdown (*.md)|*.md|Texto (*.txt)|*.txt</value></data>
+  <data name="Profile_WindowTitle"><value>Redes salvas</value></data>
+  <data name="Profile_DialogAutomation"><value>Gerenciamento de redes salvas</value></data>
+  <data name="Profile_ListAutomation"><value>Lista de perfis salvos</value></data>
+  <data name="Action_Delete"><value>Excluir</value></data>
+  <data name="Profile_DeleteWarning"><value>Perfis excluídos não podem ser recuperados</value></data>
+  <data name="Progress_WindowTitle"><value>Conectando…</value></data>
+  <data name="Progress_DialogAutomation"><value>Progresso da conexão</value></data>
+  <data name="Captive_DialogAutomation"><value>Login no portal cativo</value></data>
+  <data name="Captive_OpenExternal"><value>Abrir no navegador</value></data>
+  <data name="Action_Skip"><value>Pular</value></data>
+  <data name="Captive_Done"><value>Conectado</value></data>
+  <data name="Trouble_WindowTitle"><value>Problema de conexão</value></data>
+  <data name="Trouble_DialogAutomation"><value>Solução de problemas de conexão</value></data>
+  <data name="Trouble_Solutions"><value>Soluções</value></data>
+  <data name="Action_Retry"><value>Tentar novamente</value></data>
+  <data name="Cert_PickerTitle"><value>Selecionar certificado do cliente</value></data>
+  <data name="Cert_PickerAutomation"><value>Seleção de certificado cliente EAP-TLS</value></data>
+  <data name="Cert_PickerDesc"><value>Selecione um certificado para autenticação EAP-TLS</value></data>
+  <data name="Cert_ListAutomation"><value>Lista de certificados</value></data>
+  <data name="Cert_Subject"><value>Assunto:</value></data>
+  <data name="Cert_IssuerLabel"><value>Emissor:</value></data>
+  <data name="Cert_ExpiryLabel"><value>Expira:</value></data>
+  <data name="Cert_OpenStore"><value>Abrir repositório de certificados…</value></data>
+  <data name="Cert_UseThis"><value>Usar este certificado</value></data>
+  <data name="Main_WindowTitle"><value>MWC — Multi WiFi Connector</value></data>
+  <data name="Main_WindowAutomation"><value>MWC main window</value></data>
+  <data name="Main_SearchTooltip"><value>Search networks (Ctrl+F)</value></data>
+  <data name="Main_SearchAutomation"><value>Network search</value></data>
+  <data name="Main_RescanTooltip"><value>Rescan (Ctrl+R)</value></data>
+  <data name="Main_RescanAutomation"><value>Rescan networks</value></data>
+  <data name="Main_ToggleModeTooltip"><value>Toggle simple/expert mode</value></data>
+  <data name="Main_AllAdaptersTooltip"><value>Overview all adapters (Ctrl+Shift+A)</value></data>
+  <data name="Main_AllAdaptersAutomation"><value>All adapters view</value></data>
+  <data name="Main_OverflowMenuAutomation"><value>More options</value></data>
+  <data name="Main_ConnectAutomation"><value>Connect to selected network</value></data>
+  <data name="Main_AdapterTabsAutomation"><value>Wireless adapter tabs</value></data>
+  <data name="Main_NetworkListAutomation"><value>Detected networks list</value></data>
+  <data name="Main_EmptyStateMessage"><value>Make sure your Wi-Fi adapter is enabled, then rescan.</value></data>
+  <data name="ContextMenu_ShowQr"><value>Show QR Code</value></data>
+  <data name="ContextMenu_CopySsid"><value>Copy SSID</value></data>
+  <data name="ContextMenu_PinNetwork"><value>Pin this network</value></data>
+  <data name="ContextMenu_UnpinNetwork"><value>Desafixar esta rede</value></data>
+  <data name="Main_PinnedTooltip"><value>Fixado (exibido primeiro)</value></data>
+  <data name="Status_Unpinned"><value>Desafixado: {0}</value></data>
+  <data name="ContextMenu_HideNetwork"><value>Hide this network</value></data>
+  <data name="Main_ProfileSavedTooltip"><value>Profile saved</value></data>
+  <data name="Menu_ExportCsv"><value>📥  Export CSV</value></data>
+  <data name="Menu_ExportJson"><value>📥  Export JSON</value></data>
+  <data name="Menu_ExportTxt"><value>📄  Export Text Report</value></data>
+  <data name="Menu_ShowQr"><value>Show QR Code</value></data>
+  <data name="Menu_Settings"><value>⚙️  Settings…</value></data>
+  <data name="Menu_About"><value>ℹ️  About MWC</value></data>
+  <data name="Menu_ScanAll"><value>↻↻  Scan all adapters  Ctrl+Shift+A</value></data>
+  <data name="Menu_SavedNetworks"><value>📋  Saved Networks</value></data>
+  <data name="Menu_QualityMeasure"><value>📊  Network Quality</value></data>
+  <data name="Menu_AllAdapters"><value>📡  Show all wireless adapters</value></data>
+  <data name="Detail_Auth"><value>Auth</value></data>
+  <data name="Detail_Cipher"><value>Cipher</value></data>
+  <data name="Detail_Phy"><value>Generation</value></data>
+  <data name="Detail_Vendor"><value>Fabricante</value></data>
+  <data name="Detail_Score"><value>Pontuação</value></data>
+  <data name="Detail_Band"><value>Band</value></data>
+  <data name="Detail_Channel"><value>Channel</value></data>
+  <data name="Detail_Frequency"><value>Frequency</value></data>
+  <data name="Detail_Speed"><value>Max Speed</value></data>
+  <data name="Detail_Signal"><value>Signal</value></data>
+  <data name="Detail_Status"><value>Status</value></data>
+  <data name="Main_SignalGraphAutomation"><value>Signal strength graph</value></data>
+  <data name="Main_ChannelGraphAutomation"><value>Channel band graph</value></data>
+  <data name="AllAdapters_WindowTitle"><value>All wireless adapters — MWC</value></data>
+  <data name="AllAdapters_WindowAutomation"><value>All adapters overview</value></data>
+  <data name="AllAdapters_Heading"><value>All wireless adapters</value></data>
+  <data name="AllAdapters_ScanAll"><value>↻ Scan all</value></data>
+  <data name="AllAdapters_ScanAllTooltip"><value>Scan all adapters in parallel</value></data>
+  <data name="AllAdapters_ConnectAll"><value>⚡ Connect all preferred</value></data>
+  <data name="AllAdapters_ConnectAllTooltip"><value>Auto-connect each adapter to its preferred network</value></data>
+  <data name="AllAdapters_PreferredHeader"><value>★ Preferred networks (ranked)</value></data>
+  <data name="AllAdapters_MoveUp"><value>Move up priority</value></data>
+  <data name="AllAdapters_RemovePreferred"><value>Remove from preferred list</value></data>
+  <data name="AllAdapters_AddPreferred"><value>+ Add selected to preferred</value></data>
+  <data name="AllAdapters_AutoReconnect"><value>Enable auto-reconnect</value></data>
+  <data name="Main_SelectNetworkHint"><value>Select a network</value></data>
+  <data name="Main_SelectHistoryHint"><value>Select a network to view history</value></data>
+  <data name="Main_SignalHistoryTitle"><value>{0} — Signal History</value></data>
+  <data name="Main_SignalStrength"><value>Signal {0}%</value></data>
+  <data name="AllAdapters_NetworkListAutomation"><value>{0} networks</value></data>
+  <data name="Notify_ConnectedTo"><value>Connected to {0}</value></data>
+  <data name="Notify_ConnectedComplete"><value>{0} — internet verified</value></data>
+  <data name="Notify_Disconnected"><value>Disconnected from {0}</value></data>
+  <data name="Notify_CannotConnect"><value>Cannot connect to {0}</value></data>
+  <data name="Announce_Connected"><value>Connected to {0}</value></data>
+  <data name="Announce_ConnectFailed"><value>Failed to connect to {0}</value></data>
+  <data name="Announce_SsidCopied"><value>SSID copied: {0}</value></data>
+  <data name="Quality_ResultFormat"><value>RTT: {0}  Loss: {1}  Grade: {2}</value></data>
+  <data name="Step_IpAddress"><value>Obtain IP address</value></data>
+  <data name="ScanInterval_Manual"><value>Manual only</value></data>
+  <data name="ScanInterval_10s"><value>10 sec</value></data>
+  <data name="ScanInterval_15s"><value>15 sec</value></data>
+  <data name="ScanInterval_30s"><value>30 sec</value></data>
+  <data name="ScanInterval_60s"><value>1 min</value></data>
+  <data name="ScanInterval_300s"><value>5 min</value></data>
+  <data name="Jump_ConnectDescription"><value>Connect to {0}</value></data>
+  <data name="Connect_PassphraseAutomation"><value>Passphrase input</value></data>
+  <data name="Connect_PassphraseVisibleAutomation"><value>Passphrase input (visible)</value></data>
+  <data name="CertPicker_ExpiryFormat"><value>{0} (expires in {1} days)</value></data>
+  <data name="Security_Excellent"><value>Excellent security (WPA3)</value></data>
+  <data name="Security_Good"><value>Good security (WPA2)</value></data>
+  <data name="Security_Fair"><value>Fair security</value></data>
+  <data name="Security_Weak"><value>Weak security — legacy encryption</value></data>
+  <data name="Security_Danger"><value>Danger — insecure network</value></data>
+  <data name="Detail_DfsWarning"><value>DFS Channel</value></data>
+  <data name="Detail_DfsHint"><value>This channel uses Dynamic Frequency Selection. Temporary outages may occur if radar is detected.</value></data>
+  <data name="Failover_Section"><value>Adapter Failover</value></data>
+  <data name="Failover_Desc"><value>Automatically switch to a backup adapter if this adapter loses internet connectivity.</value></data>
+  <data name="Failover_Enable"><value>Enable failover</value></data>
+  <data name="Failover_BackupAdapter"><value>Backup adapter</value></data>
+  <data name="Failover_BackupNone"><value>(None)</value></data>
+  <data name="Failover_BackupHint"><value>Select the adapter to activate when this adapter loses connectivity.</value></data>
+  <data name="Notify_FailoverActivated"><value>Failover: switched to {0}</value></data>
+  <data name="Notify_FailoverRestored"><value>Primary adapter {0} reconnected</value></data>
+  <data name="Quality_Grade_Excellent"><value>Excelente</value></data>
+  <data name="Quality_Grade_Good"><value>Bom</value></data>
+  <data name="Quality_Grade_Fair"><value>Regular</value></data>
+  <data name="Quality_Grade_Poor"><value>Ruim</value></data>
+  <data name="Quality_Grade_Unknown"><value>Medindo…</value></data>
+  <data name="Quality_Timeout"><value>Tempo esgotado</value></data>
+  <data name="Congestion_OverloadedTooltip"><value>Canal sobrecarregado ({0}% de uso)</value></data>
+  <data name="Congestion_BusyTooltip"><value>Canal ocupado ({0}% de uso)</value></data>
+  <data name="BandFilter_2_4"><value>2.4G</value></data>
+  <data name="BandFilter_5"><value>5G</value></data>
+  <data name="BandFilter_6"><value>6G</value></data>
+  <data name="Detail_Distance"><value>Distância</value></data>
+  <data name="Detail_Roaming"><value>Roaming</value></data>
+  <data name="Detail_Interference"><value>Interferência</value></data>
+  <data name="Detail_Mesh"><value>Malha</value></data>
+  <data name="Detail_PowerSave"><value>Economia de energia</value></data>
+  <data name="Detail_Vpn"><value>VPN</value></data>
+  <data name="Detail_VpnAdvice_NotNeeded"><value>Não necessário</value></data>
+  <data name="Detail_VpnAdvice_Optional"><value>Opcional</value></data>
+  <data name="Detail_VpnAdvice_Recommended"><value>Recomendado</value></data>
+  <data name="Detail_VpnAdvice_StronglyRecommended"><value>⚠ Fortemente recomendado</value></data>
+  <data name="Detail_EapStats"><value>Taxa de sucesso 802.1X</value></data>
+  <data name="Detail_EapStats_Format"><value>{0}: {1}% ({2} tentativas)</value></data>
+  <data name="Detail_Regulatory"><value>Região 6GHz</value></data>
+  <data name="Detail_Regulatory_Legal"><value>✓ Legal em {0}</value></data>
+  <data name="Detail_Regulatory_Illegal"><value>⚠ Não permitido em {0}</value></data>
+  <data name="Detail_LinkEstimate"><value>Estimativa link</value></data>
+  <data name="Detail_Mlo"><value>MLO</value></data>
+  <data name="Detail_SignalTrend"><value>Tendência sinal</value></data>
+  <data name="Menu_DiagnosticExport"><value>Exportar relatório de suporte…</value></data>
+  <data name="Status_DiagnosticExported"><value>Relatório salvo → {0}</value></data>
+  <data name="Status_Exported"><value>Exportado → {0}</value></data>
+  <data name="Advisory_EvilTwin_HighRisk" xml:space="preserve">
+    <value>Evil Twin: High Risk — multiple spoofing indicators detected</value>
+  </data>
+  <data name="Advisory_EvilTwin_Suspicious" xml:space="preserve">
+    <value>Evil Twin: Suspicious — possible rogue AP with same SSID</value>
+  </data>
+  <data name="Advisory_SEC001_Title" xml:space="preserve">
+    <value>WPA3 Transition Mode Detected</value>
+  </data>
+  <data name="Advisory_SEC002_Title" xml:space="preserve">
+    <value>Protected Management Frames Disabled</value>
+  </data>
+  <data name="Advisory_SEC003_Title" xml:space="preserve">
+    <value>WEP Is Broken</value>
+  </data>
+  <data name="Advisory_SEC004_Title" xml:space="preserve">
+    <value>WPA (TKIP) Is Deprecated</value>
+  </data>
+  <data name="Advisory_SEC005_Title" xml:space="preserve">
+    <value>Unencrypted Network</value>
+  </data>
+  <data name="Advisory_SEC006_Title" xml:space="preserve">
+    <value>FragAttacks Mitigation</value>
+  </data>
+  <data name="Advisory_SEC007_Title" xml:space="preserve">
+    <value>WPS Enabled</value>
+  </data>
+  <data name="Advisory_SEC100_Title" xml:space="preserve">
+    <value>Hardened Security Configuration</value>
+  </data>
+  <data name="Advisory_StickyClient" xml:space="preserve">
+    <value>Sticky Client: Signal too weak — consider moving closer or reconnecting</value>
+  </data>
+  <data name="Auth_Compact_OWE" xml:space="preserve">
+    <value>OWE</value>
+  </data>
+  <data name="Auth_Compact_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Auth_Compact_WEP" xml:space="preserve">
+    <value>WEP</value>
+  </data>
+  <data name="Auth_Compact_WPA" xml:space="preserve">
+    <value>WPA</value>
+  </data>
+  <data name="Auth_Compact_WPA2" xml:space="preserve">
+    <value>WPA2</value>
+  </data>
+  <data name="Auth_Compact_WPA23" xml:space="preserve">
+    <value>WPA2/3</value>
+  </data>
+  <data name="Auth_Compact_WPA2Ent" xml:space="preserve">
+    <value>WPA2 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3" xml:space="preserve">
+    <value>WPA3</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent" xml:space="preserve">
+    <value>WPA3 Ent</value>
+  </data>
+  <data name="Auth_Compact_WPA3Ent192" xml:space="preserve">
+    <value>WPA3 Ent192</value>
+  </data>
+  <data name="Band_Compact_2_4" xml:space="preserve">
+    <value>2.4G</value>
+  </data>
+  <data name="Band_Compact_5" xml:space="preserve">
+    <value>5G</value>
+  </data>
+  <data name="Band_Compact_6" xml:space="preserve">
+    <value>6G</value>
+  </data>
+  <data name="Band_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Detail_Interference_Low" xml:space="preserve">
+    <value>Low  ({0}/100)</value>
+  </data>
+  <data name="Detail_Interference_Other" xml:space="preserve">
+    <value>{0}  ({1}/100)  — {2}</value>
+  </data>
+  <data name="Detail_Mesh_6GHz" xml:space="preserve">
+    <value> · 6 GHz</value>
+  </data>
+  <data name="Detail_Mesh_Confidence" xml:space="preserve">
+    <value>  ({0})</value>
+  </data>
+  <data name="Detail_Mesh_FastTransition" xml:space="preserve">
+    <value> · 802.11r</value>
+  </data>
+  <data name="Detail_Mesh_NodeCount" xml:space="preserve">
+    <value>{0} nodes</value>
+  </data>
+  <data name="Detail_Mesh_TriBand" xml:space="preserve">
+    <value> · Tri-band</value>
+  </data>
+  <data name="Detail_PowerSave_Advanced" xml:space="preserve">
+    <value>rTWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_Legacy" xml:space="preserve">
+    <value>Legacy (DTIM/PSM)</value>
+  </data>
+  <data name="Detail_PowerSave_Standard" xml:space="preserve">
+    <value>TWT  (~{0}% battery saving)</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi6Cap" xml:space="preserve">
+    <value>TWT capable (Wi-Fi 6) — up to ~20% saving</value>
+  </data>
+  <data name="Detail_PowerSave_WiFi7Cap" xml:space="preserve">
+    <value>rTWT capable (Wi-Fi 7) — up to ~34% saving</value>
+  </data>
+  <data name="Detail_Roaming_Assisted" xml:space="preserve">
+    <value>Assisted (802.11k/v)</value>
+  </data>
+  <data name="Detail_Roaming_Fast" xml:space="preserve">
+    <value>Fast (802.11r) — ~{0}ms typical</value>
+  </data>
+  <data name="Detail_Roaming_Seamless" xml:space="preserve">
+    <value>Seamless ({0})</value>
+  </data>
+  <data name="Detail_Roaming_Standard" xml:space="preserve">
+    <value>Standard — no 802.11r/k/v detected (~{0}ms typical)</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0}h {1:D2}m</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="Status_ConnectedNoTimer" xml:space="preserve">
+    <value>→ {0}</value>
+  </data>
+  <data name="Status_ConnectedWithDuration" xml:space="preserve">
+    <value>→ {0}  ({1})</value>
+  </data>
+  <data name="Tray_NetworkItem" xml:space="preserve">
+    <value>{0}  ({1}%)</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Reason" xml:space="preserve">
+    <value>The Wi-Fi adapter on your PC is turned off.</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Steps" xml:space="preserve">
+    <value>Press the Airplane mode key on your keyboard to turn it off|Go to Windows Settings → Network → Wi-Fi and turn it on|Check in Device Manager that the Wi-Fi adapter is enabled</value>
+  </data>
+  <data name="Trouble_AdapterDisabled_Title" xml:space="preserve">
+    <value>Wi-Fi Adapter Disabled</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Reason" xml:space="preserve">
+    <value>The username or password is incorrect.</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Steps" xml:space="preserve">
+    <value>Verify your credentials with the network administrator|If a domain is required, enter it as DOMAIN\username|Ask your administrator whether the certificate has expired</value>
+  </data>
+  <data name="Trouble_BadCredentialsEnt_Title" xml:space="preserve">
+    <value>Enterprise Authentication Failed</value>
+  </data>
+  <data name="Trouble_BadCredentials_Reason" xml:space="preserve">
+    <value>The password you entered does not match the access point.</value>
+  </data>
+  <data name="Trouble_BadCredentials_Steps" xml:space="preserve">
+    <value>Double-check the password (case-sensitive)|Try the password printed on the router label or in its manual|If you recently changed the password, enter the new one</value>
+  </data>
+  <data name="Trouble_BadCredentials_Title" xml:space="preserve">
+    <value>Wrong Password</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Reason" xml:space="preserve">
+    <value>Adding a network profile requires administrator privileges.</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Steps" xml:space="preserve">
+    <value>Right-click MWC and choose Run as administrator|Or sign in with an administrator account and try again</value>
+  </data>
+  <data name="Trouble_InsufficientPrivilege_Title" xml:space="preserve">
+    <value>Administrator Privileges Required</value>
+  </data>
+  <data name="Trouble_NotInRange_Reason" xml:space="preserve">
+    <value>The selected network is not reachable from your current location.</value>
+  </data>
+  <data name="Trouble_NotInRange_Steps" xml:space="preserve">
+    <value>Move closer to the access point and try again|Check that the access point is powered on|Use the Rescan button to search for networks again</value>
+  </data>
+  <data name="Trouble_NotInRange_Title" xml:space="preserve">
+    <value>Network Not Found</value>
+  </data>
+  <data name="Trouble_Timeout_Reason" xml:space="preserve">
+    <value>The access point did not respond.</value>
+  </data>
+  <data name="Trouble_Timeout_Steps" xml:space="preserve">
+    <value>Make sure the access point (router) is powered on|Move closer to the access point|Restart the router (power off for 10 seconds, then on)|Check whether other devices can connect from the same location</value>
+  </data>
+  <data name="Trouble_Timeout_Title" xml:space="preserve">
+    <value>Connection Timed Out</value>
+  </data>
+  <data name="Trouble_Unknown_Reason" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="Trouble_Unknown_Steps" xml:space="preserve">
+    <value>Wait a moment and try again|Check the MWC log files (%LocalAppData%\MWC\logs\)|If the problem persists, report it on GitHub Issues</value>
+  </data>
+  <data name="Trouble_Unknown_Title" xml:space="preserve">
+    <value>Connection Failed</value>
+  </data>
+
+  <data name="Rec_Grade_Poor"><value>Poor</value></data>
+  <data name="Rec_Grade_Fair"><value>Fair</value></data>
+  <data name="Rec_Grade_Good"><value>Good</value></data>
+  <data name="Rec_Grade_Excellent"><value>Excellent</value></data>
+  <data name="Rec_Profile_General"><value>Balanced across all dimensions</value></data>
+  <data name="Rec_Profile_Realtime"><value>Optimised for real-time communication (VoIP/video)</value></data>
+  <data name="Rec_Profile_Secure"><value>Optimised for confidential use</value></data>
+  <data name="Rec_Profile_Throughput"><value>Optimised for bulk transfer</value></data>
+  <data name="Rec_Dim_Security"><value>Security</value></data>
+  <data name="Rec_Dim_Roaming"><value>Roaming</value></data>
+  <data name="Rec_Dim_Channel"><value>Band / Channel</value></data>
+  <data name="Rec_Dim_Signal"><value>Signal Strength</value></data>
+  <data name="Rec_Summary"><value>Overall score {0}/100 ({1}). {2}. Top factor: &quot;{3}&quot; (score {4}).</value></data>
+
+  <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
+  <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
+  <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
+  <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
+  <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
+  <data name="Detail_DistanceLabel"><value>~{0} m ({1}–{2} m)</value></data>
+
+  <data name="Phy_Gen_b"><value>Wi-Fi 1 (802.11b)</value></data>
+  <data name="Phy_Gen_a"><value>Wi-Fi 2 (802.11a)</value></data>
+  <data name="Phy_Gen_g"><value>Wi-Fi 3 (802.11g)</value></data>
+  <data name="Phy_Gen_n"><value>Wi-Fi 4 (802.11n)</value></data>
+  <data name="Phy_Gen_ac"><value>Wi-Fi 5 (802.11ac)</value></data>
+  <data name="Phy_Gen_ax"><value>Wi-Fi 6/6E (802.11ax)</value></data>
+  <data name="Phy_Gen_be"><value>Wi-Fi 7 (802.11be)</value></data>
+  <data name="Phy_Gen_bn"><value>Wi-Fi 8 (802.11bn — Preview)</value></data>
+  <data name="Phy_Gen_Unknown"><value>Unknown</value></data>
+  <data name="Phy_Short_b"><value>Wi-Fi 1</value></data>
+  <data name="Phy_Short_a"><value>Wi-Fi 2</value></data>
+  <data name="Phy_Short_g"><value>Wi-Fi 3</value></data>
+  <data name="Phy_Short_n"><value>Wi-Fi 4</value></data>
+  <data name="Phy_Short_ac"><value>Wi-Fi 5</value></data>
+  <data name="Phy_Short_ax"><value>Wi-Fi 6/6E</value></data>
+  <data name="Phy_Short_be"><value>Wi-Fi 7</value></data>
+  <data name="Phy_Short_bn"><value>Wi-Fi 8</value></data>
+  <data name="Phy_Short_Unknown"><value>?</value></data>
+
+  <data name="Cipher_None"><value>None</value></data>
+  <data name="Cipher_WEP"><value>WEP</value></data>
+  <data name="Cipher_TKIP"><value>TKIP</value></data>
+  <data name="Cipher_AES"><value>AES (CCMP)</value></data>
+  <data name="Cipher_GCMP256"><value>GCMP-256</value></data>
+
+  <data name="Interference_Factor_CoChannel"><value>{0} AP(s) on channel {1} — co-channel interference</value></data>
+  <data name="Interference_Factor_Adjacent"><value>{0} adjacent-channel AP(s) — adjacent-channel interference (2.4 GHz)</value></data>
+  <data name="Interference_Factor_Bluetooth"><value>2.4 GHz shares spectrum with Bluetooth/Zigbee — co-existence risk</value></data>
+  <data name="Interference_Rec_24GHz"><value>High interference. Consider switching to 5 GHz/6 GHz. If staying on 2.4 GHz, prefer channels 1, 6, or 11.</value></data>
+  <data name="Interference_Rec_5or6GHz"><value>Co-channel congestion detected. Consider a different channel or move to 6 GHz.</value></data>
+
+  <data name="Failure_Unknown"><value>Unknown error</value></data>
+  <data name="Failure_InvalidProfile"><value>Invalid network profile</value></data>
+  <data name="Failure_AdapterNotFound"><value>Wireless adapter not found</value></data>
+  <data name="Failure_Cancelled"><value>Cancelled</value></data>
+  <data name="Failure_ProfileRejected"><value>Profile rejected by the system</value></data>
+  <data name="Failure_OsError"><value>System error</value></data>
+
+  <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
 </root>

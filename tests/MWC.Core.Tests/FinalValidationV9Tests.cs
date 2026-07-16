@@ -31,11 +31,11 @@ public class ConnectionExecutorIntegrationV2Tests
         public Task<System.Collections.Generic.IReadOnlyList<WifiNetwork>> ScanAsync(Guid adapterId, System.Threading.CancellationToken ct = default)
             => Task.FromResult<System.Collections.Generic.IReadOnlyList<WifiNetwork>>(Array.Empty<WifiNetwork>());
 
-        public Task RegisterProfileAsync(Guid adapterId, string xml, bool overwrite, System.Threading.CancellationToken ct = default)
+        public Task<bool> RegisterProfileAsync(Guid adapterId, string xml, bool overwrite, System.Threading.CancellationToken ct = default)
         {
             RegisterCalled++;
             LastXml = xml;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task<ConnectionResult> ConnectAsync(Guid adapterId, string ssid, string profileName, TimeSpan timeout, System.Threading.CancellationToken ct = default)
@@ -49,6 +49,19 @@ public class ConnectionExecutorIntegrationV2Tests
         {
             DisconnectCalled++;
             return Task.FromResult(true);
+        }
+
+        public Task<bool> DeleteProfileAsync(Guid adapterId, string profileName, System.Threading.CancellationToken ct = default)
+            => Task.FromResult(true);
+
+        public Task<System.Collections.Generic.IReadOnlyList<string>> ListProfilesAsync(Guid adapterId, System.Threading.CancellationToken ct = default)
+            => Task.FromResult<System.Collections.Generic.IReadOnlyList<string>>(Array.Empty<string>());
+
+        public async System.Collections.Generic.IAsyncEnumerable<MWC.Core.Abstractions.WifiEvent> SubscribeEventsAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] System.Threading.CancellationToken ct = default)
+        {
+            await Task.CompletedTask.ConfigureAwait(false);
+            yield break;
         }
     }
 

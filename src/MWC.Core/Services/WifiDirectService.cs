@@ -30,7 +30,10 @@ public sealed class WifiDirectService
     private readonly IWifiDirectAdapter        _adapter;
     private readonly List<WifiDirectDevice>    _discovered = new();
     private readonly List<WifiDirectDevice>    _connected  = new();
-    private          bool                      _discovering;
+    // 単一ロックで _discovered / _connected / _discovering を保護する。
+    // OnDeviceDiscovered は adapter のバックグラウンドスレッドから呼ばれる可能性がある。
+    private readonly object                    _stateLock  = new();
+    private volatile bool                      _discovering;
 
     /// <summary>コンストラクタ。プラットフォーム実装アダプターを注入する。</summary>
     public WifiDirectService(IWifiDirectAdapter adapter)
@@ -48,16 +51,40 @@ public sealed class WifiDirectService
     /// P2P デバイス探索を開始する。
     /// 発見したデバイスは DeviceDiscovered イベントで通知。
     /// </summary>
-    /// <summary>P2P デバイス探索を開始する。発見したデバイスは DeviceDiscovered イベントで通知。</summary>
     public async Task StartDiscoveryAsync(
         WifiDirectDiscoveryOptions? options = null,
         CancellationToken ct = default)
     {
-        if (_discovering) return;
-        _discovering = true;
-        _discovered.Clear();
+        lock (_stateLock)
+        {
+            if (_discovering) return;
+            _discovering = true;
+            _discovered.Clear();
+        }
 
-already done
+        try
+        {
+            await _adapter.StartDiscoveryAsync(
+                OnDeviceDiscovered,
+                options ?? WifiDirectDiscoveryOptions.Default,
+                ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            _discovering = false;
+            throw;
+        }
+    }
+
+    /// <summary>アダプターからの発見通知を受けて重複排除のうえ公開イベントへ転送する。</summary>
+    private void OnDeviceDiscovered(WifiDirectDevice device)
+    {
+        lock (_stateLock)
+        {
+            if (_discovered.Exists(d => d.DeviceId == device.DeviceId)) return;
+            _discovered.Add(device);
+        }
+        DeviceDiscovered?.Invoke(device);
     }
 
     /// <summary>探索を停止する。</summary>
@@ -68,15 +95,14 @@ already done
         _discovering = false;
     }
 
-    /// <summary>発見済みデバイス一覧</summary>
-    public IReadOnlyList<WifiDirectDevice> DiscoveredDevices => _discovered;
+    /// <summary>発見済みデバイス一覧(スナップショット)</summary>
+    public IReadOnlyList<WifiDirectDevice> DiscoveredDevices
+    {
+        get { lock (_stateLock) { return _discovered.ToList(); } }
+    }
 
     // ── Connection ────────────────────────────────────────────────
 
-    /// <summary>
-    /// 指定デバイスと P2P 接続する。
-    /// 内部で GO (Group Owner) ネゴシエーションを行う。
-    /// </summary>
     /// <summary>指定デバイスと Wi-Fi Direct P2P 接続する。GO ネゴシエーションを自動実行。</summary>
     public async Task<WifiDirectConnectionResult> ConnectAsync(
         WifiDirectDevice device,
@@ -88,7 +114,7 @@ already done
 
         if (result.Success)
         {
-            _connected.Add(device with { State = WifiDirectDeviceState.Connected });
+            lock (_stateLock) { _connected.Add(device with { State = WifiDirectDeviceState.Connected }); }
             ConnectionStateChanged?.Invoke(device);
         }
         return result;
@@ -98,20 +124,19 @@ already done
     public async Task DisconnectAsync(WifiDirectDevice device, CancellationToken ct = default)
     {
         await _adapter.DisconnectAsync(device, ct).ConfigureAwait(false);
-        _connected.RemoveAll(d => d.DeviceId == device.DeviceId);
+        lock (_stateLock) { _connected.RemoveAll(d => d.DeviceId == device.DeviceId); }
         ConnectionStateChanged?.Invoke(device with { State = WifiDirectDeviceState.Disconnected });
     }
 
-    /// <summary>現在接続中のデバイス一覧</summary>
-    public IReadOnlyList<WifiDirectDevice> ConnectedDevices => _connected;
+    /// <summary>現在接続中のデバイス一覧(スナップショット)</summary>
+    public IReadOnlyList<WifiDirectDevice> ConnectedDevices
+    {
+        get { lock (_stateLock) { return _connected.ToList(); } }
+    }
 
     // ── Group Owner Mode (ソフト AP) ─────────────────────────────
 
-    /// <summary>
-    /// 本デバイスを Group Owner として動作させ、他デバイスの接続を受け付ける。
-    /// スマートフォン等との直接ファイル共有に使用。
-    /// </summary>
-    /// <summary>本デバイスを Group Owner として動作させ、他デバイスの接続を受け付ける。</summary>
+    /// <summary>本デバイスを Group Owner として動作させ、他デバイスの接続を受け付ける。スマートフォン等との直接ファイル共有に使用。</summary>
     public async Task<WifiDirectGroupOwnerResult> StartGroupOwnerAsync(
         string? groupSsid = null,
         string? passphrase = null,

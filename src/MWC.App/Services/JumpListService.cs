@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Windows.Shell;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
@@ -51,9 +52,9 @@ public sealed class JumpListService
                 jl.JumpItems.Add(new JumpTask
                 {
                     Title           = ssid,
-                    Description     = $"{ssid} に接続",
+                    Description     = MWC.App.Resources.L.JumpConnectDescription(ssid),
                     ApplicationPath = GetCliPath(),
-                    Arguments       = $"connect \"{ssid}\"",
+                    Arguments       = $"connect {EscapeArg(ssid)}",
                     CustomCategory  = MWC.App.Resources.L.Get("Jump_RecentCategory")
                 });
             }
@@ -82,5 +83,30 @@ public sealed class JumpListService
     {
         var dir = AppContext.BaseDirectory;
         return System.IO.Path.Combine(dir, "mwc.exe");
+    }
+
+    // Windows C-runtime quoting rules (per MSDN "Parsing C Command-Line Arguments"):
+    // backslashes are literal unless they precede a quote; quotes inside must be \"-escaped.
+    private static string EscapeArg(string s)
+    {
+        var sb = new System.Text.StringBuilder("\"");
+        int pending = 0;
+        foreach (var c in s)
+        {
+            if (c == '\\') { pending++; continue; }
+            if (c == '"')
+            {
+                sb.Append('\\', pending * 2 + 1);
+                sb.Append('"');
+                pending = 0;
+                continue;
+            }
+            sb.Append('\\', pending);
+            sb.Append(c);
+            pending = 0;
+        }
+        sb.Append('\\', pending * 2); // trailing backslashes before closing quote
+        sb.Append('"');
+        return sb.ToString();
     }
 }

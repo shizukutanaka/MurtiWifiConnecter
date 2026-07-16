@@ -1,11 +1,19 @@
 using System;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using MWC.App.Services;
+using MWC.Core.Abstractions;
 using MWC.Core.Models;
+using MWC.Core.Profile;
 using MWC.Core.Services;
+using NSubstitute;
 using Xunit;
 
 namespace MWC.Core.Tests;
@@ -23,9 +31,9 @@ public class NetworkQualityRegressionTests
         // success=0 でも 999を返し、クラッシュしない
         var result = new NetworkQualityResult(999, 999, 999, 100,
             QualityGrade.Poor, DateTimeOffset.UtcNow);
-        result.LatencyLabel.Should().Contain("タイムアウト");
+        result.LatencyLabel.Should().Contain("Timeout");
         result.PacketLossPct.Should().Be(100);
-        result.GradeLabel.Should().Be("不良");
+        result.GradeLabel.Should().Be("Poor");
     }
 
     [Fact]
@@ -41,10 +49,10 @@ public class NetworkQualityRegressionTests
     }
 
     [Theory]
-    [InlineData(10,  0,  "優良")]
-    [InlineData(40,  1,  "良好")]
-    [InlineData(80,  4,  "普通")]
-    [InlineData(999, 100,"不良")]
+    [InlineData(10,  0,  "Excellent")]
+    [InlineData(40,  1,  "Good")]
+    [InlineData(80,  4,  "Fair")]
+    [InlineData(999, 100,"Poor")]
     public void GradeLabel_MatchesLatencyAndLoss(int ms, double loss, string expectedGrade)
     {
         QualityGrade grade = ms >= 999 || loss >= 20 ? QualityGrade.Poor :
@@ -141,19 +149,62 @@ public class NetworkHistoryAdvancedTests
         svc.GetRecentSsids().Should().BeEmpty();
     }
 
+    [Fact]
+    public void GetStats_ReturnsCorrectAggregates()
+    {
+        var svc = new NetworkHistoryService();
+        // "Alpha": 3 successes, 1 failure
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", true);
+        svc.RecordConnection("Alpha", false);
+        // "Beta": 1 success, 1 failure
+        svc.RecordConnection("Beta", true);
+        svc.RecordConnection("Beta", false);
+
+        var stats = svc.GetStats(30);
+
+        stats.TotalConnects.Should().Be(4,   "Alpha×3 + Beta×1");
+        stats.TotalFails.Should().Be(2,      "Alpha×1 + Beta×1");
+        stats.UniqueNetworks.Should().Be(2);
+        stats.TopSsid.Should().Be("Alpha",   "most frequent");
+        stats.SuccessRate.Should().BeApproximately(4.0 / 6.0, 0.001);
+    }
+
+    [Fact]
+    public void GetStats_ZeroHistory_SuccessRateIsOne()
+    {
+        var svc   = new NetworkHistoryService();
+        var stats = svc.GetStats(30);
+        stats.TotalConnects.Should().Be(0);
+        stats.TotalFails.Should().Be(0);
+        stats.SuccessRate.Should().Be(1.0, "no data → 100% (not 0/0)");
+    }
+
     [Theory]
-    [InlineData(0,    "たった今")]
-    [InlineData(-2,   "2分前")]
-    [InlineData(-90,  "1時間前")]
-    [InlineData(-168, "7時間前")]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-30)]
+    public void GetStats_NonPositiveDays_Throws(int days)
+    {
+        var svc = new NetworkHistoryService();
+        svc.Invoking(s => s.GetStats(days))
+           .Should().Throw<ArgumentOutOfRangeException>()
+           .WithParameterName("days");
+    }
+
+    [Theory]
+    [InlineData(0,    "just now")]
+    [InlineData(-2,   "2m ago")]
+    [InlineData(-90,  "1h ago")]
+    [InlineData(-168, "7h ago")]
     public void LastConnectedLabel_TimeLabels(int minutesAgo, string expected)
     {
         var at = minutesAgo == -90 ? DateTimeOffset.UtcNow.AddHours(-1.5)
                : minutesAgo == -168 ? DateTimeOffset.UtcNow.AddHours(-7)
                : DateTimeOffset.UtcNow.AddMinutes(minutesAgo);
         var e = new ConnectionHistoryEntry("X", at, 1, 0);
-        // おおよその一致を確認(秒の誤差を許容)
-        e.LastConnectedLabel.Should().NotBeNullOrWhiteSpace();
+        e.LastConnectedLabel.Should().Be(expected);
     }
 }
 
@@ -231,5 +282,661 @@ public class AppUpdateServiceTests
         var lv = Version.Parse(latest);
         bool hasUpdate = lv > cv;
         hasUpdate.Should().Be(shouldUpdate);
+    }
+
+    // ── NetworkHistoryService 並行アクセステスト ─────────────────────
+
+    [Fact]
+    public async Task NetworkHistory_ConcurrentRecordAndRead_NoCrash()
+    {
+        // 複数スレッドから同時に RecordConnection / GetRecent / GetStats を呼び出し、
+        // デッドロック・IndexOutOfRange・InvalidOperationException が発生しないことを確認。
+        var svc = new NetworkHistoryService();
+        const int writers = 4;
+        const int readers = 4;
+        const int ops     = 50;
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var writerTasks = Enumerable.Range(0, writers).Select(w => Task.Run(() =>
+        {
+            for (int i = 0; i < ops && !cts.IsCancellationRequested; i++)
+                svc.RecordConnection($"Net{w}_{i % 5}", i % 3 == 0);
+        }, cts.Token));
+
+        var readerTasks = Enumerable.Range(0, readers).Select(_ => Task.Run(() =>
+        {
+            for (int i = 0; i < ops && !cts.IsCancellationRequested; i++)
+            {
+                _ = svc.GetRecent(10);
+                _ = svc.GetRecentSsids(5);
+                _ = svc.GetStats(30);
+                _ = svc.GetFrequentSsids(5);
+                _ = svc.Count;
+            }
+        }, cts.Token));
+
+        await Task.WhenAll(writerTasks.Concat(readerTasks));
+
+        // 少なくとも何件か記録されていること
+        svc.Count.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task NetworkHistory_ConcurrentForgetAndRecord_NoCrash()
+    {
+        var svc = new NetworkHistoryService();
+        for (int i = 0; i < 20; i++) svc.RecordConnection($"Net{i}", true);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var t1 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) svc.RecordConnection($"Net{i % 10}", true); }, cts.Token);
+        var t2 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) svc.Forget($"Net{i % 10}"); }, cts.Token);
+        var t3 = Task.Run(() => { for (int i = 0; i < 30 && !cts.IsCancellationRequested; i++) _ = svc.GetAll(); }, cts.Token);
+
+        await Task.WhenAll(t1, t2, t3);
+        // クラッシュしなければ OK
+    }
+}
+
+/// <summary>
+/// ConnectionExecutor の shouldRegister 最適化を回帰防止。
+/// PSK系 + パスフレーズ空 → RegisterProfileAsync をスキップ(既存保存プロファイル再利用)。
+/// この保証が崩れると AutoReconnect / AdapterFailover / トレイ接続が
+/// 保存されたパスワードを空文字列で上書きする。
+/// </summary>
+public class ConnectionExecutorShouldRegisterTests
+{
+    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        wifi.RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+        wifi.ConnectAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ConnectionResult.Ok("Net", true, false)));
+
+        var executor = new ConnectionExecutor(
+            wifi, new NetworkHistoryService(),
+            NullLogger<ConnectionExecutor>.Instance);
+        return (executor, wifi);
+    }
+
+    /// <summary>
+    /// PSK系でパスフレーズが空 → 登録スキップ。
+    /// PSK系でパスフレーズあり → 登録実行。
+    /// Open/OWE はパスフレーズ不要だが初回プロファイル登録は行う。
+    /// </summary>
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK,        "",        false)]
+    [InlineData(AuthMethod.WPAPSK,         "",        false)]
+    [InlineData(AuthMethod.WPA3SAE,        "",        false)]
+    [InlineData(AuthMethod.WPA3Transition, "",        false)]
+    [InlineData(AuthMethod.WEP,            "",        false)]
+    [InlineData(AuthMethod.WPA2PSK,        "pass123", true)]
+    [InlineData(AuthMethod.Open,           "",        true)]
+    [InlineData(AuthMethod.OWE,            "",        true)]
+    public async Task RegisterProfileAsync_CalledOrSkipped(
+        AuthMethod auth, string passphrase, bool expectRegistration)
+    {
+        var (executor, wifi) = Build();
+
+        await executor.ConnectAsync(Guid.NewGuid(), "Net", auth, passphrase);
+
+        if (expectRegistration)
+            await wifi.Received(1).RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), true, Arg.Any<CancellationToken>());
+        else
+            await wifi.DidNotReceive().RegisterProfileAsync(
+                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task EmptyPassphrase_PSK_ConnectIsStillInvoked()
+    {
+        // プロファイル登録スキップ後も実接続呼び出しは行われること
+        var (executor, wifi) = Build();
+        var adapterId = Guid.NewGuid();
+
+        var result = await executor.ConnectAsync(adapterId, "Net", AuthMethod.WPA2PSK, "");
+
+        await wifi.Received(1).ConnectAsync(
+            adapterId, "Net", "Net", Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>());
+        result.Success.Should().BeTrue();
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  ConnectionExecutor ユーザー切断抑制テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// DisconnectAsync がユーザー切断タイムスタンプを記録し、
+/// WasRecentlyDisconnectedByUser が正しい true/false を返すことを確認。
+/// これが壊れると AutoReconnect がユーザーの切断意図を無視して再接続する。
+/// </summary>
+public class ConnectionExecutorDisconnectInhibitTests
+{
+    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        wifi.DisconnectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+        return (new ConnectionExecutor(
+            wifi, new NetworkHistoryService(),
+            NullLogger<ConnectionExecutor>.Instance), wifi);
+    }
+
+    [Fact]
+    public async Task AfterDisconnect_WasRecentlyDisconnectedByUser_ReturnsTrue()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        await executor.DisconnectAsync(id);
+
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.FromSeconds(15))
+            .Should().BeTrue("timestamp was just recorded");
+    }
+
+    [Fact]
+    public void WithoutDisconnect_WasRecentlyDisconnectedByUser_ReturnsFalse()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.FromSeconds(15))
+            .Should().BeFalse("no disconnect was recorded for this adapter");
+    }
+
+    [Fact]
+    public async Task DifferentAdapter_NotInhibited()
+    {
+        var (executor, _) = Build();
+        var idA = Guid.NewGuid();
+        var idB = Guid.NewGuid();
+
+        await executor.DisconnectAsync(idA);
+
+        executor.WasRecentlyDisconnectedByUser(idB, TimeSpan.FromSeconds(15))
+            .Should().BeFalse("only adapter A was disconnected");
+    }
+
+    [Fact]
+    public async Task ZeroWindow_AlwaysReturnsFalse()
+    {
+        var (executor, _) = Build();
+        var id = Guid.NewGuid();
+
+        await executor.DisconnectAsync(id);
+
+        // TimeSpan.Zero window: only exact timestamp match passes (effectively never)
+        executor.WasRecentlyDisconnectedByUser(id, TimeSpan.Zero)
+            .Should().BeFalse("zero-length window closes immediately");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  IWifiService.GetAdaptersAsync ConnectedSsid 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// AdapterFailoverService は IWifiService.GetAdaptersAsync() が返す WifiAdapter.ConnectedSsid
+/// を読んで接続→切断の遷移を検出する。ConnectedSsid が常に null だとフェイルオーバー機能は
+/// 完全に無効になる (条件 wasConnected = false のままでトリガーしない)。
+///
+/// 修正: WindowsWifiService.GetAdaptersAsync() で ConnectedSsid = GetConnectedSsid(i.Id)
+/// を設定するよう変更。このテストは IWifiService 実装がその契約を守るかを確認する。
+/// </summary>
+public class IWifiServiceGetAdaptersConnectedSsidTests
+{
+    [Fact]
+    public async Task GetAdapters_ConnectedAdapter_HasNonNullConnectedSsid()
+    {
+        // Before fix: WindowsWifiService.GetAdaptersAsync omitted ConnectedSsid,
+        // so every adapter reported null — AdapterFailoverService could never detect
+        // wasConnected→disconnected transitions.
+        var wifi = Substitute.For<IWifiService>();
+        var id   = Guid.NewGuid();
+        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
+            .Returns(new System.Collections.Generic.List<WifiAdapter>
+            {
+                new() { Id = id, Name = "Wi-Fi", Description = "Test",
+                        State = AdapterState.Connected, ConnectedSsid = "HomeNet" }
+            });
+
+        var adapters = await wifi.GetAdaptersAsync();
+
+        adapters[0].ConnectedSsid.Should().Be("HomeNet",
+            "a Connected-state adapter must report the SSID it is connected to; " +
+            "null here silently disables AdapterFailoverService");
+    }
+
+    [Fact]
+    public async Task GetAdapters_DisconnectedAdapter_ConnectedSsidIsNull()
+    {
+        var wifi = Substitute.For<IWifiService>();
+        var id   = Guid.NewGuid();
+        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
+            .Returns(new System.Collections.Generic.List<WifiAdapter>
+            {
+                new() { Id = id, Name = "Wi-Fi 2", Description = "Test",
+                        State = AdapterState.Disconnected, ConnectedSsid = null }
+            });
+
+        var adapters = await wifi.GetAdaptersAsync();
+
+        adapters[0].ConnectedSsid.Should().BeNull(
+            "a Disconnected adapter correctly reports null ConnectedSsid");
+    }
+
+    [Fact]
+    public async Task FakeWifiService_GetAdapters_ConnectedAdapterHasSsid()
+    {
+        // Ensure FakeWifiService (used throughout tests) also satisfies the contract.
+        var svc      = new MWC.Core.Tests.Fakes.FakeWifiService();
+        var adapters = await svc.GetAdaptersAsync();
+        var connected = adapters.First(a => a.State == AdapterState.Connected);
+
+        connected.ConnectedSsid.Should().NotBeNull(
+            "FakeWifiService must model the ConnectedSsid contract; " +
+            "tests that rely on fake data are invalid if this is null");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  ProfileXmlBuilder EAP-TLS 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// EAP-TLS で ServerNames が空配列の場合、空文字列の要素を生成し
+/// XML インジェクションや null 参照例外を起こさないことを確認する。
+/// (PEAP / EAP-TTLS には既にガードがあったが EAP-TLS のみ欠けていた)
+/// </summary>
+public class ProfileXmlBuilderEapTlsRegressionTests
+{
+    private static readonly XNamespace EtNs =
+        "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+
+    [Fact]
+    public void EapTls_EmptyServerNames_ProducesEmptyElementNotException()
+    {
+        var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
+        {
+            Ssid        = "Corp",
+            Auth        = AuthMethod.WPA2Enterprise,
+            EapType     = EapType.EAP_TLS,
+            ServerNames = Array.Empty<string>(),
+        });
+
+        var doc = XDocument.Parse(xmlStr);
+        var serverNames = doc.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        serverNames.Should().NotBeNull("ServerNames element must always be present");
+        serverNames!.Value.Should().BeEmpty("empty array → empty string, not null or semicolons");
+    }
+
+    [Fact]
+    public void EapTls_WithServerNames_JoinedBySemicolon()
+    {
+        var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
+        {
+            Ssid        = "Corp",
+            Auth        = AuthMethod.WPA2Enterprise,
+            EapType     = EapType.EAP_TLS,
+            ServerNames = new[] { "radius.example.com", "backup.example.com" },
+        });
+
+        var doc = XDocument.Parse(xmlStr);
+        var serverNames = doc.Descendants(EtNs + "ServerNames").FirstOrDefault();
+        serverNames.Should().NotBeNull();
+        serverNames!.Value.Should().Be("radius.example.com;backup.example.com");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  PiiMask 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// PiiMask.Ssid は「先頭 2 文字残し + 残りをアスタリスク(最大6)」の契約を満たすこと。
+/// 以前は length ≤ 2 のケースで ssid[0] のみ返し、2 文字目を誤って隠していた。
+/// </summary>
+public class PiiMaskSsidTests
+{
+    [Theory]
+    [InlineData(null,          "(empty)")]
+    [InlineData("",            "(empty)")]
+    [InlineData("A",           "A*")]        // 1 char: show it, always append 1 star
+    [InlineData("AB",          "AB*")]       // 2 chars: keep both (was "A*" — bug fixed)
+    [InlineData("ABC",         "AB*")]       // 3 chars: keep 2, mask 1
+    [InlineData("MyWiFi",     "My****")]    // 6 chars: keep 2, mask 4
+    [InlineData("HomeNetwork", "Ho******")] // 11 chars: keep 2, mask 6 (cap)
+    [InlineData("XY",          "XY*")]      // regression: must NOT be "X*"
+    public void Ssid_MasksCorrectly(string? input, string expected)
+        => PiiMask.Ssid(input).Should().Be(expected);
+
+    [Fact]
+    public void Ssid_LongSsid_MasksAtMostSixChars()
+    {
+        var result = PiiMask.Ssid("ABCDEFGHIJKLMNOP");  // 16 chars
+        result.Should().StartWith("AB");
+        result.Should().EndWith("******");
+        result.Length.Should().Be(8, "2 kept + 6 stars cap");
+    }
+
+    // ── CWE-117: ログインジェクション防止 ───────────────────────────────
+    // 802.11 SSID は任意オクテット (CR/LF 含む) を取りうる。攻撃者が制御文字入り
+    // SSID をブロードキャストしても、マスク結果に制御文字が残ってはならない
+    // (プレーンテキストログへ出力されると改行注入でログ偽造される)。
+    [Theory]
+    [InlineData("\r\nFAKE 2099-01-01 [ERR] forged")]  // CRLF 注入
+    [InlineData("\nadmin")]                            // LF
+    [InlineData("\roverwrite")]                        // CR (端末上書き)
+    [InlineData("\t\ttabbed")]                         // TAB
+    [InlineData("\u0007\u001bbell-esc")]               // BEL / ESC
+    public void Ssid_NeutralizesControlChars_PreventsLogInjection(string input)
+    {
+        var masked = PiiMask.Ssid(input);
+        masked.Any(char.IsControl).Should().BeFalse(
+            "masked SSID must never carry a control character into a log line");
+        masked.Should().NotContainAny("\r", "\n", "\t");
+    }
+
+    [Theory]
+    [InlineData("日本語ネット", "日本")]   // 非ラテン (BMP) は保持
+    [InlineData("Café", "Ca")]             // アクセント付きは制御文字ではない
+    public void Ssid_PreservesVisibleNonControlChars(string input, string expectedPrefix)
+        => PiiMask.Ssid(input).Should().StartWith(expectedPrefix);
+}
+
+// ═══════════════════════════════════════════════
+//  CertificateStoreService ワイルドカード回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// MatchesHostname の RFC 6125 §6.4.3 準拠を回帰防止する。
+/// *.example.com は foo.example.com に一致するが、
+/// deep.sub.example.com (多段サブドメイン) には一致してはならない。
+///
+/// ValidateRadiusCert を通じて検証:
+///   - 一致する場合 → 証明書チェーン検証に進む (自己署名のため Summary ≠ "Hostname mismatch")
+///   - 一致しない場合 → 早期リターン (Summary == "Hostname mismatch")
+/// </summary>
+public class WildcardHostnameRegressionTests
+{
+    private static byte[] MakeWildcardCert(string cn)
+    {
+        using var rsa = RSA.Create(2048);
+        var req = new CertificateRequest(
+            $"CN={cn}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using var cert = req.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(30));
+        return cert.RawData;
+    }
+
+    [Fact]
+    public void Wildcard_SingleLevel_Matches()
+    {
+        // *.example.com should match foo.example.com
+        var der  = MakeWildcardCert("*.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "foo.example.com");
+        // Self-signed cert fails chain but NOT due to hostname mismatch
+        res.Summary.Should().NotBe("Hostname mismatch",
+            "*.example.com must match the single-label foo.example.com");
+    }
+
+    [Fact]
+    public void Wildcard_MultiLevel_DoesNotMatch()
+    {
+        // *.example.com must NOT match deep.sub.example.com (RFC 6125 §6.4.3)
+        var der  = MakeWildcardCert("*.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "deep.sub.example.com");
+        res.Summary.Should().Be("Hostname mismatch",
+            "*.example.com must not match the multi-label deep.sub.example.com");
+        res.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExactMatch_Works()
+    {
+        var der  = MakeWildcardCert("radius.example.com");
+        var svc  = new CertificateStoreService();
+        var res  = svc.ValidateRadiusCert(der, "radius.example.com");
+        res.Summary.Should().NotBe("Hostname mismatch",
+            "exact CN match must not return hostname mismatch");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  JumpListService.EscapeArg 回帰テスト
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// JumpListService.EscapeArg は Windows C-runtime quoting rules (MSDN "Parsing C
+/// Command-Line Arguments") に従い SSID を安全にシェル引数化する。
+/// 以前は $"connect \"{ssid}\"" で直接埋め込んでいたため、ダブルクォートを
+/// 含む SSID で引数インジェクションが可能だった。修正後はバックスラッシュ
+/// エスケープを適用し、末尾バックスラッシュの二重化も正しく行う。
+/// </summary>
+public class JumpListEscapeArgTests
+{
+    private static string Escape(string ssid)
+    {
+        var method = typeof(JumpListService).GetMethod(
+            "EscapeArg", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return (string)method.Invoke(null, [ssid])!;
+    }
+
+    [Fact]
+    public void SimpleSsid_IsWrappedInDoubleQuotes()
+        => Escape("HomeWifi").Should().Be("\"HomeWifi\"");
+
+    [Fact]
+    public void EmptySsid_ReturnsEmptyQuotedPair()
+        => Escape("").Should().Be("\"\"");
+
+    [Fact]
+    public void SsidWithSpace_SpacePreservedInsideQuotes()
+        => Escape("My WiFi").Should().Be("\"My WiFi\"");
+
+    [Fact]
+    public void SsidWithDoubleQuote_QuoteIsBackslashEscaped()
+    {
+        // SSID: foo"bar  →  "foo\"bar"
+        Escape("foo\"bar").Should().Be("\"foo\\\"bar\"");
+    }
+
+    [Fact]
+    public void SsidWithTrailingBackslash_BackslashIsDoubled()
+    {
+        // SSID: foo\  →  "foo\\"
+        // Without doubling, "foo\" would be parsed as "foo" + leftover " (injection)
+        Escape("foo\\").Should().Be("\"foo\\\\\"");
+    }
+
+    [Fact]
+    public void SsidWithBackslashBeforeQuote_BothEscaped()
+    {
+        // SSID: foo\"bar  →  "foo\\\"bar"
+        // The backslash before a quote must itself be doubled, then the quote escaped
+        Escape("foo\\\"bar").Should().Be("\"foo\\\\\\\"bar\"");
+    }
+
+    [Fact]
+    public void SsidWithMultipleTrailingBackslashes_AllDoubled()
+    {
+        // SSID: foo\\  (two trailing backslashes) →  "foo\\\\"
+        Escape("foo\\\\").Should().Be("\"foo\\\\\\\\\"");
+    }
+
+    [Fact]
+    public void InjectionAttempt_DoubleQuoteInSsid_CannotBreakOutOfToken()
+    {
+        // Old code: $"connect \"{ssid}\""
+        // With ssid = evil" --inject, old result: connect "evil" --inject"
+        //   Windows C-runtime parses this as TWO tokens → injection succeeds.
+        // New code: connect "evil\" --inject"
+        //   Windows C-runtime parses as ONE token: evil" --inject → injection prevented.
+        var maliciousSsid = "evil\" --inject";
+        var escaped       = Escape(maliciousSsid);
+
+        // Must start and end with the outer delimiter quotes
+        escaped.Should().StartWith("\"");
+        escaped.Should().EndWith("\"");
+        // The embedded double-quote must be preceded by a backslash
+        escaped.Should().Contain("\\\"", "double quote inside an argument must be escaped");
+        // Old naive quoting is what we're guarding against
+        var insecureOldResult = $"\"{maliciousSsid}\"";
+        escaped.Should().NotBe(insecureOldResult,
+            "naive quoting without escaping is vulnerable to argument injection");
+    }
+}
+
+/// <summary>
+/// L.GetTroubleshootingAdvice が WPA3Enterprise192 を Enterprise として扱うことを保証する。
+/// 回帰防止: auth ガードに WPA3Enterprise192 が含まれず消費者向け「Wrong Password」を
+/// 返してしまうバグの再発を防ぐ。
+/// </summary>
+public class TroubleshootingAdviceEnterpriseRegressionTests
+{
+    [Theory]
+    [InlineData(AuthMethod.WPA2Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise)]
+    [InlineData(AuthMethod.WPA3Enterprise192)]
+    public void BadCredentials_EnterpriseAuth_ReturnsEnterpriseTitle(AuthMethod auth)
+    {
+        var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
+            ConnectionFailure.BadCredentials, auth);
+
+        advice.Title.Should().Be("Enterprise Authentication Failed",
+            because: $"{auth} must yield enterprise guidance, not consumer 'Wrong Password'");
+        advice.Icon.Should().Be("🏢");
+    }
+
+    [Fact]
+    public void BadCredentials_PersonalAuth_ReturnsWrongPasswordTitle()
+    {
+        var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
+            ConnectionFailure.BadCredentials, AuthMethod.WPA3SAE);
+
+        advice.Title.Should().Be("Wrong Password");
+        advice.Icon.Should().Be("🔑");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  NetworkQualityService.GetCached — TTL 回帰
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// GetCached が 5 分以上古い測定値を返さないことを保証する。
+/// 回帰防止: TTL なし実装では古い品質スコアが UI に表示され続けた。
+/// </summary>
+public class NetworkQualityServiceCacheTests
+{
+    [Fact]
+    public void GetCached_ReturnsNull_WhenNotYetMeasured()
+    {
+        var svc = new NetworkQualityService();
+        svc.GetCached("8.8.8.8").Should().BeNull();
+    }
+
+    [Fact]
+    public void GetCached_ReturnsFreshResult_WhenWithinTtl()
+    {
+        // MeasuredAt = just now → must be returned
+        var fresh = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow);
+        var svc = new NetworkQualityService();
+        // inject via the internal cache through reflection so we don't need network I/O
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = fresh;
+
+        svc.GetCached("8.8.8.8").Should().NotBeNull();
+    }
+
+    [Fact]
+    public void GetCached_ReturnsNull_WhenResultIsOlderThan5Minutes()
+    {
+        // MeasuredAt = 6 minutes ago → TTL expired
+        var stale = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow.AddMinutes(-6));
+        var svc = new NetworkQualityService();
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = stale;
+
+        svc.GetCached("8.8.8.8").Should().BeNull(
+            because: "a 6-minute-old measurement exceeds the 5-minute TTL");
+    }
+
+    [Fact]
+    public void GetCached_ReturnsCachedResult_JustBeforeTtlExpiry()
+    {
+        // MeasuredAt = 4 min 59 sec ago → still within TTL
+        var nearExpiry = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
+            DateTimeOffset.UtcNow.AddSeconds(-299));
+        var svc = new NetworkQualityService();
+        var cacheField = typeof(NetworkQualityService)
+            .GetField("_cache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var dict = (System.Collections.Concurrent.ConcurrentDictionary<string, NetworkQualityResult>)cacheField.GetValue(svc)!;
+        dict["8.8.8.8"] = nearExpiry;
+
+        svc.GetCached("8.8.8.8").Should().NotBeNull(
+            because: "299 seconds is within the 300-second TTL");
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  AccessibilityAuditService.ParseHex — 入力バリデーション回帰
+// ═══════════════════════════════════════════════
+
+/// <summary>
+/// CalcContrast に無効なカラー文字列を渡したとき明確な ArgumentException が
+/// 投げられることを保証する。
+/// 回帰防止: バリデーション前は ArgumentOutOfRangeException / FormatException など
+/// 不明瞭な例外が発生し、呼び出し元がエラー原因を特定できなかった。
+/// </summary>
+public class AccessibilityAuditHexValidationTests
+{
+    private readonly AccessibilityAuditService _svc = new();
+
+    [Theory]
+    [InlineData("")]           // 空文字
+    [InlineData("#")]          // # のみ
+    [InlineData("FFFF")]       // 4 桁 (CSS では無効)
+    [InlineData("FFFFF")]      // 5 桁
+    [InlineData("FFFFFFFFF")]  // 9 桁
+    public void CalcContrast_ThrowsArgumentException_ForInvalidLength(string bad)
+    {
+        var act = () => _svc.CalcContrast(bad, "#FFFFFF");
+        act.Should().Throw<ArgumentException>(
+            because: $"'{bad}' is not a valid 3- or 6-digit hex colour");
+    }
+
+    [Theory]
+    [InlineData("#FFF",    "#000")]    // 3 桁短縮形 → 展開
+    [InlineData("FFFFFF",  "000000")] // # なし 6 桁
+    [InlineData("#FFFFFF", "#000000")]
+    [InlineData("#FFFFFFAA", "#000000")] // 8 桁 CSS → 先頭 6 桁使用
+    public void CalcContrast_AcceptsValidHex(string fg, string bg)
+    {
+        var act = () => _svc.CalcContrast(fg, bg);
+        act.Should().NotThrow();
+        _svc.CalcContrast(fg, bg).Should().BeApproximately(21.0, precision: 0.1);
+    }
+
+    [Fact]
+    public void EvaluateContrast_WhiteOnBlack_IsAaaLevel()
+    {
+        var r = _svc.EvaluateContrast("#FFFFFF", "#000000");
+        r.Level.Should().Be(WcagLevel.AAA);
+        r.Ratio.Should().BeApproximately(21.0, precision: 0.1);
     }
 }

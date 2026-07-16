@@ -50,10 +50,10 @@ public class WifiProfileValidatorTests
     [Fact]
     public void ValidateSsid_MultibyteSsid_ChecksByBytes()
     {
-        // "日本語" = 9 bytes UTF-8 × 3 = 27 bytes — OK
+        // "日本語ネットワーク" = 9 chars × 3 bytes UTF-8 = 27 bytes — OK
         WifiProfileValidator.IsValidSsid("日本語ネットワーク").Should().BeTrue();
-        // 11文字 × 3 = 33 bytes — NG
-        WifiProfileValidator.IsValidSsid("日本語ネットワークXXX").Should().BeFalse();
+        // "日本語ネットワーク日本" = 11 chars × 3 bytes = 33 bytes > 32 — NG
+        WifiProfileValidator.IsValidSsid("日本語ネットワーク日本").Should().BeFalse();
     }
 
     // ── Passphrase 検証 ────────────────────────────────────
@@ -183,8 +183,8 @@ public class ConnectionExecutorConcurrencyTests
             => Task.FromResult<System.Collections.Generic.IReadOnlyList<WifiNetwork>>(
                 Array.Empty<WifiNetwork>());
 
-        public Task RegisterProfileAsync(Guid id, string xml, bool ow, CancellationToken ct = default)
-            => Task.CompletedTask;
+        public Task<bool> RegisterProfileAsync(Guid id, string xml, bool ow, CancellationToken ct = default)
+            => Task.FromResult(true);
 
         public async Task<ConnectionResult> ConnectAsync(
             Guid id, string ssid, string profile, TimeSpan timeout, CancellationToken ct = default)
@@ -196,13 +196,26 @@ public class ConnectionExecutorConcurrencyTests
 
         public Task<bool> DisconnectAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult(true);
+
+        public Task<bool> DeleteProfileAsync(Guid id, string profileName, CancellationToken ct = default)
+            => Task.FromResult(true);
+
+        public Task<System.Collections.Generic.IReadOnlyList<string>> ListProfilesAsync(Guid id, CancellationToken ct = default)
+            => Task.FromResult<System.Collections.Generic.IReadOnlyList<string>>(Array.Empty<string>());
+
+        public async System.Collections.Generic.IAsyncEnumerable<MWC.Core.Abstractions.WifiEvent> SubscribeEventsAsync(
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        {
+            await System.Threading.Tasks.Task.CompletedTask;
+            yield break;
+        }
     }
 
     [Fact]
     public async Task ConnectAsync_ConcurrentSameAdapter_IsSerializedNotParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -227,7 +240,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_DifferentAdapters_CanRunInParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -245,5 +258,24 @@ public class ConnectionExecutorConcurrencyTests
         t1.Result.Should().NotBeNull();
         t2.Result.Should().NotBeNull();
         wifi.ConnectCount.Should().BeGreaterOrEqualTo(2);
+    }
+
+    // Regression: auto-reconnect passes passphrase="" — must succeed via existing profile
+    [Theory]
+    [InlineData(AuthMethod.WPA2PSK)]
+    [InlineData(AuthMethod.WPA3SAE)]
+    [InlineData(AuthMethod.WPA3Transition)]
+    [InlineData(AuthMethod.WPAPSK)]
+    public async Task ConnectAsync_EmptyPassphrase_SkipsProfileRegistration_AndSucceeds(AuthMethod auth)
+    {
+        var wifi = new SlowFakeWifi();
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
+        var exec = new ConnectionExecutor(
+            wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
+
+        var result = await exec.ConnectAsync(Guid.NewGuid(), "SavedNetwork", auth, passphrase: "");
+
+        result.Success.Should().BeTrue(
+            because: "empty passphrase means reuse existing OS profile, not a new connect");
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using MWC.Core.Models;
 
@@ -32,13 +33,29 @@ public sealed class CatImportService
     public IReadOnlyList<CatProfile> ParseEapConfig(string xmlContent)
     {
         if (string.IsNullOrWhiteSpace(xmlContent))
-            throw new ArgumentException("CAT XML が空です。", nameof(xmlContent));
+            throw new ArgumentException("CAT XML content is empty.", nameof(xmlContent));
 
+        // CAT / eap-config は eduroam からダウンロードされる **信頼できない外部 XML**。
+        // XXE (外部実体によるローカルファイル漏洩 / SSRF) と DTD 実体展開 (billion laughs DoS)
+        // を境界で明示的に封じる。XDocument.Parse は .NET の既定で安全だが、フレームワーク
+        // 既定に依存せず不変条件をローカルに可視化・監査可能にする (CA3075 / OWASP XXE Prevention)。
+        //   - DtdProcessing.Prohibit : <!DOCTYPE> を拒否し実体展開を不可能にする
+        //   - XmlResolver = null     : 外部 DTD / 外部実体を一切解決しない
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing             = DtdProcessing.Prohibit,
+            XmlResolver               = null,
+            MaxCharactersFromEntities = 0,
+        };
         XDocument doc;
-        try { doc = XDocument.Parse(xmlContent); }
-        catch (Exception ex) { throw new FormatException($"CAT XML の解析に失敗: {ex.Message}", ex); }
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(xmlContent), settings);
+            doc = XDocument.Load(reader);
+        }
+        catch (Exception ex) { throw new FormatException($"Failed to parse CAT XML: {ex.Message}", ex); }
 
-        var root = doc.Root ?? throw new FormatException("XML にルート要素がありません。");
+        var root = doc.Root ?? throw new FormatException("XML has no root element.");
 
         // NameSpace 検出(CAT v1.0 / v2.0 両対応)
         var ns = root.GetDefaultNamespace();
@@ -56,7 +73,7 @@ public sealed class CatImportService
         }
 
         if (profiles.Count == 0)
-            throw new FormatException("有効な EAPIdentityProvider が見つかりません。");
+            throw new FormatException("No valid EAPIdentityProvider found.");
 
         return profiles;
     }
@@ -66,18 +83,10 @@ public sealed class CatImportService
     /// </summary>
     public WifiProfileSpec BuildEduroamSpec(CatProfile profile)
     {
-        var auth = profile.EapType switch
-        {
-            EapType.EAP_TLS         => AuthMethod.WPA2Enterprise,
-            EapType.PEAP_MSCHAPv2   => AuthMethod.WPA2Enterprise,
-            EapType.EAP_TTLS        => AuthMethod.WPA2Enterprise,
-            _                       => AuthMethod.WPA2Enterprise
-        };
-
         return new WifiProfileSpec
         {
             Ssid                    = profile.Ssid,
-            Auth                    = auth,
+            Auth                    = AuthMethod.WPA2Enterprise,
             EapType                 = profile.EapType,
             Username                = profile.AnonymousIdentity,   // 匿名ユーザー名
             ServerNames             = profile.ServerNames.ToArray(),

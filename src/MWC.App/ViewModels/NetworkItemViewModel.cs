@@ -36,29 +36,66 @@ public sealed partial class NetworkItemViewModel : ObservableObject
         Auth        = n.Auth;
         IsConnected = n.IsConnected;
         HasProfile  = n.HasProfile;
-        PhyLabel    = n.Phy.ToShortLabel();
+        PhyLabel    = MWC.App.Resources.L.PhyShortLabel(n.Phy);
         VendorLabel = n.VendorName ?? "";
+        OnPropertyChanged(nameof(BandLabel));
+        OnPropertyChanged(nameof(IsDfs));
     }
 
-    public int    Bars      => Signal switch { >= 75 => 4, >= 50 => 3, >= 25 => 2, > 0 => 1, _ => 0 };
-    public string AuthLabel => Auth switch
+    // 段階判定は SignalIconService (Core, WCAG 1.4.1 の非色覚依存表現のために設計) に一元化。
+    // 以前はここに独自閾値 (75/50/25/>0) の重複実装があり、Core の正式基準 (80/60/40/20) と
+    // 食い違っていた (2026-07 品質パスで統一。docs/FEATURE-AUDIT.md §1a 参照)。
+    public int    Bars                 => SignalIconService.Describe(Signal).Bars;
+    public string SignalAutomationLabel =>
+        $"{MWC.App.Resources.L.MainSignalStrength(Signal)} · {SecurityBadgeLabel}";
+
+    // ── Pinned state ─────────────────────────────────────────────────
+    [ObservableProperty] private bool _isPinned;
+
+    partial void OnIsPinnedChanged(bool value) => OnPropertyChanged(nameof(PinMenuHeader));
+
+    public string PinMenuHeader => IsPinned
+        ? MWC.App.Resources.L.ContextMenuUnpinNetwork
+        : MWC.App.Resources.L.ContextMenuPinNetwork;
+
+    // ── Signal trend indicator ────────────────────────────────────────
+    [ObservableProperty] private string _signalTrendLabel = "";
+
+    // ── Security level badge ─────────────────────────────────────────
+    public SecurityLevel SecurityLevel  => SecurityBadgeService.GetBadge(Auth).Level;
+    public string SecurityBadgeLabel    => MWC.App.Resources.L.SecurityLevelLabel(SecurityLevel);
+    public string SecurityTechLabel     => SecurityBadgeService.GetBadge(Auth).TechLabel;
+
+    // ── DFS channel indicator ────────────────────────────────────────
+    public bool IsDfs => DfsChannelHelper.IsDfsChannel(Source);
+
+    // ── Channel congestion indicator ─────────────────────────────────
+    [ObservableProperty] private int  _congestionPercent;
+    [ObservableProperty] private bool _isChannelOverloaded;
+
+    public bool IsChannelCrowded => CongestionPercent >= 30;
+
+    public string? CongestionTooltip => CongestionPercent < 30 ? null
+        : IsChannelOverloaded
+            ? MWC.App.Resources.L.CongestionOverloadedTooltip(CongestionPercent)
+            : MWC.App.Resources.L.CongestionBusyTooltip(CongestionPercent);
+
+    partial void OnCongestionPercentChanged(int value)
     {
-        AuthMethod.Open              => "Open",
-        AuthMethod.OWE               => "OWE",
-        AuthMethod.WEP               => "WEP",
-        AuthMethod.WPA3SAE           => "WPA3",
-        AuthMethod.WPA3Transition    => "WPA2/3",
-        AuthMethod.WPA2PSK           => "WPA2",
-        AuthMethod.WPA2Enterprise    => "WPA2 Ent",
-        AuthMethod.WPA3Enterprise    => "WPA3 Ent",
-        AuthMethod.WPA3Enterprise192 => "WPA3 Ent192",
-        _ => Auth.ToString()
-    };
-    public string BandLabel => Source.Band switch
+        OnPropertyChanged(nameof(IsChannelCrowded));
+        OnPropertyChanged(nameof(CongestionTooltip));
+    }
+
+    partial void OnSignalChanged(int value) => OnPropertyChanged(nameof(SignalAutomationLabel));
+    partial void OnAuthChanged(AuthMethod value)
     {
-        WifiBand.Band2_4GHz => "2.4G",
-        WifiBand.Band5GHz   => "5G",
-        WifiBand.Band6GHz   => "6G",
-        _ => "?"
-    };
+        OnPropertyChanged(nameof(AuthLabel));
+        OnPropertyChanged(nameof(SecurityLevel));
+        OnPropertyChanged(nameof(SecurityBadgeLabel));
+        OnPropertyChanged(nameof(SecurityTechLabel));
+        OnPropertyChanged(nameof(SignalAutomationLabel));
+    }
+
+    public string AuthLabel => MWC.App.Resources.L.AuthCompact(Auth);
+    public string BandLabel => MWC.App.Resources.L.BandCompact(Source.Band);
 }

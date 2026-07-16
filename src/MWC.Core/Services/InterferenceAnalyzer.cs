@@ -27,7 +27,7 @@ public sealed class InterferenceAnalyzer
     public InterferenceReport Analyze(
         WifiNetwork target, IReadOnlyList<WifiNetwork> allVisible)
     {
-        var factors = new List<string>();
+        var factors = new List<InterferenceFactor>();
         int score = 100;  // 100=干渉なし、0=深刻
 
         // 1. Co-channel 干渉 (同一チャネルの他 AP)
@@ -39,7 +39,7 @@ public sealed class InterferenceAnalyzer
         {
             int penalty = Math.Min(coChannel * 12, 50);
             score -= penalty;
-            factors.Add($"同一チャネル ({target.Channel}) に {coChannel} 台の AP — co-channel 干渉");
+            factors.Add(new InterferenceFactor(InterferenceFactorKind.CoChannel, coChannel, target.Channel));
         }
 
         // 2. Adjacent-channel 干渉 (2.4GHz のみ — 5/6GHz は基本非重複)
@@ -53,12 +53,12 @@ public sealed class InterferenceAnalyzer
             {
                 int penalty = Math.Min(adjacent * 8, 30);
                 score -= penalty;
-                factors.Add($"隣接チャネルに {adjacent} 台 — adjacent-channel 干渉 (2.4GHz)");
+                factors.Add(new InterferenceFactor(InterferenceFactorKind.AdjacentChannel, adjacent, target.Channel));
             }
 
             // 3. Bluetooth 共存リスク (2.4GHz は BT と同居)
             score -= 10;
-            factors.Add("2.4GHz 帯は Bluetooth/Zigbee と共存 — CTI リスクあり");
+            factors.Add(new InterferenceFactor(InterferenceFactorKind.BluetoothCoexistence, 0, 0));
         }
 
         score = Math.Clamp(score, 0, 100);
@@ -71,7 +71,7 @@ public sealed class InterferenceAnalyzer
             _     => InterferenceLevel.Severe
         };
 
-        var recommendation = BuildRecommendation(target, level);
+        var recommendation = DetermineRecommendation(target.Band, level);
 
         return new InterferenceReport(
             Score:          score,
@@ -99,16 +99,13 @@ public sealed class InterferenceAnalyzer
         return Math.Clamp(score, 0, 100);
     }
 
-    private static string BuildRecommendation(WifiNetwork target, InterferenceLevel level)
+    private static InterferenceRecommendationKind DetermineRecommendation(
+        WifiBand band, InterferenceLevel level)
     {
-        if (level == InterferenceLevel.Low)
-            return "干渉は軽微。現在のチャネルで問題なし。";
-
-        if (target.Band == WifiBand.Band2_4GHz)
-            return "干渉が大きい。可能なら 5GHz/6GHz 帯への移行を推奨。" +
-                   "2.4GHz に留まる場合はチャネル 1/6/11 を選ぶ。";
-
-        return "同一チャネルの混雑あり。別のチャネルまたは 6GHz への移行を検討。";
+        if (level == InterferenceLevel.Low) return InterferenceRecommendationKind.None;
+        return band == WifiBand.Band2_4GHz
+            ? InterferenceRecommendationKind.SwitchBand
+            : InterferenceRecommendationKind.SwitchChannel;
     }
 }
 
@@ -116,13 +113,35 @@ public sealed class InterferenceAnalyzer
 
 /// <summary>干渉レポート</summary>
 public sealed record InterferenceReport(
-    int                   Score,
-    InterferenceLevel     Level,
-    IReadOnlyList<string> Factors,
-    string                Recommendation);
+    int                              Score,
+    InterferenceLevel                Level,
+    IReadOnlyList<InterferenceFactor> Factors,
+    InterferenceRecommendationKind   Recommendation);
+
+/// <summary>干渉因子の種別</summary>
+public enum InterferenceFactorKind
+{
+    CoChannel,
+    AdjacentChannel,
+    BluetoothCoexistence
+}
+
+/// <summary>個別干渉因子 (種別+数量+チャネル)</summary>
+public sealed record InterferenceFactor(
+    InterferenceFactorKind Kind,
+    int Count,
+    int Channel);
 
 /// <summary>干渉レベル</summary>
 public enum InterferenceLevel
 {
     Low, Moderate, High, Severe
+}
+
+/// <summary>干渉低減のための推奨アクション種別</summary>
+public enum InterferenceRecommendationKind
+{
+    None,
+    SwitchBand,
+    SwitchChannel
 }

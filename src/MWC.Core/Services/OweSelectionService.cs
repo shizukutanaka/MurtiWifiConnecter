@@ -19,14 +19,19 @@ namespace MWC.Core.Services;
 ///   1. スキャン結果から Open + OWE の SSID ペアを検出
 ///   2. OWE 対応デバイスでは OWE を優先 → SSID を統合表示
 ///   3. 接続時に OWE プロファイルを自動生成
+///
+/// 既知の制限(GUI/CLI 配線時に検討・許容した事項、2026-07):
+///   <see cref="ApplyOwePreference"/> は Open AP が <c>IsConnected</c> かどうかに関わらず
+///   OWE 側が存在すれば無条件で除外する。OWE 非対応の端末が過去に Windows ネイティブ設定
+///   (MWC 経由でない)で Open 側へ接続済みだった場合、理論上は「実際は接続中なのに UI 上は
+///   未接続に見える」表示上の不整合が起こりうる。実際の OS レベルの接続状態には影響しない
+///   (表示のみ)。発生条件が狭い(OWE 非対応端末 + 既存 Open プロファイル)ため、
+///   呼び出し側で追加のガードは設けていない — 再発時は Open 側の <c>IsConnected</c> を
+///   常に残す変更を検討すること。
 /// </summary>
 public sealed class OweSelectionService
 {
-    /// <summary>
-    /// スキャン結果から Open/OWE ペアを検出し、OWE 優先に並べ替えた一覧を返す。
-    /// OWE AP が存在する Open AP はリストから除外(透過的統合)。
-    /// </summary>
-    /// <summary>OWE AP が存在する Open AP を非表示にして OWE 優先リストを返す。</summary>
+    /// <summary>OWE AP が存在する Open AP を非表示にして OWE 優先リストを返す。同名 Open AP はリストから除外し透過的統合を実現する。</summary>
     public IReadOnlyList<WifiNetwork> ApplyOwePreference(
         IReadOnlyList<WifiNetwork> networks)
     {
@@ -43,25 +48,12 @@ public sealed class OweSelectionService
             if (net.Auth == AuthMethod.Open && oweSsids.Contains(net.Ssid))
                 continue;
 
-            // OWE AP の表示名に "Enhanced" バッジを付ける(UI 用メタデータ)
-            if (net.Auth == AuthMethod.OWE)
-            {
-                result.Add(net with { });  // OWE をそのまま追加(フラグは VendorName に追記可)
-            }
-            else
-            {
-                result.Add(net);
-            }
+            result.Add(net);
         }
         return result;
     }
 
-    /// <summary>
-    /// OWE 移行モードの AP かどうかを判定。
-    /// 移行モード: Open SSID に対応する OWE SSID が異なる場合もある
-    ///   (例: "FreeWifi" ↔ "FreeWifi_OWE" の組み合わせ)。
-    /// </summary>
-    /// <summary>Open AP と OWE AP が同一の BSS (OWE Transition Mode) かどうかを判定する。</summary>
+    /// <summary>Open AP と OWE AP が同一の BSS (OWE Transition Mode) かどうかを判定する。移行モードでは Open SSID に対応する OWE SSID が異なる場合もある ("FreeWifi" ↔ "FreeWifi_OWE")。</summary>
     public bool IsOweTransitionPair(WifiNetwork open, WifiNetwork owe)
     {
         if (open.Auth != AuthMethod.Open) return false;
@@ -75,11 +67,7 @@ public sealed class OweSelectionService
         return openBssids.Overlaps(oweBssids);
     }
 
-    /// <summary>
-    /// OWE 自動接続のプロファイル仕様を生成。
-    /// Open AP への接続要求を OWE に自動昇格する。
-    /// </summary>
-    /// <summary>OWE 自動接続のプロファイル仕様を生成する。</summary>
+    /// <summary>OWE 自動接続のプロファイル仕様を生成する。Open AP への接続要求を OWE に自動昇格する。</summary>
     public WifiProfileSpec BuildOweSpec(string ssid)
         => new() { Ssid = ssid, Auth = AuthMethod.OWE };
 

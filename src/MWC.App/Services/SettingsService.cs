@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace MWC.App.Services;
@@ -24,6 +25,11 @@ public sealed class SettingsService
     };
 
     private readonly ILogger<SettingsService> _log;
+    // ディスク書き込み直列化用。UI スレッドをブロックしないよう Task.Run + lock の組み合わせ。
+    private readonly object _saveLock = new();
+    // 書き込み順序保証: Save が連続して呼ばれた場合、古いスナップショットが新しい
+    // スナップショットを上書きしないようシーケンス番号で最新の書き込みのみ実行する。
+    private long _saveSeq;
     private AppSettings _current;
 
     public AppSettings Current => _current;
@@ -34,15 +40,54 @@ public sealed class SettingsService
         _current = Load();
     }
 
+    public bool IsPinned(string ssid) => _current.PinnedNetworks.Contains(ssid);
+
+    public void TogglePin(string ssid)
+    {
+        var list = new System.Collections.Generic.List<string>(_current.PinnedNetworks);
+        if (list.Contains(ssid)) list.Remove(ssid);
+        else list.Add(ssid);
+        Save(_current with { PinnedNetworks = list });
+    }
+
+    public void HideNetwork(string ssid)
+    {
+        if (_current.HiddenNetworks.Contains(ssid)) return;
+        var list = new System.Collections.Generic.List<string>(_current.HiddenNetworks) { ssid };
+        Save(_current with { HiddenNetworks = list });
+    }
+
+    public void UnhideNetwork(string ssid)
+    {
+        if (!_current.HiddenNetworks.Contains(ssid)) return;
+        var list = new System.Collections.Generic.List<string>(_current.HiddenNetworks);
+        list.Remove(ssid);
+        Save(_current with { HiddenNetworks = list });
+    }
+
     public void Save(AppSettings settings)
     {
-        _current = settings;
-        try
+        _current = settings;           // UI スレッドで即時反映
+        var seq = System.Threading.Interlocked.Increment(ref _saveSeq);
+        _ = Task.Run(() => Persist(settings, seq));  // ディスク書き込みはバックグラウンドへ
+    }
+
+    private void Persist(AppSettings settings, long seq)
+    {
+        lock (_saveLock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(settings, Opts));
+            // 後続の Save がある場合はこのスナップショットをスキップする
+            if (System.Threading.Volatile.Read(ref _saveSeq) != seq) return;
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+                // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
+                var tmp = ConfigPath + ".tmp";
+                File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Opts));
+                File.Move(tmp, ConfigPath, overwrite: true);
+            }
+            catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
         }
-        catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
     }
 
     private AppSettings Load()
@@ -95,4 +140,4 @@ public sealed record AppSettings
 }
 
 public enum DisplayMode { Simple, Expert }
-public enum AppTheme    { Dark, Light, System }
+public enum AppTheme    { Dark, Light, System, Fluent, Solarized, Nord, Catppuccin }

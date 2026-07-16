@@ -141,7 +141,7 @@ public class PiiVerificationTests
     {
         var ok = _svc.VerifyNoPii("gateway 192.168.1.1 reachable", out var detected);
         ok.Should().BeFalse();
-        detected.Should().Contain("IPv4 アドレス");
+        detected.Should().Contain("IPv4 address");
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public class PiiVerificationTests
     {
         var ok = _svc.VerifyNoPii("bssid AA:BB:CC:DD:EE:FF detected", out var detected);
         ok.Should().BeFalse();
-        detected.Should().Contain("MAC アドレス");
+        detected.Should().Contain("MAC address");
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class PiiVerificationTests
     {
         var ok = _svc.VerifyNoPii("user admin@example.com logged in", out var detected);
         ok.Should().BeFalse();
-        detected.Should().Contain("メールアドレス");
+        detected.Should().Contain("email address");
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class PiiVerificationTests
     {
         var ok = _svc.VerifyNoPii("contact 03-1234-5678 office", out var detected);
         ok.Should().BeFalse();
-        detected.Should().Contain("電話番号");
+        detected.Should().Contain("phone number");
     }
 
     [Fact]

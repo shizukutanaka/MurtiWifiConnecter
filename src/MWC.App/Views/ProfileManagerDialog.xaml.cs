@@ -1,28 +1,34 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.Logging;
+using MWC.App.Services;
 using MWC.App.ViewModels;
 
 namespace MWC.App.Views;
 
 public partial class ProfileManagerDialog : Window
 {
-    private readonly ProfileManagerViewModel _vm;
+    private readonly ProfileManagerViewModel     _vm;
+    private readonly ILogger<ProfileManagerDialog> _log;
 
-    public ProfileManagerDialog(ProfileManagerViewModel vm)
+    public ProfileManagerViewModel ViewModel => _vm;
+
+    public ProfileManagerDialog(ProfileManagerViewModel vm, ILogger<ProfileManagerDialog> log)
     {
         InitializeComponent();
+        _log = log;
         DataContext = _vm = vm;
     }
 
     private async void OnRefresh(object sender, RoutedEventArgs e)
     {
-        await AsyncEventHelper.SafeRunAsync(null, "OnRefresh",
+        await AsyncEventHelper.SafeRunAsync(_log, "OnRefresh",
             () => _vm.RefreshCommand.ExecuteAsync(null));
     }
 
     private async void OnDeleteOne(object sender, RoutedEventArgs e)
     {
-        await AsyncEventHelper.SafeRunAsync(null, "OnDeleteOne", async () =>
+        await AsyncEventHelper.SafeRunAsync(_log, "OnDeleteOne", async () =>
         {
             if (sender is not Button btn || btn.Tag is not string ssid) return;
             var r = MessageBox.Show(

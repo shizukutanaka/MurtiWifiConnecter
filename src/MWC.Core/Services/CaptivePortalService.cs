@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
 namespace MWC.Core.Services;
 
@@ -13,7 +15,7 @@ namespace MWC.Core.Services;
 /// レガシーな HTTP リダイレクト傍受より堅牢で、modern iOS/Android が優先利用する。
 ///
 /// 本サービスは検出ロジックの状態機械とパースを提供する。
-/// 実際の HTTP 通信はプラットフォーム層が担う (Core はゼロ外部依存)。
+/// 実際の HTTP 通信はプラットフォーム層が担う。
 /// </summary>
 public sealed class CaptivePortalService
 {
@@ -43,20 +45,22 @@ public sealed class CaptivePortalService
 
     /// <summary>
     /// RFC 8908 形式の JSON をパースする。
-    /// ゼロ依存のため System.Text.Json は使わず、シンプルなフィールド抽出。
     /// </summary>
     public CaptivePortalState ParseApiResponse(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
 
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
         return new CaptivePortalState
         {
-            Captive          = ExtractBool(json, "captive") ?? false,
-            UserPortalUrl    = ExtractString(json, "user-portal-url"),
-            VenueInfoUrl     = ExtractString(json, "venue-info-url"),
-            CanExtendSession = ExtractBool(json, "can-extend-session") ?? false,
-            SecondsRemaining = ExtractInt(json, "seconds-remaining"),
-            BytesRemaining   = ExtractLong(json, "bytes-remaining"),
+            Captive          = root.TryGetProperty("captive",            out var c)   && c.ValueKind == JsonValueKind.True,
+            UserPortalUrl    = root.TryGetProperty("user-portal-url",    out var u)   ? u.GetString() : null,
+            VenueInfoUrl     = root.TryGetProperty("venue-info-url",     out var vi)  ? vi.GetString() : null,
+            CanExtendSession = root.TryGetProperty("can-extend-session", out var ces) && ces.ValueKind == JsonValueKind.True,
+            SecondsRemaining = root.TryGetProperty("seconds-remaining",  out var sr)  && sr.TryGetInt32(out var sri)  ? sri : null,
+            BytesRemaining   = root.TryGetProperty("bytes-remaining",    out var br)  && br.TryGetInt64(out var brl)  ? brl : null,
         };
     }
 
@@ -68,18 +72,18 @@ public sealed class CaptivePortalService
         if (!state.Captive)
             return new CaptivePortalDecision(
                 RequiresAuth: false,
-                Message:      "インターネット接続済み。認証は不要。",
+                Message:      "Internet connected. No authentication required.",
                 PortalUrl:    null);
 
         if (!string.IsNullOrEmpty(state.UserPortalUrl))
             return new CaptivePortalDecision(
                 RequiresAuth: true,
-                Message:      "このネットワークは認証が必要。ポータルを開いてサインインする。",
+                Message:      "Authentication required. Open the portal and sign in.",
                 PortalUrl:    state.UserPortalUrl);
 
         return new CaptivePortalDecision(
             RequiresAuth: true,
-            Message:      "認証が必要だがポータル URL が提供されていない。ブラウザで任意のサイトを開いてリダイレクトを待つ。",
+            Message:      "Authentication required but no portal URL provided. Open any site in a browser and wait for redirect.",
             PortalUrl:    null);
     }
 
@@ -88,67 +92,19 @@ public sealed class CaptivePortalService
     /// </summary>
     public string DescribeSession(CaptivePortalState state)
     {
-        if (!state.Captive) return "認証済み";
+        if (!state.Captive) return "Authenticated";
 
-        var parts = new System.Collections.Generic.List<string>();
+        var parts = new List<string>();
         if (state.SecondsRemaining is { } secs)
-            parts.Add($"残り {secs / 60} 分");
+            parts.Add($"{secs / 60}m remaining");
         if (state.BytesRemaining is { } bytes)
-            parts.Add($"残り {bytes / 1_000_000} MB");
+            parts.Add($"{bytes / 1_000_000} MB remaining");
         if (state.CanExtendSession)
-            parts.Add("延長可能");
+            parts.Add("extendable");
 
-        return parts.Count > 0 ? string.Join(" / ", parts) : "認証が必要";
+        return parts.Count > 0 ? string.Join(" / ", parts) : "Authentication required";
     }
 
-    // ── 軽量 JSON フィールド抽出 (ゼロ依存) ──────────────────────
-
-    private static string? ExtractString(string json, string key)
-    {
-        var marker = $"\"{key}\"";
-        var idx = json.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0) return null;
-        var colon = json.IndexOf(':', idx + marker.Length);
-        if (colon < 0) return null;
-        var q1 = json.IndexOf('"', colon);
-        if (q1 < 0) return null;
-        var q2 = json.IndexOf('"', q1 + 1);
-        if (q2 < 0) return null;
-        return json.Substring(q1 + 1, q2 - q1 - 1);
-    }
-
-    private static bool? ExtractBool(string json, string key)
-    {
-        var raw = ExtractRawValue(json, key);
-        if (raw is null) return null;
-        if (raw.StartsWith("true",  StringComparison.OrdinalIgnoreCase)) return true;
-        if (raw.StartsWith("false", StringComparison.OrdinalIgnoreCase)) return false;
-        return null;
-    }
-
-    private static int? ExtractInt(string json, string key)
-        => long.TryParse(TrimNumber(ExtractRawValue(json, key)), out var v) ? (int)v : null;
-
-    private static long? ExtractLong(string json, string key)
-        => long.TryParse(TrimNumber(ExtractRawValue(json, key)), out var v) ? v : null;
-
-    private static string? ExtractRawValue(string json, string key)
-    {
-        var marker = $"\"{key}\"";
-        var idx = json.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0) return null;
-        var colon = json.IndexOf(':', idx + marker.Length);
-        if (colon < 0) return null;
-        return json[(colon + 1)..].TrimStart();
-    }
-
-    private static string TrimNumber(string? s)
-    {
-        if (string.IsNullOrEmpty(s)) return "";
-        int i = 0;
-        while (i < s.Length && (char.IsDigit(s[i]) || s[i] == '-')) i++;
-        return s[..i];
-    }
 }
 
 /// <summary>Captive Portal 認証判定</summary>

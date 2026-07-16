@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using QRCoder;
 using MWC.Core.Models;
 using MWC.Core.Profile;
+using Serilog;
 
 namespace MWC.App.Views;
 
@@ -47,12 +48,14 @@ public partial class QrCodeDialog : Window
                 darkColorRgba:  new byte[] { 0, 0, 0, 255 },
                 lightColorRgba: new byte[] { 255, 255, 255, 255 });
         }
-        catch { return Array.Empty<byte>(); }
+        catch (Exception ex) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
     }
 
     private void OnCopy(object sender, RoutedEventArgs e)
     {
-        Clipboard.SetText(_uri);
+        // _uri は WIFI: URI でパスフレーズを含む機密。Win+V 履歴・クラウド同期に
+        // 残さないよう SensitiveClipboard 経由でコピーする。
+        MWC.App.Services.SensitiveClipboard.SetText(_uri);
         Title = MWC.App.Resources.L.Get("QR_Copied");
     }
 
@@ -62,7 +65,7 @@ public partial class QrCodeDialog : Window
         var dlg = new SaveFileDialog
         {
             FileName = $"{SsidLabel.Text}.png",
-            Filter   = "PNG Image (*.png)|*.png",
+            Filter   = MWC.App.Resources.L.Get("QR_PngFileFilter"),
             DefaultExt = ".png"
         };
         if (dlg.ShowDialog() == true)

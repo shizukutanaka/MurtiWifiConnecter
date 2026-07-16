@@ -64,12 +64,13 @@ public sealed class AndroidWifiService : IWifiService
             Array.Empty<WifiNetwork>()).ConfigureAwait(false);
     }
 
-    public Task RegisterProfileAsync(
+    public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
         // Android 10+: WifiNetworkSuggestion API を使用
         // Android 29+: WifiManager.addNetworkSuggestions()
-        return Task.CompletedTask;
+        // 未実装スタブ — 登録は行われないため false。
+        return Task.FromResult(false);
     }
 
     public async Task<ConnectionResult> ConnectAsync(
@@ -89,5 +90,22 @@ public sealed class AndroidWifiService : IWifiService
         // Android 10+: ConnectivityManager.bindProcessToNetwork(null) でバインド解除
         // Android 10-: WifiManager.disconnect()
         return await Task.FromResult(true).ConfigureAwait(false);
+    }
+
+    public Task<bool> DeleteProfileAsync(
+        Guid adapterId, string profileName, CancellationToken ct = default)
+        => Task.FromResult(false);
+
+    public Task<IReadOnlyList<string>> ListProfilesAsync(
+        Guid adapterId, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
+    public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        // Android does not expose a reliable Wi-Fi event stream to .NET MAUI without
+        // platform-specific BroadcastReceiver wiring. Stub: yields nothing.
+        await Task.CompletedTask.ConfigureAwait(false);
+        yield break;
     }
 }
