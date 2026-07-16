@@ -14,7 +14,7 @@
 
     <!-- NuGet メタ (MWC.SDK と共通) -->
     <PackageId>MWC.Core</PackageId>
-    <Version>3.11.0</Version>
+    <Version>3.12.0</Version>
     <Authors>ShizukuTanaka</Authors>
     <Description>MWC Core — Wi-Fi management models and services. Minimal dependencies. Targets net9.0.</Description>
     <PackageTags>wifi;wpa3;eap;net9</PackageTags>

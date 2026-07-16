@@ -9,7 +9,7 @@
     <!-- NuGet パッケージ設定 -->
     <IsPackable>true</IsPackable>
     <PackageId>MWC.SDK</PackageId>
-    <Version>3.11.0</Version>
+    <Version>3.12.0</Version>
     <Authors>ShizukuTanaka</Authors>
     <Company>ShizukuTanaka</Company>
     <Description>
@@ -24,7 +24,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>See CHANGELOG.md for release notes. v3.11.0: power-save (TWT/rTWT) advisory, OUI vendor matching for evil-twin detection, structured logging, health checks.</PackageReleaseNotes>
+    <PackageReleaseNotes>See CHANGELOG.md for release notes. v3.12.0: wired several previously-orphaned services into the product (VPN/EAP advisories, OWE selection, regulatory-domain display, auto-retry), fixed theme-bypassing colors and silently-swallowed exceptions across the app and CLI, added a WPA3 SSID-binding security advisory.</PackageReleaseNotes>
 
     <!-- シンボルパッケージ -->
     <IncludeSymbols>true</IncludeSymbols>

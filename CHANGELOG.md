@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-16
+
 ### Fixed
 - **README's i18n badge claimed 515 resx keys; the actual count is 526** (verified by parsing
   `Strings.resx` directly — every key-adding fix this session, VPN/EAP/regulatory/auto-retry
