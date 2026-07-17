@@ -297,7 +297,9 @@ public static partial class Program
     {
         var ssid    = new Argument<string>("ssid");
         var pw      = new Option<string?>(new[]{"-p","--password"},
-            "Passphrase (PSK/WEP) or EAP password (Enterprise)");
+            "Passphrase (PSK/WEP) or EAP password (Enterprise). " +
+            "Omit to read from the MWC_PASSWORD environment variable instead " +
+            "(avoids exposing the secret in the process command line / ps output).");
         var auth    = new Option<AuthMethod>("--auth", () => AuthMethod.WPA2PSK);
         var adapter = new Option<string?>("--adapter");
         var timeout = new Option<int>("--timeout", () => 30);
@@ -324,7 +326,11 @@ public static partial class Program
         cmd.SetHandler(async (InvocationContext ctx) =>
         {
             var s  = ctx.ParseResult.GetValueForArgument(ssid);
-            var p  = ctx.ParseResult.GetValueForOption(pw);
+            // -p を省略した場合は MWC_PASSWORD 環境変数から取得する。argv に平文パスワードを
+            // 置くと ps / /proc から他ユーザーに見えるため、秘密情報の露出を避ける経路を用意する
+            // (MultiAdapterCommand の $env:PW と同じ思想。CLAUDE.md のセキュリティ重視に沿う)。
+            var p  = ctx.ParseResult.GetValueForOption(pw)
+                     ?? Environment.GetEnvironmentVariable("MWC_PASSWORD");
             var a  = ctx.ParseResult.GetValueForOption(auth);
             var af = ctx.ParseResult.GetValueForOption(adapter);
             var to = ctx.ParseResult.GetValueForOption(timeout);

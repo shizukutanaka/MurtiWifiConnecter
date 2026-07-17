@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   builds and its validation boundaries (missing eap-type/username/password rejected; EAP-AKA
   rejected as unsupported). **Still remaining** (documented in §4): the GUI side (`ConnectDialog`
   Enterprise fields) and wiring `CertificatePickerDialog` into the EAP-TLS connect flow.
+- **`mwc connect` reads the password from `MWC_PASSWORD` when `-p` is omitted**, so PSK passphrases
+  and EAP passwords need not appear in the process command line (argv is world-readable via `ps` /
+  `/proc`). Mirrors the existing `$env:PW` fallback in `mwc multi connect` and aligns with
+  CLAUDE.md's security emphasis. `-p` still takes precedence when both are present.
 
 ## [3.12.0] - 2026-07-16
 
