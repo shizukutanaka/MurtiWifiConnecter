@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`mwc connect` now supports 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) authentication** via new
+  `--eap-type`, `--username`, `--domain`, and `--server-name` (repeatable) options. This closes the
+  CLI half of `docs/FEATURE-AUDIT.md` §4's last major gap — previously neither the GUI nor the CLI
+  could enter Enterprise credentials at all, which also blocked `CatImportService` (eduroam import)
+  from being wired. The Core layer was already fully capable: `WifiProfileSpec` carries all the
+  Enterprise fields, `ProfileXmlBuilder` emits complete PEAP/TLS/TTLS profile XML (golden-tested),
+  and `ConnectionExecutor` already accepted a full spec — the only thing missing was the CLI option
+  surface, so this is a `Program.cs`-only change plus a contract test. For Enterprise auth, `-p`
+  doubles as the EAP password; the existing early `ProfileXmlBuilder.Build` validation surfaces
+  incomplete input (missing EAP type, missing username/password) as a clean `InvalidInput` error
+  before any connection attempt. The connect handler switched from generic `SetHandler` to
+  `InvocationContext` binding because the option count now exceeds System.CommandLine's 8-parameter
+  generic limit. New tests: `CliEnterpriseSpecContractTests.cs` pin the exact spec shape the CLI
+  builds and its validation boundaries (missing eap-type/username/password rejected; EAP-AKA
+  rejected as unsupported). **Still remaining** (documented in §4): the GUI side (`ConnectDialog`
+  Enterprise fields) and wiring `CertificatePickerDialog` into the EAP-TLS connect flow.
+
 ## [3.12.0] - 2026-07-16
 
 ### Fixed

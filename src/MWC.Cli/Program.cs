@@ -1,5 +1,6 @@
 using System;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -295,17 +296,44 @@ public static partial class Program
     private static Command BuildConnect(ServiceProvider sp)
     {
         var ssid    = new Argument<string>("ssid");
-        var pw      = new Option<string?>(new[]{"-p","--password"});
+        var pw      = new Option<string?>(new[]{"-p","--password"},
+            "Passphrase (PSK/WEP) or EAP password (Enterprise)");
         var auth    = new Option<AuthMethod>("--auth", () => AuthMethod.WPA2PSK);
         var adapter = new Option<string?>("--adapter");
         var timeout = new Option<int>("--timeout", () => 30);
         var hidden  = new Option<bool>("--hidden");
-        var cmd     = new Command("connect", "Connect to a network");
+        // ── 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) ──
+        var eapType  = new Option<EapType?>("--eap-type",
+            "EAP method for Enterprise auth: PEAP_MSCHAPv2 | EAP_TLS | EAP_TTLS");
+        eapType.AddCompletions("PEAP_MSCHAPv2", "EAP_TLS", "EAP_TTLS");
+        var username = new Option<string?>("--username", "EAP username (PEAP/EAP-TTLS)");
+        var domain   = new Option<string?>("--domain", "Authentication domain (optional)");
+        var serverName = new Option<string[]>("--server-name",
+            "RADIUS server FQDN to validate the server certificate against (repeatable)")
+        { AllowMultipleArgumentsPerToken = true };
+
+        var cmd     = new Command("connect",
+            "Connect to a network. For Enterprise: --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 " +
+            "--username u@univ.ac.jp -p PASS --server-name radius.univ.ac.jp");
         cmd.AddArgument(ssid); cmd.AddOption(pw); cmd.AddOption(auth);
         cmd.AddOption(adapter); cmd.AddOption(timeout); cmd.AddOption(hidden);
+        cmd.AddOption(eapType); cmd.AddOption(username); cmd.AddOption(domain); cmd.AddOption(serverName);
 
-        cmd.SetHandler(async (string s, string? p, AuthMethod a, string? af, int to, bool h) =>
+        // オプション数が System.CommandLine の SetHandler ジェネリック上限 (8) を超えるため、
+        // InvocationContext から個別に値を取得する束縛方式を使う。
+        cmd.SetHandler(async (InvocationContext ctx) =>
         {
+            var s  = ctx.ParseResult.GetValueForArgument(ssid);
+            var p  = ctx.ParseResult.GetValueForOption(pw);
+            var a  = ctx.ParseResult.GetValueForOption(auth);
+            var af = ctx.ParseResult.GetValueForOption(adapter);
+            var to = ctx.ParseResult.GetValueForOption(timeout);
+            var h  = ctx.ParseResult.GetValueForOption(hidden);
+            var eap         = ctx.ParseResult.GetValueForOption(eapType);
+            var user        = ctx.ParseResult.GetValueForOption(username);
+            var dom         = ctx.ParseResult.GetValueForOption(domain);
+            var serverNames = ctx.ParseResult.GetValueForOption(serverName) ?? Array.Empty<string>();
+
             try
             {
                 if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
@@ -315,10 +343,22 @@ public static partial class Program
                 var ad       = await Resolve(svc, af);
                 if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
+                // 認証方式で spec を分岐。Enterprise では -p を EAP パスワードとして流用する。
+                bool isEnterprise = a is AuthMethod.WPA2Enterprise
+                    or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192;
+                var spec = isEnterprise
+                    ? new WifiProfileSpec
+                    {
+                        Ssid = s, Auth = a, NonBroadcast = h,
+                        EapType = eap, Username = user, Password = p,
+                        Domain = dom, ServerNames = serverNames,
+                    }
+                    : new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+
                 // spec を先に検証: 不正な場合は接続前に分かりやすいエラーを出す。
                 // executor 内でも同じ Build を呼ぶが、エラーが ConnectionResult.OsError に吸収されるため
-                // ここで早期エラーを返す。
-                var spec = new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+                // ここで早期エラーを返す。ValidateEnterprise が EAP type 必須・PEAP/TTLS の
+                // username+password 必須のエラー文言を提供する。
                 try { ProfileXmlBuilder.Build(spec); }
                 catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
@@ -349,7 +389,7 @@ public static partial class Program
                 }
             }
             catch (Exception ex) { Err($"connect failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
-        }, ssid, pw, auth, adapter, timeout, hidden);
+        });
         return cmd;
     }
 

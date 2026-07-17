@@ -135,15 +135,24 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 読み取る必要があり、これは既存の Core サービスを呼ぶだけでは完結しない新規プラットフォーム
 実装が必要。§4 優先順位からは意図的に外してある(小差分では終わらないため)。
 
-**`CatImportService` が配線できない理由(2026-07 調査で判明した、より根本的な欠落)**:
+**`CatImportService` が配線できない理由(2026-07 調査で判明した、より根本的な欠落。CLI 側は
+2026-07 に解消済み)**:
 当初は「GUI にインポートダイアログを追加するだけ」の小さな作業と見積もっていたが、調査の結果
 **GUI (`ConnectDialog`) も CLI (`mwc connect`) も、802.1X Enterprise 認証(PEAP/EAP-TTLS)の
-ユーザー名・パスワード入力に一切対応していない**ことが判明した
-(`grep -rn "Username.*Password\|EnterpriseCred" src/MWC.App/Views/ src/MWC.App/ViewModels/` は
-0件、CLI `mwc connect --auth` にも `--username` 相当のオプションが存在しない)。`ConnectDialog`
-は Personal(PSK/WEP)/Open/OWE のパスフレーズ入力のみに対応。さらに `CertificatePickerDialog`
-(EAP-TLS 用クライアント証明書選択、`src/MWC.App/Views/CertificatePickerDialog.xaml.cs`)自体も
+ユーザー名・パスワード入力に一切対応していない**ことが判明した。
+`ConnectDialog` は Personal(PSK/WEP)/Open/OWE のパスフレーズ入力のみに対応。さらに
+`CertificatePickerDialog`(EAP-TLS 用クライアント証明書選択、
+`src/MWC.App/Views/CertificatePickerDialog.xaml.cs`)自体も
 どの接続フローからも呼び出されておらず孤立している(`L.cs` の文字列参照のみ)。
+
+> **✅ CLI 側は 2026-07 に配線完了**: `mwc connect` に `--eap-type`/`--username`/`--domain`/
+> `--server-name` を追加し、Enterprise 接続に対応した(`src/MWC.Cli/Program.cs` の `BuildConnect`。
+> オプション数が SetHandler のジェネリック上限を超えるため InvocationContext 束縛へ変更)。
+> Core 層(`WifiProfileSpec`/`ProfileXmlBuilder`/`ConnectionExecutor`)は元から完全対応済みで、
+> 欠けていたのは CLI のオプション表面だけだった。契約テスト:
+> `tests/MWC.Core.Tests/CliEnterpriseSpecContractTests.cs`。
+> **残るは GUI 側**(`ConnectDialog` への Enterprise 入力欄追加)と `CertificatePickerDialog` の
+> 接続フロー配線で、これらが揃えば `CatImportService` の配線が「小差分」になる。
 
 eduroam の PEAP/EAP-TTLS は CAT XML に実際の認証情報を含まない(各利用者の学内アカウントは
 XML 配布後にユーザー自身が入力する設計が eduroam の仕様そのもの)ため、`CatImportService` を
@@ -226,11 +235,11 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
    は既に配線済み― は削除不可、§1a 注記参照)
 5. **中**: `PrivacyAdvisoryService` — MAC ランダム化状態のプラットフォーム検出を新規実装後に配線
 6. **低**: §1c のプラットフォーム実装(実機がないと検証不能)
-7. **低〜中(規模が大きいため要事前設計)**: Enterprise(802.1X)認証情報入力 UI の新規構築
-   (GUI: `ConnectDialog` 拡張 or 新規ダイアログ、CLI: `mwc connect --username` 相当)+
-   `CertificatePickerDialog` の接続フローへの接続。これが完了して初めて `CatImportService`
-   の配線が「小差分」になる。§2b の SecureString 裁定と合わせて検討すべき(資格情報の
-   安全な取り扱いという同じ論点を含むため)。
+7. Enterprise(802.1X)認証情報入力 — **CLI 側は 2026-07 完了**(`mwc connect --eap-type/
+   --username/--domain/--server-name`)。**残: GUI 側**(`ConnectDialog` への Enterprise 入力欄
+   追加 or 新規ダイアログ)+ `CertificatePickerDialog` の接続フロー配線。これが完了して初めて
+   `CatImportService` の配線が「小差分」になる。§2b の SecureString 裁定と合わせて検討すべき
+   (資格情報の安全な取り扱いという同じ論点を含むため)。
 
 ---
 
