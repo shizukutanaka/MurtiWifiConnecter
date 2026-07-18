@@ -47,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ProfileXmlBuilder` already emitted these (`<TrustedRootCA>` for PEAP/EAP-TLS,
   `<TrustedRootCAHash>` for EAP-TTLS) — only the CLI option surface was missing. Added tests
   asserting the pinned thumbprint reaches the emitted profile XML for both PEAP and TTLS.
+- **Shell completions and README updated for the new Enterprise connect options.**
+  `completions/mwc.bash` and `completions/mwc.ps1` now offer `--eap-type`, `--username`, `--domain`,
+  `--server-name`, and `--trusted-root-ca` on `mwc connect`, and the bash script additionally
+  value-completes `--auth` (all 10 auth methods) and `--eap-type` (the 3 EAP methods) so the
+  awkward enum names don't have to be typed by hand. README's CLI section gains an Enterprise
+  connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
+  fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ## [3.12.0] - 2026-07-16
 

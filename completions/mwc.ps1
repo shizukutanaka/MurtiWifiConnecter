@@ -52,7 +52,7 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
     $suggestions = switch ($command) {
         'list'          { @('--json', '--status', '--adapter') }
         'scan'          { @('--adapter', '--json', '--advise', '--recommend', '--evil-twin', '--interference', '--mesh') }
-        'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden') }
+        'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden', '--eap-type', '--username', '--domain', '--server-name', '--trusted-root-ca') }
         'disconnect'    { @('--adapter') }
         'profile'       {
             if ($depth -eq 2) { @('list', 'delete') }

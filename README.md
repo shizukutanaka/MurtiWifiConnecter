@@ -74,7 +74,11 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 ```powershell
 mwc list                          # アダプター一覧
 mwc scan --json                   # JSON スキャン
-mwc connect "MyWiFi" -p $env:PW   # 接続
+mwc connect "MyWiFi" -p $env:PW   # 接続 (-p 省略時は $env:MWC_PASSWORD を使用)
+# 802.1X Enterprise (eduroam / 社内 Wi-Fi 等)
+mwc connect eduroam --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 `
+    --username you@univ.ac.jp -p $env:MWC_PASSWORD `
+    --server-name radius.univ.ac.jp --trusted-root-ca <CA拇印>
 mwc qr "MyWiFi" -p secret         # WIFI: URI 出力
 mwc export --format csv           # CSV エクスポート
 mwc quality 8.8.8.8 -s 10         # 品質計測 (Ping × 10)

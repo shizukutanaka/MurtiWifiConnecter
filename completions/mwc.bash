@@ -25,7 +25,17 @@ _mwc_completions()
             return
             ;;
         connect)
-            COMPREPLY=( $(compgen -W "--adapter --password -p --auth --timeout --hidden" -- "$cur") )
+            case "$prev" in
+                --auth)
+                    COMPREPLY=( $(compgen -W "Open OWE WEP WPAPSK WPA2PSK WPA3SAE WPA3Transition WPA2Enterprise WPA3Enterprise WPA3Enterprise192" -- "$cur") )
+                    return
+                    ;;
+                --eap-type)
+                    COMPREPLY=( $(compgen -W "PEAP_MSCHAPv2 EAP_TLS EAP_TTLS" -- "$cur") )
+                    return
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "--adapter --password -p --auth --timeout --hidden --eap-type --username --domain --server-name --trusted-root-ca" -- "$cur") )
             return
             ;;
         disconnect)
