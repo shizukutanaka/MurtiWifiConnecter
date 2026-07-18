@@ -97,6 +97,45 @@ public class CliEnterpriseSpecContractTests
         spec.Validate().IsValid.Should().BeTrue();
     }
 
+    // ── EAP-TTLS outer-identity (Phase-1) privacy ────────────────────────
+    // The TTLS outer identity is sent in cleartext before the TLS tunnel is up,
+    // so exposing the real username there leaks it. eduroam recommends an
+    // anonymous outer identity (e.g. "anonymous@realm"). The CLI's --domain flows
+    // to spec.Domain, which ProfileXmlBuilder emits as the TTLS AnonymousIdentity —
+    // these tests pin that security-relevant wiring so it can't silently regress.
+    private static readonly XNamespace Ettns =
+        "http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
+
+    [Fact]
+    public void EapTtls_DomainBecomesAnonymousOuterIdentity()
+    {
+        // `mwc connect --eap-type EAP_TTLS --username real@univ --domain anonymous@univ -p ...`
+        var spec = CliEnterpriseSpec(
+            eap: EapType.EAP_TTLS,
+            username: "real.user@univ.ac.jp",
+            domain: "anonymous@univ.ac.jp");
+
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        doc.Descendants(Ettns + "IdentityPrivacy").Single().Value.Should().Be("true");
+        doc.Descendants(Ettns + "AnonymousIdentity").Single().Value
+            .Should().Be("anonymous@univ.ac.jp",
+                because: "--domain must become the cleartext outer identity, hiding the real username");
+        // The real username must NOT appear as the outer identity.
+        doc.Descendants(Ettns + "AnonymousIdentity").Single().Value
+            .Should().NotBe("real.user@univ.ac.jp");
+    }
+
+    [Fact]
+    public void EapTtls_NoDomain_FallsBackToAnonymousLiteral()
+    {
+        // Without --domain the outer identity defaults to the literal "anonymous",
+        // still avoiding real-username exposure in the clear.
+        var spec = CliEnterpriseSpec(eap: EapType.EAP_TTLS, domain: null);
+
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        doc.Descendants(Ettns + "AnonymousIdentity").Single().Value.Should().Be("anonymous");
+    }
+
     [Fact]
     public void EapAka_IsRejected_AsUnsupported()
     {

@@ -30,6 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and EAP passwords need not appear in the process command line (argv is world-readable via `ps` /
   `/proc`). Mirrors the existing `$env:PW` fallback in `mwc multi connect` and aligns with
   CLAUDE.md's security emphasis. `-p` still takes precedence when both are present.
+- **EAP-TTLS outer-identity privacy is now reachable and tested via the CLI's `--domain`.** The
+  TTLS Phase-1 (outer) identity is sent in cleartext before the TLS tunnel is established, so
+  putting the real username there leaks it; eduroam recommends an anonymous outer identity like
+  `anonymous@realm`. `ProfileXmlBuilder` already emitted `spec.Domain` as the TTLS
+  `AnonymousIdentity` (falling back to the literal `anonymous`), and the new `--domain` option wires
+  the CLI to it — e.g. `mwc connect eduroam --auth WPA2Enterprise --eap-type EAP_TTLS --username
+  real@univ -p PASS --domain anonymous@univ`. Added tests pinning this security-relevant mapping so
+  it can't silently regress (the real username must never become the cleartext outer identity).
+  (PEAP has no equivalent anonymous-outer-identity element in the Windows profile schema, so this
+  applies to EAP-TTLS only — left PEAP untouched rather than guess at schema without Windows
+  verification.)
 
 ## [3.12.0] - 2026-07-16
 
