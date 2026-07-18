@@ -41,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (PEAP has no equivalent anonymous-outer-identity element in the Windows profile schema, so this
   applies to EAP-TTLS only — left PEAP untouched rather than guess at schema without Windows
   verification.)
+- **`mwc connect --trusted-root-ca <thumbprint>` (repeatable) pins the RADIUS server's CA
+  certificate** for Enterprise auth, preventing acceptance of a rogue server presenting a valid
+  certificate signed by a *different* CA. `WifiProfileSpec.TrustedRootCaThumbprints` and
+  `ProfileXmlBuilder` already emitted these (`<TrustedRootCA>` for PEAP/EAP-TLS,
+  `<TrustedRootCAHash>` for EAP-TTLS) — only the CLI option surface was missing. Added tests
+  asserting the pinned thumbprint reaches the emitted profile XML for both PEAP and TTLS.
 
 ## [3.12.0] - 2026-07-16
 

@@ -136,6 +136,46 @@ public class CliEnterpriseSpecContractTests
         doc.Descendants(Ettns + "AnonymousIdentity").Single().Value.Should().Be("anonymous");
     }
 
+    // ── Trusted root CA pinning (--trusted-root-ca) ──────────────────────
+    // Pinning the RADIUS server's CA thumbprint prevents accepting a rogue
+    // server presenting a valid cert from a *different* CA. ProfileXmlBuilder
+    // already emits TrustedRootCaThumbprints (as <TrustedRootCA> for PEAP/TLS,
+    // <TrustedRootCAHash> for TTLS); the CLI's --trusted-root-ca now reaches it.
+    private static readonly XNamespace MsPeap =
+        "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
+
+    [Fact]
+    public void Peap_TrustedRootCaThumbprint_IsEmittedInProfileXml()
+    {
+        const string thumb = "ABCDEF1234567890ABCDEF1234567890ABCDEF12";
+        var spec = new WifiProfileSpec
+        {
+            Ssid = "eduroam", Auth = AuthMethod.WPA2Enterprise,
+            EapType = EapType.PEAP_MSCHAPv2,
+            Username = "student@univ.ac.jp", Password = "pw",
+            ServerNames = new[] { "radius.univ.ac.jp" },
+            TrustedRootCaThumbprints = new[] { thumb },
+        };
+
+        spec.Validate().IsValid.Should().BeTrue();
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        doc.Descendants(MsPeap + "TrustedRootCA").Select(e => e.Value)
+            .Should().Contain(thumb,
+                because: "--trusted-root-ca must pin the RADIUS CA in the emitted PEAP profile");
+    }
+
+    [Fact]
+    public void EapTtls_TrustedRootCaThumbprint_IsEmittedAsHash()
+    {
+        const string thumb = "1122334455667788990011223344556677889900";
+        var spec = CliEnterpriseSpec(eap: EapType.EAP_TTLS);
+        spec = spec with { TrustedRootCaThumbprints = new[] { thumb } };
+
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        doc.Descendants(Ettns + "TrustedRootCAHash").Select(e => e.Value)
+            .Should().Contain(thumb);
+    }
+
     [Fact]
     public void EapAka_IsRejected_AsUnsupported()
     {

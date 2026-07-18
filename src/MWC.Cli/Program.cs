@@ -313,13 +313,18 @@ public static partial class Program
         var serverName = new Option<string[]>("--server-name",
             "RADIUS server FQDN to validate the server certificate against (repeatable)")
         { AllowMultipleArgumentsPerToken = true };
+        var trustedCa = new Option<string[]>("--trusted-root-ca",
+            "Trusted root CA certificate thumbprint (SHA-1 hex) to pin for RADIUS server " +
+            "validation; prevents accepting a rogue server signed by a different CA (repeatable)")
+        { AllowMultipleArgumentsPerToken = true };
 
         var cmd     = new Command("connect",
             "Connect to a network. For Enterprise: --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 " +
             "--username u@univ.ac.jp -p PASS --server-name radius.univ.ac.jp");
         cmd.AddArgument(ssid); cmd.AddOption(pw); cmd.AddOption(auth);
         cmd.AddOption(adapter); cmd.AddOption(timeout); cmd.AddOption(hidden);
-        cmd.AddOption(eapType); cmd.AddOption(username); cmd.AddOption(domain); cmd.AddOption(serverName);
+        cmd.AddOption(eapType); cmd.AddOption(username); cmd.AddOption(domain);
+        cmd.AddOption(serverName); cmd.AddOption(trustedCa);
 
         // オプション数が System.CommandLine の SetHandler ジェネリック上限 (8) を超えるため、
         // InvocationContext から個別に値を取得する束縛方式を使う。
@@ -339,6 +344,7 @@ public static partial class Program
             var user        = ctx.ParseResult.GetValueForOption(username);
             var dom         = ctx.ParseResult.GetValueForOption(domain);
             var serverNames = ctx.ParseResult.GetValueForOption(serverName) ?? Array.Empty<string>();
+            var trustedCas  = ctx.ParseResult.GetValueForOption(trustedCa) ?? Array.Empty<string>();
 
             try
             {
@@ -358,6 +364,7 @@ public static partial class Program
                         Ssid = s, Auth = a, NonBroadcast = h,
                         EapType = eap, Username = user, Password = p,
                         Domain = dom, ServerNames = serverNames,
+                        TrustedRootCaThumbprints = trustedCas,
                     }
                     : new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
 
