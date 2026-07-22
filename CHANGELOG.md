@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **Added `docs/AI-SESSION-HANDBOOK.md`: a working guide for future Claude (Opus/Sonnet) sessions.**
+  Where `FEATURE-AUDIT.md` catalogs *what* the feature gaps are, the handbook captures *how to work
+  in this repo* — the product's strengths to preserve, the prioritized backlog with the precondition
+  that gates each item (owner action for CI/Release, Windows+dotnet for GUI/MLO, user ruling for
+  SecureString), and — most valuably — the environment traps this long session actually hit: no
+  dotnet SDK (so verify via python + CI), the `Strings.*.resx` glob that silently skips the base
+  `Strings.resx` (use `git add -u`), the class-name grep that misses extension-method call sites
+  (`SafeFireAndForget`), and the operations the sandbox auto-denies (force-push, `.github/workflows/`
+  writes, review-less master merges, tag pushes). Linked from `FEATURE-AUDIT.md`'s header.
+
 ### Added
 - **`mwc connect` now supports 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) authentication** via new
   `--eap-type`, `--username`, `--domain`, and `--server-name` (repeatable) options. This closes the
