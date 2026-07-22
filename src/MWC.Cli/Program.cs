@@ -358,6 +358,20 @@ public static partial class Program
                 // 認証方式で spec を分岐。Enterprise では -p を EAP パスワードとして流用する。
                 bool isEnterprise = a is AuthMethod.WPA2Enterprise
                     or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192;
+
+                // 落とし穴防止: Enterprise 専用オプションを指定したのに --auth が Enterprise でない場合、
+                // 黙って PSK 接続に流れ (EAP パスワードを PSK パスフレーズとして使い、username/eap-type を
+                // 無視して) 「パスフレーズ誤り」の紛らわしい失敗になる。接続前に明示エラーで弾く。
+                bool hasEnterpriseOpts = eap is not null || !string.IsNullOrEmpty(user)
+                    || !string.IsNullOrEmpty(dom) || serverNames.Length > 0 || trustedCas.Length > 0;
+                if (hasEnterpriseOpts && !isEnterprise)
+                {
+                    Err($"--eap-type/--username/--domain/--server-name/--trusted-root-ca require an " +
+                        $"Enterprise --auth (WPA2Enterprise/WPA3Enterprise/WPA3Enterprise192); got --auth {a}");
+                    Environment.Exit(ExitCode.InvalidInput);
+                    return;
+                }
+
                 var spec = isEnterprise
                     ? new WifiProfileSpec
                     {

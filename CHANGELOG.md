@@ -66,6 +66,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
+### Fixed
+- **`mwc connect` now rejects Enterprise-only options paired with a non-Enterprise `--auth`
+  instead of silently misbehaving.** Running e.g. `mwc connect eduroam --eap-type PEAP_MSCHAPv2
+  --username u -p PASS` while forgetting `--auth WPA2Enterprise` previously fell through to the
+  default WPA2PSK path, used the EAP password as a PSK passphrase, silently ignored
+  `--username`/`--eap-type`, and failed with a confusing "wrong passphrase" error. The handler now
+  detects any Enterprise option (`--eap-type`/`--username`/`--domain`/`--server-name`/
+  `--trusted-root-ca`) combined with a non-Enterprise `--auth` and exits with a clear `InvalidInput`
+  message before attempting to connect. A footgun in the Enterprise CLI shipped earlier this cycle.
+
 ## [3.12.0] - 2026-07-16
 
 ### Fixed
