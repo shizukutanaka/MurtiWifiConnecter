@@ -97,6 +97,54 @@ public class CliEnterpriseSpecContractTests
         spec.Validate().IsValid.Should().BeTrue();
     }
 
+    // ── EAP-TLS is certificate-based: no username/password required ───────
+    // Unlike PEAP/TTLS, EAP-TLS authenticates with a client certificate, so
+    // `mwc connect corp --auth WPA2Enterprise --eap-type EAP_TLS --server-name radius`
+    // (no -p, no --username) must validate and build. Windows auto-selects the
+    // client cert from the user store via SimpleCertSelection. This pins that the
+    // credential-optional path stays credential-optional (a regression that added a
+    // username requirement to EAP-TLS would break cert-based corporate/gov networks).
+    private static readonly XNamespace Etns =
+        "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
+
+    [Fact]
+    public void EapTls_NoUsernameOrPassword_IsValidAndBuildsCertBasedProfile()
+    {
+        var spec = new WifiProfileSpec
+        {
+            Ssid = "CorpNet",
+            Auth = AuthMethod.WPA2Enterprise,
+            EapType = EapType.EAP_TLS,
+            // deliberately no Username, no Password
+            ServerNames = new[] { "radius.corp.example" },
+        };
+
+        spec.Validate().IsValid.Should().BeTrue(
+            because: "EAP-TLS is certificate-based and must not require username/password");
+
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        // Cert-based: Windows auto-selects the client cert from the store.
+        doc.Descendants(Etns + "SimpleCertSelection").Single().Value.Should().Be("true");
+    }
+
+    [Fact]
+    public void EapTls_WithServerNameAndTrustedCa_PinsBoth()
+    {
+        const string thumb = "AABBCCDDEEFF00112233445566778899AABBCCDD";
+        var spec = new WifiProfileSpec
+        {
+            Ssid = "GovNet",
+            Auth = AuthMethod.WPA3Enterprise192,
+            EapType = EapType.EAP_TLS,
+            ServerNames = new[] { "radius.gov.example" },
+            TrustedRootCaThumbprints = new[] { thumb },
+        };
+
+        spec.Validate().IsValid.Should().BeTrue();
+        var doc = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        doc.Descendants(Etns + "TrustedRootCA").Select(e => e.Value).Should().Contain(thumb);
+    }
+
     // ── EAP-TTLS outer-identity (Phase-1) privacy ────────────────────────
     // The TTLS outer identity is sent in cleartext before the TLS tunnel is up,
     // so exposing the real username there leaks it. eduroam recommends an
