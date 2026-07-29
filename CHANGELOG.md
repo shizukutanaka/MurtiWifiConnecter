@@ -67,6 +67,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Fixed
+- **Bulk adapter operations now isolate per-adapter failures, structurally guaranteeing the
+  product's core promise.** Reasoning from first principles — MWC exists to manage each wireless
+  adapter *independently* (CLAUDE.md's Why) — that invariant must hold for bulk operations too, but
+  `AllAdaptersOverviewViewModel.ConnectAllPreferredAsync`/`DisconnectAllAsync` passed the raw
+  per-panel tasks to `Task.WhenAll`. Had any panel thrown, `WhenAll` would surface the first
+  exception, `UpdateSummary()` would be skipped, and the *successful* adapters' results would never
+  reach the UI — one adapter's failure silently degrading the others. (It happened not to throw
+  today only because `AdapterPanelViewModel.RefreshAsync` catches internally and
+  `ConnectionExecutor.DisconnectAsync` returns `false` rather than throwing — safety by
+  coincidence, not by construction.) Both now wrap each panel in a local `SafePanelOp` that logs
+  and swallows per-adapter faults, mirroring `MainViewModel.SafeRefreshOne`'s established pattern,
+  so the invariant is enforced by the call site rather than depending on every callee's internals.
 - **`mwc connect` now rejects Enterprise-only options paired with a non-Enterprise `--auth`
   instead of silently misbehaving.** Running e.g. `mwc connect eduroam --eap-type PEAP_MSCHAPv2
   --username u -p PASS` while forgetting `--auth WPA2Enterprise` previously fell through to the
