@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +33,22 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
     private readonly CancellationTokenSource _cts = new();
     private Task? _watchLoop;
     private bool _disposed;
+
+    // ── 再接続の失敗追跡(バックオフ / 打ち切り用)──────────────────────
+    // 自動再接続は無人動作のため、失敗しても誰も止めない。バックオフが無いと
+    // 「切断 → 3 秒後に再試行 → 失敗 → また切断イベント」で事実上のタイトループになり、
+    // 特に BadCredentials(パスワード変更後など)では永久に失敗し続ける。
+    // 固定待機は再試行を同期させるだけで無効とされ、対策は指数バックオフ + ジッター、
+    // および決定的失敗の非リトライ化 + 最大試行回数。
+    // 既存の RetryPolicy(AWS Full Jitter 方式・IsRetriable 分類器)をそのまま再利用する。
+    private readonly RetryPolicy _retry = new(
+        baseDelay: TimeSpan.FromSeconds(2),
+        maxDelay:  TimeSpan.FromMinutes(2),
+        maxAttempts: 5);
+
+    // (アダプターID, SSID) ごとの連続失敗回数。成功・別SSIDへの切替でリセットする。
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, string), int>
+        _consecutiveFailures = new();
 
     public AutoReconnectService(
         IWifiService wifi,
@@ -101,15 +118,58 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
                     if (candidate is null) continue;
 
+                    // このアダプター上で別の SSID に切り替わったら、他候補の失敗回数は無効。
+                    // (同一キーのみ残すことで「電波が戻った別ネットワーク」の試行を妨げない)
+                    ResetFailuresExcept(ev.AdapterId, candidate.Ssid);
+
+                    var key      = (ev.AdapterId, candidate.Ssid);
+                    var failures = _consecutiveFailures.GetValueOrDefault(key);
+
+                    // 打ち切り: 一時的失敗でも上限に達したら諦める。
+                    // 決定的失敗 (BadCredentials 等) は下で 1 回目に即時打ち切る。
+                    if (failures >= _retry.MaxAttempts)
+                    {
+                        _log.LogInformation(
+                            "AutoReconnect: giving up on {ssid} after {n} consecutive failures",
+                            PiiMask.Ssid(candidate.Ssid), failures);
+                        continue;
+                    }
+
+                    // 指数バックオフ + Full Jitter。初回 (failures == 0) は待たない。
+                    if (failures > 0)
+                    {
+                        var delay = _retry.ComputeDelay(failures - 1);
+                        _log.RetryBackoff(failures, (long)delay.TotalMilliseconds);
+                        await Task.Delay(delay, ct).ConfigureAwait(false);
+                    }
+
                     _log.LogInformation("AutoReconnect: trying {ssid}", PiiMask.Ssid(candidate.Ssid));
                     var res = await _executor.ConnectAsync(
                         ev.AdapterId, candidate.Ssid, candidate.Auth,
                         "", TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
 
                     if (res.Success)
+                    {
+                        _consecutiveFailures.TryRemove(key, out _);
                         _notify.NotifyConnected(candidate.Ssid, res.HasInternet, res.BehindCaptivePortal);
+                    }
                     else
-                        _notify.NotifyFailed(candidate.Ssid, res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown);
+                    {
+                        var failure = res.Failure ?? MWC.Core.Models.ConnectionFailure.Unknown;
+
+                        // 決定的失敗 (認証情報誤り・権限不足・不正プロファイル等) は
+                        // 何度試しても同じ結果になる。上限まで数えず即座に打ち切る。
+                        _consecutiveFailures[key] = RetryPolicy.IsRetriable(failure)
+                            ? failures + 1
+                            : _retry.MaxAttempts;
+
+                        if (!RetryPolicy.IsRetriable(failure))
+                            _log.LogInformation(
+                                "AutoReconnect: {ssid} failed with non-retriable {failure} — will not retry",
+                                PiiMask.Ssid(candidate.Ssid), failure);
+
+                        _notify.NotifyFailed(candidate.Ssid, failure);
+                    }
                 }
                 catch (OperationCanceledException) { return; }
                 catch (Exception ex) { _log.LogWarning(ex, "AutoReconnect error"); }
@@ -126,6 +186,18 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
             // 内側の try/catch で継続済みなので、ここに到達するのは列挙不能な重大な状態。
             _log.LogError(ex, "AutoReconnect watch loop terminated unexpectedly");
         }
+    }
+
+    /// <summary>
+    /// 指定アダプターについて、いま試そうとしている SSID 以外の失敗カウントを消す。
+    /// 別ネットワークへ移動した場合に、以前の環境での失敗回数が新しい接続先の
+    /// バックオフや打ち切り判定に影響しないようにする。
+    /// </summary>
+    private void ResetFailuresExcept(Guid adapterId, string keepSsid)
+    {
+        foreach (var k in _consecutiveFailures.Keys)
+            if (k.Item1 == adapterId && k.Item2 != keepSsid)
+                _consecutiveFailures.TryRemove(k, out _);
     }
 
     public void Dispose()

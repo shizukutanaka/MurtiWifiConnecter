@@ -67,6 +67,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Fixed
+- **Auto-reconnect now backs off exponentially and stops retrying deterministic failures.**
+  `AutoReconnectService` retried with only a fixed 3-second wait and no failure memory, so a
+  disconnect event that kept recurring produced an effectively unbounded retry loop — worst case,
+  an SSID whose password had changed would be retried forever, each attempt failing with
+  `BadCredentials` and firing another failure toast. Fixed intervals are known not to help (they
+  merely synchronize retries); the established remedy is exponential backoff with jitter, plus
+  refusing to retry non-retryable errors and capping total attempts. The fix reuses the existing
+  `RetryPolicy` (`src/MWC.Core/Services/RetryPolicy.cs` — AWS Full Jitter, already unit-tested)
+  rather than adding a second retry implementation: per-(adapter, SSID) consecutive failures are
+  tracked, the delay grows 2s → 4s → 8s → 16s → 32s (capped at 2 min, ~62s of total waiting before
+  giving up after 5 attempts), and `RetryPolicy.IsRetriable` — which already classified
+  `BadCredentials`/`InvalidProfile`/`ProfileRejected`/`InsufficientPrivilege` as deterministic —
+  now short-circuits those to "give up immediately" instead of burning all attempts. Counters reset
+  on success and when the adapter switches to a different SSID, so moving between networks isn't
+  penalized by a previous location's failures. New tests: `AutoReconnectBackoffPolicyTests.cs` pin
+  the policy's bounds (growth, cap, total wait, attempt limit, retriable classification).
 - **Failover configuration now rejects cycles at the domain layer, not just in the UI.**
   `AdapterPreferencesService.SetFailover` accepted an adapter as its own backup (A→A) and accepted
   mutual backups (A→B plus B→A). Only the WPF dialog prevented self-reference, by filtering the
