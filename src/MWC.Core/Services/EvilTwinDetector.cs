@@ -144,6 +144,66 @@ public sealed class EvilTwinDetector
             ? set.ToList()
             : Array.Empty<string>();
 
+    /// <summary>
+    /// 学習済みの信頼ベースラインを書き出す(永続化用)。
+    ///
+    /// なぜ必要か: 検査 2〜4 (BSSID 不一致・ダウングレード・ベンダー相違) は
+    /// すべて過去の学習を前提とする。学習がプロセスメモリ限りだと、アプリ再起動の
+    /// たびにベースラインが消え、直後は検査 1 しか発火しない = 理由が 1 件までしか
+    /// 積まれず HighRisk (2 件以上) に到達できない。つまり再起動直後は
+    /// 自動再接続の Evil Twin 防御が事実上無効化される。
+    /// 不正 AP 検出は「信頼済み SSID/BSSID のベースラインを事前に確立しておく」
+    /// ことが前提の技術であり、その永続化はセキュリティ上の必須要件。
+    ///
+    /// I/O はここでは行わない — 本クラスをファイルシステム非依存に保ち
+    /// (テスト容易性)、保存先や書式は呼び出し側の責務とする。
+    /// </summary>
+    public IReadOnlyList<TrustedApBaseline> ExportBaseline()
+        => _knownAuth.Select(kv => new TrustedApBaseline(
+                Ssid:    kv.Key,
+                Auth:    kv.Value,
+                Bssids:  _knownBssids.TryGetValue(kv.Key, out var b) ? b.ToList() : new List<string>(),
+                Vendors: _knownVendors.TryGetValue(kv.Key, out var v) ? v.ToList() : new List<string>()))
+            .ToList();
+
+    /// <summary>
+    /// <see cref="ExportBaseline"/> で書き出したベースラインを復元する。
+    /// 既存の学習内容には加算的にマージする(復元後に RecordTrusted しても消えない)。
+    /// 不正な項目 (SSID 空) は黙って読み飛ばす — 破損データでフィルタ全体を
+    /// 失うより、読める分だけでも防御を復旧させる方が安全側。
+    /// </summary>
+    public void ImportBaseline(IEnumerable<TrustedApBaseline> baseline)
+    {
+        foreach (var entry in baseline)
+        {
+            if (string.IsNullOrEmpty(entry.Ssid)) continue;
+
+            _knownAuth[entry.Ssid] = entry.Auth;
+
+            if (entry.Bssids is { Count: > 0 })
+            {
+                if (!_knownBssids.TryGetValue(entry.Ssid, out var set))
+                {
+                    set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    _knownBssids[entry.Ssid] = set;
+                }
+                foreach (var b in entry.Bssids)
+                    if (!string.IsNullOrEmpty(b)) set.Add(NormalizeBssid(b));
+            }
+
+            if (entry.Vendors is { Count: > 0 })
+            {
+                if (!_knownVendors.TryGetValue(entry.Ssid, out var vendors))
+                {
+                    vendors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    _knownVendors[entry.Ssid] = vendors;
+                }
+                foreach (var v in entry.Vendors)
+                    if (!string.IsNullOrEmpty(v)) vendors.Add(v);
+            }
+        }
+    }
+
     // ── Private ─────────────────────────────────────────────────
 
     private static bool IsSecurityDowngrade(AuthMethod trusted, AuthMethod current)
@@ -169,6 +229,18 @@ public sealed class EvilTwinDetector
 }
 
 // ── データ型 ─────────────────────────────────────────────────────
+
+/// <summary>
+/// 1 SSID 分の信頼ベースライン(永続化の単位)。
+/// <see cref="EvilTwinDetector.ExportBaseline"/> /
+/// <see cref="EvilTwinDetector.ImportBaseline"/> で用いる。
+/// JSON シリアライズ可能であること (System.Text.Json の既定コンストラクタ解決)。
+/// </summary>
+public sealed record TrustedApBaseline(
+    string       Ssid,
+    AuthMethod   Auth,
+    List<string> Bssids,
+    List<string> Vendors);
 
 /// <summary>Evil Twin 診断結果</summary>
 public sealed record EvilTwinVerdict(

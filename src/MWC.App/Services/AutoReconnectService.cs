@@ -68,6 +68,24 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
     // 他所と共有してはならない。
     private readonly EvilTwinDetector _evilTwin = new();
 
+    // ── 信頼ベースラインの永続化 ──────────────────────────────────────
+    // 検査 2〜4 は過去の学習を前提とするため、学習がプロセスメモリ限りだと
+    // アプリ再起動のたびに消え、直後は検査 1 しか発火しない = 理由が 1 件までしか
+    // 積まれず HighRisk (2 件以上) に到達できない。つまり再起動直後は
+    // この防御が事実上無効になる。不正 AP 検出は信頼済み SSID/BSSID の
+    // ベースラインを事前に確立しておくことが前提の技術であり、永続化は必須。
+    //
+    // 保存先・書式は NetworkHistoryService / AdapterPreferencesService と同じ流儀
+    // (LocalApplicationData/MWC 配下の JSON)。
+    private static readonly string BaselinePath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "MWC", "trusted-aps.json");
+
+    // 上限。NetworkHistoryService の MaxEntries=500 と同程度の水準に揃える。
+    // 超過分は捨てる — ベースラインは「よく使う AP を守る」ためのもので、
+    // 全履歴の保存が目的ではない。
+    private const int MaxBaselineEntries = 500;
+
     public AutoReconnectService(
         IWifiService wifi,
         NetworkHistoryService history,
@@ -83,6 +101,10 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
     public void Start()
     {
+        // 監視開始前にベースラインを復元する。これが無いと再起動直後は
+        // 検査 1 しか働かず HighRisk に到達できないため、Evil Twin 防御が
+        // 事実上無効な状態で自動再接続が動いてしまう。
+        LoadBaseline();
         _watchLoop = WatchAsync(_cts.Token);
     }
 
@@ -190,7 +212,12 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                         // 差異を検出できるようになる (学習しなければ検査 2〜4 は永久に無効)。
                         var bssid = candidate.BssEntries.FirstOrDefault()?.Bssid;
                         if (!string.IsNullOrEmpty(bssid))
+                        {
                             _evilTwin.RecordTrusted(candidate.Ssid, bssid, candidate.Auth);
+                            // 学習内容をディスクへ残す。これが無いと再起動で消え、
+                            // 検査 2〜4 が永久に立ち上がらない。
+                            SaveBaseline();
+                        }
 
                         _notify.NotifyConnected(candidate.Ssid, res.HasInternet, res.BehindCaptivePortal);
                     }
@@ -227,6 +254,55 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
             // 内側の try/catch で継続済みなので、ここに到達するのは列挙不能な重大な状態。
             _log.LogError(ex, "AutoReconnect watch loop terminated unexpectedly");
         }
+    }
+
+    /// <summary>
+    /// 信頼ベースラインをディスクから復元する。監視ループ開始前に 1 回だけ呼ぶ。
+    /// 失敗しても致命的ではない (学習し直せる) ため、例外は握りつぶして続行する —
+    /// ベースラインが無いことより、自動再接続自体が起動しないことの方が害が大きい。
+    /// </summary>
+    private void LoadBaseline()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(BaselinePath)) return;
+
+            var json = System.IO.File.ReadAllText(BaselinePath);
+            var data = System.Text.Json.JsonSerializer
+                .Deserialize<List<MWC.Core.Services.TrustedApBaseline>>(json);
+            if (data is { Count: > 0 })
+            {
+                _evilTwin.ImportBaseline(data);
+                _log.LogDebug("Evil-twin baseline restored: {n} networks", data.Count);
+            }
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            // 破損データは復旧不能。次回の保存で上書きされるので削除はしない。
+            _log.LogWarning(ex, "Trusted-AP baseline is corrupt; starting with an empty baseline");
+        }
+        catch (System.IO.IOException ex)          { _log.LogWarning(ex, "Could not read trusted-AP baseline"); }
+        catch (UnauthorizedAccessException ex)     { _log.LogWarning(ex, "Access denied reading trusted-AP baseline"); }
+    }
+
+    /// <summary>
+    /// 信頼ベースラインをディスクへ保存する。接続成功で学習が増えた直後に呼ぶ。
+    /// 保存失敗は次回の成功時に再試行されるため、例外は握りつぶす。
+    /// </summary>
+    private void SaveBaseline()
+    {
+        try
+        {
+            var snapshot = _evilTwin.ExportBaseline();
+            if (snapshot.Count > MaxBaselineEntries)
+                snapshot = snapshot.Take(MaxBaselineEntries).ToList();
+
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(BaselinePath)!);
+            System.IO.File.WriteAllText(BaselinePath,
+                System.Text.Json.JsonSerializer.Serialize(snapshot));
+        }
+        catch (System.IO.IOException ex)        { _log.LogDebug(ex, "Could not persist trusted-AP baseline"); }
+        catch (UnauthorizedAccessException ex)   { _log.LogDebug(ex, "Access denied persisting trusted-AP baseline"); }
     }
 
     /// <summary>

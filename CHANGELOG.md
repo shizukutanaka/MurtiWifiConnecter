@@ -80,6 +80,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   redo this investigation or "fix" a non-problem.
 
 ### Security
+- **The evil-twin trust baseline now survives application restarts, without which the auto-reconnect
+  guard was effectively disabled after every restart.** `EvilTwinDetector`'s learned baseline lived
+  only in process memory, and three of its four checks — unknown BSSID, security downgrade, and
+  vendor mismatch — all require that baseline. On a fresh start only check 1 (one SSID visible with
+  two different security configurations) can fire, which yields at most one reason, and one reason
+  is `Suspicious`, not `HighRisk`. Since the auto-reconnect guard added earlier this cycle aborts
+  only on `HighRisk`, a restarted app would auto-reconnect to a rogue AP it would have refused
+  minutes earlier — and against a lone rogue AP (the real network out of range) not even check 1
+  fires. Rogue-AP detection fundamentally depends on having established a baseline of trusted
+  SSIDs/BSSIDs beforehand, so persisting it is a security requirement rather than an optimization.
+  `EvilTwinDetector` gains `ExportBaseline`/`ImportBaseline` (additive merge, malformed entries
+  skipped rather than throwing) while deliberately staying free of file I/O so it remains a pure,
+  easily tested Core class; `AutoReconnectService` owns the I/O, restoring on `Start()` and saving
+  after each newly learned network, to `%LocalAppData%/MWC/trusted-aps.json` following the same
+  conventions as `NetworkHistoryService` (500-entry cap, per-exception-type handling, failures
+  logged and swallowed so a bad baseline file can never stop auto-reconnect from running). New
+  tests cover the restart round-trip, that a fresh detector genuinely cannot reach `HighRisk`
+  against a lone rogue AP, JSON round-tripping, additive merge, and malformed-entry tolerance.
 - **VPN advice now accounts for captive portals, and no longer tells you a VPN is unnecessary
   while you are behind one.** `VpnAdvisoryService.Analyze` judged only static network attributes,
   so rule 3 ("known enterprise network — traffic already routes through your organisation's

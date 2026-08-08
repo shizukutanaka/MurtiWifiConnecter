@@ -103,6 +103,112 @@ public class AutoReconnectEvilTwinGuardTests
                 because: "recording each successful connection is what arms the detector");
     }
 
+    // ── ベースラインの永続化 ──────────────────────────────────────────
+    // 検査 2〜4 は学習を前提とするため、学習がプロセスメモリ限りだと再起動のたびに
+    // 消え、直後は検査 1 しか発火しない = 理由が 1 件までしか積まれず HighRisk
+    // (2 件以上) に到達できない。つまり再起動直後は防御が事実上無効になる。
+    // 不正 AP 検出は信頼済み SSID/BSSID のベースラインを事前確立しておくことが
+    // 前提の技術であり、その永続化はセキュリティ上の必須要件。
+
+    [Fact]
+    public void FreshDetector_CannotReachHighRisk_OnLoneRogueAp()
+    {
+        // これが永続化を必要とする理由そのもの。攻撃者が単独で偽 AP を出し
+        // (本物が見えない) 学習も無い状態では、検出材料が存在しない。
+        var fresh = new EvilTwinDetector();
+        var rogue = Net("HomeNet", AuthMethod.Open, "FF:EE:DD:44:55:66");
+
+        fresh.Analyze(rogue, new List<WifiNetwork> { rogue })
+            .Risk.Should().NotBe(EvilTwinRisk.HighRisk,
+                because: "without a learned baseline there is nothing to compare against — "
+                       + "this is why the baseline must survive restarts");
+    }
+
+    [Fact]
+    public void ExportImport_RestoresDetection_AcrossSimulatedRestart()
+    {
+        // セッション 1: 正当な AP に接続して学習
+        var session1 = new EvilTwinDetector();
+        session1.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
+        var baseline = session1.ExportBaseline();
+
+        // セッション 2 (再起動後): ベースラインを復元
+        var session2 = new EvilTwinDetector();
+        session2.ImportBaseline(baseline);
+
+        // 復元後は、単独で現れた偽 AP のダウングレードを検出できる
+        var rogue = Net("HomeNet", AuthMethod.Open, "FF:EE:DD:44:55:66");
+        session2.Analyze(rogue, new List<WifiNetwork> { rogue })
+            .Reasons.Should().Contain(r => r.Contains("downgrade"),
+                because: "the whole point of persisting the baseline is that detection survives a restart");
+    }
+
+    [Fact]
+    public void ImportedBaseline_DoesNotFlagTheLegitimateApItself()
+    {
+        // 復元したベースラインが、正当な AP を疑う原因になってはならない。
+        var s1 = new EvilTwinDetector();
+        s1.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
+
+        var s2 = new EvilTwinDetector();
+        s2.ImportBaseline(s1.ExportBaseline());
+
+        var legit = Net("HomeNet", AuthMethod.WPA2PSK, "AA:BB:CC:11:22:33");
+        s2.Analyze(legit, new List<WifiNetwork> { legit })
+            .Risk.Should().Be(EvilTwinRisk.None);
+    }
+
+    [Fact]
+    public void ImportBaseline_MergesWithoutDiscardingLaterLearning()
+    {
+        // 復元後に RecordTrusted しても、復元分が消えてはならない (加算的マージ)。
+        var detector = new EvilTwinDetector();
+        detector.ImportBaseline(new[]
+        {
+            new TrustedApBaseline("NetA", AuthMethod.WPA2PSK,
+                new List<string> { "AA:BB:CC:11:22:33" }, new List<string>()),
+        });
+        detector.RecordTrusted("NetB", "11:22:33:44:55:66", AuthMethod.WPA3SAE);
+
+        detector.GetTrustedBssids("NetA").Should().NotBeEmpty();
+        detector.GetTrustedBssids("NetB").Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void ImportBaseline_SkipsMalformedEntries_RatherThanFailing()
+    {
+        // 破損データで防御全体を失うより、読める分だけでも復旧させる方が安全側。
+        var detector = new EvilTwinDetector();
+        var act = () => detector.ImportBaseline(new[]
+        {
+            new TrustedApBaseline("", AuthMethod.WPA2PSK, new List<string>(), new List<string>()),
+            new TrustedApBaseline("Good", AuthMethod.WPA2PSK,
+                new List<string> { "AA:BB:CC:11:22:33" }, new List<string>()),
+        });
+
+        act.Should().NotThrow();
+        detector.GetTrustedBssids("Good").Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void ExportBaseline_RoundTripsThroughJson()
+    {
+        // 実際の永続化は JSON 経由 (AutoReconnectService)。
+        // レコードが System.Text.Json でラウンドトリップできることを保証する。
+        var detector = new EvilTwinDetector();
+        detector.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2Enterprise);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(detector.ExportBaseline());
+        var restored = System.Text.Json.JsonSerializer
+            .Deserialize<List<TrustedApBaseline>>(json);
+
+        restored.Should().NotBeNull();
+        var revived = new EvilTwinDetector();
+        revived.ImportBaseline(restored!);
+
+        revived.GetTrustedBssids("HomeNet").Should().Contain("AA:BB:CC:11:22:33");
+    }
+
     [Fact]
     public void AttackerDowngradeWithForeignBssid_ReachesHighRisk_SoAutoReconnectRefuses()
     {
