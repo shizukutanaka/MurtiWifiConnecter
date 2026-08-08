@@ -66,6 +66,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
+### Docs
+- **Recorded why network selection deliberately has no RSSI hysteresis** (`FEATURE-AUDIT.md` §3).
+  RSSI fluctuates enough that selecting on instantaneous values normally causes "thrashing" between
+  access points — the reason Cisco's Optimized Roaming and similar designs apply a hysteresis margin
+  (typically 8 dB) before switching. Tracing every path showed MWC is structurally not exposed to
+  this: `NetworkRecommendationEngine.Rank`/`Recommend` feed **CLI display ordering only** and drive
+  no connection, while the unattended chooser (`AdapterPreferencesService.PickBestSsid`) resolves
+  strictly through the user's explicit `AutoConnectPriority` → `PinnedSsids` order and never
+  consults signal strength. Adding hysteresis would therefore guard against a ping-pong that cannot
+  occur — speculative complexity. Documented with the verification commands and an explicit trigger
+  for revisiting (if `Rank` ever starts driving automatic connections), so a future session does not
+  redo this investigation or "fix" a non-problem.
+
 ### Security
 - **VPN advice now accounts for captive portals, and no longer tells you a VPN is unnecessary
   while you are behind one.** `VpnAdvisoryService.Analyze` judged only static network attributes,

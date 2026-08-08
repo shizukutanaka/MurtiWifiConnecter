@@ -216,6 +216,7 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 | DPAPI エントロピー `"WiFix-v1"` バイト列 | 旧名の残骸に見える | **変更絶対禁止**。既存ユーザーの保存済み暗号データが復号不能になる(`DpapiSecretProtector.cs` に警告コメントあり) |
 | コア機能(複数アダプター管理)の導線 | — | `AllAdaptersOverviewView` は Ctrl+Shift+A・ツールバー・メニューから到達可能。健全 |
 | App 層サービス (`src/MWC.App/Services/`) 全15個 | Core と同じ孤立問題があるのでは | 2026-07 第2パスで全数検証。真の孤立はゼロ(全て配線済み)。App 層は健全 |
+| ネットワーク選択にヒステリシスが無い | RSSI は変動が大きく、瞬間値で選ぶと AP 間を往復する「スラッシング」を起こす — Cisco Optimized Roaming 等が典型的に 8 dB のヒステリシスを設ける理由 | **MWC では実害が発生しない構造**。2026-07 に全経路を追跡して確認: (1) `NetworkRecommendationEngine.Rank/Recommend` は **CLI の表示順にのみ**使われ、接続を駆動しない(`grep -rn "\.Recommend(\|\.Rank(" src/`)。表示順が僅差で入れ替わっても接続は起きない。(2) 自動再接続の実際の選択は `AdapterPreferencesService.PickBestSsid` で、**ユーザーが明示設定した `AutoConnectPriority` → `PinnedSsids` の順**に決まり信号強度を参照しない。したがってヒステリシスを足しても防ぐべき往復が存在せず、投機的な複雑化になる。**将来 Rank が自動接続を駆動するようになったら、その時点で再検討すること** |
 
 ### 既知の制限(意図的に未対応 — 安易に「修正」しないこと)
 
