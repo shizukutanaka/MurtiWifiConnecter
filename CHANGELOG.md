@@ -67,6 +67,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Security
+- **VPN advice now accounts for captive portals, and no longer tells you a VPN is unnecessary
+  while you are behind one.** `VpnAdvisoryService.Analyze` judged only static network attributes,
+  so rule 3 ("known enterprise network — traffic already routes through your organisation's
+  firewall/VPN, a personal VPN may be redundant") returned `NotNeeded` even when the connection was
+  still captured by a portal — precisely where that premise fails. A captive portal is access
+  control, not encryption: networks that have one are overwhelmingly shared environments (hotels,
+  airports, cafés), the portal is frequently served over plain HTTP, and a rogue portal imitating
+  the real one is an established way to harvest credentials. `Analyze` now takes an optional
+  `behindCaptivePortal` flag (default `false`, so every existing call site compiles and behaves
+  identically) and, when set, returns `StronglyRecommended` ahead of every auth-method rule,
+  including the enterprise and strong-WPA3 cases. The reason string explains *why* rather than just
+  asserting, consistent with the advisory-only design. New tests cover the enterprise and WPA3
+  overrides, the explanation text, and that the default preserves existing behaviour. The GUI
+  hand-off (surfacing this in `CaptivePortalDialog`, which already appears on detection) is left
+  for a session that can compile WPF — the Core rule is the part that can be verified here.
 - **Auto-reconnect now refuses networks flagged as evil twins.** Automatic reconnection is a primary
   entry point for evil-twin attacks: an attacker who stands up a rogue AP advertising a known SSID
   gets connections from devices whose owners never chose that network, with security downgrade (an

@@ -14,7 +14,12 @@ namespace MWC.Core.Services;
 /// 「助言のみ、実行はしない」方針(<see cref="SecurityAdvisoryService"/>,
 /// <see cref="PrivacyAdvisoryService"/> 参照)。
 ///
-/// 判断軸:
+/// 判断軸(上から順に評価。先に一致したものを返す):
+///   0. キャプティブポータルの背後 → 認証方式に関わらず強く推奨。
+///      ポータルは「アクセス制御」であって暗号化ではなく、共用環境での傍受や
+///      偽ログインページによる認証情報窃取が現実的な脅威。ケース 3 の
+///      「組織のファイアウォール経由だから不要」という前提も、通信がポータルに
+///      捕捉されている時点で成立しないため、Enterprise 判定より前に置く。
 ///   1. 暗号化なし (Open) → 常に VPN 強く推奨(内容が誰にでも見える)
 ///   2. 未知のネットワーク(過去に MWC 経由で接続実績がない)→ 暗号化の有無に
 ///      関わらず VPN 推奨(AP 運営者や Evil Twin から内容が見える可能性)
@@ -32,8 +37,35 @@ public sealed class VpnAdvisoryService
     /// 過去に MWC 経由で正常に接続した実績がある既知のネットワークかどうか
     /// (例: <see cref="NetworkHistoryService.GetEntry"/> が非 null かつ成功履歴あり)。
     /// </param>
-    public VpnAdvisory Analyze(WifiNetwork network, bool isKnownTrustedNetwork)
+    /// <param name="behindCaptivePortal">
+    /// 接続がキャプティブポータル(ログインページ)の背後にあると検出されたか
+    /// (<see cref="MWC.Core.Models.ConnectionResult.BehindCaptivePortal"/>)。
+    /// 未接続時や不明な場合は false。
+    /// </param>
+    public VpnAdvisory Analyze(
+        WifiNetwork network,
+        bool isKnownTrustedNetwork,
+        bool behindCaptivePortal = false)
     {
+        // 0. キャプティブポータルの背後 — 暗号化方式に関わらず強く推奨。
+        //
+        //    キャプティブポータルは「アクセス制御」であって「暗号化」ではない。
+        //    ポータルを備えたネットワークはホテル・空港・カフェ等の共用環境が大半で、
+        //    ポータル自体が平文 HTTP で運用されることも多く、同一ネットワーク上の
+        //    第三者による傍受や、正規ポータルを模した偽ログインページによる
+        //    認証情報の窃取が現実的な脅威として知られている。
+        //
+        //    重要なのはこの判定を Enterprise 判定より前に置くこと:
+        //    「既知 + Enterprise なら組織のファイアウォール/VPN を経由済み」という
+        //    ケース 3 の前提は、通信がポータルに捕捉されている時点で成立しない。
+        if (behindCaptivePortal)
+            return new VpnAdvisory(
+                VpnRecommendation.StronglyRecommended,
+                "Behind a captive portal (login page). A captive portal is access control, " +
+                "not encryption — other users on the same network, or a rogue portal imitating " +
+                "the real one, may be able to observe or capture what you send. Use a VPN once " +
+                "you have completed the portal login.");
+
         // 1. 暗号化なし — 既知/未知を問わず常に強く推奨
         if (network.Auth is AuthMethod.Open)
             return new VpnAdvisory(
