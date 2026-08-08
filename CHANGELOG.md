@@ -66,6 +66,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
+### Security
+- **Auto-reconnect now refuses networks flagged as evil twins.** Automatic reconnection is a primary
+  entry point for evil-twin attacks: an attacker who stands up a rogue AP advertising a known SSID
+  gets connections from devices whose owners never chose that network, with security downgrade (an
+  SSID previously seen as WPA2 now appearing as Open) the classic variant. `EvilTwinDetector`
+  already existed in Core and implemented exactly these checks — mixed security configurations for
+  one SSID, unknown BSSID/vendor, and downgrade against a learned baseline — but it was wired only
+  into `NetworkDetailViewModel` (the manual, on-screen path) and the CLI. The unattended path had no
+  check at all, which is backwards: during auto-reconnect nobody is watching to see a warning.
+  `AutoReconnectService` now runs `EvilTwinDetector.Analyze` on the candidate before connecting and
+  aborts on `HighRisk`, and calls `RecordTrusted` after each successful connection so the detector
+  actually learns a baseline (without that, the BSSID/vendor/downgrade checks can never fire).
+  The abort threshold is `HighRisk` (two or more independent indicators) rather than `Suspicious`
+  (one), because a single indicator can arise legitimately — an added access point, replaced
+  hardware — and wrongly refusing to reconnect unattended is its own harm; the manual path keeps
+  showing warnings at the lower threshold. New tests (`AutoReconnectEvilTwinGuardTests.cs`) cover
+  the concerns specific to unattended use rather than re-testing detection logic already covered by
+  `EvilTwinAndKalmanTests`: that a brand-new network, a WPA2→WPA3 upgrade, and repeated reconnects
+  to an unchanged AP are never blocked, and that a realistic downgrade attack does reach `HighRisk`.
+
 ### Fixed
 - **Auto-reconnect now backs off exponentially and stops retrying deterministic failures.**
   `AutoReconnectService` retried with only a fixed 3-second wait and no failure memory, so a

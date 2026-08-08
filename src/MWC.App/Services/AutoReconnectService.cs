@@ -50,6 +50,24 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, string), int>
         _consecutiveFailures = new();
 
+    // ── Evil Twin 検査 ────────────────────────────────────────────────
+    // 自動再接続は evil twin 攻撃の主要な侵入口である: 攻撃者が既知の SSID を持つ
+    // 偽 AP を立てるだけで、ユーザーが何も操作しなくても端末が自動的に接続してしまう。
+    // 特に危険なのがセキュリティ・ダウングレード (WPA2 だったはずの SSID が Open で出現)。
+    // 手動接続なら NetworkDetailViewModel が画面で警告を出せるが、
+    // 自動再接続は無人であり、誰も警告を見ない — 保護が最も必要なのはこちら側である。
+    //
+    // EvilTwinDetector は既存実装 (Core) をそのまま再利用する。
+    // 学習データ (RecordTrusted) が無い間は検査 2〜4 が発火せず、
+    // 検査 1 (同一 SSID に複数のセキュリティ設定が同時に見える) のみが働くため、
+    // 初回利用時に正当な接続を誤ってブロックする危険は小さい。
+    //
+    // スレッド安全性: EvilTwinDetector は内部で素の Dictionary を使っており
+    // スレッド安全ではない。このインスタンスは本サービス専用で、単一の監視ループ
+    // (WatchLoop) からのみ Analyze/RecordTrusted を呼ぶため保護は不要。
+    // 他所と共有してはならない。
+    private readonly EvilTwinDetector _evilTwin = new();
+
     public AutoReconnectService(
         IWifiService wifi,
         NetworkHistoryService history,
@@ -118,6 +136,21 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
                     if (candidate is null) continue;
 
+                    // Evil Twin 検査。HighRisk (独立した指標が 2 つ以上一致) の場合のみ
+                    // 自動接続を中止する。Suspicious (指標 1 つ) で止めないのは、
+                    // 正当な AP 増設・機器交換でも単一指標は発生しうるため — 無人動作で
+                    // 正当な再接続を妨げる害と、攻撃を許す害の釣り合いを取る判断。
+                    // ユーザーが手動接続する経路には従来どおり画面警告が出る。
+                    var verdict = _evilTwin.Analyze(candidate, scan);
+                    if (verdict.Risk == EvilTwinRisk.HighRisk)
+                    {
+                        _log.LogWarning(
+                            "AutoReconnect: refusing {ssid} — evil twin suspected ({reasons})",
+                            PiiMask.Ssid(candidate.Ssid), string.Join("; ", verdict.Reasons));
+                        _notify.NotifyFailed(candidate.Ssid, MWC.Core.Models.ConnectionFailure.ProfileRejected);
+                        continue;
+                    }
+
                     // このアダプター上で別の SSID に切り替わったら、他候補の失敗回数は無効。
                     // (同一キーのみ残すことで「電波が戻った別ネットワーク」の試行を妨げない)
                     ResetFailuresExcept(ev.AdapterId, candidate.Ssid);
@@ -151,6 +184,14 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                     if (res.Success)
                     {
                         _consecutiveFailures.TryRemove(key, out _);
+
+                        // 成功した接続を「信頼できる基準」として学習させる。
+                        // これにより次回以降、BSSID/ベンダー/セキュリティ方式の
+                        // 差異を検出できるようになる (学習しなければ検査 2〜4 は永久に無効)。
+                        var bssid = candidate.BssEntries.FirstOrDefault()?.Bssid;
+                        if (!string.IsNullOrEmpty(bssid))
+                            _evilTwin.RecordTrusted(candidate.Ssid, bssid, candidate.Auth);
+
                         _notify.NotifyConnected(candidate.Ssid, res.HasInternet, res.BehindCaptivePortal);
                     }
                     else
