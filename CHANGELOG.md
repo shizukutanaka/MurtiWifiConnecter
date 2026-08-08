@@ -67,6 +67,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Fixed
+- **Failover configuration now rejects cycles at the domain layer, not just in the UI.**
+  `AdapterPreferencesService.SetFailover` accepted an adapter as its own backup (A→A) and accepted
+  mutual backups (A→B plus B→A). Only the WPF dialog prevented self-reference, by filtering the
+  candidate list (`AdapterPreferencesDialog.xaml.cs`) — but this service lives in Core and ships
+  externally via `sdk/MWC.SDK.csproj`, so SDK consumers, the CLI, and any future UI could write a
+  cycle. `AdapterFailoverService` iterates every adapter independently, so a mutual pair would have
+  both adapters trying to rescue each other on disconnect — pointless scans, connection attempts,
+  and misleading toasts in both directions. Circular dependency is a well-known reliability failure
+  mode (requests loop between services, consume resources, and eventually time out); the standard
+  remedy is to detect and refuse the edge at write time, which is what this does: `SetFailover` now
+  walks the existing failover chain from the proposed target and refuses any edge that leads back to
+  the source, normalizing to "failover disabled" with a warning rather than throwing (per CLAUDE.md,
+  business failures are not exceptions). Self-reference falls out as the length-1 case; a visited-set
+  makes the walk terminate even if pre-existing data already contains a cycle. Valid topologies —
+  chains (A→B→C) and fan-in (A→C, B→C) — remain allowed. New tests:
+  `AdapterFailoverCycleTests.cs`.
 - **Bulk adapter operations now isolate per-adapter failures, structurally guaranteeing the
   product's core promise.** Reasoning from first principles — MWC exists to manage each wireless
   adapter *independently* (CLAUDE.md's Why) — that invariant must hold for bulk operations too, but

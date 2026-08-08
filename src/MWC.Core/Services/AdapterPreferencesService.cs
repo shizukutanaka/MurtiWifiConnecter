@@ -98,8 +98,60 @@ public sealed class AdapterPreferencesService
     public void SetLabel(Guid adapterId, string? label)
         => Save(Get(adapterId) with { CustomLabel = label });
 
+    /// <summary>
+    /// フェイルオーバー(退避先)設定。退避先が循環を作る場合は設定を無効化して保存する。
+    ///
+    /// 循環が有害な理由: フェイルオーバーは「他の子機へ退避する」ことが定義であり、
+    /// A→A(自己参照)や A→B→A(相互参照)は定義上の矛盾。AdapterFailoverService は
+    /// 全アダプターを独立に走査するため、相互参照が設定されると両方の切断時に互いへ
+    /// 接続を試み、無意味なスキャン・接続・通知が双方向に発生する。
+    /// 信頼性工学では循環依存は「要求がループしてリソースを消費し最終的にタイムアウトする」
+    /// 既知の障害パターンで、対策は「書き込み時点で検出して防ぐ」こと。
+    ///
+    /// UI (AdapterPreferencesDialog) は候補一覧から自分自身を除外しているが、
+    /// 本サービスは Core にあり sdk/MWC.SDK.csproj 経由で外部にも出荷されるため、
+    /// ドメイン不変条件は UI ではなくここで守る。
+    ///
+    /// 例外は投げない (CLAUDE.md: 業務失敗は Result、例外はバグ用)。
+    /// 不正な設定は「フェイルオーバー無効」という健全な状態へ正規化する。
+    /// </summary>
     public void SetFailover(Guid adapterId, Guid? failoverAdapterId, bool enabled)
-        => Save(Get(adapterId) with { FailoverAdapterId = failoverAdapterId, EnableFailover = enabled });
+    {
+        if (failoverAdapterId is Guid target && WouldCreateCycle(adapterId, target))
+        {
+            _log.LogWarning(
+                "Failover {From} → {To} rejected: would create a cycle. Failover disabled for this adapter.",
+                adapterId, target);
+            Save(Get(adapterId) with { FailoverAdapterId = null, EnableFailover = false });
+            return;
+        }
+
+        Save(Get(adapterId) with { FailoverAdapterId = failoverAdapterId, EnableFailover = enabled });
+    }
+
+    /// <summary>
+    /// adapterId → target のフェイルオーバー辺を追加すると循環が生じるかを判定する。
+    /// target から既存の辺を辿り、adapterId に戻れば循環。自己参照 (target == adapterId) は
+    /// 循環長 1 として同じ経路で検出される。
+    /// 訪問済み集合により、既存データが既に循環を含んでいても無限ループしない。
+    /// </summary>
+    private bool WouldCreateCycle(Guid adapterId, Guid target)
+    {
+        lock (_lock)
+        {
+            var visited = new HashSet<Guid>();
+            var current = target;
+            while (visited.Add(current))
+            {
+                if (current == adapterId) return true;
+                if (!_store.TryGetValue(current, out var p)
+                    || p.FailoverAdapterId is not Guid next)
+                    return false;
+                current = next;
+            }
+            return false;  // 既存データ内の循環に到達 (この辺自体は adapterId に戻らない)
+        }
+    }
 
     public void SetFilterPreset(Guid adapterId, bool showSecuredOnly, bool showFavoritesFirst)
         => Save(Get(adapterId) with { ShowSecuredOnly = showSecuredOnly, ShowFavoritesFirst = showFavoritesFirst });
