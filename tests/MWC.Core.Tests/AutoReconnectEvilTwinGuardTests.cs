@@ -166,11 +166,16 @@ public class AutoReconnectEvilTwinGuardTests
         detector.ImportBaseline(new[]
         {
             new TrustedApBaseline("NetA", AuthMethod.WPA2PSK,
-                new List<string> { "AA:BB:CC:11:22:33" }, new List<string>()),
+                new List<string> { "AcmeCorp" }),
         });
         detector.RecordTrusted("NetB", "11:22:33:44:55:66", AuthMethod.WPA3SAE);
 
-        detector.GetTrustedBssids("NetA").Should().NotBeEmpty();
+        // 復元分 (NetA) はダウングレード検出に使える状態で残っている
+        var rogueA = Net("NetA", AuthMethod.Open, "FF:EE:DD:44:55:66");
+        detector.Analyze(rogueA, new List<WifiNetwork> { rogueA })
+            .Reasons.Should().Contain(r => r.Contains("downgrade"));
+
+        // 後から学習した分 (NetB) も生きている
         detector.GetTrustedBssids("NetB").Should().NotBeEmpty();
     }
 
@@ -181,13 +186,16 @@ public class AutoReconnectEvilTwinGuardTests
         var detector = new EvilTwinDetector();
         var act = () => detector.ImportBaseline(new[]
         {
-            new TrustedApBaseline("", AuthMethod.WPA2PSK, new List<string>(), new List<string>()),
-            new TrustedApBaseline("Good", AuthMethod.WPA2PSK,
-                new List<string> { "AA:BB:CC:11:22:33" }, new List<string>()),
+            new TrustedApBaseline("", AuthMethod.WPA2PSK, new List<string>()),
+            new TrustedApBaseline("Good", AuthMethod.WPA2Enterprise, new List<string>()),
         });
 
         act.Should().NotThrow();
-        detector.GetTrustedBssids("Good").Should().NotBeEmpty();
+
+        // 読めた分 (Good) は復元されている — Auth が入っているので降格を検出できる
+        var rogue = Net("Good", AuthMethod.Open, "FF:EE:DD:44:55:66");
+        detector.Analyze(rogue, new List<WifiNetwork> { rogue })
+            .Reasons.Should().Contain(r => r.Contains("downgrade"));
     }
 
     [Fact]
@@ -206,7 +214,92 @@ public class AutoReconnectEvilTwinGuardTests
         var revived = new EvilTwinDetector();
         revived.ImportBaseline(restored!);
 
-        revived.GetTrustedBssids("HomeNet").Should().Contain("AA:BB:CC:11:22:33");
+        // Auth が渡っていることをダウングレード検出で確認する
+        var rogue = Net("HomeNet", AuthMethod.Open, "FF:EE:DD:44:55:66");
+        revived.Analyze(rogue, new List<WifiNetwork> { rogue })
+            .Reasons.Should().Contain(r => r.Contains("downgrade"));
+    }
+
+    // ── BSSID は永続化しない(位置プライバシー)────────────────────────
+    // BSSID は AP の MAC アドレスで、Wi-Fi 測位システムに問い合わせると位置に
+    // 変換できる。永続化するとファイルが「訪問した場所の履歴」になるため、
+    // MAC 追跡リスクを警告する立場の本製品としては保存しない。
+    // 将来のセッションが「再起動後に検査 2 が効かない」を欠陥と誤認して
+    // BSSID 保存を復活させないよう、この契約をテストで固定する。
+
+    [Fact]
+    public void ExportedBaseline_ContainsNoBssid_SoTheFileIsNotALocationHistory()
+    {
+        var detector = new EvilTwinDetector();
+        detector.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(detector.ExportBaseline());
+
+        json.Should().NotContain("AA:BB:CC:11:22:33",
+            because: "a persisted BSSID is geolocatable and would turn this file into "
+                   + "a record of everywhere the user has been");
+        json.Should().NotContain("AA:BB:CC");
+    }
+
+    [Fact]
+    public void SessionLearning_StillTracksBssids_InMemory()
+    {
+        // 永続化しないだけで、セッション中の BSSID 学習は従来どおり働く
+        // (public API GetTrustedBssids の挙動は不変)。
+        var detector = new EvilTwinDetector();
+        detector.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
+
+        detector.GetTrustedBssids("HomeNet").Should().Contain("AA:BB:CC:11:22:33");
+    }
+
+    [Fact]
+    public void AfterRestart_DowngradePlusVendorMismatch_StillReachesHighRisk()
+    {
+        // BSSID を落としても、前コミットが守ろうとした性質は保たれることの確認。
+        // 検査 3 (Auth 由来) と検査 4 (ベンダー名由来) はどちらも永続化されるため、
+        // 両方揃えば理由 2 件 = HighRisk となり自動再接続は中止される。
+        //
+        // 検査 4 が発火するには OUI DB がベンダー名を解決できる必要があるため、
+        // 攻撃者側 BSSID には DB に実在するプレフィックス 00:11:22 (Apple) を使う。
+        var restored = new EvilTwinDetector();
+        restored.ImportBaseline(new[]
+        {
+            new TrustedApBaseline("HomeNet", AuthMethod.WPA2PSK,
+                new List<string> { "TrustedVendorInc" }),   // 既知ベンダーは別物
+        });
+
+        // 攻撃者: 同じ SSID を Open で提示(降格)+ 既知と異なるベンダーの機器
+        var rogue = Net("HomeNet", AuthMethod.Open, "00:11:22:44:55:66");
+        var verdict = restored.Analyze(rogue, new List<WifiNetwork> { rogue });
+
+        verdict.Reasons.Should().Contain(r => r.Contains("downgrade"));
+        verdict.Reasons.Should().Contain(r => r.Contains("vendor"));
+        verdict.Risk.Should().Be(EvilTwinRisk.HighRisk,
+            because: "these two checks survive a restart, so the guard still aborts auto-reconnect");
+    }
+
+    [Fact]
+    public void AfterRestart_UnknownVendorAttacker_IsOnlySuspicious_DocumentedLimitation()
+    {
+        // 受け入れた限界を明示的に固定する。攻撃者の OUI が OUI DB に無い場合、
+        // 検査 4 は発火せず、検査 2 は BSSID 永続化を要するため使えない。
+        // 結果として理由は降格の 1 件 = Suspicious となり、HighRisk には達しない
+        // → 自動再接続は中止されない。
+        // 位置履歴を平文で残す害の方が大きいと判断してこの限界を選んだ。
+        // (docs/FEATURE-AUDIT.md §3 に記録)
+        var restored = new EvilTwinDetector();
+        restored.ImportBaseline(new[]
+        {
+            new TrustedApBaseline("HomeNet", AuthMethod.WPA2PSK, new List<string> { "SomeVendor" }),
+        });
+
+        // FF:EE:DD は OUI DB に無い → ベンダー解決不能 → 検査 4 は発火しない
+        var rogue = Net("HomeNet", AuthMethod.Open, "FF:EE:DD:44:55:66");
+        var verdict = restored.Analyze(rogue, new List<WifiNetwork> { rogue });
+
+        verdict.Risk.Should().Be(EvilTwinRisk.Suspicious);
+        verdict.IsSuspect.Should().BeTrue(
+            because: "the downgrade is still detected and logged, it just does not cross the abort threshold");
     }
 
     [Fact]

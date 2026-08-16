@@ -157,12 +157,27 @@ public sealed class EvilTwinDetector
     ///
     /// I/O はここでは行わない — 本クラスをファイルシステム非依存に保ち
     /// (テスト容易性)、保存先や書式は呼び出し側の責務とする。
+    ///
+    /// **BSSID は意図的に書き出さない**(セッション中はメモリに保持し続ける)。
+    /// BSSID は AP の MAC アドレスであり、Apple/Google の Wi-Fi 測位システムに
+    /// 問い合わせると位置に変換できる。実際、任意の MAC を問い合わせれば位置が返る
+    /// 設計上の弱点が報告され、研究では 1 年で 20 億件規模の BSSID が地理特定されている。
+    /// したがって BSSID をディスクに残すと、そのファイルは事実上
+    /// **「ユーザーが接続してきた場所の履歴」**になる。
+    /// 本製品は <see cref="PrivacyAdvisoryService"/> で MAC 追跡リスクを警告する立場であり、
+    /// 自ら位置追跡可能な識別子を平文で永続化するのは方針矛盾。
+    /// 「保存しなくてよいものは保存しない」を採り、ハッシュ化等の暗号設計を持ち込むより
+    /// 保存対象自体を削る方を選ぶ。
+    ///
+    /// 検出能力への影響: 再起動後も検査 3(ダウングレード, Auth 由来)と
+    /// 検査 4(ベンダー相違, ベンダー名由来)は機能するため、両者が揃えば理由 2 件 =
+    /// HighRisk に到達し自動再接続は中止される。失われるのは検査 2(未知 BSSID)のみで、
+    /// これはセッション中に再学習される。詳細と残る限界は docs/FEATURE-AUDIT.md §3 参照。
     /// </summary>
     public IReadOnlyList<TrustedApBaseline> ExportBaseline()
         => _knownAuth.Select(kv => new TrustedApBaseline(
                 Ssid:    kv.Key,
                 Auth:    kv.Value,
-                Bssids:  _knownBssids.TryGetValue(kv.Key, out var b) ? b.ToList() : new List<string>(),
                 Vendors: _knownVendors.TryGetValue(kv.Key, out var v) ? v.ToList() : new List<string>()))
             .ToList();
 
@@ -180,16 +195,9 @@ public sealed class EvilTwinDetector
 
             _knownAuth[entry.Ssid] = entry.Auth;
 
-            if (entry.Bssids is { Count: > 0 })
-            {
-                if (!_knownBssids.TryGetValue(entry.Ssid, out var set))
-                {
-                    set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    _knownBssids[entry.Ssid] = set;
-                }
-                foreach (var b in entry.Bssids)
-                    if (!string.IsNullOrEmpty(b)) set.Add(NormalizeBssid(b));
-            }
+            // BSSID は復元しない — ExportBaseline が書き出さないため
+            // (位置追跡可能な識別子を永続化しない方針。同メソッドの XML doc 参照)。
+            // セッション中の RecordTrusted による BSSID 学習は従来どおり働く。
 
             if (entry.Vendors is { Count: > 0 })
             {
@@ -235,11 +243,15 @@ public sealed class EvilTwinDetector
 /// <see cref="EvilTwinDetector.ExportBaseline"/> /
 /// <see cref="EvilTwinDetector.ImportBaseline"/> で用いる。
 /// JSON シリアライズ可能であること (System.Text.Json の既定コンストラクタ解決)。
+///
+/// **BSSID は意図的に含めない**。BSSID は Wi-Fi 測位システム経由で位置に変換でき、
+/// 永続化するとファイルが「訪問した場所の履歴」になるため
+/// (理由の詳細は <see cref="EvilTwinDetector.ExportBaseline"/> の XML doc)。
+/// ここに BSSID を足し戻さないこと。
 /// </summary>
 public sealed record TrustedApBaseline(
     string       Ssid,
     AuthMethod   Auth,
-    List<string> Bssids,
     List<string> Vendors);
 
 /// <summary>Evil Twin 診断結果</summary>

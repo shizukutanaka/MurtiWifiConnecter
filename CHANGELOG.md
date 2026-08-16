@@ -98,6 +98,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   logged and swallowed so a bad baseline file can never stop auto-reconnect from running). New
   tests cover the restart round-trip, that a fresh detector genuinely cannot reach `HighRisk`
   against a lone rogue AP, JSON round-tripping, additive merge, and malformed-entry tolerance.
+  **The persisted baseline deliberately excludes BSSIDs** — see the privacy note below.
+- **The persisted trust baseline stores no BSSIDs, so it cannot become a location history.**
+  A BSSID is an access point's MAC address, and Wi-Fi positioning systems translate MACs into
+  physical locations — querying an arbitrary MAC returns its position, a weakness researchers used
+  to geolocate on the order of two billion BSSIDs in a year. Persisting BSSIDs would therefore have
+  made `trusted-aps.json` an effective record of everywhere the user has connected, and it would
+  have been the first file in this codebase to write BSSIDs to disk (`NetworkHistoryService`,
+  `AdapterPreferencesService`, and `EapAuthStatsService` all store none). That sits badly with a
+  product whose `PrivacyAdvisoryService` warns about MAC-based tracking with academic citations.
+  Hashing was rejected because check 2 uses stored BSSIDs for both exact and OUI-prefix matching,
+  and changing the in-memory representation would ripple into the public `GetTrustedBssids` API and
+  its existing tests; not storing the data at all is the stronger and simpler guarantee. BSSID
+  learning still works normally within a session. **Accepted limitation**: right after a restart, an
+  attacker whose OUI is absent from the OUI database yields only the downgrade reason —
+  `Suspicious`, below the abort threshold. Checks 3 (downgrade) and 4 (vendor mismatch) both do
+  persist, so together they still reach `HighRisk` and abort. Recorded in `FEATURE-AUDIT.md` §3 and
+  pinned by tests, including one that asserts no BSSID appears in the serialized output and one
+  that documents the limitation explicitly.
 - **VPN advice now accounts for captive portals, and no longer tells you a VPN is unnecessary
   while you are behind one.** `VpnAdvisoryService.Analyze` judged only static network attributes,
   so rule 3 ("known enterprise network — traffic already routes through your organisation's
