@@ -80,6 +80,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   redo this investigation or "fix" a non-problem.
 
 ### Security
+- **Pinning a RADIUS server now actually enforces it: the certificate-trust prompt is suppressed
+  when server names or a trusted root CA are configured.** All three EAP methods hardcoded the
+  permissive setting — `DisableUserPromptForServerValidation` = `false` for PEAP and EAP-TLS,
+  `DisablePrompt` = `false` for EAP-TTLS. Per Microsoft's schema, `true` validates without user
+  input and fails authentication when validation fails, while `false` asks the user whether to
+  trust the certificate and connects if they accept. That prompt is the single most exploited
+  weakness in 802.1X: an attacker running a rogue AP plus a rogue RADIUS server (hostapd-wpe and
+  similar) presents a self-signed certificate, and one "Yes" establishes the PEAP tunnel and hands
+  over the MSCHAPv2 challenge/response for offline cracking — the well-documented PEAP-MSCHAPv2
+  credential-theft path. It also silently defeated the `--server-name`/`--trusted-root-ca` pinning
+  added earlier this cycle: a user could pin a CA and still be one click away from a rogue server.
+  `ProfileXmlBuilder` now derives the setting from the spec — when `ServerNames` or
+  `TrustedRootCaThumbprints` is present the user has stated exactly which server to trust, so the
+  prompt is suppressed; with neither there is nothing to validate against, so the previous
+  behaviour is kept so first-time setups and CAT-less environments still work. New tests
+  (`ServerValidationPromptTests.cs`) pin both directions for every EAP method, including that no
+  single method is left permissive as a weakest link.
 - **The evil-twin trust baseline now survives application restarts, without which the auto-reconnect
   guard was effectively disabled after every restart.** `EvilTwinDetector`'s learned baseline lived
   only in process memory, and three of its four checks — unknown BSSID, security downgrade, and

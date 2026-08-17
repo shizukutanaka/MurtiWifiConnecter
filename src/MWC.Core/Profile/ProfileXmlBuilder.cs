@@ -218,10 +218,34 @@ public static class ProfileXmlBuilder
         return eapHost;
     }
 
+    /// <summary>
+    /// サーバ証明書の検証プロンプトを抑止するか ("true" = 抑止 = 厳格)。
+    ///
+    /// これは 802.1X で最も悪用される設定である。Microsoft のスキーマ定義では
+    /// true ならユーザー入力なしで検証し、失敗すれば認証を失敗させる。
+    /// false だとユーザーに「この証明書を信頼しますか」を尋ね、承認されれば接続してしまう。
+    /// 攻撃者が偽 AP + 偽 RADIUS (hostapd-wpe 等) を立てて自己署名証明書を提示した場合、
+    /// ユーザーが 1 度「はい」を押すだけで PEAP トンネルが成立し、
+    /// MSCHAPv2 のチャレンジ/レスポンスが攻撃者に渡ってオフライン解析される
+    /// — PEAP-MSCHAPv2 の資格情報窃取として広く知られた攻撃経路。
+    ///
+    /// 方針: ユーザーが ServerNames か TrustedRootCaThumbprints を指定した場合、
+    /// それは「この特定のサーバだけを信頼する」という明示的な意図である。
+    /// そこでプロンプトを許すと 1 クリックでそのピン留めが無効化されるため厳格化する。
+    /// 逆に何も指定が無ければ照合対象が存在しないため、
+    /// 従来どおりプロンプトを許す (初回設定や CAT 未導入の環境を壊さないため)。
+    /// </summary>
+    private static string SuppressServerValidationPrompt(WifiProfileSpec spec)
+        => spec.ServerNames is { Length: > 0 }
+           || spec.TrustedRootCaThumbprints is { Length: > 0 }
+            ? "true"
+            : "false";
+
     private static XElement BuildPeapConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(MsPeapNs + "ServerValidation",
-            new XElement(MsPeapNs + "DisableUserPromptForServerValidation", "false"),
+            new XElement(MsPeapNs + "DisableUserPromptForServerValidation",
+                SuppressServerValidationPrompt(spec)),
             new XElement(MsPeapNs + "ServerNames",
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
@@ -249,7 +273,8 @@ public static class ProfileXmlBuilder
     private static XElement BuildEapTlsConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(EtNs + "ServerValidation",
-            new XElement(EtNs + "DisableUserPromptForServerValidation", "false"),
+            new XElement(EtNs + "DisableUserPromptForServerValidation",
+                SuppressServerValidationPrompt(spec)),
             new XElement(EtNs + "ServerNames",
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
@@ -279,7 +304,10 @@ public static class ProfileXmlBuilder
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
             serverValidation.Add(new XElement(EttNs + "TrustedRootCAHash", thumb));
-        serverValidation.Add(new XElement(EttNs + "DisablePrompt", "false"));
+        // TTLS の DisablePrompt も PEAP/TLS の DisableUserPromptForServerValidation と
+        // 同義 (true = プロンプト抑止 = 厳格)。同じ方針を適用する。
+        serverValidation.Add(new XElement(EttNs + "DisablePrompt",
+            SuppressServerValidationPrompt(spec)));
 
         return new XElement(EttNs + "EapTtls",
             serverValidation,
