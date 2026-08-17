@@ -28,6 +28,9 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace BeNs     = "http://www.microsoft.com/provisioning/BaseEapMethodConfig";
     private static readonly XNamespace BepNs    = "http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1";
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
+    // PeapExtensions の中身 (PerformServerValidation / AcceptServerName / IdentityPrivacy) は
+    // Windows 7 で追加された V2 スキーマ。EAP-TLS 側で EtV2Ns を使っているのと同じ構造。
+    private static readonly XNamespace MsPeapV2Ns = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2";
     private static readonly XNamespace McNs     = "http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1";
     private static readonly XNamespace EtNs     = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
     private static readonly XNamespace EtV2Ns   = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
@@ -263,7 +266,53 @@ public static class ProfileXmlBuilder
                         new XElement(McNs + "UseWinLogonCredentials", "false"))),
                 new XElement(MsPeapNs + "EnableQuarantineChecks", "false"),
                 new XElement(MsPeapNs + "RequireCryptoBinding", "false"),
-                new XElement(MsPeapNs + "PeapExtensions")));
+                BuildPeapExtensions(spec)));
+    }
+
+    /// <summary>
+    /// PEAP の PeapExtensions (V2 スキーマ) を構築する。
+    ///
+    /// 従来ここは空要素だった。一方 EAP-TLS 側は V2 の PerformServerValidation /
+    /// AcceptServerName を明示している。最も広く使われる PEAP だけが緩いと、
+    /// そこが攻撃者にとっての最弱リンクになるため揃える。
+    ///
+    /// PeapExtensionsType は xs:sequence であり要素順序が規定されている:
+    ///   PerformServerValidation → AcceptServerName → IdentityPrivacy → PeapExtensionsV2
+    /// 順序を誤ると Windows がプロファイル全体を取り込み時に拒否するため、この順を厳守する。
+    /// 各要素は optional なので、条件を満たさないものは出力しない。
+    /// </summary>
+    private static XElement BuildPeapExtensions(WifiProfileSpec spec)
+    {
+        var ext = new XElement(MsPeapNs + "PeapExtensions");
+
+        bool hasPinning = spec.ServerNames is { Length: > 0 }
+                          || spec.TrustedRootCaThumbprints is { Length: > 0 };
+
+        // 1. サーバ検証を行うか。ピン留めがある = 検証対象が定まっている場合に明示する。
+        if (hasPinning)
+            ext.Add(new XElement(MsPeapV2Ns + "PerformServerValidation", "true"));
+
+        // 2. サーバ名を ServerNames と照合するか。
+        //    照合先が空だと検証が成立しないため、ServerNames がある場合に限る
+        //    (TrustedRootCA だけの指定でこれを true にしてはならない)。
+        if (spec.ServerNames is { Length: > 0 })
+            ext.Add(new XElement(MsPeapV2Ns + "AcceptServerName", "true"));
+
+        // 3. アイデンティティ秘匿 (Phase 1 の外部アイデンティティ)。
+        //    PEAP の外部アイデンティティは TLS トンネル確立前に平文で送られるため、
+        //    実ユーザー名を晒さない方が望ましい。
+        //
+        //    ただし既定で有効化はしない: eduroam をはじめ多くの RADIUS 配備は
+        //    外部アイデンティティの realm 部分で経路制御しており、
+        //    realm を欠いた "anonymous" を送ると認証経路が壊れる。
+        //    そこでユーザーが --domain を明示した場合 (= 使うべき外部アイデンティティを
+        //    自分で指定した場合) のみ有効化する。EAP-TTLS 側と違い既定値は用いない。
+        if (!string.IsNullOrEmpty(spec.Domain))
+            ext.Add(new XElement(MsPeapV2Ns + "IdentityPrivacy",
+                new XElement(MsPeapV2Ns + "EnableIdentityPrivacy", "true"),
+                new XElement(MsPeapV2Ns + "AnonymousUserName", spec.Domain)));
+
+        return ext;
     }
 
     // Windows WLAN profile XML does not expose a way to pin a client cert by thumbprint.

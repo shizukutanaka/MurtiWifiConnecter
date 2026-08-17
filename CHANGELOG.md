@@ -49,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the CLI to it — e.g. `mwc connect eduroam --auth WPA2Enterprise --eap-type EAP_TTLS --username
   real@univ -p PASS --domain anonymous@univ`. Added tests pinning this security-relevant mapping so
   it can't silently regress (the real username must never become the cleartext outer identity).
-  (PEAP has no equivalent anonymous-outer-identity element in the Windows profile schema, so this
-  applies to EAP-TTLS only — left PEAP untouched rather than guess at schema without Windows
-  verification.)
+  (This entry originally stated that PEAP has no equivalent anonymous-outer-identity element in the
+  Windows profile schema. That was wrong: `PeapExtensionsType` in the V2 schema does define
+  `IdentityPrivacy`. PEAP identity privacy is implemented in the entry below.)
 - **`mwc connect --trusted-root-ca <thumbprint>` (repeatable) pins the RADIUS server's CA
   certificate** for Enterprise auth, preventing acceptance of a rogue server presenting a valid
   certificate signed by a *different* CA. `WifiProfileSpec.TrustedRootCaThumbprints` and
@@ -80,6 +80,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   redo this investigation or "fix" a non-problem.
 
 ### Security
+- **PEAP's `PeapExtensions` is no longer an empty element: it now carries the V2 server-validation
+  settings and, on request, identity privacy.** EAP-TLS already emitted the V2
+  `PerformServerValidation`/`AcceptServerName` pair, but PEAP — the method most people actually use,
+  eduroam included — emitted `<PeapExtensions/>` with nothing inside, leaving the most common path
+  as the weakest link. `PerformServerValidation` is now emitted when the user pinned server names or
+  a trusted root CA, and `AcceptServerName` only when `ServerNames` is non-empty (claiming to match
+  a server name against an empty list would break validation rather than strengthen it).
+  `IdentityPrivacy` (`EnableIdentityPrivacy` + `AnonymousUserName`) is emitted **only when
+  `--domain` was supplied**: the PEAP outer identity is sent in the clear before the tunnel exists,
+  so hiding the real username is desirable, but enabling it by default with a bare `anonymous` would
+  break the realm-based routing that eduroam and similar deployments rely on — so it stays opt-in
+  with a value the user chose. `PeapExtensionsType` is an `xs:sequence`, so the children are emitted
+  in the schema's required order (`PerformServerValidation` → `AcceptServerName` → `IdentityPrivacy`)
+  and a test pins that order, since getting it wrong makes Windows reject the whole profile on
+  import. **Correction to an earlier entry in this release**: it claimed PEAP has no
+  anonymous-outer-identity element in the Windows schema. It does; that claim was wrong and is
+  fixed above.
 - **Pinning a RADIUS server now actually enforces it: the certificate-trust prompt is suppressed
   when server names or a trusted root CA are configured.** All three EAP methods hardcoded the
   permissive setting — `DisableUserPromptForServerValidation` = `false` for PEAP and EAP-TLS,

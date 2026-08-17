@@ -157,6 +157,100 @@ public class ServerValidationPromptTests
             .Single().Value.Should().Be("false");
     }
 
+    // ── PEAP の PeapExtensions (V2 スキーマ) ─────────────────────────
+    // 従来 PeapExtensions は空要素で、EAP-TLS だけが V2 の PerformServerValidation /
+    // AcceptServerName を明示していた。最も広く使われる PEAP が緩いままだと
+    // そこが最弱リンクになるため揃えた。
+    // PeapExtensionsType は xs:sequence で順序が規定されている:
+    //   PerformServerValidation → AcceptServerName → IdentityPrivacy → PeapExtensionsV2
+    // 順序を誤ると Windows が取り込み時にプロファイル全体を拒否するため、順序も固定する。
+
+    private static readonly XNamespace MsPeapV2 =
+        "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2";
+
+    [Fact]
+    public void Peap_WithPinning_EmitsPerformServerValidation()
+    {
+        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }, cas: new[] { Thumb }));
+
+        doc.Descendants(MsPeapV2 + "PerformServerValidation")
+            .Single().Value.Should().Be("true");
+    }
+
+    [Fact]
+    public void Peap_WithServerName_EmitsAcceptServerName()
+    {
+        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }));
+
+        doc.Descendants(MsPeapV2 + "AcceptServerName")
+            .Single().Value.Should().Be("true");
+    }
+
+    [Fact]
+    public void Peap_WithCaButNoServerName_DoesNotClaimToMatchAServerName()
+    {
+        // 照合先 (ServerNames) が空なのに AcceptServerName=true を出すと
+        // 検証が成立しない。CA のみのピン留めでは出してはならない。
+        var doc = Build(Peap(cas: new[] { Thumb }));
+
+        doc.Descendants(MsPeapV2 + "AcceptServerName").Should().BeEmpty();
+        // 一方 PerformServerValidation は CA があるので出る
+        doc.Descendants(MsPeapV2 + "PerformServerValidation").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Peap_WithoutPinning_EmitsEmptyPeapExtensions()
+    {
+        // 何も指定が無ければ従来どおり空 — 挙動を変えない。
+        var doc = Build(Peap());
+
+        doc.Descendants(MsPeapV2 + "PerformServerValidation").Should().BeEmpty();
+        doc.Descendants(MsPeapV2 + "AcceptServerName").Should().BeEmpty();
+        doc.Descendants(MsPeapV2 + "IdentityPrivacy").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Peap_WithDomain_EnablesIdentityPrivacyWithThatValue()
+    {
+        // PEAP の外部アイデンティティは TLS トンネル確立前に平文で送られる。
+        // --domain が指定された場合はそれを匿名アイデンティティとして使う。
+        var spec = Peap(servers: new[] { "radius.univ.ac.jp" });
+        spec = spec with { Domain = "anonymous@univ.ac.jp" };
+
+        var doc = Build(spec);
+        var privacy = doc.Descendants(MsPeapV2 + "IdentityPrivacy").Single();
+
+        privacy.Element(MsPeapV2 + "EnableIdentityPrivacy")!.Value.Should().Be("true");
+        privacy.Element(MsPeapV2 + "AnonymousUserName")!.Value.Should().Be("anonymous@univ.ac.jp");
+    }
+
+    [Fact]
+    public void Peap_WithoutDomain_LeavesIdentityPrivacyOff_SoRealmRoutingKeepsWorking()
+    {
+        // 既定で有効化してはならない。eduroam 等の RADIUS 配備は外部アイデンティティの
+        // realm で経路制御しており、realm を欠いた "anonymous" を送ると認証が届かなくなる。
+        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }));
+
+        doc.Descendants(MsPeapV2 + "IdentityPrivacy").Should().BeEmpty(
+            because: "a bare anonymous identity would break realm-based RADIUS routing");
+    }
+
+    [Fact]
+    public void PeapExtensions_ChildrenFollowTheSchemaSequenceOrder()
+    {
+        // PeapExtensionsType は xs:sequence。順序違反は取り込み拒否になりうる。
+        var spec = Peap(servers: new[] { "radius.univ.ac.jp" }, cas: new[] { Thumb });
+        spec = spec with { Domain = "anonymous@univ.ac.jp" };
+
+        var doc = Build(spec);
+        var ext = doc.Descendants(
+            (XNamespace)"http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1"
+            + "PeapExtensions").Single();
+
+        ext.Elements().Select(e => e.Name.LocalName).Should().Equal(
+            "PerformServerValidation", "AcceptServerName", "IdentityPrivacy");
+    }
+
     // ── 全方式で一貫していること ──────────────────────────────────────
 
     [Theory]
