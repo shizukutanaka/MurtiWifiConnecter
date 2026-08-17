@@ -198,6 +198,39 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 - **802.1X「自動テスト」**: `EapAuthStatsService` は既存接続の成否を記録するのみで、
   テスト接続を自発しない。これも意図的(勝手な接続試行はユーザーの意図に反する)。
 
+- **疎通確認プローブ先が固定・代替なし**(2026-07 第4パスで発見。**要 Windows/dotnet セッション**)
+
+  `HttpConnectivityChecker`(`src/MWC.Platform.Windows/`)の
+  `ProbeUrl = "http://www.msftconnecttest.com/connecttest.txt"` は `const` で、
+  代替 URL も上書き手段も無い。
+
+  **判定分岐そのものは妥当**で、むしろ関連ソフトウェアより良い点がある:
+  例外(DNS 失敗・TCP 拒否・タイムアウト)を「ポータル無し + 疎通無し」と正しく区別しており、
+  Android の「204 以外はすべてポータル」より細かい。`AllowAutoRedirect = false` で
+  302 を捕捉する点、本文完全一致を要求する点も正しい(200 + 独自 HTML を返すポータルを
+  「疎通あり」と誤認しない)。
+
+  **問題は単一プローブ依存**。msftconnecttest.com は一部の国・企業ファイアウォールで
+  到達不能であり、その環境では例外経路に落ちて **実際には疎通があるのに常に
+  「インターネット無し」と報告し続ける**。captive portal 検出の一般的な弱点として
+  「walled garden がチェックをブロックすると端末は接続が死んでいると誤認する」
+  「特定 URL への依存は第三者サーバ依存という課題を生む」ことが知られており、
+  NetworkManager が接続性チェック URI を設定可能にしているのはこのため。
+
+  なお **接続成否は左右しない**(`WindowsWifiService` は `ConnectionResult.Ok(...)` を返し、
+  疎通結果は情報として渡すのみ)。影響は表示・通知の誤りに留まる。
+
+  **推奨する対応**(実装は Windows/dotnet で検証できるセッションで行うこと):
+  環境変数での上書きを追加する(既に `MWC_PASSWORD` で確立済みの流儀)。
+  例: `MWC_CONNECTIVITY_URL` / `MWC_CONNECTIVITY_EXPECT`。
+  ただし **URL だけ上書きされ期待本文が未指定の場合に本文検査を省いてはならない** —
+  ポータルは 200 + 独自 HTML を返すため、本文を見ないと「疎通あり」と誤認する。
+  その場合は Android の `generate_204` と同じく「2xx かつ本文が空」のみ疎通ありとするのが安全。
+
+  **この環境で実装しなかった理由**: `tests/` には `MWC.Core.Tests` しか無く、
+  Platform.Windows のコードは検証できない(`AI-SESSION-HANDBOOK.md` §4 の方針)。
+  検証不能な変更を疎通判定という中核経路に入れる方が、限界を文書化するより有害と判断した。
+
 ---
 
 ## §3 適正 — 過不足なしと判定済み(誤って「改善」しないこと)

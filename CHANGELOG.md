@@ -67,6 +67,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Docs
+- **Recorded the single-probe limitation in connectivity checking** (`FEATURE-AUDIT.md` §2d),
+  flagged as needing a Windows/dotnet session. `HttpConnectivityChecker`'s probe URL is a `const`
+  with no fallback and no override. Its decision logic is sound — arguably better than comparable
+  software, since it distinguishes an exception (DNS failure, refused, timeout) as "no internet, no
+  portal" rather than lumping everything non-success into "portal" as Android's 204 check does, and
+  it disables auto-redirect and requires an exact body match so a portal answering 200 with its own
+  HTML is not mistaken for working internet. The weakness is the single point of dependency:
+  msftconnecttest.com is unreachable in some countries and behind some corporate firewalls, and
+  there the probe always throws, so a perfectly working connection is reported as having no
+  internet indefinitely. This is the known walled-garden failure mode, and the reason NetworkManager
+  makes its connectivity URI configurable. Connection success is unaffected — `WindowsWifiService`
+  returns `ConnectionResult.Ok(...)` regardless — so the impact is a misleading indicator. The entry
+  records the recommended fix (environment-variable override following the established
+  `MWC_PASSWORD` convention) plus the trap to avoid: skipping the body check when only the URL is
+  overridden would make portals returning 200 look like real connectivity. Not implemented here
+  because `tests/` contains only `MWC.Core.Tests`, so platform-layer code cannot be verified in this
+  environment, and shipping an unverifiable change to the connectivity path is worse than recording
+  it.
 - **Recorded why network selection deliberately has no RSSI hysteresis** (`FEATURE-AUDIT.md` §3).
   RSSI fluctuates enough that selecting on instantaneous values normally causes "thrashing" between
   access points — the reason Cisco's Optimized Roaming and similar designs apply a hysteresis margin
