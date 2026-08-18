@@ -34,6 +34,20 @@
 ## §3 環境の罠と作業ルール(本セッションで実際に踏んだもの)
 
 - **dotnet SDK なし** → 検証は python(XML 整形性・resx キー一致・波括弧対応)+ CI 委任。§5 のチートシート参照
+- **dotnet を入れてビルドする試みは 2026-07 に実施済み — 到達不能と確定した。** 繰り返さないこと:
+  - SDK 自体は入る: `apt-get update && apt-get install -y dotnet-sdk-10.0` は成功する
+    (公式の `dot.net/v1/dotnet-install.sh` はプロキシが 403。apt には 8.0 と 10.0 のみで 9.0 は無い)。
+  - しかし **`api.nuget.org` が組織の egress ポリシーで明示的に拒否**される
+    (`curl -sS "$HTTPS_PROXY/__agentproxy/status"` の `recentRelayFailures` に
+     `gateway answered 403 to CONNECT` として記録される)。パッケージ復元ができないため
+    ビルドもテストも不可能。プロキシ README が「リトライ・回避せず報告」と定めているので迂回しない。
+  - なお `global.json` は SDK 9.0.100 / `rollForward: latestFeature` を要求するため
+    SDK 10 では解決されない。**検証のために global.json を書き換えたら必ず元に戻すこと**
+    (restore が生成する `packages.lock.json` も不完全なので消す)。
+  - **副産物として判明した CI 設計上の事実**: `tests/MWC.Core.Tests` は `net9.0-windows` を
+    ターゲットとし `MWC.App`(WPF)を参照している。つまり**テストは Linux では動かない**。
+    `docs/ci/ci.yml` が Windows ジョブでのみテストを走らせ、Ubuntu ジョブを Core ビルドに
+    限定しているのは正しい設計。Linux でテストを動かそうとしないこと。
 - **resx 編集の落とし穴**: `git add src/MWC.App/Resources/Strings.*.resx` の glob は**ベースの `Strings.resx`(ロケール接尾辞なし)にマッチしない**(shell glob の `*` は空文字に不一致)。実際に取りこぼして Stop hook に指摘された。→ **`git add -u` を使う**
 - **孤立検出 grep の盲点**: クラス名 grep は**拡張メソッド呼び出しを見逃す**。`SafeFireAndForget` を `.Forget()` 構文で使われているのに孤立と誤判定しかけた。→ 孤立候補には `grep -c "(this " <file>` で拡張メソッド定義を確認
 - **自動拒否される操作**: `git push --force*` / レビューなしの master マージ / タグ push(組織 egress ポリシーで 403)。→ designated branch へ**通常 push**、PR 作成はユーザー要求時のみ、force-push しない

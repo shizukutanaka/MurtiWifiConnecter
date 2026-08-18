@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by deliberately reintroducing it.
 
 ### Changed
+- **Recorded that building and testing locally is impossible here, after establishing it by
+  attempt rather than assumption.** "No dotnet SDK" had been treated as a fixed property of the
+  environment; it is not, and the real blocker is elsewhere. The SDK installs fine
+  (`apt-get install dotnet-sdk-10.0`; the official install script is proxy-blocked, and apt carries
+  8.0 and 10.0 but not the 9.0 `global.json` pins). Restore then fails because **`api.nuget.org` is
+  denied by the organisation's egress policy** — visible as `gateway answered 403 to CONNECT` in
+  `curl "$HTTPS_PROXY/__agentproxy/status"`. Without package restore there is no build and no test
+  run, and the proxy documentation says to report such denials rather than route around them. A
+  useful by-product: `tests/MWC.Core.Tests` targets `net9.0-windows` and references the WPF
+  `MWC.App`, so **the test suite cannot run on Linux at all** — which confirms `docs/ci/ci.yml` is
+  right to run tests only in its Windows job and keep the Ubuntu job to a Core build.
+  `AI-SESSION-HANDBOOK.md` now carries the whole finding, including the reminder to restore
+  `global.json` and delete the partial `packages.lock.json` files afterwards, so no future session
+  spends this effort again.
+
+### Changed
 - **Established why CI cannot be installed from here, replacing a wrong explanation with a verified
   one.** Both `FEATURE-AUDIT.md` §0 and `AI-SESSION-HANDBOOK.md` recorded that agent writes to
   `.github/workflows/` are *auto-reverted by an environment guardrail* — an inference drawn from
