@@ -73,6 +73,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **`mwc passpoint` — Passpoint / Hotspot 2.0 discovery, wiring the last blocked service.**
+  `Hotspot20Service` had been orphaned since the audit began, because `WifiNetwork.IsPasspoint`
+  reads `BssInfo.HasInterworkingElement` and nothing populated it. Adding Interworking detection to
+  `BeaconIeParser` (below) closed that gap — and the platform half turned out to already exist:
+  `WlanBssIeProvider` supplies raw beacons on Windows and `BeaconEnrichmentService` applies the
+  parsed result, so the value now flows end to end with no platform work left. The command lists
+  nearby capable access points, or the built-in carrier presets with `--carriers`. It presents
+  results as *candidates*: an Interworking element is the first-stage filter, while a complete
+  Hotspot 2.0 determination also needs the WFA vendor-specific element, so the wording avoids
+  overclaiming. Tests in `PasspointWiringTests.cs` pin that both Enterprise security *and*
+  Interworking are required — either alone must not qualify, or the command would point users at
+  ordinary corporate networks.
+
+### Added
 - **802.11u Interworking detection, removing the Core-side half of the Passpoint blocker.**
   `WifiNetwork` read `BssInfo.HasInterworkingElement` to decide whether an access point supports
   Passpoint/Hotspot 2.0, but **no layer ever set it** — the same "wired but the data source is
