@@ -86,8 +86,15 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
   `RegisterProfileAsync` が `false` 固定のため、パスフレーズ必須ネットワークへは
   `ConnectionExecutor` が接続前に失敗させる。**注意**: 安易にスタブを `true` にしても直らない
   (詳細な罠の解説がファイル内コメントに記載済み。`NmcliWifiService` の Linux 実装が正しい手本)。
-- `src/MWC.Platform.Android/AndroidWifiService.cs`、`src/MWC.Platform.iOS/IosWifiService.cs` —
-  **完全スタブ**(全メソッドが空配列/false/失敗を返す)。API 参照コメントのみ有用。
+- ~~`src/MWC.Platform.Android/`、`src/MWC.Platform.iOS/`~~ — **2026-07 に削除済み**。
+  全メソッドが空配列/false/失敗を返す完全スタブで、製品(App/CLI)からの参照はゼロ、
+  `MWC.sln` の登録以外に存在理由が無かった。CLAUDE.md の Why が
+  「**Windows PC** で複数の無線アダプターを管理する」である以上、
+  動かない iOS/Android 実装を抱えることは「サポートしている」という誤った印象を与えるだけで、
+  ビルド対象と読解対象を増やす純粋な負債だった。
+  唯一の資産だった API 参照コメントは git 履歴に残っている
+  (`git log --diff-filter=D -- src/MWC.Platform.Android`)。
+  **復活させる場合は、動作する実装と実機検証をセットにすること。**
 
 ### 1d. 配線されているがデータ源が空(2026-H2 Web 調査で発見)
 

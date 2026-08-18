@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Deleted the Android and iOS platform projects (244 lines).** Applying "question every
+  requirement, then delete": both were complete stubs — every method returned an empty array,
+  `false`, or a failure — with zero references from the product (`grep` for the projects and their
+  service classes across `src/`, `tests/`, `sdk/` finds nothing outside their own directories) and
+  no entry in the solution-registration test. The requirement they served ("MWC supports mobile
+  platforms") has no owner and contradicts the project's own charter in CLAUDE.md, whose stated Why
+  is managing multiple adapters on a **Windows PC**. Carrying non-functional implementations does
+  not add capability; it advertises support that does not exist while enlarging the build and the
+  reading surface. Their one genuine asset, the API-reference comments, remains in git history
+  (`git log --diff-filter=D -- src/MWC.Platform.Android`). Removed from `MWC.sln` together with
+  their build-configuration and nesting entries; the file was verified afterwards to contain no
+  dangling GUID references and a balanced Project/EndProject count.
+
 ### Docs
 - **Added `docs/AI-SESSION-HANDBOOK.md`: a working guide for future Claude (Opus/Sonnet) sessions.**
   Where `FEATURE-AUDIT.md` catalogs *what* the feature gaps are, the handbook captures *how to work
