@@ -96,7 +96,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 
 | サービス | 唯一の"参照" | 実態 |
 |---|---|---|
-| `GroupPolicyProvider` | `MWC.Core.csproj` のコメント行 | Intune/GP ポリシー読取。どのコードも呼んでいない |
+| ~~`GroupPolicyProvider`~~ | — | **✅ 削除済み(2026-07 第4パス)**。Intune/GP ポリシー読取だが、どのコードも呼んでいなかった = **管理者がポリシーを設定しても何も起きない**状態で、存在しない管理性を主張していた。さらにこのサービスだけのために `Microsoft.Win32.Registry` パッケージ参照が Core に入っており、削除と同時に依存も除去した(Core 内の Registry 利用は他にゼロであることを確認済み) |
 | `PrivacyAdvisoryService` | `VpnAdvisoryService` の XML doc 言及 | MAC ランダム化助言。どのコードも呼んでいない |
 | `ISecretProtector` / `DpapiSecretProtector` | `App.xaml.cs`/CLI `Program.cs` の **DI 登録のみ** | `Protect`/`Unprotect` の呼び出し元ゼロ。§2b 参照 |
 

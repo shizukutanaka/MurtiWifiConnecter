@@ -26,8 +26,6 @@
     <!-- LoggerMessage source generation 用 (高性能構造化ログ)。バージョンは Directory.Packages.props で集中管理 -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="System.Text.Json" />
-    <!-- GroupPolicyProvider が Registry を使用。plain net9.0 では in-box でないため明示参照 -->
-    <PackageReference Include="Microsoft.Win32.Registry" />
   </ItemGroup>
 </Project>
 

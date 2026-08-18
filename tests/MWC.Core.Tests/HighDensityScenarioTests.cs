@@ -457,50 +457,6 @@ public class NetworkHistoryStatsTests
     }
 }
 
-public class GroupPolicyProviderTests
-{
-    [Fact]
-    public void IsSsidAllowed_EmptyAllowList_AllowsAll()
-    {
-        var gp = GroupPolicyProvider.Instance;
-        // GP キーが未設定 = 全許可
-        if (!gp.IsManagedDevice)
-        {
-            gp.IsSsidAllowed("AnySSID").Should().BeTrue();
-            gp.IsSsidAllowed("AnotherNet").Should().BeTrue();
-        }
-        else
-        {
-            // 管理デバイスでも例外なく返すこと
-            var act = () => gp.IsSsidAllowed("Test");
-            act.Should().NotThrow();
-        }
-    }
-
-    [Fact]
-    public void GetAllPolicies_ReturnsListWithoutException()
-    {
-        var gp = GroupPolicyProvider.Instance;
-        var policies = gp.GetAllPolicies();
-        policies.Should().NotBeNull();
-        // 未管理環境では空リストが返る
-        policies.Should().AllSatisfy(p =>
-        {
-            p.Name.Should().NotBeNullOrEmpty();
-            p.Value.Should().NotBeNull();
-        });
-    }
-
-    [Fact]
-    public void PolicyEntries_HaveValidStructure()
-    {
-        var entry = new PolicyEntry("TestKey", "TestValue", "DWORD");
-        entry.Name.Should().Be("TestKey");
-        entry.Value.Should().Be("TestValue");
-        entry.Type.Should().Be("DWORD");
-    }
-}
-
 public class AccessibilityAuditTests
 {
     private readonly AccessibilityAuditService _svc = new();

@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   imprecise "15 ロケール" phrasing in `AI-SESSION-HANDBOOK.md` was corrected to match.
 
 ### Removed
+- **Deleted `GroupPolicyProvider` (167 lines) and, with it, Core's `Microsoft.Win32.Registry`
+  dependency.** Its only reference anywhere was a comment in `MWC.Core.csproj` explaining why that
+  package reference existed — so an unwired service was the sole reason a dependency sat in the core
+  library. Worse, being unwired means an administrator who configured the documented policies under
+  `HKLM\SOFTWARE\Policies\MWC` would see no effect whatsoever: the code advertised manageability
+  that did not exist. Verified nothing else in Core touches the registry before removing the package
+  reference, and the resulting `.csproj` still parses as valid XML.
 - **Deleted `WifiDirectService` (217 lines) and its tests.** It orchestrates Wi-Fi Direct
   peer-to-peer pairing through an `IWifiDirectAdapter` whose platform implementation
   (`WindowsWifiDirectAdapter`) has never existed, so the service could not run. Beyond that, Wi-Fi
