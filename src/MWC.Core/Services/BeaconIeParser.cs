@@ -190,6 +190,23 @@ public sealed record BeaconIeSummary(
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>
     public bool SupportsFastTransition => MobilityDomain is not null;
 
+    /// <summary>
+    /// 802.11u Interworking 要素 (Element ID 107) を含む = Passpoint / Hotspot 2.0 の候補。
+    ///
+    /// Interworking 要素の存在は「この AP がネットワーク選択のための情報提供に対応している」
+    /// ことを示し、Passpoint 対応 AP は必ずこれを広告する。Hotspot 2.0 の完全な判定には
+    /// さらに Vendor Specific 要素 (WFA OUI) の確認が要るが、Interworking の有無は
+    /// 第一段のふるい分けとして有効で、`Hotspot20Service` が必要とするのはこの信号である。
+    ///
+    /// 専用フィールドを増やさず <see cref="PresentElementIds"/> から導出しているのは、
+    /// パーサーが既に全要素 ID を記録しており、本要素については「あるか無いか」しか
+    /// 使わないため — 使わない本文を保持する理由がない。
+    /// </summary>
+    public bool HasInterworking => PresentElementIds.Contains(InterworkingElementId);
+
+    /// <summary>802.11u Interworking 要素の Element ID。</summary>
+    public const byte InterworkingElementId = 107;
+
     /// <summary>802.11k Neighbor Report 情報を含む。</summary>
     public bool HasNeighborReport => Neighbors.Count > 0;
 

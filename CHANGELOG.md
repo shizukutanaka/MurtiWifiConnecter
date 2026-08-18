@@ -73,6 +73,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **802.11u Interworking detection, removing the Core-side half of the Passpoint blocker.**
+  `WifiNetwork` read `BssInfo.HasInterworkingElement` to decide whether an access point supports
+  Passpoint/Hotspot 2.0, but **no layer ever set it** — the same "wired but the data source is
+  empty" pattern as MLO (§1d), and the recorded reason `Hotspot20Service` could not be wired.
+  The repository already had a complete IE-parsing pipeline (`BeaconIeParser` → `BeaconIeApplier`
+  → `IBeaconIeProvider`), so the missing piece was one element. `BeaconIeParser` now reports
+  `HasInterworking` (Element ID 107) and the applier sets the flag on the BSS entry, following the
+  existing convention that a raised flag is never lowered by a later scan that happens not to see
+  it. The derivation reuses `PresentElementIds` rather than adding a field, since only presence
+  matters here. **What remains is platform work only**: supplying the raw IE bytes via an
+  `IBeaconIeProvider` implementation on Windows. Deliberately structured this way — the parsing is
+  Core logic and therefore testable here, so the part that can only be written against real
+  hardware is as small as possible. Tests: `InterworkingIeTests.cs`, including that a truncated IE
+  cannot produce a false positive.
+
+### Added
 - **`mwc import-cat` — eduroam CAT import, the feature `FEATURE-AUDIT.md` §2a had listed as
   blocked.** A CAT `eap-config` file describes the *institution*: SSID, EAP method, RADIUS server
   names, trusted root CAs and the anonymous outer identity. It deliberately contains no user
