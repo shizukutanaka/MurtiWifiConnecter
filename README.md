@@ -195,6 +195,7 @@ dotnet test    MWC.sln                    # 881 test methods
 - [アーキテクチャ](docs/architecture.md) — 設計概要
 - [ベンチマーク](docs/benchmarks.md) — 性能ベースライン
 - [ADR](docs/adr/) — アーキテクチャ決定記録 (25件)
+- [完成チェックリスト](docs/COMPLETION-CHECKLIST.md) — 残作業と実行手順(メンテナ向け)
 
 ## ライセンス
 

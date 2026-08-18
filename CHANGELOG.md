@@ -303,6 +303,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
 
 ### Docs
+- **Added `docs/COMPLETION-CHECKLIST.md` — the remaining work, addressed to whoever holds the
+  permissions.** Three items are left and none can be done from an agent session: installing CI,
+  cutting a GitHub Release, and implementing per-link MLO details. Those facts were scattered across
+  `FEATURE-AUDIT.md` §0/§1d and `AI-SESSION-HANDBOOK.md` §2, written for a future AI session rather
+  than for a maintainer. The checklist reorders them by priority, states for each **what was
+  actually attempted and what came back** (the verbatim GitHub refusal for workflows, the 403 on tag
+  push plus the absence of any release-creation tool among the ~50 enumerated, and why per-link RSSI
+  cannot be derived from beacons the way MLO capability could), and gives the exact commands to run.
+  CI is marked first because nothing in this repository has ever been verified by execution —
+  including this release — so the 881 declared test methods would run for the first time.
+
+### Docs
 - **Recorded the single-probe limitation in connectivity checking** (`FEATURE-AUDIT.md` §2d),
   flagged as needing a Windows/dotnet session. `HttpConnectivityChecker`'s probe URL is a `const`
   with no fallback and no override. Its decision logic is sound — arguably better than comparable
