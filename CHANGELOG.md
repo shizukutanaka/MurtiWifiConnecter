@@ -47,6 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **The GUI connect flow can now carry a full `WifiProfileSpec`**, which is the prerequisite for
+  Enterprise (802.1X) credentials in the UI. `AdapterConnectExtension.ConnectWithAppleFlowAsync`
+  only accepted a passphrase string, so EAP type, username, anonymous outer identity, server names
+  and trusted root CA had nowhere to travel — the reason `FEATURE-AUDIT.md` §2a lists GUI Enterprise
+  entry as blocked. A spec-taking overload now exists, and the existing string overload builds a PSK
+  spec and delegates to it, so every current call site compiles and behaves exactly as before. The
+  CLI's `BuildConnect` remains the reference implementation for how a spec is assembled.
+
+### Added
 - **`tools/verify.sh` — the static checks that are possible without a dotnet SDK, in one command.**
   CI has never run here (`FEATURE-AUDIT.md` §0) and work often happens without a .NET toolchain, but
   a surprising amount is still verifiable: XML well-formedness across every resx/xaml/csproj, locale
