@@ -73,6 +73,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **Wi-Fi 7 MLO capability is now detected from beacons**, splitting what the audit had treated as
+  one indivisible platform task. `WifiNetwork.IsMlo` — a flag separate from the `MloLinks` list —
+  was never set by anything. Applying the decomposition test recorded earlier (is the value
+  *advertised* or *measured*?) shows the answer differs for the two: MLO **support** is advertised
+  in the 802.11be Multi-Link element and is pure byte parsing, while per-link RSSI is measured and
+  still needs a runtime API. `BeaconIeParser` now reports `HasMultiLink` and the applier sets
+  `IsMlo`, which is enough to identify Wi-Fi 7 access points in a scan list. Implementing it
+  surfaced that the parser documented extended elements (ID 255) in its header comment but never
+  actually read their Element ID Extension — now it does, which any future extended element will
+  need. Note the trap the tests pin explicitly: Interworking and Multi-Link are **both 107** but in
+  different namespaces (normal element ID vs extension ID), so confusing them would misreport
+  ordinary access points as Wi-Fi 7. Adding a field to `BeaconIeSummary` was made backward
+  compatible with a default so existing construction sites keep compiling.
+
+### Added
 - **`mwc passpoint` — Passpoint / Hotspot 2.0 discovery, wiring the last blocked service.**
   `Hotspot20Service` had been orphaned since the audit began, because `WifiNetwork.IsPasspoint`
   reads `BssInfo.HasInterworkingElement` and nothing populated it. Adding Interworking detection to

@@ -119,6 +119,76 @@ public class InterworkingIeTests
         net.BssEntries[0].HasInterworkingElement.Should().BeFalse();
     }
 
+    // ── 802.11be Multi-Link (拡張要素) ───────────────────────────
+    // Interworking と Multi-Link はどちらも 107 だが**名前空間が違う** —
+    // 前者は通常の Element ID、後者は拡張要素 (ID 255) の Element ID Extension。
+    // 取り違えると通常の AP を Wi-Fi 7 と誤認する (またはその逆)。
+
+    /// <summary>拡張要素: [255][len][ExtId][body...]</summary>
+    private static byte[] ExtIe(byte extId, params byte[] body)
+    {
+        var el = new List<byte> { 255, (byte)(body.Length + 1), extId };
+        el.AddRange(body);
+        return el.ToArray();
+    }
+
+    private static byte[] MultiLinkIe() => ExtIe(BeaconIeSummary.MultiLinkExtensionId, 0x00, 0x00);
+
+    [Fact]
+    public void MultiLinkElement_IsDetected()
+    {
+        var data = SsidIe("WiFi7-AP").Concat(MultiLinkIe()).ToArray();
+
+        BeaconIeParser.Parse(data).HasMultiLink.Should().BeTrue();
+    }
+
+    [Fact]
+    public void InterworkingAlone_IsNotMistakenForMultiLink()
+    {
+        // 同じ 107 でも通常要素なので MLO ではない。
+        var summary = BeaconIeParser.Parse(SsidIe("Passpoint").Concat(InterworkingIe()).ToArray());
+
+        summary.HasInterworking.Should().BeTrue();
+        summary.HasMultiLink.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MultiLinkAlone_IsNotMistakenForInterworking()
+    {
+        var summary = BeaconIeParser.Parse(SsidIe("WiFi7").Concat(MultiLinkIe()).ToArray());
+
+        summary.HasMultiLink.Should().BeTrue();
+        summary.HasInterworking.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExtendedElementWithEmptyBody_IsIgnored_NotMisread()
+    {
+        // [255][0] — 拡張要素を名乗るが Ext ID が無い壊れた形。
+        // 範囲外参照せず、何も検出しないこと。
+        var data = SsidIe("X").Concat(new byte[] { 255, 0 }).ToArray();
+
+        var act = () => BeaconIeParser.Parse(data);
+        act.Should().NotThrow();
+        BeaconIeParser.Parse(data).HasMultiLink.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MultiLinkSummary_SetsIsMloOnTheNetwork()
+    {
+        var summary = BeaconIeParser.Parse(SsidIe("WiFi7-AP").Concat(MultiLinkIe()).ToArray());
+
+        NetWithOneBss().WithBeaconIe(summary).IsMlo.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WithoutMultiLink_IsMloStaysFalse()
+    {
+        var summary = BeaconIeParser.Parse(SsidIe("PlainAP"));
+
+        NetWithOneBss().WithBeaconIe(summary).IsMlo.Should().BeFalse();
+    }
+
     [Fact]
     public void AlreadySetFlag_IsNeverClearedByASummaryWithoutIt()
     {

@@ -32,6 +32,7 @@ public static class BeaconIeParser
         CountryInfo? country = null;
         TpcReport? tpc = null;
         var presentIds = new List<byte>();
+        var presentExtIds = new List<byte>();
         bool bssTransitionMgmt = false;
 
         int i = 0;
@@ -44,6 +45,11 @@ public static class BeaconIeParser
 
             var body = data.Slice(bodyStart, len);
             presentIds.Add(id);
+
+            // 拡張要素 (Element ID 255) は Body 先頭 1 バイトが Element ID Extension。
+            // 本文が空の壊れた要素で範囲外参照しないよう長さを確認する。
+            if (id == ExtendedElementId && len >= 1)
+                presentExtIds.Add(body[0]);
 
             switch (id)
             {
@@ -100,11 +106,14 @@ public static class BeaconIeParser
             Country:            country,
             Tpc:                tpc,
             BssTransitionMgmt:  bssTransitionMgmt,
-            PresentElementIds:  presentIds);
+            PresentElementIds:  presentIds,
+            PresentExtensionIds: presentExtIds);
     }
 
     // ── 個別要素デコーダ (本体スライスのみを受け取る) ─────────────────
     private const byte ExtendedCapabilitiesId = 127;
+    /// <summary>拡張要素のコンテナ ID。実体は Body 先頭 1 バイトの Element ID Extension で決まる。</summary>
+    private const byte ExtendedElementId = 255;
     private const byte VendorSpecificId = 221;
     private static ReadOnlySpan<byte> WmmOui => [0x00, 0x50, 0xF2];
     private static readonly IReadOnlyList<NeighborApInfo> EmptyNeighbors = Array.Empty<NeighborApInfo>();
@@ -185,7 +194,10 @@ public sealed record BeaconIeSummary(
     CountryInfo?                  Country,
     TpcReport?                    Tpc,
     bool                          BssTransitionMgmt,
-    IReadOnlyList<byte>           PresentElementIds)
+    IReadOnlyList<byte>           PresentElementIds,
+    // 既定値を持たせて後方互換にする。既存の呼び出し側 (テストを含む) は
+    // 拡張要素を扱わないため、追加のたびに全構築箇所を書き換える必要はない。
+    IReadOnlyList<byte>?          PresentExtensionIds = null)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>
     public bool SupportsFastTransition => MobilityDomain is not null;
@@ -206,6 +218,27 @@ public sealed record BeaconIeSummary(
 
     /// <summary>802.11u Interworking 要素の Element ID。</summary>
     public const byte InterworkingElementId = 107;
+
+    /// <summary>
+    /// 802.11be Multi-Link 要素 (拡張要素、Element ID Extension 107) を広告しているか
+    /// = この AP は Wi-Fi 7 の MLO (Multi-Link Operation) に対応している。
+    ///
+    /// これは AP が**広告する能力**であり、実際に張られたリンクの本数や
+    /// リンクごとの RSSI とは別物である。後者は接続中のランタイム API
+    /// (`ManagedNativeWifi.GetRealtimeConnectionQuality`) からしか得られず、
+    /// `WifiNetwork.MloLinks` を埋めるにはそちらが要る (docs/FEATURE-AUDIT.md §1d)。
+    /// ビーコンから分かるのは「対応しているか否か」までで、
+    /// スキャン一覧で Wi-Fi 7 AP を見分けるにはそれで足りる。
+    ///
+    /// Interworking (ID 107) と数値が同じだが**名前空間が異なる** —
+    /// あちらは通常の Element ID、こちらは拡張要素の Element ID Extension。
+    /// 混同しないよう別プロパティ・別リストで扱う。
+    /// </summary>
+    public bool HasMultiLink =>
+        PresentExtensionIds is not null && PresentExtensionIds.Contains(MultiLinkExtensionId);
+
+    /// <summary>802.11be Multi-Link 要素の Element ID Extension。</summary>
+    public const byte MultiLinkExtensionId = 107;
 
     /// <summary>802.11k Neighbor Report 情報を含む。</summary>
     public bool HasNeighborReport => Neighbors.Count > 0;

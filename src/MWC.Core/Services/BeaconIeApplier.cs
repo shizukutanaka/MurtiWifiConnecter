@@ -26,6 +26,11 @@ public static class BeaconIeApplier
             NeighborReport   = network.NeighborReport   || summary.HasNeighborReport,
             BssTransitionMgmt = network.BssTransitionMgmt || summary.BssTransitionMgmt,
 
+            // Wi-Fi 7 MLO 対応 (802.11be Multi-Link 要素を広告しているか)。
+            // これは「対応しているか」までで、実際のリンク本数や各リンクの RSSI
+            // (WifiNetwork.MloLinks) はランタイム API が要る — §1d 参照。
+            IsMlo = network.IsMlo || summary.HasMultiLink,
+
             // 先頭 BSS へ BssLoad / MDID を補完 (各々未設定の場合のみ)
             BssEntries = BackfillFirstBss(network.BssEntries, summary.BssLoad, summary.MobilityDomain?.Mdid, summary.HasInterworking),
         };

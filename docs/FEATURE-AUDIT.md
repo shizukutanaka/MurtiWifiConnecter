@@ -185,7 +185,12 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
   正確な理由 — 名前空間衝突・情報源間の型定義不一致・コンパイル検証不能な環境という
   3点 — は `docs/arxiv-improvement-analysis.md` §2026-H2追補 を参照)。
   **次のアクション**: dotnet/Windows 実機検証が可能なセッションで実装すること。
-  **なぜ Interworking のように Core へ分解できないか(2026-07 第4パスで確認)**:
+  **2026-07 第4パス — 一部は分解できた**: 「MLO 対応か否か」は 802.11be Multi-Link 要素
+  (拡張要素、Element ID Extension 107)としてビーコンで**広告される**ため、
+  `BeaconIeParser.HasMultiLink` で検出し `WifiNetwork.IsMlo` に配線した
+  (実装時にパーサーが拡張要素の Ext ID を読んでいなかったことも判明し、併せて対応)。
+  スキャン一覧で Wi-Fi 7 AP を見分けるにはこれで足りる。
+  **残るのはリンク詳細 (`MloLinks`) のみ**:
   `MloLink` は `Rssi`(リンクごとの実測受信強度)を要求する。これはビーコンの
   Multi-Link 要素には含まれない**実測値**であり、接続中のランタイム API からしか得られない。
   802.11u Interworking が Core に切り出せたのは、あれが「広告される静的な能力情報」
