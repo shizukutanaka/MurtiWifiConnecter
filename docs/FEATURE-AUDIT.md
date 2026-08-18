@@ -35,8 +35,26 @@
 
 ## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
-### 1a. 完全孤立サービス(2026-07 執筆時点11個 → `OweSelectionService`/`RegulatoryDomainService`/
-`RetryPolicy`/`SignalIconService` 配線済みにより現在7個)
+### 1a. 完全孤立サービス(執筆時 11 個 → **現在 4 個**、いずれも理由付きの意図的な保持)
+
+> **✅ 2026-07 第4パスで「孤立サービス」問題は実質的に解消した。**
+> 配線 4 件(`OweSelectionService`/`RegulatoryDomainService`/`RetryPolicy`/`SignalIconService`)と
+> 削除 4 件(`KalmanRssiFilter`/`BeaconUptimeEstimator`/`WifiDirectService`/`GroupPolicyProvider`)により
+> 11 個 → 4 個。**残る 4 個はすべて「なぜ残すか」を明記済み**であり、
+> 「実装されているが機能していない」未整理コードは残っていない:
+>
+> | 残存 | 保持理由 |
+> |---|---|
+> | `AccessibilityAuditService` | テスト(`ThemeAccessibilityAuditTests`)から使用中 = 正当な用途 |
+> | `CaptivePortalService` | RFC 8908。プローブ方式の `HttpConnectivityChecker` と補完関係(下表参照) |
+> | `CatImportService` | eduroam CAT。2026-07 の CLI Enterprise 対応完成により配線が現実的になった |
+> | `Hotspot20Service` | Passpoint/OpenRoaming。802.11u Interworking IE 抽出が前提 |
+>
+> 再測定コマンド(この結果は下記で再現できる):
+> ```bash
+> for f in src/MWC.Core/Services/*.cs; do n=$(basename "$f" .cs); \
+>   [ "$(grep -rl "\b$n\b" src/ | grep -v "/$n.cs" | wc -l)" -eq 0 ] && echo "$n"; done
+> ```
 
 `src/` 内で自ファイル以外からの参照が**ゼロ**の Core サービス。テストは存在する(=壊れてはいない)が、
 App/CLI という製品としては動いていない。検証コマンド:
