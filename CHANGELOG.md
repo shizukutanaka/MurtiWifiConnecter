@@ -9,342 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Repaired solution filters that this release's project deletions had broken.** `MWC.ci-win.slnf`
-  and `MWC.ci-linux.slnf` still listed the deleted Android and iOS projects. CI restores through
-  those filters (`docs/ci/ci.yml`), so `dotnet restore` would have failed the moment workflows were
-  installed — a breakage introduced here and invisible to every check that existed, since
-  `verify.sh` validated `MWC.sln` but not `*.slnf`. Both filters are fixed, and `verify.sh` gained a
-  `.slnf` check (every referenced project must exist on disk) that was confirmed to catch the fault
-  by deliberately reintroducing it.
-
-### Changed
-- **README's remaining stale numbers corrected, and `verify.sh` now guards them.** Fixing the badges
-  earlier left three untrue figures in the body: the build section claimed 525 tests (actual: 858
-  declared methods), and the translation section claimed 508 keys and 7,112 entries (actual: 532
-  keys across 15 resx files — 14 named locales plus the neutral base — so 7,980). The i18n badge's
-  "14 langs" and the "25 ADRs" claim were checked and are correct. Numbers like these rot silently
-  every time content is added, so `verify.sh` gained a check that recomputes each of them from the
-  repository and fails when the README disagrees. It immediately earned its place: it caught that
-  the tests badge I had just written as 850 was already 858 after this release's own additions.
-
-### Changed
-- **Recorded that building and testing locally is impossible here, after establishing it by
-  attempt rather than assumption.** "No dotnet SDK" had been treated as a fixed property of the
-  environment; it is not, and the real blocker is elsewhere. The SDK installs fine
-  (`apt-get install dotnet-sdk-10.0`; the official install script is proxy-blocked, and apt carries
-  8.0 and 10.0 but not the 9.0 `global.json` pins). Restore then fails because **`api.nuget.org` is
-  denied by the organisation's egress policy** — visible as `gateway answered 403 to CONNECT` in
-  `curl "$HTTPS_PROXY/__agentproxy/status"`. Without package restore there is no build and no test
-  run, and the proxy documentation says to report such denials rather than route around them. A
-  useful by-product: `tests/MWC.Core.Tests` targets `net9.0-windows` and references the WPF
-  `MWC.App`, so **the test suite cannot run on Linux at all** — which confirms `docs/ci/ci.yml` is
-  right to run tests only in its Windows job and keep the Ubuntu job to a Core build.
-  `AI-SESSION-HANDBOOK.md` now carries the whole finding, including the reminder to restore
-  `global.json` and delete the partial `packages.lock.json` files afterwards, so no future session
-  spends this effort again.
-
-### Changed
-- **Established why CI cannot be installed from here, replacing a wrong explanation with a verified
-  one.** Both `FEATURE-AUDIT.md` §0 and `AI-SESSION-HANDBOOK.md` recorded that agent writes to
-  `.github/workflows/` are *auto-reverted by an environment guardrail* — an inference drawn from
-  commit `1c28a9c` being reverted 13 seconds later, never actually tested, and it had been treated
-  as settled fact blocking the repository's top-priority item. Testing it produced a different
-  answer. Locally nothing blocks it: `.claude/settings.json` explicitly permits `Write(.github/**)`
-  and its deny list covers only production config, key files, `rm -rf /` and `netsh`; creating the
-  files and committing both succeed. The refusal comes from GitHub itself, on push:
-  `refusing to allow a GitHub App to create or update workflow .github/workflows/ci.yml without
-  workflows permission` — the App token lacks the `workflows` scope. That also explains the historic
-  13-second revert: a previous session most likely hit the same rejection and reverted locally to
-  get its other work pushed. This matters practically, because such a commit blocks *every*
-  subsequent push to the branch until it is reset. Both documents now carry the exact error, the
-  `git reset --hard HEAD~1` recovery, and the two ways forward: grant the App the `workflows`
-  permission, or have the owner push the two files. Everything else CI needs is done.
-
-### Changed
-- **Consolidated CI configuration to one authoritative copy.** `ci/github-workflows/` and `docs/ci/`
-  held divergent versions of `ci.yml`, `codeql.yml` and `README.md` — §0 flagged the duplication but
-  neither was marked canonical, so whoever installed CI had to guess. Comparing them settled it:
-  `docs/ci/` is three weeks newer and strictly more capable (handles `claude/**`, `feature/**` and
-  `fix/**` branches, and builds through the Windows solution filter). `ci/github-workflows/` is
-  deleted. `docs/ci/README.md` now states plainly that it is the single source of truth, why the
-  workflows are not yet in `.github/workflows/` (agent writes there were auto-reverted — see §0),
-  the exact commands to install them, and the follow-ups that installation unblocks: restoring the
-  README badges and replacing the static test count with a measured one.
-
-### Added
-- **Wi-Fi 7 MLO capability is now detected from beacons**, splitting what the audit had treated as
-  one indivisible platform task. `WifiNetwork.IsMlo` — a flag separate from the `MloLinks` list —
-  was never set by anything. Applying the decomposition test recorded earlier (is the value
-  *advertised* or *measured*?) shows the answer differs for the two: MLO **support** is advertised
-  in the 802.11be Multi-Link element and is pure byte parsing, while per-link RSSI is measured and
-  still needs a runtime API. `BeaconIeParser` now reports `HasMultiLink` and the applier sets
-  `IsMlo`, which is enough to identify Wi-Fi 7 access points in a scan list. Implementing it
-  surfaced that the parser documented extended elements (ID 255) in its header comment but never
-  actually read their Element ID Extension — now it does, which any future extended element will
-  need. Note the trap the tests pin explicitly: Interworking and Multi-Link are **both 107** but in
-  different namespaces (normal element ID vs extension ID), so confusing them would misreport
-  ordinary access points as Wi-Fi 7. Adding a field to `BeaconIeSummary` was made backward
-  compatible with a default so existing construction sites keep compiling.
-
-### Added
-- **`mwc passpoint` — Passpoint / Hotspot 2.0 discovery, wiring the last blocked service.**
-  `Hotspot20Service` had been orphaned since the audit began, because `WifiNetwork.IsPasspoint`
-  reads `BssInfo.HasInterworkingElement` and nothing populated it. Adding Interworking detection to
-  `BeaconIeParser` (below) closed that gap — and the platform half turned out to already exist:
-  `WlanBssIeProvider` supplies raw beacons on Windows and `BeaconEnrichmentService` applies the
-  parsed result, so the value now flows end to end with no platform work left. The command lists
-  nearby capable access points, or the built-in carrier presets with `--carriers`. It presents
-  results as *candidates*: an Interworking element is the first-stage filter, while a complete
-  Hotspot 2.0 determination also needs the WFA vendor-specific element, so the wording avoids
-  overclaiming. Tests in `PasspointWiringTests.cs` pin that both Enterprise security *and*
-  Interworking are required — either alone must not qualify, or the command would point users at
-  ordinary corporate networks.
-
-### Added
-- **802.11u Interworking detection, removing the Core-side half of the Passpoint blocker.**
-  `WifiNetwork` read `BssInfo.HasInterworkingElement` to decide whether an access point supports
-  Passpoint/Hotspot 2.0, but **no layer ever set it** — the same "wired but the data source is
-  empty" pattern as MLO (§1d), and the recorded reason `Hotspot20Service` could not be wired.
-  The repository already had a complete IE-parsing pipeline (`BeaconIeParser` → `BeaconIeApplier`
-  → `IBeaconIeProvider`), so the missing piece was one element. `BeaconIeParser` now reports
-  `HasInterworking` (Element ID 107) and the applier sets the flag on the BSS entry, following the
-  existing convention that a raised flag is never lowered by a later scan that happens not to see
-  it. The derivation reuses `PresentElementIds` rather than adding a field, since only presence
-  matters here. **What remains is platform work only**: supplying the raw IE bytes via an
-  `IBeaconIeProvider` implementation on Windows. Deliberately structured this way — the parsing is
-  Core logic and therefore testable here, so the part that can only be written against real
-  hardware is as small as possible. Tests: `InterworkingIeTests.cs`, including that a truncated IE
-  cannot produce a false positive.
-
-### Added
-- **`mwc import-cat` — eduroam CAT import, the feature `FEATURE-AUDIT.md` §2a had listed as
-  blocked.** A CAT `eap-config` file describes the *institution*: SSID, EAP method, RADIUS server
-  names, trusted root CAs and the anonymous outer identity. It deliberately contains no user
-  credentials, because each person supplies their own account — which is exactly why this could not
-  be wired until Enterprise credential entry existed. It does now, so the command parses the file,
-  merges in `--username` and `-p` (or `MWC_PASSWORD`), validates, and connects. `--dry-run` prints
-  what would be used without connecting. Because CAT files always carry a server name, the resulting
-  profile enforces server validation, so a user importing one cannot be one click away from
-  accepting a rogue RADIUS certificate.
-- **Fixed a mapping error in `CatImportService.BuildEduroamSpec` found while wiring it.** It put the
-  anonymous identity into `Username` — but in this codebase `Username` is the real identity used
-  *inside* the tunnel, while `Domain` is the outer identity sent in the clear. The effect would have
-  been both wrong at once: no place left for the user's real account, and no anonymous identity
-  emitted, defeating the privacy the field exists for. It also assigned CAT's realm to `Domain`,
-  where an identity belongs. Now the anonymous identity maps to `Domain`, falling back to
-  `anonymous@realm` when CAT does not state one explicitly (a bare `anonymous` would break
-  realm-based RADIUS routing), and `Username` is left for the caller to fill. This is a good
-  illustration of why the audit tracks unwired code: nothing had ever exercised this path, so the
-  error sat undetected. Regression tests in `CatImportWiringTests.cs`.
-
-### Added
-- **`ConnectDialog` now accepts 802.1X Enterprise credentials, closing the last functional gap
-  between the GUI and the CLI.** `FEATURE-AUDIT.md` §2a recorded that neither surface could enter
-  Enterprise credentials; the CLI half shipped earlier in this release, and this is the other half.
-  Selecting an Enterprise network reveals a panel with EAP method (the same three the CLI offers —
-  PEAP-MSCHAPv2, EAP-TLS, EAP-TTLS; EAP-AKA is excluded because `ProfileXmlBuilder` rejects it),
-  username, an optional anonymous identity, and optional RADIUS server names. Choosing EAP-TLS hides
-  the username and password fields, since it authenticates with a client certificate — leaving them
-  visible would imply they are required. The existing password box doubles as the EAP password,
-  mirroring the CLI's `-p`. Enterprise input is validated against the *Enterprise* rules rather than
-  the PSK ones, so a short EAP password is no longer rejected by the 8–63 character PSK check. Six
-  new strings were added across all 14 locales plus the neutral base (532 keys each, verified
-  consistent), keeping technical terms in Latin script per the existing convention. **This unblocks
-  `CatImportService`** (eduroam CAT import), which §2a listed as waiting on exactly this.
-  **Requires compilation on Windows before it can be trusted** — WPF cannot be built in this
-  environment. Everything statically checkable was checked: XAML parses, all 13 `x:Name` references
-  and all 6 event handlers resolve between XAML and code-behind, every `L.*` property and theme
-  brush used exists (the brushes in all 7 themes), and `tools/verify.sh` passes. Behaviour is pinned
-  by `GuiEnterpriseSpecContractTests.cs`, which reproduces the spec `BuildSpec()` assembles and
-  asserts it satisfies the same Core validation the CLI does.
-
-### Added
-- **The GUI connect flow can now carry a full `WifiProfileSpec`**, which is the prerequisite for
-  Enterprise (802.1X) credentials in the UI. `AdapterConnectExtension.ConnectWithAppleFlowAsync`
-  only accepted a passphrase string, so EAP type, username, anonymous outer identity, server names
-  and trusted root CA had nowhere to travel — the reason `FEATURE-AUDIT.md` §2a lists GUI Enterprise
-  entry as blocked. A spec-taking overload now exists, and the existing string overload builds a PSK
-  spec and delegates to it, so every current call site compiles and behaves exactly as before. The
-  CLI's `BuildConnect` remains the reference implementation for how a spec is assembled.
-
-### Added
-- **`tools/verify.sh` — the static checks that are possible without a dotnet SDK, in one command.**
-  CI has never run here (`FEATURE-AUDIT.md` §0) and work often happens without a .NET toolchain, but
-  a surprising amount is still verifiable: XML well-formedness across every resx/xaml/csproj, locale
-  keys matching the base resx, `MWC.sln` internal consistency (declared projects exist on disk, no
-  configuration entries reference deleted GUIDs — the exact failure this release's project deletions
-  could have caused), shell-completion syntax, and detection of newly orphaned Core services against
-  the four documented exceptions. The brace-balance check is **advisory and never fails the run**:
-  C# cannot be lexed with regular expressions, and interpolated strings containing nested literals
-  (`$"{n.Ssid}{(cond ? "x" : "")}"`) produce a false positive — measured at 1 file in 196. A check
-  that cries wolf trains people to ignore it, so it warns and says so. This is a floor, not a
-  substitute for `dotnet build`/`dotnet test`; `AI-SESSION-HANDBOOK.md` §5 now points at it first.
-
-### Changed
-- **README badges now claim only what is actually true.** The CI and CodeQL badges pointed at
-  `actions/workflows/ci.yml` and `codeql.yml`, which do not exist — `.github/workflows/` is absent
-  entirely (`FEATURE-AUDIT.md` §0), so GitHub Actions has never run here. Those badges rendered as
-  "no status" while implying a verification pipeline was in place, which is worse than showing
-  nothing. They are removed, with the exact markup preserved in an HTML comment so they can be
-  restored the moment CI exists. The tests badge claimed "1013 passing" — a runtime result, from a
-  test run that has never happened. It now states the statically verifiable figure instead
-  (850 declared test methods; those expand to roughly 1143 cases once `InlineData` is counted).
-  The number is deliberately *not* swapped for another estimate: per the project's own rule, a
-  "passing" count may only be written from a real `dotnet test` run. The i18n badge's "14 langs"
-  was checked and is correct — 14 named locales plus a neutral base resx, 526 keys — and the
-  imprecise "15 ロケール" phrasing in `AI-SESSION-HANDBOOK.md` was corrected to match.
-
-### Removed
-- **Deleted `GroupPolicyProvider` (167 lines) and, with it, Core's `Microsoft.Win32.Registry`
-  dependency.** Its only reference anywhere was a comment in `MWC.Core.csproj` explaining why that
-  package reference existed — so an unwired service was the sole reason a dependency sat in the core
-  library. Worse, being unwired means an administrator who configured the documented policies under
-  `HKLM\SOFTWARE\Policies\MWC` would see no effect whatsoever: the code advertised manageability
-  that did not exist. Verified nothing else in Core touches the registry before removing the package
-  reference, and the resulting `.csproj` still parses as valid XML.
-- **Deleted `WifiDirectService` (217 lines) and its tests.** It orchestrates Wi-Fi Direct
-  peer-to-peer pairing through an `IWifiDirectAdapter` whose platform implementation
-  (`WindowsWifiDirectAdapter`) has never existed, so the service could not run. Beyond that, Wi-Fi
-  Direct is device-to-device P2P — a different capability from the product's stated purpose in
-  CLAUDE.md, which is managing each wireless adapter's own SSID list and connections. All of its
-  types (`IWifiDirectAdapter`, `WifiDirectDevice`, `WifiDirectDiscoveryOptions`, …) were declared in
-  the same file, so nothing else was affected; the two test classes living in shared files were
-  excised and both files verified to still balance braces and retain their remaining classes.
-  Restoring it should mean writing the platform adapter and the service together, verified on real
-  hardware. **`CaptivePortalService` was considered for the same treatment and deliberately kept**:
-  it implements RFC 8908, which returns structured portal metadata (venue, time remaining) from the
-  access point, whereas `HttpConnectivityChecker` only *infers* a portal from a probe — they are
-  complementary rather than duplicates, and this release's captive-portal-aware VPN advice makes
-  richer portal data more valuable, not less.
-- **Deleted `KalmanRssiFilter` and `BeaconUptimeEstimator`, and corrected the fictional constraint
-  that had been protecting them.** The audit's orphan table repeatedly said deletion "requires a
-  SemVer major bump" because `sdk/MWC.SDK.csproj` re-exports all of Core as a public NuGet package.
-  Questioning that requirement showed it does not hold: **`MWC.SDK` has never been published**. Two
-  independent nuget.org endpoints (`v3-flatcontainer` and `registration5-semver1`) both return 404,
-  and nothing in the repository builds or publishes it — the only mentions outside the `.csproj` are
-  in documentation, and `.github/workflows/` does not exist at all (§0). `<Version>3.12.0</Version>`
-  is a declaration, not a shipment. With no consumers there is no compatibility to break, so the
-  entire "cannot delete, it's public API" column was guarding nothing — including earlier in this
-  same release, where that note was taken at face value and `KalmanRssiFilter` was left in place.
-  `BeaconUptimeEstimator` could never have worked: no layer supplies the TSF timestamps it consumes.
-  `KalmanRssiFilter` was an unwired duplicate of the already-wired `SignalQualityPredictor`. Kalman
-  is the better algorithm of the two, so the audit entry now says explicitly: restore it from git
-  history and *replace* the EMA implementation if smoothing is ever worth improving — as a
-  deliberate, hardware-verified change rather than a second unused copy.
-- **Deleted the Android and iOS platform projects (244 lines).** Applying "question every
-  requirement, then delete": both were complete stubs — every method returned an empty array,
-  `false`, or a failure — with zero references from the product (`grep` for the projects and their
-  service classes across `src/`, `tests/`, `sdk/` finds nothing outside their own directories) and
-  no entry in the solution-registration test. The requirement they served ("MWC supports mobile
-  platforms") has no owner and contradicts the project's own charter in CLAUDE.md, whose stated Why
-  is managing multiple adapters on a **Windows PC**. Carrying non-functional implementations does
-  not add capability; it advertises support that does not exist while enlarging the build and the
-  reading surface. Their one genuine asset, the API-reference comments, remains in git history
-  (`git log --diff-filter=D -- src/MWC.Platform.Android`). Removed from `MWC.sln` together with
-  their build-configuration and nesting entries; the file was verified afterwards to contain no
-  dangling GUID references and a balanced Project/EndProject count.
-
-### Docs
-- **Added `docs/AI-SESSION-HANDBOOK.md`: a working guide for future Claude (Opus/Sonnet) sessions.**
-  Where `FEATURE-AUDIT.md` catalogs *what* the feature gaps are, the handbook captures *how to work
-  in this repo* — the product's strengths to preserve, the prioritized backlog with the precondition
-  that gates each item (owner action for CI/Release, Windows+dotnet for GUI/MLO, user ruling for
-  SecureString), and — most valuably — the environment traps this long session actually hit: no
-  dotnet SDK (so verify via python + CI), the `Strings.*.resx` glob that silently skips the base
-  `Strings.resx` (use `git add -u`), the class-name grep that misses extension-method call sites
-  (`SafeFireAndForget`), and the operations the sandbox auto-denies (force-push, `.github/workflows/`
-  writes, review-less master merges, tag pushes). Linked from `FEATURE-AUDIT.md`'s header.
-
-### Added
-- **`mwc connect` now supports 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) authentication** via new
-  `--eap-type`, `--username`, `--domain`, and `--server-name` (repeatable) options. This closes the
-  CLI half of `docs/FEATURE-AUDIT.md` §4's last major gap — previously neither the GUI nor the CLI
-  could enter Enterprise credentials at all, which also blocked `CatImportService` (eduroam import)
-  from being wired. The Core layer was already fully capable: `WifiProfileSpec` carries all the
-  Enterprise fields, `ProfileXmlBuilder` emits complete PEAP/TLS/TTLS profile XML (golden-tested),
-  and `ConnectionExecutor` already accepted a full spec — the only thing missing was the CLI option
-  surface, so this is a `Program.cs`-only change plus a contract test. For Enterprise auth, `-p`
-  doubles as the EAP password; the existing early `ProfileXmlBuilder.Build` validation surfaces
-  incomplete input (missing EAP type, missing username/password) as a clean `InvalidInput` error
-  before any connection attempt. The connect handler switched from generic `SetHandler` to
-  `InvocationContext` binding because the option count now exceeds System.CommandLine's 8-parameter
-  generic limit. New tests: `CliEnterpriseSpecContractTests.cs` pin the exact spec shape the CLI
-  builds and its validation boundaries (missing eap-type/username/password rejected; EAP-AKA
-  rejected as unsupported). **Still remaining** (documented in §4): the GUI side (`ConnectDialog`
-  Enterprise fields) and wiring `CertificatePickerDialog` into the EAP-TLS connect flow.
-- **`mwc connect` reads the password from `MWC_PASSWORD` when `-p` is omitted**, so PSK passphrases
-  and EAP passwords need not appear in the process command line (argv is world-readable via `ps` /
-  `/proc`). Mirrors the existing `$env:PW` fallback in `mwc multi connect` and aligns with
-  CLAUDE.md's security emphasis. `-p` still takes precedence when both are present.
-- **EAP-TTLS outer-identity privacy is now reachable and tested via the CLI's `--domain`.** The
-  TTLS Phase-1 (outer) identity is sent in cleartext before the TLS tunnel is established, so
-  putting the real username there leaks it; eduroam recommends an anonymous outer identity like
-  `anonymous@realm`. `ProfileXmlBuilder` already emitted `spec.Domain` as the TTLS
-  `AnonymousIdentity` (falling back to the literal `anonymous`), and the new `--domain` option wires
-  the CLI to it — e.g. `mwc connect eduroam --auth WPA2Enterprise --eap-type EAP_TTLS --username
-  real@univ -p PASS --domain anonymous@univ`. Added tests pinning this security-relevant mapping so
-  it can't silently regress (the real username must never become the cleartext outer identity).
-  (This entry originally stated that PEAP has no equivalent anonymous-outer-identity element in the
-  Windows profile schema. That was wrong: `PeapExtensionsType` in the V2 schema does define
-  `IdentityPrivacy`. PEAP identity privacy is implemented in the entry below.)
-- **`mwc connect --trusted-root-ca <thumbprint>` (repeatable) pins the RADIUS server's CA
-  certificate** for Enterprise auth, preventing acceptance of a rogue server presenting a valid
-  certificate signed by a *different* CA. `WifiProfileSpec.TrustedRootCaThumbprints` and
-  `ProfileXmlBuilder` already emitted these (`<TrustedRootCA>` for PEAP/EAP-TLS,
-  `<TrustedRootCAHash>` for EAP-TTLS) — only the CLI option surface was missing. Added tests
-  asserting the pinned thumbprint reaches the emitted profile XML for both PEAP and TTLS.
-- **Shell completions and README updated for the new Enterprise connect options.**
-  `completions/mwc.bash` and `completions/mwc.ps1` now offer `--eap-type`, `--username`, `--domain`,
-  `--server-name`, and `--trusted-root-ca` on `mwc connect`, and the bash script additionally
-  value-completes `--auth` (all 10 auth methods) and `--eap-type` (the 3 EAP methods) so the
-  awkward enum names don't have to be typed by hand. README's CLI section gains an Enterprise
-  connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
-  fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
-
-### Docs
-- **Added `docs/COMPLETION-CHECKLIST.md` — the remaining work, addressed to whoever holds the
-  permissions.** Three items are left and none can be done from an agent session: installing CI,
-  cutting a GitHub Release, and implementing per-link MLO details. Those facts were scattered across
-  `FEATURE-AUDIT.md` §0/§1d and `AI-SESSION-HANDBOOK.md` §2, written for a future AI session rather
-  than for a maintainer. The checklist reorders them by priority, states for each **what was
-  actually attempted and what came back** (the verbatim GitHub refusal for workflows, the 403 on tag
-  push plus the absence of any release-creation tool among the ~50 enumerated, and why per-link RSSI
-  cannot be derived from beacons the way MLO capability could), and gives the exact commands to run.
-  CI is marked first because nothing in this repository has ever been verified by execution —
-  including this release — so the 881 declared test methods would run for the first time.
-
-### Docs
-- **Recorded the single-probe limitation in connectivity checking** (`FEATURE-AUDIT.md` §2d),
-  flagged as needing a Windows/dotnet session. `HttpConnectivityChecker`'s probe URL is a `const`
-  with no fallback and no override. Its decision logic is sound — arguably better than comparable
-  software, since it distinguishes an exception (DNS failure, refused, timeout) as "no internet, no
-  portal" rather than lumping everything non-success into "portal" as Android's 204 check does, and
-  it disables auto-redirect and requires an exact body match so a portal answering 200 with its own
-  HTML is not mistaken for working internet. The weakness is the single point of dependency:
-  msftconnecttest.com is unreachable in some countries and behind some corporate firewalls, and
-  there the probe always throws, so a perfectly working connection is reported as having no
-  internet indefinitely. This is the known walled-garden failure mode, and the reason NetworkManager
-  makes its connectivity URI configurable. Connection success is unaffected — `WindowsWifiService`
-  returns `ConnectionResult.Ok(...)` regardless — so the impact is a misleading indicator. The entry
-  records the recommended fix (environment-variable override following the established
-  `MWC_PASSWORD` convention) plus the trap to avoid: skipping the body check when only the URL is
-  overridden would make portals returning 200 look like real connectivity. Not implemented here
-  because `tests/` contains only `MWC.Core.Tests`, so platform-layer code cannot be verified in this
-  environment, and shipping an unverifiable change to the connectivity path is worse than recording
-  it.
-- **Recorded why network selection deliberately has no RSSI hysteresis** (`FEATURE-AUDIT.md` §3).
-  RSSI fluctuates enough that selecting on instantaneous values normally causes "thrashing" between
-  access points — the reason Cisco's Optimized Roaming and similar designs apply a hysteresis margin
-  (typically 8 dB) before switching. Tracing every path showed MWC is structurally not exposed to
-  this: `NetworkRecommendationEngine.Rank`/`Recommend` feed **CLI display ordering only** and drive
-  no connection, while the unattended chooser (`AdapterPreferencesService.PickBestSsid`) resolves
-  strictly through the user's explicit `AutoConnectPriority` → `PinnedSsids` order and never
-  consults signal strength. Adding hysteresis would therefore guard against a ping-pong that cannot
-  occur — speculative complexity. Documented with the verification commands and an explicit trigger
-  for revisiting (if `Rank` ever starts driving automatic connections), so a future session does not
-  redo this investigation or "fix" a non-problem.
-
 ### Security
 - **PEAP's `PeapExtensions` is no longer an empty element: it now carries the V2 server-validation
   settings and, on request, identity privacy.** EAP-TLS already emitted the V2
@@ -450,7 +114,230 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `EvilTwinAndKalmanTests`: that a brand-new network, a WPA2→WPA3 upgrade, and repeated reconnects
   to an unchanged AP are never blocked, and that a realistic downgrade attack does reach `HighRisk`.
 
+
+### Added
+- **Wi-Fi 7 MLO capability is now detected from beacons**, splitting what the audit had treated as
+  one indivisible platform task. `WifiNetwork.IsMlo` — a flag separate from the `MloLinks` list —
+  was never set by anything. Applying the decomposition test recorded earlier (is the value
+  *advertised* or *measured*?) shows the answer differs for the two: MLO **support** is advertised
+  in the 802.11be Multi-Link element and is pure byte parsing, while per-link RSSI is measured and
+  still needs a runtime API. `BeaconIeParser` now reports `HasMultiLink` and the applier sets
+  `IsMlo`, which is enough to identify Wi-Fi 7 access points in a scan list. Implementing it
+  surfaced that the parser documented extended elements (ID 255) in its header comment but never
+  actually read their Element ID Extension — now it does, which any future extended element will
+  need. Note the trap the tests pin explicitly: Interworking and Multi-Link are **both 107** but in
+  different namespaces (normal element ID vs extension ID), so confusing them would misreport
+  ordinary access points as Wi-Fi 7. Adding a field to `BeaconIeSummary` was made backward
+  compatible with a default so existing construction sites keep compiling.
+
+- **`mwc passpoint` — Passpoint / Hotspot 2.0 discovery, wiring the last blocked service.**
+  `Hotspot20Service` had been orphaned since the audit began, because `WifiNetwork.IsPasspoint`
+  reads `BssInfo.HasInterworkingElement` and nothing populated it. Adding Interworking detection to
+  `BeaconIeParser` (below) closed that gap — and the platform half turned out to already exist:
+  `WlanBssIeProvider` supplies raw beacons on Windows and `BeaconEnrichmentService` applies the
+  parsed result, so the value now flows end to end with no platform work left. The command lists
+  nearby capable access points, or the built-in carrier presets with `--carriers`. It presents
+  results as *candidates*: an Interworking element is the first-stage filter, while a complete
+  Hotspot 2.0 determination also needs the WFA vendor-specific element, so the wording avoids
+  overclaiming. Tests in `PasspointWiringTests.cs` pin that both Enterprise security *and*
+  Interworking are required — either alone must not qualify, or the command would point users at
+  ordinary corporate networks.
+
+- **802.11u Interworking detection, removing the Core-side half of the Passpoint blocker.**
+  `WifiNetwork` read `BssInfo.HasInterworkingElement` to decide whether an access point supports
+  Passpoint/Hotspot 2.0, but **no layer ever set it** — the same "wired but the data source is
+  empty" pattern as MLO (§1d), and the recorded reason `Hotspot20Service` could not be wired.
+  The repository already had a complete IE-parsing pipeline (`BeaconIeParser` → `BeaconIeApplier`
+  → `IBeaconIeProvider`), so the missing piece was one element. `BeaconIeParser` now reports
+  `HasInterworking` (Element ID 107) and the applier sets the flag on the BSS entry, following the
+  existing convention that a raised flag is never lowered by a later scan that happens not to see
+  it. The derivation reuses `PresentElementIds` rather than adding a field, since only presence
+  matters here. **What remains is platform work only**: supplying the raw IE bytes via an
+  `IBeaconIeProvider` implementation on Windows. Deliberately structured this way — the parsing is
+  Core logic and therefore testable here, so the part that can only be written against real
+  hardware is as small as possible. Tests: `InterworkingIeTests.cs`, including that a truncated IE
+  cannot produce a false positive.
+
+- **`mwc import-cat` — eduroam CAT import, the feature `FEATURE-AUDIT.md` §2a had listed as
+  blocked.** A CAT `eap-config` file describes the *institution*: SSID, EAP method, RADIUS server
+  names, trusted root CAs and the anonymous outer identity. It deliberately contains no user
+  credentials, because each person supplies their own account — which is exactly why this could not
+  be wired until Enterprise credential entry existed. It does now, so the command parses the file,
+  merges in `--username` and `-p` (or `MWC_PASSWORD`), validates, and connects. `--dry-run` prints
+  what would be used without connecting. Because CAT files always carry a server name, the resulting
+  profile enforces server validation, so a user importing one cannot be one click away from
+  accepting a rogue RADIUS certificate.
+- **Fixed a mapping error in `CatImportService.BuildEduroamSpec` found while wiring it.** It put the
+  anonymous identity into `Username` — but in this codebase `Username` is the real identity used
+  *inside* the tunnel, while `Domain` is the outer identity sent in the clear. The effect would have
+  been both wrong at once: no place left for the user's real account, and no anonymous identity
+  emitted, defeating the privacy the field exists for. It also assigned CAT's realm to `Domain`,
+  where an identity belongs. Now the anonymous identity maps to `Domain`, falling back to
+  `anonymous@realm` when CAT does not state one explicitly (a bare `anonymous` would break
+  realm-based RADIUS routing), and `Username` is left for the caller to fill. This is a good
+  illustration of why the audit tracks unwired code: nothing had ever exercised this path, so the
+  error sat undetected. Regression tests in `CatImportWiringTests.cs`.
+
+- **`ConnectDialog` now accepts 802.1X Enterprise credentials, closing the last functional gap
+  between the GUI and the CLI.** `FEATURE-AUDIT.md` §2a recorded that neither surface could enter
+  Enterprise credentials; the CLI half shipped earlier in this release, and this is the other half.
+  Selecting an Enterprise network reveals a panel with EAP method (the same three the CLI offers —
+  PEAP-MSCHAPv2, EAP-TLS, EAP-TTLS; EAP-AKA is excluded because `ProfileXmlBuilder` rejects it),
+  username, an optional anonymous identity, and optional RADIUS server names. Choosing EAP-TLS hides
+  the username and password fields, since it authenticates with a client certificate — leaving them
+  visible would imply they are required. The existing password box doubles as the EAP password,
+  mirroring the CLI's `-p`. Enterprise input is validated against the *Enterprise* rules rather than
+  the PSK ones, so a short EAP password is no longer rejected by the 8–63 character PSK check. Six
+  new strings were added across all 14 locales plus the neutral base (532 keys each, verified
+  consistent), keeping technical terms in Latin script per the existing convention. **This unblocks
+  `CatImportService`** (eduroam CAT import), which §2a listed as waiting on exactly this.
+  **Requires compilation on Windows before it can be trusted** — WPF cannot be built in this
+  environment. Everything statically checkable was checked: XAML parses, all 13 `x:Name` references
+  and all 6 event handlers resolve between XAML and code-behind, every `L.*` property and theme
+  brush used exists (the brushes in all 7 themes), and `tools/verify.sh` passes. Behaviour is pinned
+  by `GuiEnterpriseSpecContractTests.cs`, which reproduces the spec `BuildSpec()` assembles and
+  asserts it satisfies the same Core validation the CLI does.
+
+- **The GUI connect flow can now carry a full `WifiProfileSpec`**, which is the prerequisite for
+  Enterprise (802.1X) credentials in the UI. `AdapterConnectExtension.ConnectWithAppleFlowAsync`
+  only accepted a passphrase string, so EAP type, username, anonymous outer identity, server names
+  and trusted root CA had nowhere to travel — the reason `FEATURE-AUDIT.md` §2a lists GUI Enterprise
+  entry as blocked. A spec-taking overload now exists, and the existing string overload builds a PSK
+  spec and delegates to it, so every current call site compiles and behaves exactly as before. The
+  CLI's `BuildConnect` remains the reference implementation for how a spec is assembled.
+
+- **`tools/verify.sh` — the static checks that are possible without a dotnet SDK, in one command.**
+  CI has never run here (`FEATURE-AUDIT.md` §0) and work often happens without a .NET toolchain, but
+  a surprising amount is still verifiable: XML well-formedness across every resx/xaml/csproj, locale
+  keys matching the base resx, `MWC.sln` internal consistency (declared projects exist on disk, no
+  configuration entries reference deleted GUIDs — the exact failure this release's project deletions
+  could have caused), shell-completion syntax, and detection of newly orphaned Core services against
+  the four documented exceptions. The brace-balance check is **advisory and never fails the run**:
+  C# cannot be lexed with regular expressions, and interpolated strings containing nested literals
+  (`$"{n.Ssid}{(cond ? "x" : "")}"`) produce a false positive — measured at 1 file in 196. A check
+  that cries wolf trains people to ignore it, so it warns and says so. This is a floor, not a
+  substitute for `dotnet build`/`dotnet test`; `AI-SESSION-HANDBOOK.md` §5 now points at it first.
+
+- **`mwc connect` now supports 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) authentication** via new
+  `--eap-type`, `--username`, `--domain`, and `--server-name` (repeatable) options. This closes the
+  CLI half of `docs/FEATURE-AUDIT.md` §4's last major gap — previously neither the GUI nor the CLI
+  could enter Enterprise credentials at all, which also blocked `CatImportService` (eduroam import)
+  from being wired. The Core layer was already fully capable: `WifiProfileSpec` carries all the
+  Enterprise fields, `ProfileXmlBuilder` emits complete PEAP/TLS/TTLS profile XML (golden-tested),
+  and `ConnectionExecutor` already accepted a full spec — the only thing missing was the CLI option
+  surface, so this is a `Program.cs`-only change plus a contract test. For Enterprise auth, `-p`
+  doubles as the EAP password; the existing early `ProfileXmlBuilder.Build` validation surfaces
+  incomplete input (missing EAP type, missing username/password) as a clean `InvalidInput` error
+  before any connection attempt. The connect handler switched from generic `SetHandler` to
+  `InvocationContext` binding because the option count now exceeds System.CommandLine's 8-parameter
+  generic limit. New tests: `CliEnterpriseSpecContractTests.cs` pin the exact spec shape the CLI
+  builds and its validation boundaries (missing eap-type/username/password rejected; EAP-AKA
+  rejected as unsupported). **Still remaining** (documented in §4): the GUI side (`ConnectDialog`
+  Enterprise fields) and wiring `CertificatePickerDialog` into the EAP-TLS connect flow.
+- **`mwc connect` reads the password from `MWC_PASSWORD` when `-p` is omitted**, so PSK passphrases
+  and EAP passwords need not appear in the process command line (argv is world-readable via `ps` /
+  `/proc`). Mirrors the existing `$env:PW` fallback in `mwc multi connect` and aligns with
+  CLAUDE.md's security emphasis. `-p` still takes precedence when both are present.
+- **EAP-TTLS outer-identity privacy is now reachable and tested via the CLI's `--domain`.** The
+  TTLS Phase-1 (outer) identity is sent in cleartext before the TLS tunnel is established, so
+  putting the real username there leaks it; eduroam recommends an anonymous outer identity like
+  `anonymous@realm`. `ProfileXmlBuilder` already emitted `spec.Domain` as the TTLS
+  `AnonymousIdentity` (falling back to the literal `anonymous`), and the new `--domain` option wires
+  the CLI to it — e.g. `mwc connect eduroam --auth WPA2Enterprise --eap-type EAP_TTLS --username
+  real@univ -p PASS --domain anonymous@univ`. Added tests pinning this security-relevant mapping so
+  it can't silently regress (the real username must never become the cleartext outer identity).
+  (This entry originally stated that PEAP has no equivalent anonymous-outer-identity element in the
+  Windows profile schema. That was wrong: `PeapExtensionsType` in the V2 schema does define
+  `IdentityPrivacy`. PEAP identity privacy is implemented in the entry below.)
+- **`mwc connect --trusted-root-ca <thumbprint>` (repeatable) pins the RADIUS server's CA
+  certificate** for Enterprise auth, preventing acceptance of a rogue server presenting a valid
+  certificate signed by a *different* CA. `WifiProfileSpec.TrustedRootCaThumbprints` and
+  `ProfileXmlBuilder` already emitted these (`<TrustedRootCA>` for PEAP/EAP-TLS,
+  `<TrustedRootCAHash>` for EAP-TTLS) — only the CLI option surface was missing. Added tests
+  asserting the pinned thumbprint reaches the emitted profile XML for both PEAP and TTLS.
+- **Shell completions and README updated for the new Enterprise connect options.**
+  `completions/mwc.bash` and `completions/mwc.ps1` now offer `--eap-type`, `--username`, `--domain`,
+  `--server-name`, and `--trusted-root-ca` on `mwc connect`, and the bash script additionally
+  value-completes `--auth` (all 10 auth methods) and `--eap-type` (the 3 EAP methods) so the
+  awkward enum names don't have to be typed by hand. README's CLI section gains an Enterprise
+  connect example. (`bash -n` verified; the completion scripts remain un-packaged pending the CI
+  fix tracked in `docs/FEATURE-AUDIT.md` §0/§6.)
+
+
+### Changed
+- **README's remaining stale numbers corrected, and `verify.sh` now guards them.** Fixing the badges
+  earlier left three untrue figures in the body: the build section claimed 525 tests (actual: 858
+  declared methods), and the translation section claimed 508 keys and 7,112 entries (actual: 532
+  keys across 15 resx files — 14 named locales plus the neutral base — so 7,980). The i18n badge's
+  "14 langs" and the "25 ADRs" claim were checked and are correct. Numbers like these rot silently
+  every time content is added, so `verify.sh` gained a check that recomputes each of them from the
+  repository and fails when the README disagrees. It immediately earned its place: it caught that
+  the tests badge I had just written as 850 was already 858 after this release's own additions.
+
+- **Recorded that building and testing locally is impossible here, after establishing it by
+  attempt rather than assumption.** "No dotnet SDK" had been treated as a fixed property of the
+  environment; it is not, and the real blocker is elsewhere. The SDK installs fine
+  (`apt-get install dotnet-sdk-10.0`; the official install script is proxy-blocked, and apt carries
+  8.0 and 10.0 but not the 9.0 `global.json` pins). Restore then fails because **`api.nuget.org` is
+  denied by the organisation's egress policy** — visible as `gateway answered 403 to CONNECT` in
+  `curl "$HTTPS_PROXY/__agentproxy/status"`. Without package restore there is no build and no test
+  run, and the proxy documentation says to report such denials rather than route around them. A
+  useful by-product: `tests/MWC.Core.Tests` targets `net9.0-windows` and references the WPF
+  `MWC.App`, so **the test suite cannot run on Linux at all** — which confirms `docs/ci/ci.yml` is
+  right to run tests only in its Windows job and keep the Ubuntu job to a Core build.
+  `AI-SESSION-HANDBOOK.md` now carries the whole finding, including the reminder to restore
+  `global.json` and delete the partial `packages.lock.json` files afterwards, so no future session
+  spends this effort again.
+
+- **Established why CI cannot be installed from here, replacing a wrong explanation with a verified
+  one.** Both `FEATURE-AUDIT.md` §0 and `AI-SESSION-HANDBOOK.md` recorded that agent writes to
+  `.github/workflows/` are *auto-reverted by an environment guardrail* — an inference drawn from
+  commit `1c28a9c` being reverted 13 seconds later, never actually tested, and it had been treated
+  as settled fact blocking the repository's top-priority item. Testing it produced a different
+  answer. Locally nothing blocks it: `.claude/settings.json` explicitly permits `Write(.github/**)`
+  and its deny list covers only production config, key files, `rm -rf /` and `netsh`; creating the
+  files and committing both succeed. The refusal comes from GitHub itself, on push:
+  `refusing to allow a GitHub App to create or update workflow .github/workflows/ci.yml without
+  workflows permission` — the App token lacks the `workflows` scope. That also explains the historic
+  13-second revert: a previous session most likely hit the same rejection and reverted locally to
+  get its other work pushed. This matters practically, because such a commit blocks *every*
+  subsequent push to the branch until it is reset. Both documents now carry the exact error, the
+  `git reset --hard HEAD~1` recovery, and the two ways forward: grant the App the `workflows`
+  permission, or have the owner push the two files. Everything else CI needs is done.
+
+- **Consolidated CI configuration to one authoritative copy.** `ci/github-workflows/` and `docs/ci/`
+  held divergent versions of `ci.yml`, `codeql.yml` and `README.md` — §0 flagged the duplication but
+  neither was marked canonical, so whoever installed CI had to guess. Comparing them settled it:
+  `docs/ci/` is three weeks newer and strictly more capable (handles `claude/**`, `feature/**` and
+  `fix/**` branches, and builds through the Windows solution filter). `ci/github-workflows/` is
+  deleted. `docs/ci/README.md` now states plainly that it is the single source of truth, why the
+  workflows are not yet in `.github/workflows/` (agent writes there were auto-reverted — see §0),
+  the exact commands to install them, and the follow-ups that installation unblocks: restoring the
+  README badges and replacing the static test count with a measured one.
+
+- **README badges now claim only what is actually true.** The CI and CodeQL badges pointed at
+  `actions/workflows/ci.yml` and `codeql.yml`, which do not exist — `.github/workflows/` is absent
+  entirely (`FEATURE-AUDIT.md` §0), so GitHub Actions has never run here. Those badges rendered as
+  "no status" while implying a verification pipeline was in place, which is worse than showing
+  nothing. They are removed, with the exact markup preserved in an HTML comment so they can be
+  restored the moment CI exists. The tests badge claimed "1013 passing" — a runtime result, from a
+  test run that has never happened. It now states the statically verifiable figure instead
+  (850 declared test methods; those expand to roughly 1143 cases once `InlineData` is counted).
+  The number is deliberately *not* swapped for another estimate: per the project's own rule, a
+  "passing" count may only be written from a real `dotnet test` run. The i18n badge's "14 langs"
+  was checked and is correct — 14 named locales plus a neutral base resx, 526 keys — and the
+  imprecise "15 ロケール" phrasing in `AI-SESSION-HANDBOOK.md` was corrected to match.
+
+
 ### Fixed
+- **Repaired solution filters that this release's project deletions had broken.** `MWC.ci-win.slnf`
+  and `MWC.ci-linux.slnf` still listed the deleted Android and iOS projects. CI restores through
+  those filters (`docs/ci/ci.yml`), so `dotnet restore` would have failed the moment workflows were
+  installed — a breakage introduced here and invisible to every check that existed, since
+  `verify.sh` validated `MWC.sln` but not `*.slnf`. Both filters are fixed, and `verify.sh` gained a
+  `.slnf` check (every referenced project must exist on disk) that was confirmed to catch the fault
+  by deliberately reintroducing it.
+
 - **Auto-reconnect now backs off exponentially and stops retrying deterministic failures.**
   `AutoReconnectService` retried with only a fixed 3-second wait and no failure memory, so a
   disconnect event that kept recurring produced an effectively unbounded retry loop — worst case,
@@ -503,6 +390,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   detects any Enterprise option (`--eap-type`/`--username`/`--domain`/`--server-name`/
   `--trusted-root-ca`) combined with a non-Enterprise `--auth` and exits with a clear `InvalidInput`
   message before attempting to connect. A footgun in the Enterprise CLI shipped earlier this cycle.
+
+
+### Removed
+- **Deleted `GroupPolicyProvider` (167 lines) and, with it, Core's `Microsoft.Win32.Registry`
+  dependency.** Its only reference anywhere was a comment in `MWC.Core.csproj` explaining why that
+  package reference existed — so an unwired service was the sole reason a dependency sat in the core
+  library. Worse, being unwired means an administrator who configured the documented policies under
+  `HKLM\SOFTWARE\Policies\MWC` would see no effect whatsoever: the code advertised manageability
+  that did not exist. Verified nothing else in Core touches the registry before removing the package
+  reference, and the resulting `.csproj` still parses as valid XML.
+- **Deleted `WifiDirectService` (217 lines) and its tests.** It orchestrates Wi-Fi Direct
+  peer-to-peer pairing through an `IWifiDirectAdapter` whose platform implementation
+  (`WindowsWifiDirectAdapter`) has never existed, so the service could not run. Beyond that, Wi-Fi
+  Direct is device-to-device P2P — a different capability from the product's stated purpose in
+  CLAUDE.md, which is managing each wireless adapter's own SSID list and connections. All of its
+  types (`IWifiDirectAdapter`, `WifiDirectDevice`, `WifiDirectDiscoveryOptions`, …) were declared in
+  the same file, so nothing else was affected; the two test classes living in shared files were
+  excised and both files verified to still balance braces and retain their remaining classes.
+  Restoring it should mean writing the platform adapter and the service together, verified on real
+  hardware. **`CaptivePortalService` was considered for the same treatment and deliberately kept**:
+  it implements RFC 8908, which returns structured portal metadata (venue, time remaining) from the
+  access point, whereas `HttpConnectivityChecker` only *infers* a portal from a probe — they are
+  complementary rather than duplicates, and this release's captive-portal-aware VPN advice makes
+  richer portal data more valuable, not less.
+- **Deleted `KalmanRssiFilter` and `BeaconUptimeEstimator`, and corrected the fictional constraint
+  that had been protecting them.** The audit's orphan table repeatedly said deletion "requires a
+  SemVer major bump" because `sdk/MWC.SDK.csproj` re-exports all of Core as a public NuGet package.
+  Questioning that requirement showed it does not hold: **`MWC.SDK` has never been published**. Two
+  independent nuget.org endpoints (`v3-flatcontainer` and `registration5-semver1`) both return 404,
+  and nothing in the repository builds or publishes it — the only mentions outside the `.csproj` are
+  in documentation, and `.github/workflows/` does not exist at all (§0). `<Version>3.12.0</Version>`
+  is a declaration, not a shipment. With no consumers there is no compatibility to break, so the
+  entire "cannot delete, it's public API" column was guarding nothing — including earlier in this
+  same release, where that note was taken at face value and `KalmanRssiFilter` was left in place.
+  `BeaconUptimeEstimator` could never have worked: no layer supplies the TSF timestamps it consumes.
+  `KalmanRssiFilter` was an unwired duplicate of the already-wired `SignalQualityPredictor`. Kalman
+  is the better algorithm of the two, so the audit entry now says explicitly: restore it from git
+  history and *replace* the EMA implementation if smoothing is ever worth improving — as a
+  deliberate, hardware-verified change rather than a second unused copy.
+- **Deleted the Android and iOS platform projects (244 lines).** Applying "question every
+  requirement, then delete": both were complete stubs — every method returned an empty array,
+  `false`, or a failure — with zero references from the product (`grep` for the projects and their
+  service classes across `src/`, `tests/`, `sdk/` finds nothing outside their own directories) and
+  no entry in the solution-registration test. The requirement they served ("MWC supports mobile
+  platforms") has no owner and contradicts the project's own charter in CLAUDE.md, whose stated Why
+  is managing multiple adapters on a **Windows PC**. Carrying non-functional implementations does
+  not add capability; it advertises support that does not exist while enlarging the build and the
+  reading surface. Their one genuine asset, the API-reference comments, remains in git history
+  (`git log --diff-filter=D -- src/MWC.Platform.Android`). Removed from `MWC.sln` together with
+  their build-configuration and nesting entries; the file was verified afterwards to contain no
+  dangling GUID references and a balanced Project/EndProject count.
+
+
+### Docs
+- **Added `docs/AI-SESSION-HANDBOOK.md`: a working guide for future Claude (Opus/Sonnet) sessions.**
+  Where `FEATURE-AUDIT.md` catalogs *what* the feature gaps are, the handbook captures *how to work
+  in this repo* — the product's strengths to preserve, the prioritized backlog with the precondition
+  that gates each item (owner action for CI/Release, Windows+dotnet for GUI/MLO, user ruling for
+  SecureString), and — most valuably — the environment traps this long session actually hit: no
+  dotnet SDK (so verify via python + CI), the `Strings.*.resx` glob that silently skips the base
+  `Strings.resx` (use `git add -u`), the class-name grep that misses extension-method call sites
+  (`SafeFireAndForget`), and the operations the sandbox auto-denies (force-push, `.github/workflows/`
+  writes, review-less master merges, tag pushes). Linked from `FEATURE-AUDIT.md`'s header.
+
+- **Added `docs/COMPLETION-CHECKLIST.md` — the remaining work, addressed to whoever holds the
+  permissions.** Three items are left and none can be done from an agent session: installing CI,
+  cutting a GitHub Release, and implementing per-link MLO details. Those facts were scattered across
+  `FEATURE-AUDIT.md` §0/§1d and `AI-SESSION-HANDBOOK.md` §2, written for a future AI session rather
+  than for a maintainer. The checklist reorders them by priority, states for each **what was
+  actually attempted and what came back** (the verbatim GitHub refusal for workflows, the 403 on tag
+  push plus the absence of any release-creation tool among the ~50 enumerated, and why per-link RSSI
+  cannot be derived from beacons the way MLO capability could), and gives the exact commands to run.
+  CI is marked first because nothing in this repository has ever been verified by execution —
+  including this release — so the 881 declared test methods would run for the first time.
+
+- **Recorded the single-probe limitation in connectivity checking** (`FEATURE-AUDIT.md` §2d),
+  flagged as needing a Windows/dotnet session. `HttpConnectivityChecker`'s probe URL is a `const`
+  with no fallback and no override. Its decision logic is sound — arguably better than comparable
+  software, since it distinguishes an exception (DNS failure, refused, timeout) as "no internet, no
+  portal" rather than lumping everything non-success into "portal" as Android's 204 check does, and
+  it disables auto-redirect and requires an exact body match so a portal answering 200 with its own
+  HTML is not mistaken for working internet. The weakness is the single point of dependency:
+  msftconnecttest.com is unreachable in some countries and behind some corporate firewalls, and
+  there the probe always throws, so a perfectly working connection is reported as having no
+  internet indefinitely. This is the known walled-garden failure mode, and the reason NetworkManager
+  makes its connectivity URI configurable. Connection success is unaffected — `WindowsWifiService`
+  returns `ConnectionResult.Ok(...)` regardless — so the impact is a misleading indicator. The entry
+  records the recommended fix (environment-variable override following the established
+  `MWC_PASSWORD` convention) plus the trap to avoid: skipping the body check when only the URL is
+  overridden would make portals returning 200 look like real connectivity. Not implemented here
+  because `tests/` contains only `MWC.Core.Tests`, so platform-layer code cannot be verified in this
+  environment, and shipping an unverifiable change to the connectivity path is worse than recording
+  it.
+- **Recorded why network selection deliberately has no RSSI hysteresis** (`FEATURE-AUDIT.md` §3).
+  RSSI fluctuates enough that selecting on instantaneous values normally causes "thrashing" between
+  access points — the reason Cisco's Optimized Roaming and similar designs apply a hysteresis margin
+  (typically 8 dB) before switching. Tracing every path showed MWC is structurally not exposed to
+  this: `NetworkRecommendationEngine.Rank`/`Recommend` feed **CLI display ordering only** and drive
+  no connection, while the unattended chooser (`AdapterPreferencesService.PickBestSsid`) resolves
+  strictly through the user's explicit `AutoConnectPriority` → `PinnedSsids` order and never
+  consults signal strength. Adding hysteresis would therefore guard against a ping-pong that cannot
+  occur — speculative complexity. Documented with the verification commands and an explicit trigger
+  for revisiting (if `Rank` ever starts driving automatic connections), so a future session does not
+  redo this investigation or "fix" a non-problem.
+
 
 ## [3.12.0] - 2026-07-16
 
