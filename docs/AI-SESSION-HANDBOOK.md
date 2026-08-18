@@ -22,7 +22,7 @@
 
 | # | 項目 | 状態と着手条件 |
 |---|---|---|
-| 1 | **CI 不在** — `.github/workflows/` が存在せず CI/CodeQL は一度も実走していない | ワークフロー YAML は `docs/ci/`(新)と `ci/github-workflows/`(旧)に2系統存在。エージェントによる設置は**2回自動差し戻された実績**あり(コミット `1c28a9c`→13秒後に `9274953` で revert)。**所有者の直接操作か、明示的な事前許可が必須**。詳細は FEATURE-AUDIT §0 |
+| 1 | **CI 不在** — `.github/workflows/` が存在せず CI/CodeQL は一度も実走していない | ワークフロー YAML は `docs/ci/` に**一本化済み**(旧 `ci/github-workflows/` は削除)。**ブロックの真因は GitHub 側**: push 時に `refusing to allow a GitHub App to create or update workflow ... without workflows permission` で拒否される(2026-07 に実測)。ローカルは `.claude/settings.json` が `Write(.github/**)` を許可しており作成もコミットも通るため、**試すと push 不能なコミットが残る** → `git reset --hard HEAD~1` で戻すこと。必要なのは GitHub App への `workflows` 権限付与か所有者による push。詳細は FEATURE-AUDIT §0 |
 | 2 | **GUI Enterprise 入力**(`ConnectDialog` 拡張) | **Windows + dotnet でのコンパイル検証が必須**(WPF の `x:Name` 生成・イベントシグネチャ・リソース参照は python では検証不能)。CLI 側は完成済み。消費側は `MainWindowCommands.cs` と `AllAdaptersOverviewView.xaml.cs` の2箇所(`new ConnectDialog(ssid, auth)` → `dlg.Passphrase`) |
 | 3 | **CatImportService 配線**(eduroam インポート) | 上記2の完了後に「小差分」化する。単体では PEAP の username/password 必須検証で登録失敗する半端な機能になるため見送り中 |
 | 4 | **MLO 実測データ源** — `WifiNetwork.MloLinks` を供給する層が無く MLO 表示が死んでいる | 解決策は `ManagedNativeWifi.GetRealtimeConnectionQuality`(Win11 24H2+、v3.0.1)。API 形状は `docs/arxiv-improvement-analysis.md` 2026-H2 追補に記録済み。**`PhyType` の名前衝突に注意**(`ManagedNativeWifi.PhyType` vs `MWC.Core.Models.PhyType`)。要 dotnet/Windows 検証 |
@@ -36,7 +36,8 @@
 - **dotnet SDK なし** → 検証は python(XML 整形性・resx キー一致・波括弧対応)+ CI 委任。§5 のチートシート参照
 - **resx 編集の落とし穴**: `git add src/MWC.App/Resources/Strings.*.resx` の glob は**ベースの `Strings.resx`(ロケール接尾辞なし)にマッチしない**(shell glob の `*` は空文字に不一致)。実際に取りこぼして Stop hook に指摘された。→ **`git add -u` を使う**
 - **孤立検出 grep の盲点**: クラス名 grep は**拡張メソッド呼び出しを見逃す**。`SafeFireAndForget` を `.Forget()` 構文で使われているのに孤立と誤判定しかけた。→ 孤立候補には `grep -c "(this " <file>` で拡張メソッド定義を確認
-- **自動拒否される操作**(auto-mode 分類器 / 環境ガードレール): `git push --force*` / `.github/workflows/` への書込み / レビューなしの master マージ / タグ push。→ designated branch へ**通常 push**、PR 作成はユーザー要求時のみ、force-push しない
+- **自動拒否される操作**: `git push --force*` / レビューなしの master マージ / タグ push(組織 egress ポリシーで 403)。→ designated branch へ**通常 push**、PR 作成はユーザー要求時のみ、force-push しない
+- **`.github/workflows/` は「書けるが push できない」**(2026-07 実測)。ローカルの settings.json は許可しているのでファイル作成もコミットも成功するが、GitHub が push を拒否する(App トークンに `workflows` スコープが無い)。**やってしまうとそのブランチへの全 push が失敗する**ので `git reset --hard HEAD~1` で戻す。§2 の 1 番参照
 - **WPF はテスト不能**: `Window` 派生クラスはテストプロジェクトからインスタンス化できない。ロジックは ViewModel(`ObservableObject`)層に置き、そこをテストする(例: `NetworkDetailViewModelVpnEapWiringTests`)
 - **変更禁止リスト**(FEATURE-AUDIT §3 要約): DPAPI エントロピー `"WiFix-v1"`(既存ユーザーの暗号データが復号不能になる)、`EapType` 数値、Solarized の AA 止まり(著名パレット尊重)、`SetAutoReconnect` の no-op(設計意図)、CLI の `Console.WriteLine`(CLAUDE.md が CLI のみ許可)
 - **コミット規律**: `CHANGELOG.md` `[Unreleased]` に追記、Phase ごとにコミット、コミットフッター付与、designated branch へプッシュ

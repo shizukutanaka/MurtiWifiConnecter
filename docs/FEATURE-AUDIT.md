@@ -19,6 +19,32 @@
 > (コミット `1c28a9c`)があったが、**その13秒後に同一セッション内で自動的にリバートされている**
 > (コミット `9274953`、コミットメッセージは boilerplate のみで理由の記載なし — 内容と発生間隔から、
 > エージェント実行環境の `.github/workflows/` 書込み制限ガードレールによる自動差し戻しと推測される)。
+> **🔴 2026-07 第4パス — ブロックの真因が判明した(従来の記述は誤り)**:
+> これまで「エージェントの `.github/workflows/` 書込みは実行環境のガードレールで
+> **自動差し戻し**される」と記録していたが、これは 13 秒後の revert(`9274953`)からの
+> **推論であって検証されていなかった**。実際に試したところ真因は別だった:
+>
+> - **ローカルは一切ブロックしない。** `.claude/settings.json` は `Write(.github/**)` を
+>   permissions で**明示的に許可**しており、deny リストにも入っていない
+>   (deny は `appsettings.Production*` / `*.pfx` / `*.snk` / `secrets.json` / `rm -rf /` / `netsh` のみ)。
+>   ファイル作成もコミットも成功する。
+> - **拒否するのは GitHub 側。** push 時にサーバが返す:
+>   `refusing to allow a GitHub App to create or update workflow .github/workflows/ci.yml`
+>   `without workflows permission`
+>   → push に使われる **GitHub App トークンに `workflows` スコープが無い**ことが原因。
+>
+> 履歴の 13 秒 revert も、同じ拒否を受けて push を通すためにローカルで戻した結果と考えられる。
+> **重要**: この commit を作ったまま放置すると、以降**そのブランチへの全 push が失敗する**。
+> 試して拒否されたら `git reset --hard HEAD~1` で戻すこと。
+>
+> **必要な対応(いずれか一つ)**:
+> 1. リポジトリ所有者が GitHub App / インストールに **`workflows` 権限を付与**する
+> 2. 所有者自身が手元から push する:
+>    `mkdir -p .github/workflows && cp docs/ci/*.yml .github/workflows/ && git add .github/workflows && git commit && git push`
+>
+> エージェント側の作業(ワークフロー YAML の整備・一本化・`.slnf` 修正・設置手順の文書化)は
+> **すべて完了している**。残るのは上記の権限操作のみ。
+>
 > **2026-07 第4パス更新**: CI 設定の**二重管理は解消した**。`ci/github-workflows/`(2026-06-04 版、
 > `claude/**` ブランチ対応と Windows ソリューションフィルタを欠く旧版)を削除し、
 > **`docs/ci/` を正本に一本化**した。`docs/ci/README.md` に設置手順・設置後の TODO

@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by deliberately reintroducing it.
 
 ### Changed
+- **Established why CI cannot be installed from here, replacing a wrong explanation with a verified
+  one.** Both `FEATURE-AUDIT.md` §0 and `AI-SESSION-HANDBOOK.md` recorded that agent writes to
+  `.github/workflows/` are *auto-reverted by an environment guardrail* — an inference drawn from
+  commit `1c28a9c` being reverted 13 seconds later, never actually tested, and it had been treated
+  as settled fact blocking the repository's top-priority item. Testing it produced a different
+  answer. Locally nothing blocks it: `.claude/settings.json` explicitly permits `Write(.github/**)`
+  and its deny list covers only production config, key files, `rm -rf /` and `netsh`; creating the
+  files and committing both succeed. The refusal comes from GitHub itself, on push:
+  `refusing to allow a GitHub App to create or update workflow .github/workflows/ci.yml without
+  workflows permission` — the App token lacks the `workflows` scope. That also explains the historic
+  13-second revert: a previous session most likely hit the same rejection and reverted locally to
+  get its other work pushed. This matters practically, because such a commit blocks *every*
+  subsequent push to the branch until it is reset. Both documents now carry the exact error, the
+  `git reset --hard HEAD~1` recovery, and the two ways forward: grant the App the `workflows`
+  permission, or have the owner push the two files. Everything else CI needs is done.
+
+### Changed
 - **Consolidated CI configuration to one authoritative copy.** `ci/github-workflows/` and `docs/ci/`
   held divergent versions of `ci.yml`, `codeql.yml` and `README.md` — §0 flagged the duplication but
   neither was marked canonical, so whoever installed CI had to guess. Comparing them settled it:
