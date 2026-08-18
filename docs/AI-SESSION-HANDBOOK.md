@@ -50,6 +50,15 @@
 
 ## §5 検証チートシート(dotnet 不在時)
 
+> **まず `bash tools/verify.sh` を実行すること。** 下記のチェックを 1 コマンドにまとめてある
+> (XML 整形性・ロケールキー一致・`MWC.sln` 整合性・波括弧・補完スクリプト構文・孤立サービス検出)。
+> 変更前後で走らせれば、壊したかどうかの下限は判定できる。
+> 波括弧チェックだけは**警告扱い**である — 正規表現で C# を字句解析することは原理的にできず、
+> 補間文字列の入れ子で必ず誤検知するため(理由はスクリプト内に記載)。
+> これは CI の代替ではない。dotnet がある環境では `dotnet build` / `dotnet test` を必ず併用すること。
+
+個別に実行したい場合:
+
 ```bash
 # XML 整形性(全 resx / 全 XAML)
 python3 -c "import xml.etree.ElementTree as ET,glob; [ET.parse(p) for p in glob.glob('src/MWC.App/**/*.xaml',recursive=True)+glob.glob('src/MWC.App/Resources/*.resx')]; print('XML OK')"

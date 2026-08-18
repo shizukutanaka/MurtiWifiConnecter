@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`tools/verify.sh` — the static checks that are possible without a dotnet SDK, in one command.**
+  CI has never run here (`FEATURE-AUDIT.md` §0) and work often happens without a .NET toolchain, but
+  a surprising amount is still verifiable: XML well-formedness across every resx/xaml/csproj, locale
+  keys matching the base resx, `MWC.sln` internal consistency (declared projects exist on disk, no
+  configuration entries reference deleted GUIDs — the exact failure this release's project deletions
+  could have caused), shell-completion syntax, and detection of newly orphaned Core services against
+  the four documented exceptions. The brace-balance check is **advisory and never fails the run**:
+  C# cannot be lexed with regular expressions, and interpolated strings containing nested literals
+  (`$"{n.Ssid}{(cond ? "x" : "")}"`) produce a false positive — measured at 1 file in 196. A check
+  that cries wolf trains people to ignore it, so it warns and says so. This is a floor, not a
+  substitute for `dotnet build`/`dotnet test`; `AI-SESSION-HANDBOOK.md` §5 now points at it first.
+
 ### Changed
 - **README badges now claim only what is actually true.** The CI and CodeQL badges pointed at
   `actions/workflows/ci.yml` and `codeql.yml`, which do not exist — `.github/workflows/` is absent
