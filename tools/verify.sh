@@ -89,6 +89,30 @@ PY
 then pass "MWC.sln is internally consistent"
 else fail "solution file problem (see above)"; fi
 
+# ── 3b. ソリューションフィルタ (*.slnf) ─────────────────────────────────────
+# CI は .slnf 経由で restore/build する (docs/ci/ci.yml)。プロジェクトを削除したとき
+# .sln だけ直して .slnf を忘れると、**CI を設置した瞬間に dotnet restore が失敗する**。
+# 2026-07 第4パスで実際に踏んだ (Android/iOS 削除時に 2 つの .slnf に参照が残った)。
+head "Solution filters (*.slnf)"
+if python3 - <<'PY'
+import glob, json, os, sys
+errs = []
+for p in sorted(glob.glob('*.slnf')):
+    try: d = json.load(open(p))
+    except Exception as e: errs.append(f'{p}: invalid JSON: {e}'); continue
+    sol = d.get('solution', {})
+    if not os.path.exists(sol.get('path', '').replace('\\', os.sep)):
+        errs.append(f"{p}: solution path missing: {sol.get('path')}")
+    for proj in sol.get('projects', []):
+        if not os.path.exists(proj.replace('\\', os.sep)):
+            errs.append(f'{p}: references missing project: {proj}')
+if errs:
+    print('\n'.join(errs)); sys.exit(1)
+print(f'{len(glob.glob("*.slnf"))} filter(s), every referenced project exists')
+PY
+then pass "all .slnf reference existing projects"
+else fail "solution filter references a missing project — CI would fail on restore"; fi
+
 # ── 4. C# の波括弧対応 (警告のみ) ────────────────────────────────────────────
 # 機械編集(sed / python での一括置換)による構造破壊を捕捉するための目安。
 #

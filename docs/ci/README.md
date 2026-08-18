@@ -1,27 +1,46 @@
-# Pending CI workflows
+# CI ワークフロー(設置待ち)
 
-These workflow definitions are staged here because the automation token used
-to push this branch lacks the GitHub `workflows` permission, so files cannot be
-written under `.github/workflows/` directly (the API returns
-`403 Resource not accessible by integration`).
+> **ここが CI 設定の正本(single source of truth)。** かつて `ci/github-workflows/` にも
+> 別バージョンが存在したが、2026-07 に削除して一本化した(そちらは 2026-06-04 版で、
+> こちらの 2026-06-23 版より古く、`claude/**` 等のブランチ対応と Windows ソリューション
+> フィルタ経由のビルドを欠いていた)。
 
-**A maintainer with `workflows` write access must move these into place:**
+## 現状と、なぜここに置かれているか
 
-```sh
+**このリポジトリの GitHub Actions は一度も実走していない。** GitHub がワークフローとして
+認識するのは `.github/workflows/` だけだが、そこには何も置かれていない
+(詳細と経緯: `docs/FEATURE-AUDIT.md` §0)。
+
+過去に一度、正しい場所へ移設する試み(コミット `1c28a9c`)があったが、**13 秒後に同一
+セッション内で自動的にリバートされている**(`9274953`)。エージェント実行環境の
+`.github/workflows/` 書込みガードレールによる自動差し戻しと推測される。
+そのため**リポジトリ所有者による直接操作、または明示的な許可が必要**。
+
+## 設置手順
+
+```bash
 mkdir -p .github/workflows
-git mv docs/ci/ci.yml      .github/workflows/ci.yml
-git mv docs/ci/codeql.yml  .github/workflows/codeql.yml
-git commit -m "ci: activate CI and CodeQL workflows"
-git push
+cp docs/ci/ci.yml docs/ci/codeql.yml .github/workflows/
+git add .github/workflows && git commit -m "ci: install workflows" && git push
 ```
 
-## Contents
+設置後にやること:
 
-| File          | Purpose                                                        |
-|---------------|---------------------------------------------------------------|
-| `ci.yml`      | Windows full build + test; Ubuntu `MWC.Core` build (no tests) |
-| `codeql.yml`  | Weekly C# SAST (CodeQL), manual build mode on `windows-latest` |
+1. `README.md` の CI / CodeQL バッジを復活させる(markup は README 内の HTML コメントに保存済み)
+2. 実際に `dotnet test` が走った実測値でテストバッジを `N passing` に更新する
+   (現在は静的に数えられる「850 methods」表記にしてある)
+3. `docs/FEATURE-AUDIT.md` §0 を解決済みに更新する
 
-Both rely on the solution filters committed at the repo root:
-`MWC.ci-win.slnf` (Windows-buildable projects incl. tests) and
-`MWC.ci-linux.slnf` (Core + cross-platform projects, no WPF/tests).
+## 中身
+
+| ファイル | 内容 |
+|---|---|
+| `ci.yml` | Windows での build + test(`MWC.ci-win.slnf` 経由)、Linux でのクロスプラットフォーム部分ビルド |
+| `codeql.yml` | CodeQL による SAST |
+
+## 設置前に
+
+`bash tools/verify.sh` を実行すること。dotnet 無しで可能な静的検証(XML 整形性・
+ロケールキー一致・`MWC.sln` と `*.slnf` の整合性・補完スクリプト構文・孤立サービス検出)を
+まとめて走らせる。特に **`.slnf` の検証は重要** — プロジェクトを削除したときに
+フィルタ側の参照を消し忘れると、CI 設置直後の `dotnet restore` が失敗する。

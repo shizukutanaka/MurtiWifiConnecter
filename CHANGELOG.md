@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Repaired solution filters that this release's project deletions had broken.** `MWC.ci-win.slnf`
+  and `MWC.ci-linux.slnf` still listed the deleted Android and iOS projects. CI restores through
+  those filters (`docs/ci/ci.yml`), so `dotnet restore` would have failed the moment workflows were
+  installed — a breakage introduced here and invisible to every check that existed, since
+  `verify.sh` validated `MWC.sln` but not `*.slnf`. Both filters are fixed, and `verify.sh` gained a
+  `.slnf` check (every referenced project must exist on disk) that was confirmed to catch the fault
+  by deliberately reintroducing it.
+
+### Changed
+- **Consolidated CI configuration to one authoritative copy.** `ci/github-workflows/` and `docs/ci/`
+  held divergent versions of `ci.yml`, `codeql.yml` and `README.md` — §0 flagged the duplication but
+  neither was marked canonical, so whoever installed CI had to guess. Comparing them settled it:
+  `docs/ci/` is three weeks newer and strictly more capable (handles `claude/**`, `feature/**` and
+  `fix/**` branches, and builds through the Windows solution filter). `ci/github-workflows/` is
+  deleted. `docs/ci/README.md` now states plainly that it is the single source of truth, why the
+  workflows are not yet in `.github/workflows/` (agent writes there were auto-reverted — see §0),
+  the exact commands to install them, and the follow-ups that installation unblocks: restoring the
+  README badges and replacing the static test count with a measured one.
+
 ### Added
 - **`tools/verify.sh` — the static checks that are possible without a dotnet SDK, in one command.**
   CI has never run here (`FEATURE-AUDIT.md` §0) and work often happens without a .NET toolchain, but
