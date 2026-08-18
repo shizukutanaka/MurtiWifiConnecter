@@ -53,7 +53,7 @@ public partial class AllAdaptersOverviewView : Window
             {
                 var dlg = new ConnectDialog(net.Ssid, net.Auth) { Owner = this };
                 if (dlg.ShowDialog() != true) return;
-                spec = dlg.BuildSpec();
+                spec = dlg.Spec ?? spec;
             }
 
             var progress = new ConnectionProgressDialog(net.Ssid) { Owner = this };

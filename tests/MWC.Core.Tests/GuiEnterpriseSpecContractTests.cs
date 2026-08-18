@@ -14,7 +14,7 @@ namespace MWC.Core.Tests;
 //  ここで再現し、CLI と同じ検証を通ることを固定する。
 //
 //  ダイアログ側の実際の組み立ては src/MWC.App/Views/ConnectDialog.xaml.cs の
-//  BuildSpec()。CLI 側の対応物は src/MWC.Cli/Program.cs の BuildConnect。
+//  CaptureSpec()(OnConnect が確定時に呼び、結果を Spec プロパティに保持する)。CLI 側の対応物は src/MWC.Cli/Program.cs の BuildConnect。
 //  両者が同じ spec を作ることが、GUI と CLI で挙動が食い違わない根拠になる。
 //
 //  ここで検証したいのは「ダイアログの入力規則が Core の検証規則と一致しているか」:
@@ -24,7 +24,7 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class GuiEnterpriseSpecContractTests
 {
-    // ConnectDialog.BuildSpec() の Enterprise 分岐と同じ形。
+    // ConnectDialog.CaptureSpec() の Enterprise 分岐と同じ形。
     // 空欄は null に落とす (ダイアログは IsNullOrWhiteSpace で判定している)。
     private static WifiProfileSpec DialogSpec(
         AuthMethod auth = AuthMethod.WPA2Enterprise,
@@ -71,8 +71,11 @@ public class GuiEnterpriseSpecContractTests
     {
         // EAP-TLS は証明書認証。ダイアログはこの方式を選ぶとユーザー名/パスワード欄を隠す。
         // ここで検証が通らないと、隠した結果 接続不能になってしまう。
-        DialogSpec(eap: EapType.EAP_TLS, username: "", password: "")
-            .Validate().IsValid.Should().BeTrue();
+        var spec = DialogSpec(eap: EapType.EAP_TLS, username: "", password: "");
+        spec.Validate().IsValid.Should().BeTrue();
+        // 方式を切り替える前に入力された資格情報は spec に載せない。
+        spec.Username.Should().BeNull();
+        spec.Password.Should().BeNull();
     }
 
     [Fact]

@@ -73,7 +73,7 @@ public sealed class MainWindowCommands
         {
             var dlg = new ConnectDialog(net.Ssid, net.Auth) { Owner = owner };
             if (dlg.ShowDialog() != true) return false;
-            spec = dlg.BuildSpec();
+            spec = dlg.Spec ?? spec;
         }
 
         if (vm.SelectedAdapter is null) return false;

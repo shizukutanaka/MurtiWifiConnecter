@@ -71,11 +71,22 @@ public partial class ConnectDialog : Window
     }
 
     /// <summary>
-    /// 入力内容から接続用の <see cref="WifiProfileSpec"/> を組み立てる。
+    /// 接続用の <see cref="WifiProfileSpec"/>。<see cref="OnConnect"/> が「接続」確定時に
+    /// 組み立てて保持する。呼び出し側は <c>ShowDialog() == true</c> の後に読む。
+    ///
+    /// 入力コントロールをここで直接読まないのは意図的:
+    /// 呼び出し側が参照するのはダイアログを閉じた後であり、閉じたウィンドウの
+    /// コントロールに依存するのは脆い。<see cref="Passphrase"/> が確立している
+    /// 「確定時に値を捕捉してプロパティに保持する」パターンに合わせる。
+    /// </summary>
+    public WifiProfileSpec? Spec { get; private set; }
+
+    /// <summary>
+    /// 現在の入力内容から spec を組み立てる。
     /// Enterprise ではパスワード欄を EAP パスワードとして扱う
     /// (CLI の `-p` が PSK/EAP 兼用なのと同じ設計)。
     /// </summary>
-    public WifiProfileSpec BuildSpec()
+    private WifiProfileSpec CaptureSpec()
     {
         var password = ShowPwCheck.IsChecked == true
             ? PasswordVisible.Text : PasswordBox.Password;
@@ -88,13 +99,19 @@ public partial class ConnectDialog : Window
             : ServerNameBox.Text.Split(';', StringSplitOptions.RemoveEmptyEntries
                                           | StringSplitOptions.TrimEntries);
 
+        // EAP-TLS はクライアント証明書で認証する。方式を切り替える前に入力された
+        // パスワードが残っていても spec には載せない — 使われない資格情報を
+        // 運ぶ理由がない。
+        bool usesCredentials = SelectedEapType is not EapType.EAP_TLS;
+
         return new WifiProfileSpec
         {
             Ssid        = _ssid,
             Auth        = _auth,
             EapType     = SelectedEapType,
-            Username    = string.IsNullOrWhiteSpace(UsernameBox.Text) ? null : UsernameBox.Text,
-            Password    = string.IsNullOrEmpty(password) ? null : password,
+            Username    = usesCredentials && !string.IsNullOrWhiteSpace(UsernameBox.Text)
+                              ? UsernameBox.Text : null,
+            Password    = usesCredentials && !string.IsNullOrEmpty(password) ? password : null,
             Domain      = string.IsNullOrWhiteSpace(IdentityBox.Text) ? null : IdentityBox.Text,
             ServerNames = servers,
         };
@@ -198,6 +215,9 @@ public partial class ConnectDialog : Window
                 return;
             }
         }
+        // 値の捕捉は必ずここで行う。呼び出し側が読むのは閉じた後なので、
+        // コントロールへの依存をこの時点で断ち切る。
+        Spec = CaptureSpec();
         DialogResult = true;
         Close();
     }
