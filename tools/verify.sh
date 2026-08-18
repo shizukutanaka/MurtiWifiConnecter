@@ -166,6 +166,45 @@ done
 if [ -z "$NEW" ]; then pass "no unexplained orphans (4 documented ones ignored)"
 else fail "new orphaned service(s):$NEW — wire them, delete them, or document why in FEATURE-AUDIT §1a"; fi
 
+# ── 7. README に書かれた数値が実測と一致するか ──────────────────────────────
+# README は製品の顔であり、古い数値は「検証されていない主張」になる。
+# 2026-07 に実際に 3 箇所ずれていた (テスト数・キー数・総エントリ数)。
+head "README claims match reality"
+if python3 - <<'PY'
+import glob, re, sys, xml.etree.ElementTree as ET
+r = open('README.md', encoding='utf-8').read()
+keys = len(ET.parse('src/MWC.App/Resources/Strings.resx').findall('.//data'))
+files = len(glob.glob('src/MWC.App/Resources/Strings*.resx'))
+locales = files - 1                      # 中立ベースを除いた名前付きロケール数
+errs = []
+
+m = re.search(r'1ファイル\s*([\d,]+)\s*キー', r)
+if m and int(m.group(1).replace(',', '')) != keys:
+    errs.append(f'README claims {m.group(1)} resx keys, actual {keys}')
+
+m = re.search(r'=\s*([\d,]+)\s*エントリ', r)
+if m and int(m.group(1).replace(',', '')) != keys * files:
+    errs.append(f'README claims {m.group(1)} total entries, actual {keys*files} ({keys}x{files})')
+
+m = re.search(r'i18n-(\d+)%20langs', r)
+if m and int(m.group(1)) != locales:
+    errs.append(f'i18n badge claims {m.group(1)} langs, actual {locales} named locales')
+
+m = re.search(r'tests-(\d+)%20', r)
+if m:
+    n = sum(open(p, encoding='utf-8').read().count(t)
+            for p in glob.glob('tests/**/*.cs', recursive=True)
+            for t in ('[Fact]', '[Theory]'))
+    if int(m.group(1)) != n:
+        errs.append(f'tests badge claims {m.group(1)} methods, actual {n}')
+
+if errs:
+    print('\n'.join(errs)); sys.exit(1)
+print(f'{keys} keys x {files} files, {locales} named locales — README agrees')
+PY
+then pass "README's numbers match the repository"
+else fail "README states a number that no longer holds (see above)"; fi
+
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo
 if [ "$FAILED" -eq 0 ]; then

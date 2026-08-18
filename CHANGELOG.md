@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by deliberately reintroducing it.
 
 ### Changed
+- **README's remaining stale numbers corrected, and `verify.sh` now guards them.** Fixing the badges
+  earlier left three untrue figures in the body: the build section claimed 525 tests (actual: 858
+  declared methods), and the translation section claimed 508 keys and 7,112 entries (actual: 532
+  keys across 15 resx files — 14 named locales plus the neutral base — so 7,980). The i18n badge's
+  "14 langs" and the "25 ADRs" claim were checked and are correct. Numbers like these rot silently
+  every time content is added, so `verify.sh` gained a check that recomputes each of them from the
+  repository and fails when the README disagrees. It immediately earned its place: it caught that
+  the tests badge I had just written as 850 was already 858 after this release's own additions.
+
+### Changed
 - **Recorded that building and testing locally is impossible here, after establishing it by
   attempt rather than assumption.** "No dotnet SDK" had been treated as a fixed property of the
   environment; it is not, and the real blocker is elsewhere. The SDK installs fine
