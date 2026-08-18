@@ -673,4 +673,10 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Failure_OsError"><value>கணினி பிழை</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>பின் செய்யப்பட்ட நெட்வொர்க் பட்டியல்</value></data>
+  <data name="Label_EapType"><value>EAP முறை</value></data>
+  <data name="Label_EapUsername"><value>பயனர் பெயர்</value></data>
+  <data name="Label_EapIdentity"><value>அநாமதேய அடையாளம் (விருப்பம்)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS சேவையக பெயர் (விருப்பம்)</value></data>
+  <data name="EapHint_Identity"><value>சுரங்கத்திற்கு முன் வெளிப்படையாக அனுப்பப்படும். பயனர் பெயரை மறைக்க anonymous@realm பயன்படுத்தவும்.</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP மற்றும் EAP-TTLS க்கு பயனர் பெயரும் கடவுச்சொல்லும் தேவை.</value></data>
 </root>

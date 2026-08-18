@@ -678,4 +678,10 @@
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>EAP 方式</value></data>
+  <data name="Label_EapUsername"><value>使用者名稱</value></data>
+  <data name="Label_EapIdentity"><value>匿名識別(選填)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS 伺服器名稱(選填)</value></data>
+  <data name="EapHint_Identity"><value>在建立通道前以明文傳送。使用 anonymous@realm 可隱藏使用者名稱。</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP 與 EAP-TTLS 需要使用者名稱與密碼。</value></data>
 </root>

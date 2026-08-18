@@ -678,4 +678,10 @@
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>طريقة EAP</value></data>
+  <data name="Label_EapUsername"><value>اسم المستخدم</value></data>
+  <data name="Label_EapIdentity"><value>هوية مجهولة (اختياري)</value></data>
+  <data name="Label_EapServerName"><value>اسم خادم RADIUS (اختياري)</value></data>
+  <data name="EapHint_Identity"><value>تُرسل بنص واضح قبل النفق. استخدم anonymous@realm لإخفاء اسم المستخدم.</value></data>
+  <data name="Error_EapUsernameRequired"><value>يتطلب PEAP و EAP-TTLS اسم مستخدم وكلمة مرور.</value></data>
 </root>

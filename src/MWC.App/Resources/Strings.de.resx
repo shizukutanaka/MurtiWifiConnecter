@@ -678,4 +678,10 @@ Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>EAP-Methode</value></data>
+  <data name="Label_EapUsername"><value>Benutzername</value></data>
+  <data name="Label_EapIdentity"><value>Anonyme Identität (optional)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS-Servername (optional)</value></data>
+  <data name="EapHint_Identity"><value>Wird vor dem Tunnel im Klartext gesendet. anonymous@realm verbirgt Ihren Benutzernamen.</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP und EAP-TTLS erfordern Benutzername und Kennwort.</value></data>
 </root>

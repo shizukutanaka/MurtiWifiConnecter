@@ -62,19 +62,24 @@ public sealed class MainWindowCommands
         var net = vm.SelectedAdapter?.Selected;
         if (net is null) return false;
 
-        string passphrase = "";
+        // ダイアログから spec を受け取る。Enterprise (802.1X) では EAP 種別・ユーザー名・
+        // 匿名外部アイデンティティ・サーバ名を含むため、パスフレーズ文字列では運べない。
+        // Open/OWE はダイアログ自体を出さないので、ここで spec を直接組み立てる。
+        var spec = new MWC.Core.Models.WifiProfileSpec
+        {
+            Ssid = net.Ssid, Auth = net.Auth, Passphrase = ""
+        };
         if (net.Auth is not (AuthMethod.Open or AuthMethod.OWE))
         {
             var dlg = new ConnectDialog(net.Ssid, net.Auth) { Owner = owner };
             if (dlg.ShowDialog() != true) return false;
-            passphrase = dlg.Passphrase ?? "";
+            spec = dlg.BuildSpec();
         }
 
         if (vm.SelectedAdapter is null) return false;
 
         await AdapterConnectExtension.ConnectWithAppleFlowAsync(
-            vm.SelectedAdapter, _executor, net.Ssid, passphrase, net.Auth,
-            _notify, owner: owner);
+            vm.SelectedAdapter, _executor, spec, _notify, owner: owner);
 
         bool success = vm.SelectedAdapter.ConnectedSsid == net.Ssid;
         if (success)

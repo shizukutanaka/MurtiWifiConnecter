@@ -43,12 +43,17 @@ public partial class AllAdaptersOverviewView : Window
             var net = panel.Selected;
             if (net is null) return;
 
-            string passphrase = "";
+            // ダイアログから spec を受け取る (Enterprise の EAP 種別・ユーザー名等を運ぶため)。
+            // Open/OWE はダイアログを出さないので直接組み立てる。
+            var spec = new MWC.Core.Models.WifiProfileSpec
+            {
+                Ssid = net.Ssid, Auth = net.Auth, Passphrase = ""
+            };
             if (net.Auth is not (AuthMethod.Open or AuthMethod.OWE))
             {
                 var dlg = new ConnectDialog(net.Ssid, net.Auth) { Owner = this };
                 if (dlg.ShowDialog() != true) return;
-                passphrase = dlg.Passphrase ?? "";
+                spec = dlg.BuildSpec();
             }
 
             var progress = new ConnectionProgressDialog(net.Ssid) { Owner = this };
@@ -58,7 +63,7 @@ public partial class AllAdaptersOverviewView : Window
                 progress.SetStep(0, StepState.Active, L.Get("Progress_Connecting"));
 
                 var res = await _executor.ConnectAsync(
-                    panel.Id, net.Ssid, net.Auth, passphrase,
+                    panel.Id, spec,
                     TimeSpan.FromSeconds(25), progress.CancellationToken);
 
                 if (res.Success)

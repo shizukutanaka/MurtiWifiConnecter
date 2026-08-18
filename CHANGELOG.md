@@ -47,6 +47,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **`ConnectDialog` now accepts 802.1X Enterprise credentials, closing the last functional gap
+  between the GUI and the CLI.** `FEATURE-AUDIT.md` §2a recorded that neither surface could enter
+  Enterprise credentials; the CLI half shipped earlier in this release, and this is the other half.
+  Selecting an Enterprise network reveals a panel with EAP method (the same three the CLI offers —
+  PEAP-MSCHAPv2, EAP-TLS, EAP-TTLS; EAP-AKA is excluded because `ProfileXmlBuilder` rejects it),
+  username, an optional anonymous identity, and optional RADIUS server names. Choosing EAP-TLS hides
+  the username and password fields, since it authenticates with a client certificate — leaving them
+  visible would imply they are required. The existing password box doubles as the EAP password,
+  mirroring the CLI's `-p`. Enterprise input is validated against the *Enterprise* rules rather than
+  the PSK ones, so a short EAP password is no longer rejected by the 8–63 character PSK check. Six
+  new strings were added across all 14 locales plus the neutral base (532 keys each, verified
+  consistent), keeping technical terms in Latin script per the existing convention. **This unblocks
+  `CatImportService`** (eduroam CAT import), which §2a listed as waiting on exactly this.
+  **Requires compilation on Windows before it can be trusted** — WPF cannot be built in this
+  environment. Everything statically checkable was checked: XAML parses, all 13 `x:Name` references
+  and all 6 event handlers resolve between XAML and code-behind, every `L.*` property and theme
+  brush used exists (the brushes in all 7 themes), and `tools/verify.sh` passes. Behaviour is pinned
+  by `GuiEnterpriseSpecContractTests.cs`, which reproduces the spec `BuildSpec()` assembles and
+  asserts it satisfies the same Core validation the CLI does.
+
+### Added
 - **The GUI connect flow can now carry a full `WifiProfileSpec`**, which is the prerequisite for
   Enterprise (802.1X) credentials in the UI. `AdapterConnectExtension.ConnectWithAppleFlowAsync`
   only accepted a passphrase string, so EAP type, username, anonymous outer identity, server names

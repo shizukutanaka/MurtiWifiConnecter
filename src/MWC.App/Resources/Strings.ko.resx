@@ -678,4 +678,10 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>EAP 방식</value></data>
+  <data name="Label_EapUsername"><value>사용자 이름</value></data>
+  <data name="Label_EapIdentity"><value>익명 ID(선택)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS 서버 이름(선택)</value></data>
+  <data name="EapHint_Identity"><value>터널 설정 전에 평문으로 전송됩니다. anonymous@realm 을 쓰면 사용자 이름을 숨깁니다.</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP 와 EAP-TTLS 에는 사용자 이름과 암호가 필요합니다.</value></data>
 </root>

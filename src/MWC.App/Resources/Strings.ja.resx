@@ -678,4 +678,10 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Failure_OsError"><value>システムエラー</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>ピン留めネットワーク一覧</value></data>
+  <data name="Label_EapType"><value>EAP 方式</value></data>
+  <data name="Label_EapUsername"><value>ユーザー名</value></data>
+  <data name="Label_EapIdentity"><value>匿名 ID(任意)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS サーバー名(任意)</value></data>
+  <data name="EapHint_Identity"><value>トンネル確立前に平文で送られます。ユーザー名を隠すには anonymous@realm を指定します。</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP と EAP-TTLS にはユーザー名とパスワードが必要です。</value></data>
 </root>

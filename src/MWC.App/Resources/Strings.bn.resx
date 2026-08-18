@@ -673,4 +673,10 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Failure_OsError"><value>সিস্টেম ত্রুটি</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>পিন করা নেটওয়ার্ক তালিকা</value></data>
+  <data name="Label_EapType"><value>EAP পদ্ধতি</value></data>
+  <data name="Label_EapUsername"><value>ব্যবহারকারীর নাম</value></data>
+  <data name="Label_EapIdentity"><value>বেনামী পরিচয় (ঐচ্ছিক)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS সার্ভারের নাম (ঐচ্ছিক)</value></data>
+  <data name="EapHint_Identity"><value>টানেলের আগে সাধারণ টেক্সটে পাঠানো হয়। ব্যবহারকারীর নাম লুকাতে anonymous@realm দিন।</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP এবং EAP-TTLS-এর জন্য ব্যবহারকারীর নাম ও পাসওয়ার্ড প্রয়োজন।</value></data>
 </root>

@@ -678,4 +678,10 @@
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>Метод EAP</value></data>
+  <data name="Label_EapUsername"><value>Имя пользователя</value></data>
+  <data name="Label_EapIdentity"><value>Анонимная личность (необязательно)</value></data>
+  <data name="Label_EapServerName"><value>Имя сервера RADIUS (необязательно)</value></data>
+  <data name="EapHint_Identity"><value>Передаётся открыто до туннеля. Укажите anonymous@realm, чтобы скрыть имя пользователя.</value></data>
+  <data name="Error_EapUsernameRequired"><value>Для PEAP и EAP-TTLS нужны имя пользователя и пароль.</value></data>
 </root>
