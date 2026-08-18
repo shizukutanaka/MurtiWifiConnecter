@@ -6,7 +6,7 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $commands = @(
-        'list', 'scan', 'connect', 'disconnect',
+        'list', 'scan', 'connect', 'disconnect', 'import-cat',
         'profile', 'qr', 'qr-parse', 'export',
         'quality', 'history', 'plan-channels',
         'multi', 'adapter', 'help'
@@ -53,6 +53,7 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
         'list'          { @('--json', '--status', '--adapter') }
         'scan'          { @('--adapter', '--json', '--advise', '--recommend', '--evil-twin', '--interference', '--mesh') }
         'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden', '--eap-type', '--username', '--domain', '--server-name', '--trusted-root-ca') }
+        'import-cat'    { @('--username', '--password', '-p', '--adapter', '--timeout', '--dry-run', '--json') }
         'disconnect'    { @('--adapter') }
         'profile'       {
             if ($depth -eq 2) { @('list', 'delete') }

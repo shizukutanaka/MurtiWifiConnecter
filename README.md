@@ -86,6 +86,8 @@ mwc connect "MyWiFi" -p $env:PW   # 接続 (-p 省略時は $env:MWC_PASSWORD �
 mwc connect eduroam --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 `
     --username you@univ.ac.jp -p $env:MWC_PASSWORD `
     --server-name radius.univ.ac.jp --trusted-root-ca <CA拇印>
+# eduroam CAT ファイルからインポートして接続(組織の設定は XML、資格情報は自分で入力)
+mwc import-cat eduroam.eap-config --username you@univ.ac.jp -p $env:MWC_PASSWORD
 mwc qr "MyWiFi" -p secret         # WIFI: URI 出力
 mwc export --format csv           # CSV エクスポート
 mwc quality 8.8.8.8 -s 10         # 品質計測 (Ping × 10)

@@ -63,6 +63,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README badges and replacing the static test count with a measured one.
 
 ### Added
+- **`mwc import-cat` — eduroam CAT import, the feature `FEATURE-AUDIT.md` §2a had listed as
+  blocked.** A CAT `eap-config` file describes the *institution*: SSID, EAP method, RADIUS server
+  names, trusted root CAs and the anonymous outer identity. It deliberately contains no user
+  credentials, because each person supplies their own account — which is exactly why this could not
+  be wired until Enterprise credential entry existed. It does now, so the command parses the file,
+  merges in `--username` and `-p` (or `MWC_PASSWORD`), validates, and connects. `--dry-run` prints
+  what would be used without connecting. Because CAT files always carry a server name, the resulting
+  profile enforces server validation, so a user importing one cannot be one click away from
+  accepting a rogue RADIUS certificate.
+- **Fixed a mapping error in `CatImportService.BuildEduroamSpec` found while wiring it.** It put the
+  anonymous identity into `Username` — but in this codebase `Username` is the real identity used
+  *inside* the tunnel, while `Domain` is the outer identity sent in the clear. The effect would have
+  been both wrong at once: no place left for the user's real account, and no anonymous identity
+  emitted, defeating the privacy the field exists for. It also assigned CAT's realm to `Domain`,
+  where an identity belongs. Now the anonymous identity maps to `Domain`, falling back to
+  `anonymous@realm` when CAT does not state one explicitly (a bare `anonymous` would break
+  realm-based RADIUS routing), and `Username` is left for the caller to fill. This is a good
+  illustration of why the audit tracks unwired code: nothing had ever exercised this path, so the
+  error sat undetected. Regression tests in `CatImportWiringTests.cs`.
+
+### Added
 - **`ConnectDialog` now accepts 802.1X Enterprise credentials, closing the last functional gap
   between the GUI and the CLI.** `FEATURE-AUDIT.md` §2a recorded that neither surface could enter
   Enterprise credentials; the CLI half shipped earlier in this release, and this is the other half.

@@ -7,7 +7,7 @@ _mwc_completions()
     local cur prev words cword
     _init_completion || return
 
-    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter help"
+    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter import-cat help"
 
     # トップレベルコマンド
     if [[ $cword -eq 1 ]]; then
@@ -36,6 +36,10 @@ _mwc_completions()
                     ;;
             esac
             COMPREPLY=( $(compgen -W "--adapter --password -p --auth --timeout --hidden --eap-type --username --domain --server-name --trusted-root-ca" -- "$cur") )
+            return
+            ;;
+        import-cat)
+            COMPREPLY=( $(compgen -W "--username --password -p --adapter --timeout --dry-run --json" -- "$cur") )
             return
             ;;
         disconnect)

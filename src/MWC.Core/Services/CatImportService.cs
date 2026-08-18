@@ -79,19 +79,41 @@ public sealed class CatImportService
     }
 
     /// <summary>
-    /// eduroam の標準 SSID ("eduroam") を対象にしたデフォルトプロファイルを生成。
+    /// CAT プロファイルから接続 spec の「組織側で決まる部分」を組み立てる。
+    ///
+    /// **利用者の資格情報 (<see cref="WifiProfileSpec.Username"/> /
+    /// <see cref="WifiProfileSpec.Password"/>) は入らない。** eduroam CAT の XML は
+    /// 設計上それらを含まない — 各利用者が自分の学内アカウントを後から入力する方式だからである。
+    /// したがって PEAP / EAP-TTLS では、この spec 単体は
+    /// <see cref="WifiProfileSpec.Validate"/> を通らない(username+password 必須)。
+    /// 呼び出し側が `with { Username = ..., Password = ... }` で補うこと。
+    /// CLI の `mwc import-cat` がその参照実装。
+    ///
+    /// マッピングの注意: CAT の AnonymousIdentity は **外部 (Phase 1) アイデンティティ**であり、
+    /// 本 spec では <see cref="WifiProfileSpec.Domain"/> に入る
+    /// (<see cref="Profile.ProfileXmlBuilder"/> がここを PEAP の AnonymousUserName /
+    ///  EAP-TTLS の匿名 ID として平文送出する)。`Username` は逆にトンネル内で使う実 ID なので
+    /// 匿名 ID を入れてはならない — 2026-07 までここが取り違えられていた
+    /// (未配線だったため露見していなかった)。
+    /// CAT が AnonymousIdentity を明示しない場合は realm から `anonymous@realm` を組み立てる。
+    /// realm も無ければ null のままにする(ProfileXmlBuilder 側が既定を決める)。
     /// </summary>
     public WifiProfileSpec BuildEduroamSpec(CatProfile profile)
     {
+        var outerIdentity = !string.IsNullOrWhiteSpace(profile.AnonymousIdentity)
+            ? profile.AnonymousIdentity
+            : !string.IsNullOrWhiteSpace(profile.Domain)
+                ? $"anonymous@{profile.Domain}"
+                : null;
+
         return new WifiProfileSpec
         {
             Ssid                    = profile.Ssid,
             Auth                    = AuthMethod.WPA2Enterprise,
             EapType                 = profile.EapType,
-            Username                = profile.AnonymousIdentity,   // 匿名ユーザー名
             ServerNames             = profile.ServerNames.ToArray(),
             TrustedRootCaThumbprints = profile.CaThumbprints.ToArray(),
-            Domain                  = profile.Domain
+            Domain                  = outerIdentity,
         };
     }
 

@@ -133,7 +133,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | サービス (`src/MWC.Core/Services/`) | 本来対応する機能 | 推奨アクション | 備考 |
 |---|---|---|---|
 | ~~`RegulatoryDomainService`~~ | 6GHz 帯の国別チャネル表示 | **✅ 配線済み(2026-07)** | `NetworkDetailViewModel.RegulatoryLabel`(6GHz ネットワークのみ表示、`RegionInfo.CurrentRegion` からシステムロケールで国を自動推定)。テスト: `NetworkDetailViewModelVpnEapWiringTests.cs` に追加 |
-| `CatImportService` | eduroam CAT XML インポート | **ブロック解除(2026-07 第4パス)** — GUI Enterprise 入力が実装されたため配線可能になった。要 Windows でのコンパイル検証 | XXE/DTD 対策済みの丁寧な実装。品質は高い |
+| ~~`CatImportService`~~ | eduroam CAT XML インポート | **✅ 配線済み(2026-07 第4パス)** — CLI `mwc import-cat` | XXE/DTD 対策済みの丁寧な実装。品質は高い。配線時に `BuildEduroamSpec` のマッピング誤り(匿名 ID が `Username` に入っていた)を発見・修正 — 未配線だったため露見していなかった。テスト: `tests/MWC.Core.Tests/CatImportWiringTests.cs` |
 | ~~`OweSelectionService`~~ | 同一 SSID の Open/OWE ペア統合 | **✅ 配線済み(2026-07)** | `AdapterViewModel.RefreshAsync`・`AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`・CLI `mwc scan` の3箇所に挿入。既知の限界(Open 側が実際に接続中でも無条件除外される稀なエッジケース)をサービス自身の XML doc に明記。テスト: `tests/MWC.Core.Tests/OweWiringTests.cs` |
 | `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討 | 日本キャリア(au/SoftBank/docomo)プリセット付き。2026-H2 追補: OpenRoaming が主流化中(WBA 2025 調査で回答企業の81%が導入計画)で配線価値は上昇傾向だが、ブロッカー(802.11u Interworking IE 抽出未実装)は不変 |
 | ~~`WifiDirectService`~~ | Wi-Fi Direct P2P | **✅ 削除済み(2026-07 第4パス)** | 依存する `WindowsWifiDirectAdapter` が存在せず動作不能。加えて Wi-Fi Direct は**デバイス間 P2P** であり、CLAUDE.md の Why(各アダプターの SSID 一覧/接続を独立管理)とは別の製品 capability。型定義(`IWifiDirectAdapter`/`WifiDirectDevice` 等)も同ファイルに閉じていたため巻き添えなし。**復活させる場合はプラットフォーム実装とセットで、実機検証込みで行うこと**(`git log --diff-filter=D -- src/MWC.Core/Services/WifiDirectService.cs`) |
