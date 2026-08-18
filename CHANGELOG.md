@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+- **Deleted `KalmanRssiFilter` and `BeaconUptimeEstimator`, and corrected the fictional constraint
+  that had been protecting them.** The audit's orphan table repeatedly said deletion "requires a
+  SemVer major bump" because `sdk/MWC.SDK.csproj` re-exports all of Core as a public NuGet package.
+  Questioning that requirement showed it does not hold: **`MWC.SDK` has never been published**. Two
+  independent nuget.org endpoints (`v3-flatcontainer` and `registration5-semver1`) both return 404,
+  and nothing in the repository builds or publishes it — the only mentions outside the `.csproj` are
+  in documentation, and `.github/workflows/` does not exist at all (§0). `<Version>3.12.0</Version>`
+  is a declaration, not a shipment. With no consumers there is no compatibility to break, so the
+  entire "cannot delete, it's public API" column was guarding nothing — including earlier in this
+  same release, where that note was taken at face value and `KalmanRssiFilter` was left in place.
+  `BeaconUptimeEstimator` could never have worked: no layer supplies the TSF timestamps it consumes.
+  `KalmanRssiFilter` was an unwired duplicate of the already-wired `SignalQualityPredictor`. Kalman
+  is the better algorithm of the two, so the audit entry now says explicitly: restore it from git
+  history and *replace* the EMA implementation if smoothing is ever worth improving — as a
+  deliberate, hardware-verified change rather than a second unused copy.
 - **Deleted the Android and iOS platform projects (244 lines).** Applying "question every
   requirement, then delete": both were complete stubs — every method returned an empty array,
   `false`, or a failure — with zero references from the product (`grep` for the projects and their

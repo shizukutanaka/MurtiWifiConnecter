@@ -47,7 +47,27 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 # → 出力が空 = 孤立(ただし直後の SDK 注記を必ず読むこと)
 ```
 
-> **⚠ 重要な訂正(2026-07 第2パスで判明)**: `sdk/MWC.SDK.csproj` は
+> **🔴 上記の注記は誤りだった(2026-07 第4パスで検証)**: 下の ⚠ ブロックは
+> 「SDK 利用者に公開 API として出荷済みなので削除は SemVer メジャー要」と述べているが、
+> **`MWC.SDK` は NuGet に一度も公開されていない**。検証:
+> `https://api.nuget.org/v3-flatcontainer/mwc.sdk/index.json` と
+> `https://api.nuget.org/v3/registration5-semver1/mwc.sdk/index.json` がともに **404**。
+> さらに `MWC.SDK` をビルド・公開する CI もスクリプトも存在しない
+> (`grep -rl "MWC.SDK" --include=*.yml --include=*.ps1 --include=*.sh .` の結果は
+> ドキュメントのみ。そもそも §0 のとおり `.github/workflows/` 自体が無い)。
+> `<Version>3.12.0</Version>` は宣言であって出荷実績ではない。
+>
+> **したがって「公開 API だから消せない」という制約は実在しない。** 消費者はゼロであり、
+> 破壊する対象が存在しない。この誤った制約が下表の「推奨アクション」列を広範に
+> 縛っていた(本セッションの前半でも、この注意書きを額面どおり受け取って
+> `KalmanRssiFilter` の削除を見送っている)。
+> **削除判断は純粋に製品としての要否だけで行ってよい。**
+> 将来 SDK を実際に公開する場合は、その時点の Core をもって v1 とすればよく、
+> 未公開パッケージの互換性を守る理由はない。
+>
+> 以下は誤りと判明した元の注記(経緯保存のため残す):
+
+> **⚠ 重要な訂正(2026-07 第2パスで判明 — 上記のとおり前提が誤り)**: `sdk/MWC.SDK.csproj` は
 > `<Compile Include="../src/MWC.Core/**/*.cs" />` で **Core の全ソースを NuGet パッケージ
 > `MWC.SDK` (v3.11.0, `IsPackable=true`) にそのまま再パッケージして出荷している**。
 > さらにパッケージの `<Description>` は下表のうち `CatImportService`・`RegulatoryDomainService`・
@@ -66,10 +86,10 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要**。2026-H2 追補: OpenRoaming が主流化中(WBA 2025 調査で回答企業の81%が導入計画)で配線価値は上昇傾向だが、ブロッカー(802.11u Interworking IE 抽出未実装)は不変 |
 | `WifiDirectService` | Wi-Fi Direct P2P | 配線 or 削除の判断(製品側。SDK からの削除は別途 SemVer 検討) | `IWifiDirectAdapter` のプラットフォーム実装が別途必要(未存在) |
 | `CaptivePortalService` | RFC 8908 captive portal API | `HttpConnectivityChecker`(実際に使われている方)との統合を検討(製品側。SDK からの削除は別途 SemVer 検討) | 機能が部分重複している |
-| `KalmanRssiFilter` | RSSI 平滑化 | `SignalHistoryService` に統合 or 削除(製品側。SDK からの削除は別途 SemVer 検討) | `SignalQualityPredictor`(EMA 方式)が同目的で既に配線済み |
+| ~~`KalmanRssiFilter`~~ | RSSI 平滑化 | **✅ 削除済み(2026-07 第4パス)** | 同目的の `SignalQualityPredictor`(EMA 方式)が既に配線済みで、未配線の重複実装だった。SemVer 懸念は上記のとおり架空。**カルマンは EMA より優れた手法なので、平滑化を強化したくなったら git 履歴から復元して EMA を置き換えること**(`git log --diff-filter=D -- src/MWC.Core/Services/KalmanRssiFilter.cs`)。ただしそれは挙動が変わる変更であり、実機で検証できるセッションで行うこと |
 | ~~`RetryPolicy`~~ | 接続リトライ | **✅ 配線済み(2026-07)** | `AdapterConnectExtension.ConnectWithAppleFlowAsync` に配線。一時的失敗はジッター付きバックオフで自動再試行(最大2回)、決定的失敗はユーザー承認ダイアログへ。`IsRetriable` の分類漏れ4件も同時に修正 |
 | ~~`SignalIconService`~~ | 信号アイコン選択 | **✅ 配線済み(2026-07)** | `NetworkItemViewModel.Bars` が独自閾値(75/50/25/>0)の重複実装を捨てて `SignalIconService.Describe(Signal).Bars` に委譲。段階基準は Core の正式定義(80/60/40/20、WCAG 1.4.1 意図の設計)に一元化。境界値付近のバー表示が僅かに変化(例: quality 76 は旧4本→新3本)するのは意図的。`TextLabel`(英語ハードコード → i18n 規約違反になる)と `AccentHex`(テーマブラシ経由が確立方針)は使用しない。テスト: `tests/MWC.Core.Tests/SignalIconWiringTests.cs`(境界値10点+全数一致ループ) |
-| `BeaconUptimeEstimator` | AP 稼働時間推定 | 削除候補(製品側。SDK からの削除は別途 SemVer 検討) | TSF タイムスタンプ入力をどの層も供給していない |
+| ~~`BeaconUptimeEstimator`~~ | AP 稼働時間推定 | **✅ 削除済み(2026-07 第4パス)** | TSF タイムスタンプを供給する層がどこにも無く、**原理的に一度も動作しえなかった**。監査自身が以前から削除候補としていたものを、架空の SemVer 制約が解けたため実行した |
 | `AccessibilityAuditService` | WCAG コントラスト計算 | **現状維持** | 2026-07 に `tests/MWC.Core.Tests/ThemeAccessibilityAuditTests.cs` から使用開始(CI でテーマ色を検証)。製品コードからは未参照だが、これは正当な使途。SDK にも同梱 |
 
 ### 1b. 準孤立(参照が形式的なもののみ)
