@@ -185,6 +185,11 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
   正確な理由 — 名前空間衝突・情報源間の型定義不一致・コンパイル検証不能な環境という
   3点 — は `docs/arxiv-improvement-analysis.md` §2026-H2追補 を参照)。
   **次のアクション**: dotnet/Windows 実機検証が可能なセッションで実装すること。
+  **なぜ Interworking のように Core へ分解できないか(2026-07 第4パスで確認)**:
+  `MloLink` は `Rssi`(リンクごとの実測受信強度)を要求する。これはビーコンの
+  Multi-Link 要素には含まれない**実測値**であり、接続中のランタイム API からしか得られない。
+  802.11u Interworking が Core に切り出せたのは、あれが「広告される静的な能力情報」
+  だったからで、MLO のリンク品質は本質的に実機依存である。
 
 ---
 
