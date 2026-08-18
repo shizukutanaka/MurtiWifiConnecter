@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **README badges now claim only what is actually true.** The CI and CodeQL badges pointed at
+  `actions/workflows/ci.yml` and `codeql.yml`, which do not exist — `.github/workflows/` is absent
+  entirely (`FEATURE-AUDIT.md` §0), so GitHub Actions has never run here. Those badges rendered as
+  "no status" while implying a verification pipeline was in place, which is worse than showing
+  nothing. They are removed, with the exact markup preserved in an HTML comment so they can be
+  restored the moment CI exists. The tests badge claimed "1013 passing" — a runtime result, from a
+  test run that has never happened. It now states the statically verifiable figure instead
+  (850 declared test methods; those expand to roughly 1143 cases once `InlineData` is counted).
+  The number is deliberately *not* swapped for another estimate: per the project's own rule, a
+  "passing" count may only be written from a real `dotnet test` run. The i18n badge's "14 langs"
+  was checked and is correct — 14 named locales plus a neutral base resx, 526 keys — and the
+  imprecise "15 ロケール" phrasing in `AI-SESSION-HANDBOOK.md` was corrected to match.
+
 ### Removed
 - **Deleted `KalmanRssiFilter` and `BeaconUptimeEstimator`, and corrected the fictional constraint
   that had been protecting them.** The audit's orphan table repeatedly said deletion "requires a
