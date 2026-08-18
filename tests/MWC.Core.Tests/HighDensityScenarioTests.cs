@@ -595,40 +595,6 @@ public class AccessibilityAuditTests
     }
 }
 
-public class WifiDirectModelTests
-{
-    [Fact]
-    public void WifiDirectDevice_RecordEqualityAndInit()
-    {
-        var d1 = new WifiDirectDevice("id-1", "Phone A", WifiDirectDeviceType.Phone, -60);
-        var d2 = d1 with { State = WifiDirectDeviceState.Connected };
-
-        d1.DeviceId.Should().Be("id-1");
-        d1.State.Should().Be(WifiDirectDeviceState.Available);
-        d2.State.Should().Be(WifiDirectDeviceState.Connected);
-        d1.Should().NotBe(d2);
-        d1.DeviceName.Should().Be(d2.DeviceName);
-    }
-
-    [Fact]
-    public void WifiDirectDiscoveryOptions_Default_Is30s()
-    {
-        var opts = WifiDirectDiscoveryOptions.Default;
-        opts.Timeout.TotalSeconds.Should().Be(30);
-        opts.ScanAll.Should().BeFalse();
-    }
-
-    [Fact]
-    public void WifiDirectGroupOwnerResult_PropertiesOk()
-    {
-        var r = new WifiDirectGroupOwnerResult(true, "DIRECT-AB", "pass1234", "192.168.1.1");
-        r.Success.Should().BeTrue();
-        r.Ssid.Should().StartWith("DIRECT-");
-        r.Passphrase.Should().Be("pass1234");
-        r.LocalIp.Should().Contain(".");
-    }
-}
-
 public class SlnRegistrationTests
 {
     [Fact]

@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   imprecise "15 ロケール" phrasing in `AI-SESSION-HANDBOOK.md` was corrected to match.
 
 ### Removed
+- **Deleted `WifiDirectService` (217 lines) and its tests.** It orchestrates Wi-Fi Direct
+  peer-to-peer pairing through an `IWifiDirectAdapter` whose platform implementation
+  (`WindowsWifiDirectAdapter`) has never existed, so the service could not run. Beyond that, Wi-Fi
+  Direct is device-to-device P2P — a different capability from the product's stated purpose in
+  CLAUDE.md, which is managing each wireless adapter's own SSID list and connections. All of its
+  types (`IWifiDirectAdapter`, `WifiDirectDevice`, `WifiDirectDiscoveryOptions`, …) were declared in
+  the same file, so nothing else was affected; the two test classes living in shared files were
+  excised and both files verified to still balance braces and retain their remaining classes.
+  Restoring it should mean writing the platform adapter and the service together, verified on real
+  hardware. **`CaptivePortalService` was considered for the same treatment and deliberately kept**:
+  it implements RFC 8908, which returns structured portal metadata (venue, time remaining) from the
+  access point, whereas `HttpConnectivityChecker` only *infers* a portal from a probe — they are
+  complementary rather than duplicates, and this release's captive-portal-aware VPN advice makes
+  richer portal data more valuable, not less.
 - **Deleted `KalmanRssiFilter` and `BeaconUptimeEstimator`, and corrected the fictional constraint
   that had been protecting them.** The audit's orphan table repeatedly said deletion "requires a
   SemVer major bump" because `sdk/MWC.SDK.csproj` re-exports all of Core as a public NuGet package.
