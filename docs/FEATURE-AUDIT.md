@@ -13,9 +13,10 @@
 
 > **`.github/workflows/` が存在せず、GitHub Actions の
 > CI/CodeQL/リリース自動化がおそらく一度も実走していない。** CLAUDE.md はこのディレクトリ構成を
-> 前提として文書化しているが、実際には CI 設定は `ci/github-workflows/*.yml` と `docs/ci/*.yml` の
-> **2箇所に別バージョンで存在**し、GitHub がワークフローとして認識する唯一のパス
-> (`.github/workflows/`)には**何も置かれていない**。過去に一度だけ正しい場所へ移設する試み
+> 前提として文書化しているが、GitHub がワークフローとして認識する唯一のパス
+> (`.github/workflows/`)には**何も置かれていない**
+> (CI 設定は当初 `ci/github-workflows/*.yml` と `docs/ci/*.yml` の 2 箇所に別バージョンで
+>  存在したが、2026-07 に `docs/ci/` へ一本化した — 下記更新参照)。過去に一度だけ正しい場所へ移設する試み
 > (コミット `1c28a9c`)があったが、**その13秒後に同一セッション内で自動的にリバートされている**
 > (コミット `9274953`、コミットメッセージは boilerplate のみで理由の記載なし — 内容と発生間隔から、
 > エージェント実行環境の `.github/workflows/` 書込み制限ガードレールによる自動差し戻しと推測される)。
@@ -55,12 +56,10 @@
 > **残る作業は所有者による `.github/workflows/` への配置のみ。**
 >
 > `docs/build-blockers-2026.md` も「CI を `.github/workflows/` へ設置して実走させるのが次の最優先」と
-> 明記済みだが未達のまま。**この監査セッションを含め、このリポジトリで行われた変更はおそらく一度も
-> 実際の GitHub Actions CI で検証されていない**(このセッションの検証は `python3`/`grep` による
-> 静的チェックのみ)。この問題はエージョントによる自動修正では再度リバートされる可能性が高いため、
-> **リポジトリ所有者による直接対応、または明示的な許可の下での対応が必要**。
-> 検証: `ls .github/workflows/ 2>&1`(存在しないはず)/ `git log --oneline --all -- .github/` /
-> `diff ci/github-workflows/ci.yml docs/ci/ci.yml`(2つの別バージョンが存在することを確認)。
+> 明記済みだが未達のまま。**このリポジトリで行われた変更は一度も実際の GitHub Actions CI で
+> 検証されていない**(検証は `python3`/`grep` による静的チェックのみ。
+> 2026-07 以降は `bash tools/verify.sh` に集約済み)。
+> 検証: `ls .github/workflows/ 2>&1`(存在しないはず)/ `git log --oneline --all -- .github/`。
 
 **中心的な発見**: このコードベースには「Core にクラスがあり単体テストが通る(=実装されている)」が
 「App/CLI のどこからも呼ばれておらずユーザーが到達できない(=機能していない)」サービスが
@@ -133,10 +132,10 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 
 | サービス (`src/MWC.Core/Services/`) | 本来対応する機能 | 推奨アクション | 備考 |
 |---|---|---|---|
-| ~~`RegulatoryDomainService`~~ | 6GHz 帯の国別チャネル表示 | **✅ 配線済み(2026-07)** | `NetworkDetailViewModel.RegulatoryLabel`(6GHz ネットワークのみ表示、`RegionInfo.CurrentRegion` からシステムロケールで国を自動推定)。テスト: `NetworkDetailViewModelVpnEapWiringTests.cs` に追加。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
-| `CatImportService` | eduroam CAT XML インポート | **ブロック中** — 下記「配線できない理由」参照 | XXE/DTD 対策済みの丁寧な実装。品質は高い。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要** |
+| ~~`RegulatoryDomainService`~~ | 6GHz 帯の国別チャネル表示 | **✅ 配線済み(2026-07)** | `NetworkDetailViewModel.RegulatoryLabel`(6GHz ネットワークのみ表示、`RegionInfo.CurrentRegion` からシステムロケールで国を自動推定)。テスト: `NetworkDetailViewModelVpnEapWiringTests.cs` に追加 |
+| `CatImportService` | eduroam CAT XML インポート | **ブロック中** — 下記「配線できない理由」参照 | XXE/DTD 対策済みの丁寧な実装。品質は高い |
 | ~~`OweSelectionService`~~ | 同一 SSID の Open/OWE ペア統合 | **✅ 配線済み(2026-07)** | `AdapterViewModel.RefreshAsync`・`AllAdaptersOverviewViewModel.AdapterPanelViewModel.RefreshAsync`・CLI `mwc scan` の3箇所に挿入。既知の限界(Open 側が実際に接続中でも無条件除外される稀なエッジケース)をサービス自身の XML doc に明記。テスト: `tests/MWC.Core.Tests/OweWiringTests.cs` |
-| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討。**削除は不可** | 日本キャリア(au/SoftBank/docomo)プリセット付き。**SDK 公開 API(名指し宣伝あり)— 削除は SemVer メジャー要**。2026-H2 追補: OpenRoaming が主流化中(WBA 2025 調査で回答企業の81%が導入計画)で配線価値は上昇傾向だが、ブロッカー(802.11u Interworking IE 抽出未実装)は不変 |
+| `Hotspot20Service` | Passpoint / キャリア Wi-Fi | 配線(製品側)を検討 | 日本キャリア(au/SoftBank/docomo)プリセット付き。2026-H2 追補: OpenRoaming が主流化中(WBA 2025 調査で回答企業の81%が導入計画)で配線価値は上昇傾向だが、ブロッカー(802.11u Interworking IE 抽出未実装)は不変 |
 | ~~`WifiDirectService`~~ | Wi-Fi Direct P2P | **✅ 削除済み(2026-07 第4パス)** | 依存する `WindowsWifiDirectAdapter` が存在せず動作不能。加えて Wi-Fi Direct は**デバイス間 P2P** であり、CLAUDE.md の Why(各アダプターの SSID 一覧/接続を独立管理)とは別の製品 capability。型定義(`IWifiDirectAdapter`/`WifiDirectDevice` 等)も同ファイルに閉じていたため巻き添えなし。**復活させる場合はプラットフォーム実装とセットで、実機検証込みで行うこと**(`git log --diff-filter=D -- src/MWC.Core/Services/WifiDirectService.cs`) |
 | `CaptivePortalService` | RFC 8908 captive portal API | **保持**(2026-07 第4パスで削除を検討し見送り) | `HttpConnectivityChecker` はプローブによる**推測**、RFC 8908 は AP が返す**構造化メタデータ**(会場情報・残り時間等)で、重複ではなく補完関係。2026-07 にキャプティブポータル時の VPN 勧告を実装した(`VpnAdvisoryService.behindCaptivePortal`)ことで、ポータル情報を充実させる価値はむしろ上昇した |
 | ~~`KalmanRssiFilter`~~ | RSSI 平滑化 | **✅ 削除済み(2026-07 第4パス)** | 同目的の `SignalQualityPredictor`(EMA 方式)が既に配線済みで、未配線の重複実装だった。SemVer 懸念は上記のとおり架空。**カルマンは EMA より優れた手法なので、平滑化を強化したくなったら git 履歴から復元して EMA を置き換えること**(`git log --diff-filter=D -- src/MWC.Core/Services/KalmanRssiFilter.cs`)。ただしそれは挙動が変わる変更であり、実機で検証できるセッションで行うこと |
