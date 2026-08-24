@@ -17,11 +17,29 @@ scoop install mwc
 choco install mwc
 ```
 
-### CLI (クロスプラットフォーム)
+### CLI
 
 ```bash
 dotnet tool install --global MWC.Cli
 ```
+
+主なコマンド(全コマンドは `mwc --help`、各コマンドは `mwc <cmd> --help`):
+
+```bash
+mwc list                       # アダプター一覧
+mwc scan                       # 周辺ネットワークをスキャン
+mwc connect "SSID" -p PASS     # 接続(-p 省略時は $env:MWC_PASSWORD)
+mwc import-cat file.eap-config --username you@univ -p PASS
+                               # eduroam CAT ファイルから接続
+mwc passpoint                  # 周囲の Passpoint (Hotspot 2.0) 対応 AP
+mwc privacy --mac-mode hardware
+                               # MAC 追跡のプライバシー勧告(助言のみ)
+mwc qr "SSID" -p PASS          # WIFI: QR コード URI を出力
+mwc export --format csv        # スキャン結果を CSV 出力
+```
+
+`--json` を付ければ全コマンドが JSON を出力する(パイプ処理に安全)。
+Enterprise(802.1X)接続の詳しい例は [README](../README.md) の CLI 節を参照。
 
 ## 基本操作 (GUI)
 

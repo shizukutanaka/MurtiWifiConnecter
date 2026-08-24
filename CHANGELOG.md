@@ -459,6 +459,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Brought the living docs in line with what the product actually is now.** Three corrections, each
+  verified against the code: `specification.md` FR-80 still listed "Windows/Linux/macOS/Android/iOS"
+  implementations, but the Android and iOS projects were deleted this session — it now reads Windows
+  (the product) plus partial Linux/macOS, matching the `MWC.Platform.*` that exist. FR-72's "179
+  keys" was stale; the real per-locale count is 532. And `user-guide.md`'s CLI section listed only
+  the install command and none of the actual commands — it now shows the main ones including the
+  three added this session (`import-cat`, `passpoint`, `privacy`), each confirmed to exist as a
+  registered command. ADRs and the audit docs were deliberately left untouched: ADRs are
+  point-in-time records superseded rather than rewritten, and FEATURE-AUDIT/HANDBOOK reference the
+  deletions on purpose.
 - **Added `docs/AI-SESSION-HANDBOOK.md`: a working guide for future Claude (Opus/Sonnet) sessions.**
   Where `FEATURE-AUDIT.md` catalogs *what* the feature gaps are, the handbook captures *how to work
   in this repo* — the product's strengths to preserve, the prioritized backlog with the precondition
