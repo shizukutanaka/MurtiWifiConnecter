@@ -7,7 +7,7 @@ _mwc_completions()
     local cur prev words cword
     _init_completion || return
 
-    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter import-cat passpoint help"
+    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter import-cat passpoint privacy help"
 
     # トップレベルコマンド
     if [[ $cword -eq 1 ]]; then
@@ -36,6 +36,16 @@ _mwc_completions()
                     ;;
             esac
             COMPREPLY=( $(compgen -W "--adapter --password -p --auth --timeout --hidden --eap-type --username --domain --server-name --trusted-root-ca" -- "$cur") )
+            return
+            ;;
+        privacy)
+            case "$prev" in
+                --mac-mode)
+                    COMPREPLY=( $(compgen -W "hardware random-per-network random-daily" -- "$cur") )
+                    return
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "--mac-mode --adapter --ssid --json" -- "$cur") )
             return
             ;;
         passpoint)

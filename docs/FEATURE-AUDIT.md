@@ -151,7 +151,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 | サービス | 唯一の"参照" | 実態 |
 |---|---|---|
 | ~~`GroupPolicyProvider`~~ | — | **✅ 削除済み(2026-07 第4パス)**。Intune/GP ポリシー読取だが、どのコードも呼んでいなかった = **管理者がポリシーを設定しても何も起きない**状態で、存在しない管理性を主張していた。さらにこのサービスだけのために `Microsoft.Win32.Registry` パッケージ参照が Core に入っており、削除と同時に依存も除去した(Core 内の Registry 利用は他にゼロであることを確認済み) |
-| `PrivacyAdvisoryService` | `VpnAdvisoryService` の XML doc 言及 | MAC ランダム化助言。どのコードも呼んでいない |
+| ~~`PrivacyAdvisoryService`~~ | — | **✅ 配線済み(2026-07 第4パス)** — CLI `mwc privacy`。勧告ロジックは純 Core でテスト可能、唯一プラットフォーム依存の「現在の MAC モード検出」は import-cat と同じ分解でユーザー入力(`--mac-mode`)に代替した。**残る限界**: MAC モードの**自動検出**は依然 Windows 実装が必要(入れば `--mac-mode` の既定供給元になる)。テスト: `PrivacyCliContractTests.cs` |
 | `ISecretProtector` / `DpapiSecretProtector` | `App.xaml.cs`/CLI `Program.cs` の **DI 登録のみ** | `Protect`/`Unprotect` の呼び出し元ゼロ。§2b 参照 |
 
 ### 1c. プラットフォームスタブ(ROADMAP は訂正済み、ここは一覧性のための集約)

@@ -54,6 +54,7 @@ public static partial class Program
         root.AddCommand(BuildEapStats(sp));
         root.AddCommand(BuildPlanChannels(sp));
         root.AddCommand(BuildVpnAdvice(sp));
+        root.AddCommand(BuildPrivacy(sp));
         root.AddCommand(BuildImportCat(sp));
         root.AddCommand(BuildPasspoint(sp));
         root.AddCommand(AdapterCommand.Build(sp));

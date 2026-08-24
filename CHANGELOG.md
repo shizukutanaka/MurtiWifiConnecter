@@ -116,6 +116,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **`mwc privacy` — MAC-tracking privacy advisories, wiring the last research-backed orphan
+  service.** `PrivacyAdvisoryService` returns advisories grounded in published research (arXiv
+  citations on probe-request tracking, IE fingerprinting, and de-randomisation), yet it had no
+  product path at all: the only references to it were `<see cref>` doc comments, and nothing ever
+  supplied a `MacAddressMode`. Its one platform dependency is *detecting* the current MAC mode; the
+  advisory logic itself is pure, testable Core. So this uses the same decomposition as `import-cat`
+  — when the platform can't supply a value, the user does: `--mac-mode hardware|random-per-network|
+  random-daily`. The command scans, resolves the target network (`--ssid`, else the connected one,
+  else a neutral secured placeholder so device-level advice still shows without a spurious
+  public-network warning), and prints the advisories with their research references. Advisory only —
+  it never changes MAC settings. New tests (`PrivacyCliContractTests.cs`) pin the `--mac-mode`
+  parsing and the neutral-context path without duplicating the existing `PrivacyAdvisoryTests`
+  coverage of the advisory outputs. **Remaining**: automatic detection of the current MAC mode still
+  needs a Windows implementation; when added it becomes the default source for `--mac-mode` rather
+  than requiring the user to pass it.
 - **Wi-Fi 7 MLO capability is now detected from beacons**, splitting what the audit had treated as
   one indivisible platform task. `WifiNetwork.IsMlo` — a flag separate from the `MloLinks` list —
   was never set by anything. Applying the decomposition test recorded earlier (is the value
