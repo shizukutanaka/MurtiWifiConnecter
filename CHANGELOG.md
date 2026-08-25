@@ -345,6 +345,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`mwc eap-stats` and `mwc vpn-advice` were absent from both shell completion scripts.** Both
+  commands are implemented and documented in the README, but neither `completions/mwc.bash` nor
+  `completions/mwc.ps1` listed them, so pressing Tab hid two working features. Same shape as the
+  keyboard-shortcut defect: implementation, bash completion, and PowerShell completion are three
+  independently maintained tables asserting the same fact, and nothing broke when one fell behind.
+  Both commands are added with their options (`--json --clear` / `--adapter --json`), and
+  `tools/verify.sh` now resolves the command names from `root.AddCommand(...)` and fails when
+  either script disagrees in either direction. Verified by dropping `vpn-advice` from the bash
+  list and watching it fail. The check also refuses to pass if it parses no commands, so a
+  refactor that breaks the parser surfaces as a failure instead of a silent all-clear.
+- **Deleted `SystemTrayService.UpdateNetworkMenu`, a no-op kept for "backward compatibility".**
+  It accepted a network list and a connect callback, logged "prefer UpdateAdapterMenus", and did
+  nothing else. Nothing called it, and had anything called it the tray menu would simply not have
+  updated — a silent failure rather than a compile error. There is no external consumer to stay
+  compatible with: this is an internal WPF class.
 - **Two keyboard shortcuts the F1 help advertised did nothing when pressed, and one that worked
   was undocumented.** `Ctrl+Tab` / `Ctrl+Shift+Tab` (switch adapter) were listed in
   `KeyboardShortcutService`, which is what the help dialog renders, but `MainWindow.OnKeyDown` —

@@ -355,6 +355,70 @@ PY
 then pass "every advertised shortcut has a handler, and vice versa"
 else fail "shortcut help and handler disagree (see above)"; fi
 
+# ── 9. CLI コマンド: 実装と補完スクリプトが一致するか ──────────────────────
+# 実装 (Program.cs の root.AddCommand)、bash 補完、PowerShell 補完 ─ 同じ事実を
+# 宣言する表が 3 つある。コマンドを足すとき補完を忘れても何も壊れないので、
+# 「動くのに Tab で出てこない」状態が静かに生まれる。実際にそうなっていた:
+# `eap-stats` と `vpn-advice` は実装も README への記載もあるのに、
+# 両方の補完スクリプトから漏れていた。
+head "CLI commands match both completion scripts"
+if python3 - <<'PY'
+import glob, re, sys
+files = {p: open(p, encoding='utf-8').read() for p in glob.glob('src/MWC.Cli/*.cs')}
+prog = files['src/MWC.Cli/Program.cs']
+
+def first_command(meth, cls=None):
+    # Program は partial class なので、メソッドは CLI 内のどのファイルにもあり得る
+    for body in files.values():
+        if cls and f'class {cls}' not in body: continue
+        d = re.search(r'\b(?:private|public|internal)[\w\s]*\b%s\s*\(' % re.escape(meth), body)
+        if not d: continue
+        rest = body[d.end():]
+        nxt = re.search(r'\n    (?:private|public|internal)\s', rest)
+        seg = rest[:nxt.start()] if nxt else rest
+        n = re.search(r'new Command\(\s*"([\w-]+)"', seg)
+        if n: return n.group(1)
+    return None
+
+impl = set()
+unresolved = []
+for c in re.findall(r'root\.AddCommand\(\s*([\w\.]+)\s*\(', prog):
+    cls, meth = (c.split('.', 1) if '.' in c else (None, c))
+    name = first_command(meth, cls)
+    (impl.add(name) if name else unresolved.append(c))
+
+errs = []
+if unresolved:
+    errs.append('could not resolve command name for: ' + ' '.join(unresolved)
+                + ' — fix this check, do not ignore it')
+if len(impl) < 5:
+    errs.append(f'only {len(impl)} commands parsed — the check itself is broken')
+
+b = open('completions/mwc.bash', encoding='utf-8').read()
+m = re.search(r'local commands="([^"]+)"', b)
+bash_l = set(m.group(1).split()) if m else set()
+if not m: errs.append('completions/mwc.bash: could not find the command list')
+
+ps = open('completions/mwc.ps1', encoding='utf-8').read()
+try:
+    seg = ps[ps.index('$commands = @('):]
+    ps_l = set(re.findall(r"'([\w-]+)'", seg[:seg.index(')')]))
+except ValueError:
+    ps_l = set(); errs.append('completions/mwc.ps1: could not find the command list')
+
+for label, have in (('mwc.bash', bash_l), ('mwc.ps1', ps_l)):
+    for n in sorted(impl - have):
+        errs.append(f'{label}: command implemented but not completable: {n}')
+    for n in sorted(have - impl - {'help'}):
+        errs.append(f'{label}: completes a command that does not exist: {n}')
+
+if errs:
+    print('\n'.join(errs)); sys.exit(1)
+print(f'{len(impl)} commands, both completion scripts agree')
+PY
+then pass "every CLI command is completable, and vice versa"
+else fail "CLI commands and completions disagree (see above)"; fi
+
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo
 if [ "$FAILED" -eq 0 ]; then

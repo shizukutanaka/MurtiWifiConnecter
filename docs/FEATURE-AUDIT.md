@@ -250,6 +250,13 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 **再発防止**: `tools/verify.sh` が 2 つの表を突き合わせ、どちらか一方にしかない
 ショートカットがあれば失敗する。
 
+- **`mwc eap-stats` / `mwc vpn-advice` が補完スクリプトに無かった** — 実装があり README にも
+  載っているのに、`completions/mwc.bash` と `completions/mwc.ps1` の双方から漏れていた。
+  ここは表が **3 つ**(実装・bash・PowerShell)ある。コマンドを足しても補完を忘れた時点では
+  何も壊れないため、「動くのに Tab で出てこない」状態が静かに残る。
+  **対応(2026-08)**: 両方に追加し、`tools/verify.sh` が `root.AddCommand(...)` から
+  コマンド名を解決して両スクリプトと突き合わせる(どちらの向きの不一致でも失敗)。
+
 **なぜファイル単位の監査で見つからなかったか**: 両ファイルとも正しく配線されており、
 到達性の観点では何の問題も無い。食い違っているのは**内容**であって接続ではない。
 「同じことを宣言している表が 2 つある」箇所を探すのが、この種を見つける唯一の方法。

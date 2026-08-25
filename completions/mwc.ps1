@@ -8,7 +8,7 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
     $commands = @(
         'list', 'scan', 'connect', 'disconnect', 'import-cat', 'passpoint', 'privacy',
         'profile', 'qr', 'qr-parse', 'export',
-        'quality', 'history', 'plan-channels',
+        'quality', 'history', 'eap-stats', 'plan-channels', 'vpn-advice',
         'multi', 'adapter', 'help'
     )
 
@@ -57,6 +57,8 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
         'privacy'       { @('--mac-mode', '--adapter', '--ssid', '--json') }
         'import-cat'    { @('--username', '--password', '-p', '--adapter', '--timeout', '--dry-run', '--json') }
         'disconnect'    { @('--adapter') }
+        'eap-stats'     { @('--json', '--clear') }
+        'vpn-advice'    { @('--adapter', '--json') }
         'profile'       {
             if ($depth -eq 2) { @('list', 'delete') }
             else              { @('--adapter') }

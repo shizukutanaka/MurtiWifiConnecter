@@ -7,7 +7,7 @@ _mwc_completions()
     local cur prev words cword
     _init_completion || return
 
-    local commands="list scan connect disconnect profile qr qr-parse export quality history plan-channels multi adapter import-cat passpoint privacy help"
+    local commands="list scan connect disconnect profile qr qr-parse export quality history eap-stats plan-channels vpn-advice multi adapter import-cat passpoint privacy help"
 
     # トップレベルコマンド
     if [[ $cword -eq 1 ]]; then
@@ -58,6 +58,14 @@ _mwc_completions()
             ;;
         disconnect)
             COMPREPLY=( $(compgen -W "--adapter" -- "$cur") )
+            return
+            ;;
+        eap-stats)
+            COMPREPLY=( $(compgen -W "--json --clear" -- "$cur") )
+            return
+            ;;
+        vpn-advice)
+            COMPREPLY=( $(compgen -W "--adapter --json" -- "$cur") )
             return
             ;;
         profile)
