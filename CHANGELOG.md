@@ -345,6 +345,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **WMM decoding existed twice, and the tests were certifying the copy the product does not run.**
+  `WmmParser.ParseParameters` / `ParseQosInfo` were never called from product code: they were
+  covered by a full set of byte-level golden tests, while `BeaconIeParser.DecodeVendorSpecific`
+  carried its own AC-parameter expansion — byte-for-byte the same code as
+  `WmmParser.ParseAcParams` — and *that* is the copy that actually runs during a scan.
+  So the WMM path in production was untested, and a fix applied to one copy would have left the
+  other silently wrong. `WmmParser` never looked orphaned because `BeaconIeParser` uses the
+  `WmmParameters` / `WmmAcParam` records declared in the same file: the types were shared while the
+  logic was duplicated. Element-body entry points (`ParseParameterBody` / `ParseQosInfoBody`) are
+  now factored out and `BeaconIeParser` delegates to them, so there is one implementation and
+  `BeaconIeParser`'s single-pass scan — the entire reason that class exists — is preserved.
+  `WmmSharedDecodeTests` pins the invariant that both entry points return the same answer.
+  The now-unused `WmmOui` constant in `BeaconIeParser` is deleted rather than left as a second
+  copy of the OUI.
+- **The orphan check counted a mention in a comment as a wiring, which is what hid the above.**
+  `tools/verify.sh` grepped for each service's type name across `src/` without excluding comment
+  lines, so `BeaconIeParser.cs`'s header comment naming `WmmParser` was enough to mark it wired.
+  Two further defects in the same check: it could not see a class reached only through extension
+  methods (`BeaconIeApplier` is called as `net.WithBeaconIe(...)`, so its type name appears
+  nowhere), and its allowlist was checked in one direction only — `CatImportService` and
+  `Hotspot20Service` had been wired to `mwc import-cat` / `mwc passpoint` yet stayed on the
+  ignore list, meaning un-wiring either one would have gone undetected. The check now skips
+  comment lines, accepts public member names for `static` classes (≥6 characters, so `Parse` and
+  friends do not match everything), and fails when an allowlisted service turns out to be
+  referenced. Both new failure directions were demonstrated by forcing them, then restored.
+  The measured orphan count is 2, matching FEATURE-AUDIT §1a; the stale "4" is gone.
+
 - **`mwc privacy` no longer reports an unknown MAC setting as "no advisories".** With no
   `--mac-mode`, the mode defaults to `Unknown`, which matches none of `PrivacyAdvisoryService`'s
   branches — so the command printed `No advisories.`, which reads as *your privacy is fine* when it

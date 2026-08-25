@@ -154,17 +154,73 @@ else fail "completions/mwc.bash has a syntax error"; fi
 # ── 6. 孤立サービスの検出 ────────────────────────────────────────────────────
 # 「実装されているが製品から到達できない」コードの再発防止。
 # 既知の意図的な保持は docs/FEATURE-AUDIT.md §1a に理由付きで記載されている。
-head "Orphaned Core services (informational)"
-KNOWN="AccessibilityAuditService CaptivePortalService CatImportService Hotspot20Service"
-NEW=""
-for f in src/MWC.Core/Services/*.cs; do
-  n=$(basename "$f" .cs)
-  if [ "$(grep -rl "\b$n\b" src/ 2>/dev/null | grep -v "/$n.cs" | wc -l)" -eq 0 ]; then
-    case " $KNOWN " in *" $n "*) ;; *) NEW="$NEW $n";; esac
-  fi
-done
-if [ -z "$NEW" ]; then pass "no unexplained orphans (4 documented ones ignored)"
-else fail "new orphaned service(s):$NEW — wire them, delete them, or document why in FEATURE-AUDIT §1a"; fi
+#
+# 参照判定には 2 つの落とし穴があり、両方とも実際に踏んだ:
+#
+#   (a) コメントを参照と数えていた。ドキュメントコメントで名前に言及しているだけの
+#       ファイルを「配線済み」と誤判定する。これに隠れて、WMM デコードが 2 箇所に
+#       重複していた事実が見えなくなっていた。行コメントは参照に数えない。
+#       (除外の正規表現は行頭に錨を打つこと。`://` に一致して正当な行を巻き込む)
+#
+#   (b) 型名だけを探していた。**拡張メソッドを収めた static クラスは型名が
+#       呼び出し側に現れない** — `BeaconIeApplier` は `net.WithBeaconIe(...)` と
+#       書かれるので、型名 grep では永久に「孤立」に見える。static クラスに限り、
+#       宣言している public メンバ名でも参照とみなす(`Parse` のような短い名前は
+#       どこにでも出るため 6 文字以上に限る)。
+#
+# 許可リストは**両方向**に検査する。片方向だと、配線済みになったサービスが
+# 許可リストに残り続け、後で配線を外されても黙って通る。実際にそうなっていた:
+# `CatImportService`(`mwc import-cat`)と `Hotspot20Service`(`mwc passpoint`)は
+# 配線されたのに許可リストに残っており、再び孤立させても検出できない状態だった。
+head "Orphaned Core services"
+if python3 - <<'PY'
+import glob, os, re, sys
+
+KNOWN = {'AccessibilityAuditService', 'CaptivePortalService'}
+
+def code_lines(path):
+    return [l for l in open(path, encoding='utf-8', errors='replace')
+            if not l.lstrip().startswith('//')]
+
+sources = {p: code_lines(p) for p in glob.glob('src/**/*.cs', recursive=True)
+           if '/obj/' not in p and '/bin/' not in p}
+
+MEMBER_RE = re.compile(r'^\s*public\s+(?:static\s+)?[\w<>,\[\]\?\. ]+?\s(\w+)\s*[\(=]', re.M)
+
+def referenced(name, own_path):
+    body = ''.join(''.join(v) for k, v in sources.items() if k != own_path)
+    if re.search(r'\b%s\b' % re.escape(name), body):
+        return True
+    src = ''.join(sources[own_path])
+    if not re.search(r'\bstatic\s+class\s+%s\b' % re.escape(name), src):
+        return False
+    for member in MEMBER_RE.findall(src):
+        if len(member) >= 6 and re.search(r'\b%s\b' % re.escape(member), body):
+            return True
+    return False
+
+orphans, stale = [], []
+for path in sorted(glob.glob('src/MWC.Core/Services/*.cs')):
+    name = os.path.basename(path)[:-3]
+    if referenced(name, path):
+        if name in KNOWN:
+            stale.append(name)
+    else:
+        orphans.append(name)
+
+fresh = [n for n in orphans if n not in KNOWN]
+if fresh:
+    print('new orphaned service(s): ' + ' '.join(fresh))
+    print('  -> wire them, delete them, or document why in FEATURE-AUDIT 1a')
+    sys.exit(1)
+if stale:
+    print('allowlist is stale - now referenced: ' + ' '.join(stale))
+    print('  -> drop from KNOWN in tools/verify.sh and update FEATURE-AUDIT 1a')
+    sys.exit(1)
+print(f'{len(orphans)} documented orphan(s) ignored, no new ones')
+PY
+then pass "orphan set matches the documented allowlist"
+else fail "orphan check (see above)"; fi
 
 # ── 7. README に書かれた数値が実測と一致するか ──────────────────────────────
 # README は製品の顔であり、古い数値は「検証されていない主張」になる。

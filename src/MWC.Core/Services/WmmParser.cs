@@ -53,11 +53,10 @@ public static class WmmParser
             int bodyStart = i + 2;
             if (bodyStart + len > data.Length) break;
 
-            if (id == VendorSpecificId && len >= MinParamBodyLen)
+            if (id == VendorSpecificId)
             {
-                var b = data.Slice(bodyStart, len);
-                if (IsWmmParam(b))
-                    return ParseAcParams(b);
+                var got = ParseParameterBody(data.Slice(bodyStart, len));
+                if (got is not null) return got;
             }
 
             i = bodyStart + len;
@@ -79,19 +78,42 @@ public static class WmmParser
             int bodyStart = i + 2;
             if (bodyStart + len > data.Length) break;
 
-            if (id == VendorSpecificId && len >= MinInfoBodyLen)
+            if (id == VendorSpecificId)
             {
-                var b = data.Slice(bodyStart, len);
-                if (IsWmmOui(b) && b[3] == WmmType &&
-                    (b[4] == WmmSubtypeParam || b[4] == WmmSubtypeInfo) &&
-                    b[5] == WmmVersion)
-                    return b[6]; // QoS Info
+                var got = ParseQosInfoBody(data.Slice(bodyStart, len));
+                if (got is not null) return got;
             }
 
             i = bodyStart + len;
         }
         return null;
     }
+
+    // ── 要素本体レベルの解析 ────────────────────────────────────────────────
+    // 上の 2 メソッドは IE 列全体を自分で走査する。BeaconIeParser は逆に
+    // **1 パス**で全 IE を舐める設計なので、そちらから呼べる「本体 1 個だけを見る」
+    // 入口が要る。これが無かったため BeaconIeParser は同じ WMM デコードを
+    // 丸ごと自前で持っており、AC パラメータの展開が 2 箇所に重複していた
+    // (しかも WmmParserTests が検証していたのは製品が使っていない側)。
+    // 実装をここに一本化し、両方の入口が同じコードを通るようにする。
+
+    /// <summary>
+    /// Vendor Specific 要素の本体 1 個から WMM Parameter を取り出す。
+    /// WMM Parameter (Type=2 / Subtype=1 / Version=1) でなければ null。
+    /// </summary>
+    public static WmmParameters? ParseParameterBody(ReadOnlySpan<byte> body)
+        => body.Length >= MinParamBodyLen && IsWmmParam(body) ? ParseAcParams(body) : null;
+
+    /// <summary>
+    /// Vendor Specific 要素の本体 1 個から QoS Info バイトを取り出す。
+    /// WMM Info (Subtype=0) と WMM Parameter (Subtype=1) の双方から得られる。
+    /// </summary>
+    public static byte? ParseQosInfoBody(ReadOnlySpan<byte> body)
+        => body.Length >= MinInfoBodyLen && IsWmmOui(body) && body[3] == WmmType
+           && (body[4] == WmmSubtypeParam || body[4] == WmmSubtypeInfo)
+           && body[5] == WmmVersion
+            ? (byte?)body[6]     // 明示キャスト: 対象型推論に頼らず byte? に確定させる
+            : null;
 
     private static bool IsWmmOui(ReadOnlySpan<byte> b)
         => b.Length >= 3 && b[0] == WmmOui[0] && b[1] == WmmOui[1] && b[2] == WmmOui[2];

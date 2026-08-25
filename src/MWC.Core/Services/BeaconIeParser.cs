@@ -115,7 +115,8 @@ public static class BeaconIeParser
     /// <summary>拡張要素のコンテナ ID。実体は Body 先頭 1 バイトの Element ID Extension で決まる。</summary>
     private const byte ExtendedElementId = 255;
     private const byte VendorSpecificId = 221;
-    private static ReadOnlySpan<byte> WmmOui => [0x00, 0x50, 0xF2];
+    // WMM の OUI/Type/Subtype 定数は WmmParser が持つ。ここに複製を残すと
+    // 「どちらが正か」が再び分からなくなるため置かない。
     private static readonly IReadOnlyList<NeighborApInfo> EmptyNeighbors = Array.Empty<NeighborApInfo>();
     private static readonly IReadOnlyList<RnrNeighborAp>  EmptyRnr       = Array.Empty<RnrNeighborAp>();
 
@@ -145,38 +146,17 @@ public static class BeaconIeParser
             ChannelUtilization:         b[2],
             AvailableAdmissionCapacity: (ushort)(b[3] | (b[4] << 8)));
 
+    // WMM の復号は WmmParser に一本化してある。以前はこのメソッドが AC パラメータの
+    // 展開を丸ごと自前で持っており、WmmParser.ParseAcParams と 1 バイト単位で同一の
+    // コードが 2 箇所に存在した。WmmParserTests が検証していたのは WmmParser 側で、
+    // 製品が実行していたのはこちら側 — テストが「動いていない方の実装」を保証していた。
+    // 本体レベルの入口 (ParseParameterBody / ParseQosInfoBody) に委譲することで、
+    // 1 パス走査を保ったまま実装を 1 つにする。
     private static void DecodeVendorSpecific(
         ReadOnlySpan<byte> b, ref WmmParameters? wmm, ref byte? wmmQosInfo)
     {
-        // WMM: OUI 00:50:F2, Type 02
-        if (b.Length < 7) return;
-        if (b[0] != WmmOui[0] || b[1] != WmmOui[1] || b[2] != WmmOui[2]) return;
-        if (b[3] != 0x02 || b[5] != 0x01) return;   // Type=WMM, Version=1
-
-        byte subtype = b[4];
-        if (subtype == 0x00 || subtype == 0x01)
-            wmmQosInfo ??= b[6];
-
-        // WMM Parameter (subtype 1): 4 AC params follow Reserved byte
-        if (subtype == 0x01 && b.Length >= 24 && wmm is null)
-        {
-            var ac = new WmmAcParam[4];
-            for (int k = 0; k < 4; k++)
-            {
-                int off = 8 + k * 4;
-                byte aciAifsn = b[off];
-                byte ecw      = b[off + 1];
-                ushort txop   = (ushort)(b[off + 2] | (b[off + 3] << 8));
-                ac[k] = new WmmAcParam(
-                    Category:  (WmmAccessCategory)((aciAifsn >> 5) & 0x03),
-                    Aifsn:     (byte)(aciAifsn & 0x0F),
-                    AdmissionControlMandatory: (aciAifsn & 0x10) != 0,
-                    EcwMin:    (byte)(ecw & 0x0F),
-                    EcwMax:    (byte)((ecw >> 4) & 0x0F),
-                    TxopLimit: txop);
-            }
-            wmm = new WmmParameters(b[6], ac);
-        }
+        wmmQosInfo ??= WmmParser.ParseQosInfoBody(b);
+        wmm        ??= WmmParser.ParseParameterBody(b);
     }
 
     private static string FormatBssid(ReadOnlySpan<byte> b)

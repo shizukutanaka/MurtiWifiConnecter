@@ -197,6 +197,36 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
   802.11u Interworking が Core に切り出せたのは、あれが「広告される静的な能力情報」
   だったからで、MLO のリンク品質は本質的に実機依存である。
 
+### 1e. メンバ単位の重複(2026-08 に発見。ファイル単位の孤立検出では原理的に見えない)
+
+§1a〜§1d はいずれも**ファイル/サービス単位**の到達性の話だった。これはその一段下の層で、
+**ファイルは使われているのに、その中の一部のメンバだけが誰からも呼ばれず、
+別のファイルが同じ処理を再実装している**というパターン。
+
+- **WMM デコードが 2 実装あった** — `WmmParser.ParseParameters` / `ParseQosInfo` は
+  製品コードから**一度も呼ばれていなかった**。`BeaconIeParser.DecodeVendorSpecific` が
+  AC パラメータ展開を丸ごと自前で持っており、`WmmParser.ParseAcParams` と
+  1 バイト単位で同一のコードだった。`WmmParser.cs` 全体が孤立して見えなかったのは、
+  同ファイルが宣言する `WmmParameters` / `WmmAcParam` 型を `BeaconIeParser` が
+  使っていたため — **型は使い、ロジックは使わない**という形。
+
+  害は「死にコードがある」ことではなく、**テストが動いていない方の実装を保証していた**こと。
+  `WmmParserTests`(バイトレベルのゴールデン一式)が検証していたのは `WmmParser` 側で、
+  実機で走るのは `BeaconIeParser` 側だった。片方だけを直せば両者は静かに食い違う。
+
+  **対応(2026-08)**: 本体 1 個を受け取る入口 `WmmParser.ParseParameterBody` /
+  `ParseQosInfoBody` を切り出し、`BeaconIeParser` はそこへ委譲する。
+  `BeaconIeParser` の 1 パス走査(このクラスの存在理由)は保たれ、実装は 1 つになった。
+  不変条件は `WmmSharedDecodeTests` が固定する(2 つの入口が同じ答えを返すこと)。
+
+**なぜ長く見えなかったか**: `tools/verify.sh` の孤立検出が**コメント中の言及を参照と数えていた**。
+`BeaconIeParser.cs` の冒頭コメントが `WmmParser` を名指ししているだけで「配線済み」と判定され、
+候補にすら挙がらなかった。検出側も併せて修正した(コメント行を除外し、
+拡張メソッドを収めた static クラスは public メンバ名でも参照とみなす)。
+
+**次に同じ形を探すなら**: 「型は共有しているがロジックは各自が持っている」ペアを疑うこと。
+ファイル単位の grep では永久に見えない。
+
 ---
 
 ## §2 不足 — 必要なのに欠けている
