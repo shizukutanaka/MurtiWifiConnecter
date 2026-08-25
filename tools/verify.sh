@@ -202,6 +202,34 @@ if os.path.exists(cl_path):
             f'COMPLETION-CHECKLIST.md hardcodes a test count ({dup.group(1)}); '
             'reference the README badge instead so it cannot drift')
 
+# i18n の数値は README だけを守っても腐る。バッジのキー数はこれまで無検査で、
+# 実測 532 に対し 526 のまま取り残されていた。ハンドブックと architecture.md にも
+# 複製された古い値(526 / 171キー / 2,052エントリ)が残っていた。
+# ドキュメント全体を走査する。ただし **日付を含む行は過去の作業記録**であり
+# 現在値と一致する必要がないので除外する(例: 「2026-07 に 274キー×3言語を補完」)。
+m = re.search(r'i18n-\d+%20langs%20%C2%B7%20(\d+)%20keys', r)
+if m and int(m.group(1)) != keys:
+    errs.append(f'i18n badge claims {m.group(1)} keys, actual {keys}')
+
+for p in ['README.md'] + sorted(glob.glob('docs/*.md')):
+    for i, line in enumerate(open(p, encoding='utf-8'), 1):
+        if re.search(r'20\d\d-\d\d', line):
+            continue
+        for mm in re.finditer(r'([\d,]{2,})\s*キー', line):
+            if int(mm.group(1).replace(',', '')) != keys:
+                errs.append(f'{p}:{i} claims {mm.group(1)} resx keys, actual {keys}')
+        for mm in re.finditer(r'([\d,]{2,})\s*エントリ', line):
+            if int(mm.group(1).replace(',', '')) != keys * files:
+                errs.append(f'{p}:{i} claims {mm.group(1)} entries, actual {keys*files}')
+
+# DI 登録数も architecture.md の見出しに書かれており、同様に腐っていた (29 → 実測 31)。
+app = open('src/MWC.App/App.xaml.cs', encoding='utf-8').read()
+di = len(re.findall(r'Add(?:Singleton|Transient|Scoped)<', app))
+arch = open('docs/architecture.md', encoding='utf-8').read()
+m = re.search(r'##\s*DI\s*\((\d+)\s*サービス\)', arch)
+if m and int(m.group(1)) != di:
+    errs.append(f'architecture.md claims {m.group(1)} DI services, actual {di}')
+
 m = re.search(r'tests-(\d+)%20', r)
 if m:
     n = sum(open(p, encoding='utf-8').read().count(t)

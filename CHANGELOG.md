@@ -469,6 +469,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **The i18n key count in the README badge had been stale for an unknown length of time, and the
+  same rot had spread to two other documents.** The base `Strings.resx` holds **532** keys, but the
+  badge — the most-read number in the repository — said 526, `AI-SESSION-HANDBOOK.md` said 526, and
+  `architecture.md`'s i18n heading still described a long-past state: `171キー x 12言語 = 2,052エントリ`
+  against the actual `532 x 14 + neutral base = 7,980`. Its DI heading was stale too (29 vs the 31
+  `AddSingleton`/`AddTransient` registrations in `App.xaml.cs`). All four are corrected.
+  The cause is the same one that let "881 test methods" rot in the checklist: `tools/verify.sh`
+  compared only *some* README numbers against reality — for the i18n badge it checked the language
+  count and ignored the key count sitting beside it, and it never looked at `docs/` at all.
+  The guard now (a) checks the badge's key count, (b) scans `README.md` and every `docs/*.md` for
+  any `N キー` / `N エントリ` claim and compares it with the measured value, and (c) checks the DI
+  heading against the registration count. **Lines containing a date are exempt**, because a dated
+  line records a past action rather than asserting the present — that rule is what keeps
+  `FEATURE-AUDIT.md`'s "2026-07 に 274キー×3言語を機械翻訳で補完" from being flagged as a false
+  positive, and it is stated in the script so the exemption is not mistaken for an oversight.
+  Verified the way the `.slnf` and checklist guards were: each of the three new checks was made to
+  fail by reintroducing its stale value (526 keys / 171 keys / 29 services), then restored to green.
 - **Corrected the handoff document, which was under-reporting the remaining work.**
   `COMPLETION-CHECKLIST.md` is the only document written for the repository owner, so an error
   there misleads the person acting on it — worse than an error anywhere else. Three defects, each

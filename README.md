@@ -4,7 +4,7 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
 [![Tests](https://img.shields.io/badge/tests-887%20methods-22C55E)](#)
-[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20526%20keys-00C4CC)](#)
+[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20532%20keys-00C4CC)](#)
 
 <!-- CI / CodeQL バッジは意図的に外してある。
      .github/workflows/ が存在せず GitHub Actions が一度も実行されていないため
