@@ -171,7 +171,7 @@ else fail "new orphaned service(s):$NEW — wire them, delete them, or document 
 # 2026-07 に実際に 3 箇所ずれていた (テスト数・キー数・総エントリ数)。
 head "README claims match reality"
 if python3 - <<'PY'
-import glob, re, sys, xml.etree.ElementTree as ET
+import glob, os, re, sys, xml.etree.ElementTree as ET
 r = open('README.md', encoding='utf-8').read()
 keys = len(ET.parse('src/MWC.App/Resources/Strings.resx').findall('.//data'))
 files = len(glob.glob('src/MWC.App/Resources/Strings*.resx'))
@@ -189,6 +189,18 @@ if m and int(m.group(1).replace(',', '')) != keys * files:
 m = re.search(r'i18n-(\d+)%20langs', r)
 if m and int(m.group(1)) != locales:
     errs.append(f'i18n badge claims {m.group(1)} langs, actual {locales} named locales')
+
+# チェックリストにテスト数をハードコードすると、README と別々に腐る。
+# 実際に 2026-07 に「881」が取り残された(実測は 887)。数値の単一の真実の源は
+# README(このチェックが実測と突き合わせる場所)に一本化し、複製を禁じる。
+cl_path = 'docs/COMPLETION-CHECKLIST.md'
+if os.path.exists(cl_path):
+    cl = open(cl_path, encoding='utf-8').read()
+    dup = re.search(r'(\d{3,})\s*(?:の)?テストメソッド', cl)
+    if dup:
+        errs.append(
+            f'COMPLETION-CHECKLIST.md hardcodes a test count ({dup.group(1)}); '
+            'reference the README badge instead so it cannot drift')
 
 m = re.search(r'tests-(\d+)%20', r)
 if m:

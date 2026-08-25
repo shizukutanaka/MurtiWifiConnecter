@@ -469,6 +469,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Corrected the handoff document, which was under-reporting the remaining work.**
+  `COMPLETION-CHECKLIST.md` is the only document written for the repository owner, so an error
+  there misleads the person acting on it — worse than an error anywhere else. Three defects, each
+  measured: it said "3 remaining items" while there are **4** (MAC-mode auto-detection, created
+  when `mwc privacy` was wired, was absent entirely — `grep` for it returned nothing); it claimed
+  881 test methods when the real count is 887; and `tools/verify.sh`'s number guard only read
+  `README.md`, which is *why* that figure rotted unnoticed. The count is fixed, a full section 4
+  now documents the MAC-mode blocker in the same shape as the others (current state, why it cannot
+  be decomposed into Core, implementation hints including that `IWifiService` has no capability
+  surface yet), and the hardcoded test count is replaced by a pointer to the README badge so there
+  is a single source of truth. The guard now fails if any test count is hardcoded into the
+  checklist again — verified by reintroducing `881` and confirming exit 1, then restoring.
 - **Removed a self-contradiction the `mwc privacy` wiring left in the audit.** `FEATURE-AUDIT.md`
   recorded the service as wired in one table while a second table still called it 完全孤立/未着手,
   backed by a "why it cannot be wired" block asserting nothing supplies `MacAddressMode` — untrue
