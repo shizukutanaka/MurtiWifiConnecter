@@ -153,7 +153,7 @@ GUI の MLO 行はまだ表示されない。
 |---|---|
 | 孤立サービス | 11 個 → **2 個**(残る 2 つはいずれも正当な用途あり) |
 | 削除 | 1,393 行(動作しないモバイルスタブ、データ源の無いサービス、未配線の重複実装、Core の不要依存) |
-| 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` |
+| 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` / `mwc privacy` |
 | セキュリティ | RADIUS サーバ検証の強制、PEAP の V2 拡張、evil twin 防御の永続化、BSSID の位置プライバシー是正 |
 | 検証基盤 | `tools/verify.sh`(7 チェック。dotnet 無しで走る) |
 

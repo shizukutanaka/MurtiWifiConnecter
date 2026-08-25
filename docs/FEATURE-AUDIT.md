@@ -71,20 +71,19 @@
 
 ## §1 過剰 — 製品(App/CLI)から到達不能(SDK 経由でのみ出荷)
 
-### 1a. 完全孤立サービス(執筆時 11 個 → **現在 4 個**、いずれも理由付きの意図的な保持)
+### 1a. 完全孤立サービス(執筆時 11 個 → **現在 2 個**、いずれも理由付きの意図的な保持)
 
 > **✅ 2026-07 第4パスで「孤立サービス」問題は実質的に解消した。**
-> 配線 4 件(`OweSelectionService`/`RegulatoryDomainService`/`RetryPolicy`/`SignalIconService`)と
+> 配線 7 件(`OweSelectionService`/`RegulatoryDomainService`/`RetryPolicy`/`SignalIconService`
+> /`CatImportService`/`Hotspot20Service`/`PrivacyAdvisoryService`)と
 > 削除 4 件(`KalmanRssiFilter`/`BeaconUptimeEstimator`/`WifiDirectService`/`GroupPolicyProvider`)により
-> 11 個 → 4 個。**残る 4 個はすべて「なぜ残すか」を明記済み**であり、
+> 11 個 → **2 個**。**残る 2 個はどちらも「なぜ残すか」を明記済み**であり、
 > 「実装されているが機能していない」未整理コードは残っていない:
 >
 > | 残存 | 保持理由 |
 > |---|---|
-> | `AccessibilityAuditService` | テスト(`ThemeAccessibilityAuditTests`)から使用中 = 正当な用途 |
-> | `CaptivePortalService` | RFC 8908。プローブ方式の `HttpConnectivityChecker` と補完関係(下表参照) |
-> | `CatImportService` | eduroam CAT。2026-07 の CLI Enterprise 対応完成により配線が現実的になった |
-> | `Hotspot20Service` | Passpoint/OpenRoaming。802.11u Interworking IE 抽出が前提 |
+> | `AccessibilityAuditService` | テスト(`ThemeAccessibilityAuditTests`)から使用中 = 正当な用途。製品コードからの未参照は問題ではない |
+> | `CaptivePortalService` | RFC 8908。プローブ方式の `HttpConnectivityChecker` と**重複ではなく補完**(下表参照) |
 >
 > 再測定コマンド(この結果は下記で再現できる):
 > ```bash
@@ -211,7 +210,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 |---|---|---|
 | `VpnAdvisoryService` | CLI `mwc vpn-advice` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.VpnAdviceLabel` として表示 |
 | `EapAuthStatsService` | CLI `mwc eap-stats` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.EapStatsLabel`(記録がある場合のみ表示) |
-| `PrivacyAdvisoryService` | **なし**(完全孤立) | **未着手** — 下記「配線できない理由」参照 |
+| `PrivacyAdvisoryService` | CLI `mwc privacy` | **✅ 配線済み(2026-07 第4パス)**。GUI 側は未配線(下記参照) |
 
 `VpnAdvisoryService`/`EapAuthStatsService` は `_secAdvisor` と同じパターン(static readonly
 フィールド + `Load()` 内で `Analyze`/`GetAll` 呼び出し → ラベルプロパティ)で
@@ -219,13 +218,17 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 追加(`LocaleKeyConsistencyTests` で完全性を検証)。テストは
 `tests/MWC.Core.Tests/NetworkDetailViewModelVpnEapWiringTests.cs`。
 
-**`PrivacyAdvisoryService` が配線できない理由**: `Analyze(MacAddressMode mode, WifiNetwork network)`
-は現在の Wi-Fi アダプターの MAC ランダム化状態(固定/ネットワーク別ランダム/日次ランダム)を
-引数に要求するが、**この状態を検出するコードがプラットフォーム層に一切存在しない**
-(`grep -rn "MacAddressMode" src/` は定義・テスト以外で0件)。Windows の
-「ランダムハードウェアアドレス」設定はレジストリ(`HKLM\SYSTEM\...\WlanSvc\...` 相当)から
-読み取る必要があり、これは既存の Core サービスを呼ぶだけでは完結しない新規プラットフォーム
-実装が必要。§4 優先順位からは意図的に外してある(小差分では終わらないため)。
+**`PrivacyAdvisoryService` の配線状況(2026-07 第4パスで更新)**:
+かつてここには「MAC ランダム化状態を検出するコードがプラットフォーム層に存在しないため
+配線できない」と書いてあったが、**その前提は過大だった**。`Analyze(MacAddressMode, WifiNetwork)`
+自体は純 Core のロジックで、プラットフォーム依存なのは**現在の MAC モードの検出だけ**。
+`mwc import-cat` と同じ分解(**プラットフォームが供給できない値はユーザーが供給する**)を適用し、
+CLI `mwc privacy --mac-mode <hardware|random-per-network|random-daily>` として配線済み。
+
+**残る限界**: MAC モードの**自動検出**は依然として Windows 実装が必要
+(「ランダムハードウェアアドレス」設定の読み取り)。実装されれば `--mac-mode` の
+既定供給元になり、ユーザー入力は上書き用に残せる。**GUI 側も未配線**
+(`VpnAdvisoryService`/`EapAuthStatsService` と同じ詳細パネル方式で追加可能)。
 
 **`CatImportService` が配線できない理由(2026-07 調査で判明した、より根本的な欠落。CLI 側は
 2026-07 に解消済み)**:

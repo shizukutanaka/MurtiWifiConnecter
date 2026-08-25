@@ -459,6 +459,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Removed a self-contradiction the `mwc privacy` wiring left in the audit.** `FEATURE-AUDIT.md`
+  recorded the service as wired in one table while a second table still called it 完全孤立/未着手,
+  backed by a "why it cannot be wired" block asserting nothing supplies `MacAddressMode` — untrue
+  once `--mac-mode` existed. A document that argues with itself is worse than one merely out of
+  date, since a reader cannot tell which half to trust. Both are corrected, with the superseded
+  reasoning rewritten to say what actually changed (the platform dependency shrank to *detection*
+  only) and what genuinely remains (auto-detection on Windows; GUI still unwired). Re-measured the
+  orphan count rather than trusting the heading: it is now **2**, not 4 — `CatImportService` and
+  `Hotspot20Service` gained real callers when `import-cat` and `passpoint` shipped. The §1a heading,
+  its summary, and the residual table now match what the repository actually contains.
 - **Brought the living docs in line with what the product actually is now.** Three corrections, each
   verified against the code: `specification.md` FR-80 still listed "Windows/Linux/macOS/Android/iOS"
   implementations, but the Android and iOS projects were deleted this session — it now reads Windows
