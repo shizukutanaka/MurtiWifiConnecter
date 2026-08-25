@@ -129,6 +129,8 @@
   <data name="Shortcut_Quality_D"><value>ネットワーク品質を計測</value></data>
   <data name="Shortcut_Settings_T"><value>設定</value></data>
   <data name="Shortcut_Settings_D"><value>アプリ設定を開く</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>すべてのアダプター</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>すべてのアダプターの一覧を開く</value></data>
   <data name="Shortcut_ToggleMode_T"><value>詳細モード切替</value></data>
   <data name="Shortcut_ToggleMode_D"><value>シンプル/詳細表示を切替</value></data>
   <data name="Shortcut_Hide_T"><value>ウィンドウを隠す</value></data>

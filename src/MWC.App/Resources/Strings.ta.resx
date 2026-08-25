@@ -124,6 +124,8 @@
   <data name="Shortcut_Quality_D"><value>நெட்வொர்க் தரத்தை அளவிடவும்</value></data>
   <data name="Shortcut_Settings_T"><value>அமைப்புகள்</value></data>
   <data name="Shortcut_Settings_D"><value>பயன்பாட்டு அமைப்புகளைத் திற</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>அனைத்து அடாப்டர்கள்</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>அனைத்து அடாப்டர்களின் மேலோட்டத்தைத் திறக்கவும்</value></data>
   <data name="Shortcut_ToggleMode_T"><value>பயன்முறையை மாற்று</value></data>
   <data name="Shortcut_ToggleMode_D"><value>எளிய/நிபுணர் காட்சியை மாற்று</value></data>
   <data name="Shortcut_Hide_T"><value>சாளரத்தை மறை</value></data>

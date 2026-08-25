@@ -124,6 +124,8 @@
   <data name="Shortcut_Quality_D"><value>नेटवर्क गुणवत्ता मापें</value></data>
   <data name="Shortcut_Settings_T"><value>सेटिंग्स</value></data>
   <data name="Shortcut_Settings_D"><value>ऐप सेटिंग्स खोलें</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>सभी अडैप्टर</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>सभी अडैप्टर का अवलोकन खोलें</value></data>
   <data name="Shortcut_ToggleMode_T"><value>मोड टॉगल करें</value></data>
   <data name="Shortcut_ToggleMode_D"><value>सिंपल/एक्सपर्ट दृश्य बदलें</value></data>
   <data name="Shortcut_Hide_T"><value>विंडो छुपाएं</value></data>

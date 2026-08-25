@@ -13,7 +13,7 @@
 | 長所 | 具体 |
 |---|---|
 | Core 層の設計品質 | XXE/DTD 対策済み `CatImportService`、IANA 公式番号の `EapType`(25/13/23/21 — 変更禁止)、WCAG 1.4.1 設計の `SignalIconService`、`Result<T,E>` パターン(`ConnectionResult`)、学術引用付き `SecurityAdvisoryService` |
-| i18n 体制 | 名前付き 14 ロケール + 中立ベースの計 15 resx ファイル × 532 キー(README バッジの「14 langs」はこの名前付きロケール数で正しい)。`LocaleKeyConsistencyTests` がキー欠落を自動検出。UI 文字列は必ず resx 経由(CLAUDE.md 必須) |
+| i18n 体制 | 名前付き 14 ロケール + 中立ベースの計 15 resx ファイル × 534 キー(README バッジの「14 langs」はこの名前付きロケール数で正しい)。`LocaleKeyConsistencyTests` がキー欠落を自動検出。UI 文字列は必ず resx 経由(CLAUDE.md 必須) |
 | テーマ契約 | 16 ブラシ契約。`ThemeContractTests` は views の新規 `DynamicResource ...Brush` 参照を走査して全テーマ辞書への定義を強制。`ThemeAccessibilityAuditTests` が WCAG コントラスト比を実測検証 |
 | 監査文化 | 「実装されている ≠ 機能している」を軸にした FEATURE-AUDIT 方法論。呼び出し元ゼロの Core サービスを grep で検出し、配線 or 削除判断を文書化する |
 | Enterprise CLI(2026-07 完成) | `mwc connect` が 802.1X 完全対応: `--eap-type`/`--username`/`--domain`/`--server-name`/`--trusted-root-ca` + `MWC_PASSWORD` 環境変数。GUI 拡張の**参照実装**として `Program.cs` の `BuildConnect` を読むこと |

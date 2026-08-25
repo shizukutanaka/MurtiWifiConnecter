@@ -252,6 +252,11 @@ if m and int(m.group(1)) != locales:
 cl_path = 'docs/COMPLETION-CHECKLIST.md'
 if os.path.exists(cl_path):
     cl = open(cl_path, encoding='utf-8').read()
+    cnt = re.search(r'(\d+)\s*チェック', cl)
+    if cnt:
+        errs.append(
+            f'COMPLETION-CHECKLIST.md hardcodes a verify.sh check count ({cnt.group(1)}); '
+            'checks are added often — describe it without a number')
     dup = re.search(r'(\d{3,})\s*(?:の)?テストメソッド', cl)
     if dup:
         errs.append(
@@ -300,6 +305,55 @@ print(f'{keys} keys x {files} files, {locales} named locales — README agrees')
 PY
 then pass "README's numbers match the repository"
 else fail "README states a number that no longer holds (see above)"; fi
+
+# ── 8. ショートカット: ヘルプの一覧と実装が一致するか ──────────────────────
+# F1 ヘルプが出す一覧 (KeyboardShortcutService.BuildDefinitions) と、実際にキーを
+# 処理するスイッチ (MainWindow.OnKeyDown) は**別々に書かれた 2 つの表**であり、
+# 片方だけ編集すると黙って食い違う。実際に食い違っていた:
+#   - Ctrl+Tab / Ctrl+Shift+Tab … ヘルプにはあるがハンドラが無く、押しても無反応
+#     (アダプタータブは TabControl ではなく ListBox なので WPF も面倒を見ない)
+#   - Ctrl+Shift+A … 動作するのにヘルプに載っていない
+# README は「キーボードのみで完全操作可能」「WCAG 2.1 AAA」を掲げているので、
+# 案内したキーが動かないのは単なる不備ではなく、主張の裏切りにあたる。
+#
+# 例外: Up / Down は ListBox の標準操作で WPF 自身が処理する。ハンドラに現れないのが
+# 正しいので、ここで明示的に除外する(除外理由をコードに残すこと自体が目的)。
+head "Keyboard shortcuts: help list matches handler"
+if python3 - <<'PY'
+import re, sys
+
+sv = open('src/MWC.App/Services/KeyboardShortcutService.cs', encoding='utf-8').read()
+mw = open('src/MWC.App/MainWindow.xaml.cs', encoding='utf-8').read()
+
+def norm(mods):
+    return ' | '.join(sorted(p.strip() for p in mods.split('|')))
+
+advertised = {(k, norm(m)) for k, m in
+              re.findall(r'new\(Category\.\w+,\s*Key\.(\w+),\s*((?:ModifierKeys\.\w+\s*\|?\s*)+),', sv)}
+implemented = {(k, norm(m)) for k, m in
+               re.findall(r'case\s*\(Key\.(\w+),\s*((?:ModifierKeys\.\w+\s*\|?\s*)+)\)', mw)}
+
+# WPF の ListBox が標準で処理するキー。ハンドラに無いのが正しい。
+NATIVE = {('Up', 'ModifierKeys.None'), ('Down', 'ModifierKeys.None')}
+
+missing = advertised - implemented - NATIVE
+extra   = implemented - advertised
+
+errs = []
+for k, m in sorted(missing):
+    errs.append(f'advertised in F1 help but no handler: {m.replace("ModifierKeys.","")}+{k}')
+for k, m in sorted(extra):
+    errs.append(f'handled but missing from F1 help: {m.replace("ModifierKeys.","")}+{k}')
+
+if not advertised or not implemented:
+    errs.append('parsed 0 shortcuts from one of the two files — the check itself is broken')
+
+if errs:
+    print('\n'.join(errs)); sys.exit(1)
+print(f'{len(advertised)} advertised, {len(implemented)} handled, {len(NATIVE)} native — consistent')
+PY
+then pass "every advertised shortcut has a handler, and vice versa"
+else fail "shortcut help and handler disagree (see above)"; fi
 
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo

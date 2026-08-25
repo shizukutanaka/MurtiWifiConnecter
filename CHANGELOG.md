@@ -345,6 +345,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **Two keyboard shortcuts the F1 help advertised did nothing when pressed, and one that worked
+  was undocumented.** `Ctrl+Tab` / `Ctrl+Shift+Tab` (switch adapter) were listed in
+  `KeyboardShortcutService`, which is what the help dialog renders, but `MainWindow.OnKeyDown` —
+  the switch that actually handles keys — had no case for them. WPF does not cover the gap either:
+  the adapter tabs are a `ListBox`, not a `TabControl`, so `Ctrl+Tab` is not native behaviour there.
+  README claims "fully operable by keyboard alone" and WCAG 2.1 AAA, so a shortcut that is
+  advertised and inert is a broken promise rather than a missing nicety. Both are now implemented
+  (`CycleAdapter`, wrapping at either end), and `Ctrl+Shift+A` (all-adapters overview) — which
+  worked but appeared nowhere in the help — is now listed, with `Shortcut_AllAdapters_T`/`_D`
+  added to all 15 resx files. `Up`/`Down` stay unhandled on purpose: those are native `ListBox`
+  navigation, and the new check exempts them explicitly rather than silently.
+- **Deleted `KeyboardShortcutService.CreateBindings`, which had no callers and could not have
+  worked.** It looked up commands by `ShortcutDefinition.Title` — a string that comes from resx,
+  so the dictionary key changed with the UI language. The hand-written switch in
+  `MainWindow.OnKeyDown` is the only real binding mechanism, and the class doc claiming automatic
+  `InputBindings` registration is corrected to say so.
+- **`tools/verify.sh` now pins the help list against the handler.** These are two independently
+  maintained tables; editing one silently desynchronises the other, which is exactly how the
+  defect above survived. The check parses both and fails on a mismatch in either direction,
+  and was verified by deleting the `Ctrl+Tab` case and watching it fail. It also no longer lets
+  the checklist hardcode how many checks exist — the same rot that produced the stale "4 orphans"
+  and "881 test methods". The accessibility audit's "KeyboardShortcutService 16 shortcuts"
+  string, already one short of the truth, now points at the check instead of restating a count.
 - **WMM decoding existed twice, and the tests were certifying the copy the product does not run.**
   `WmmParser.ParseParameters` / `ParseQosInfo` were never called from product code: they were
   covered by a full set of byte-level golden tests, while `BeaconIeParser.DecodeVendorSpecific`

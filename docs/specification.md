@@ -87,7 +87,7 @@
 |---|---|---|
 | FR-70 | Light/Dark/System テーマ | ThemeService |
 | FR-71 | UI 文字列は必ず Strings.resx 経由 | Resources/L.cs |
-| FR-72 | 14 言語(532 キー一致) | Strings.*.resx |
+| FR-72 | 14 言語(534 キー一致) | Strings.*.resx |
 | FR-73 | WCAG / AutomationProperties / Live Region | AccessibilityService |
 
 ## 10. クロスプラットフォーム / 配布

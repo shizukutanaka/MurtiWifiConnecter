@@ -124,6 +124,8 @@
   <data name="Shortcut_Quality_D"><value>নেটওয়ার্কের গুণমান পরিমাপ করুন</value></data>
   <data name="Shortcut_Settings_T"><value>সেটিংস</value></data>
   <data name="Shortcut_Settings_D"><value>অ্যাপ সেটিংস খুলুন</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>সব অ্যাডাপ্টার</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>সব অ্যাডাপ্টারের সারসংক্ষেপ খুলুন</value></data>
   <data name="Shortcut_ToggleMode_T"><value>মোড পরিবর্তন করুন</value></data>
   <data name="Shortcut_ToggleMode_D"><value>সিম্পল/এক্সপার্ট ভিউ পরিবর্তন করুন</value></data>
   <data name="Shortcut_Hide_T"><value>উইন্ডো লুকান</value></data>

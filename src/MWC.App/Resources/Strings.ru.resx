@@ -129,6 +129,8 @@
   <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
   <data name="Shortcut_Settings_T"><value>Settings</value></data>
   <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>Все адаптеры</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>Открыть обзор всех адаптеров</value></data>
   <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
   <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
   <data name="Shortcut_Hide_T"><value>Hide window</value></data>

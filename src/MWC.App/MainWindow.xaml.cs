@@ -115,6 +115,13 @@ public partial class MainWindow : Window
                     vm.Filter.ToggleExpertModeCommand.Execute(null); e.Handled = true; break;
                 case (Key.A,      ModifierKeys.Control | ModifierKeys.Shift):
                     _cmd.ShowAllAdapters(this); e.Handled = true; break;
+                // アダプタータブは TabControl ではなく ListBox なので、Ctrl+Tab は
+                // WPF が面倒を見てくれない。F1 ヘルプは以前からこの 2 つを案内していたが
+                // ハンドラが無く、押しても何も起きなかった。
+                case (Key.Tab,    ModifierKeys.Control):
+                    CycleAdapter(vm, +1); e.Handled = true; break;
+                case (Key.Tab,    ModifierKeys.Control | ModifierKeys.Shift):
+                    CycleAdapter(vm, -1); e.Handled = true; break;
                 case (Key.F1,     ModifierKeys.None):
                     _cmd.ShowShortcutHelp(this); e.Handled = true; break;
                 case (Key.Escape, ModifierKeys.None) when !string.IsNullOrEmpty(vm.Filter.SearchText):
@@ -128,6 +135,24 @@ public partial class MainWindow : Window
         {
             vm.StatusMessage = MWC.App.Resources.L.Format("Error_Operation", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// アダプタータブを 1 つ送る / 戻す。端では反対側へ回り込む。
+    /// 選択が無い状態から進めた場合は先頭が選ばれる。
+    /// </summary>
+    private static void CycleAdapter(MainViewModel vm, int delta)
+    {
+        int count = vm.Adapters.Count;
+        if (count < 2) return;
+
+        // ローカルに退避してから判定する。プロパティのまま三項演算子に渡すと
+        // null 許容フロー解析が false 分岐で非 null と見なさず CS8604 になり得る。
+        // このリポジトリは TreatWarningsAsErrors=true なので警告はビルド失敗と同義。
+        var selected = vm.SelectedAdapter;
+        int current = selected is null ? -1 : vm.Adapters.IndexOf(selected);
+        int next = ((current + delta) % count + count) % count;   // 負の剰余を正に畳む
+        vm.SelectedAdapter = vm.Adapters[next];
     }
 
     // ── ⋯ オーバーフローメニュー ──────────────────────

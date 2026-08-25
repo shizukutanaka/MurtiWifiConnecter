@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MWC.App.Services;
@@ -12,10 +10,10 @@ namespace MWC.App.Services;
 /// Apple HIG "Keyboard Shortcuts":
 ///   "Make every action keyboard-accessible. Show shortcuts in menus."
 ///
-/// 設計:
-///   - InputBinding をMainWindow.InputBindingsに自動登録
-///   - ヘルプダイアログ(F1)で一覧表示
-///   - macOS慣習に近づけつつ、Windowsユーザーにも自然に
+/// 役割は **一覧の提示のみ**。実際のキー割り当ては MainWindow.OnKeyDown の
+/// スイッチが行う。このクラスが持つのは F1 ヘルプダイアログに出す定義表で、
+/// 両者が食い違わないことは tools/verify.sh が静的に検査する
+/// (以前は Ctrl+Tab / Ctrl+Shift+Tab がここにだけ存在し、押しても何も起きなかった)。
 /// </summary>
 public sealed class KeyboardShortcutService
 {
@@ -58,22 +56,19 @@ public sealed class KeyboardShortcutService
             MWC.App.Resources.L.Get("Shortcut_ToggleMode_T"), MWC.App.Resources.L.Get("Shortcut_ToggleMode_D")),
         new(Category.View,       Key.W,      ModifierKeys.Control,
             MWC.App.Resources.L.Get("Shortcut_Hide_T"), MWC.App.Resources.L.Get("Shortcut_Hide_D")),
+        new(Category.View,       Key.A,      ModifierKeys.Control | ModifierKeys.Shift,
+            MWC.App.Resources.L.Get("Shortcut_AllAdapters_T"), MWC.App.Resources.L.Get("Shortcut_AllAdapters_D")),
         new(Category.View,       Key.F1,     ModifierKeys.None,
             MWC.App.Resources.L.Get("Shortcut_Help_T"), MWC.App.Resources.L.Get("Shortcut_Help_D")),
         new(Category.View,       Key.Escape, ModifierKeys.None,
             MWC.App.Resources.L.Get("Shortcut_Escape_T"), MWC.App.Resources.L.Get("Shortcut_Escape_D"))
     ];
 
-    /// <summary>Window.InputBindingsに登録するためのKeyBinding群を生成</summary>
-    public IEnumerable<KeyBinding> CreateBindings(
-        IDictionary<string, ICommand> commandMap)
-    {
-        foreach (var s in Shortcuts)
-        {
-            if (commandMap.TryGetValue(s.Title, out var cmd))
-                yield return new KeyBinding(cmd, s.Key, s.Modifiers);
-        }
-    }
+    // CreateBindings(IDictionary<string, ICommand>) は削除した。
+    // 呼び出し元がゼロで、かつ設計として壊れていた: コマンド表を `s.Title` で
+    // 引いていたが Title は resx から来る**翻訳済みの表示文字列**なので、
+    // 表のキーが UI 言語ごとに変わってしまう。実際の割り当ては
+    // MainWindow.OnKeyDown のスイッチが行っており、そちらが唯一の実装である。
 }
 
 public sealed record ShortcutDefinition(
