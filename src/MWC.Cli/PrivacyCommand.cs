@@ -91,7 +91,21 @@ public static partial class Program
 
                 if (advisories.Count == 0)
                 {
-                    Console.WriteLine("No advisories.");
+                    // Unknown は「助言できるだけの情報が無い」であって「問題なし」ではない。
+                    // 両者を同じ "No advisories." で表すと、設定を伝えていないユーザーに
+                    // 「あなたのプライバシーは良好」と誤読させる — 本製品が避けるべき主張。
+                    if (mode.Value == MacAddressMode.Unknown)
+                    {
+                        Console.WriteLine(
+                            "Cannot advise: your MAC setting is unknown (this build cannot detect it).");
+                        Console.WriteLine(
+                            "Check Windows → Settings → Network & internet → Wi-Fi → Random hardware addresses,");
+                        Console.WriteLine(
+                            "then re-run with --mac-mode hardware | random-per-network | random-daily.");
+                        return;
+                    }
+
+                    Console.WriteLine("No advisories for this combination.");
                     return;
                 }
 

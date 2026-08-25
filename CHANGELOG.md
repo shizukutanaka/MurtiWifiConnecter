@@ -345,6 +345,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`mwc privacy` no longer reports an unknown MAC setting as "no advisories".** With no
+  `--mac-mode`, the mode defaults to `Unknown`, which matches none of `PrivacyAdvisoryService`'s
+  branches — so the command printed `No advisories.`, which reads as *your privacy is fine* when it
+  actually means *I don't know your setting*. Since this build cannot detect the setting, that is
+  the default path, making it the most likely output a user sees. It now says plainly that it cannot
+  advise, points at the Windows setting to check
+  (Settings → Network & internet → Wi-Fi → Random hardware addresses), and shows the flag to re-run
+  with; a genuinely empty result for a *known* mode reads "No advisories for this combination."
+  Pinned by a test asserting `Unknown` yields nothing while every known mode always yields advice —
+  the invariant the CLI branch depends on.
 - **Repaired solution filters that this release's project deletions had broken.** `MWC.ci-win.slnf`
   and `MWC.ci-linux.slnf` still listed the deleted Android and iOS projects. CI restores through
   those filters (`docs/ci/ci.yml`), so `dotnet restore` would have failed the moment workflows were

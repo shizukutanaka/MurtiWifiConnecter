@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/tests-886%20methods-22C55E)](#)
+[![Tests](https://img.shields.io/badge/tests-887%20methods-22C55E)](#)
 [![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20526%20keys-00C4CC)](#)
 
 <!-- CI / CodeQL バッジは意図的に外してある。
@@ -135,7 +135,7 @@ git clone https://github.com/shizukutanaka/MurtiWifiConnecter.git
 cd MurtiWifiConnecter
 dotnet restore MWC.sln
 dotnet build   MWC.sln -c Release
-dotnet test    MWC.sln                    # 886 test methods
+dotnet test    MWC.sln                    # 887 test methods
 ```
 
 ---

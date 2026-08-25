@@ -104,4 +104,31 @@ public class PrivacyCliContractTests
             new PrivacyAdvisoryService().Analyze(mode, Net(auth))
                 .Should().OnlyContain(a => !string.IsNullOrWhiteSpace(a.Reference));
     }
+    // ── "分からない" と "問題なし" は別物 ──────────────────────────
+    // Unknown は勧告ゼロになるが、それは「あなたのプライバシーは良好」ではなく
+    // 「助言できるだけの情報が無い」という意味。CLI は両者を別の文言で表示する
+    // (Unknown → 設定の確認方法を案内して早期 return)。
+    // ここでは Core 側の前提 —「Unknown はゼロ、既知モードは非ゼロ」— を固定する。
+    // これが崩れると CLI の分岐が意味を失う。
+
+    [Fact]
+    public void UnknownYieldsNothingToSay_WhileKnownModesAlwaysSaySomething()
+    {
+        var svc = new PrivacyAdvisoryService();
+        var net = new WifiNetwork { Ssid = "X", Auth = AuthMethod.WPA2PSK };
+
+        svc.Analyze(MacAddressMode.Unknown, net).Should().BeEmpty(
+            because: "Unknown means 'cannot advise', which the CLI must not render as 'no issues'");
+
+        foreach (var mode in new[]
+                 {
+                     MacAddressMode.Hardware,
+                     MacAddressMode.RandomPerNetwork,
+                     MacAddressMode.RandomDaily,
+                 })
+        {
+            svc.Analyze(mode, net).Should().NotBeEmpty(
+                because: $"{mode} is a known setting, so there is always advice to give");
+        }
+    }
 }
