@@ -291,6 +291,13 @@ m = re.search(r'##\s*DI\s*\((\d+)\s*サービス\)', arch)
 if m and int(m.group(1)) != di:
     errs.append(f'architecture.md claims {m.group(1)} DI services, actual {di}')
 
+# ADR 件数も README が主張する数値。ファイルを数えれば実測できるので固定する。
+adrs = len([q for q in glob.glob('docs/adr/*.md')
+            if not os.path.basename(q).lower().startswith('readme')])
+m = re.search(r'アーキテクチャ決定記録\s*\((\d+)\s*件\)', r)
+if m and int(m.group(1)) != adrs:
+    errs.append(f'README claims {m.group(1)} ADRs, actual {adrs}')
+
 m = re.search(r'tests-(\d+)%20', r)
 if m:
     n = sum(open(p, encoding='utf-8').read().count(t)
@@ -367,24 +374,33 @@ import glob, re, sys
 files = {p: open(p, encoding='utf-8').read() for p in glob.glob('src/MWC.Cli/*.cs')}
 prog = files['src/MWC.Cli/Program.cs']
 
-def first_command(meth, cls=None):
+def locate(meth, cls=None):
     # Program は partial class なので、メソッドは CLI 内のどのファイルにもあり得る
-    for body in files.values():
+    for path, body in files.items():
         if cls and f'class {cls}' not in body: continue
         d = re.search(r'\b(?:private|public|internal)[\w\s]*\b%s\s*\(' % re.escape(meth), body)
         if not d: continue
         rest = body[d.end():]
         nxt = re.search(r'\n    (?:private|public|internal)\s', rest)
-        seg = rest[:nxt.start()] if nxt else rest
-        n = re.search(r'new Command\(\s*"([\w-]+)"', seg)
-        if n: return n.group(1)
-    return None
+        return path, (rest[:nxt.start()] if nxt else rest)
+    return None, None
 
 impl = set()
+impl_opts = {}
 unresolved = []
 for c in re.findall(r'root\.AddCommand\(\s*([\w\.]+)\s*\(', prog):
     cls, meth = (c.split('.', 1) if '.' in c else (None, c))
-    name = first_command(meth, cls)
+    path, seg = locate(meth, cls)
+    name = None
+    if seg:
+        n = re.search(r'new Command\(\s*"([\w-]+)"', seg)
+        if n:
+            name = n.group(1)
+            opts = set(re.findall(r'"(--[a-z][\w-]*)"', seg))
+            # サブコマンドを別メソッドに分けているコンテナは定義ファイル全体を見る
+            if path != 'src/MWC.Cli/Program.cs':
+                opts |= set(re.findall(r'"(--[a-z][\w-]*)"', files[path]))
+            impl_opts[name] = opts
     (impl.add(name) if name else unresolved.append(c))
 
 errs = []
@@ -411,6 +427,20 @@ for label, have in (('mwc.bash', bash_l), ('mwc.ps1', ps_l)):
         errs.append(f'{label}: command implemented but not completable: {n}')
     for n in sorted(have - impl - {'help'}):
         errs.append(f'{label}: completes a command that does not exist: {n}')
+
+# オプションは **一方向だけ** 検査する。存在しないフラグを Tab で勧めるのは
+# 利用者を直接誤らせる (実測: `mwc list --adapter` を両スクリプトが勧めていたが
+# list の実装は --json / --status しか持たない = 補完に従うとパースエラー)。
+# 逆向き (実装にあるが補完に無い) は不便なだけで害が無く、サブコマンドを持つ
+# コンテナコマンドで誤検知が出るため、あえて見ない。
+bash_opts = {m.group(1): set(re.findall(r'(--[a-z][\w-]*)', m.group(2)))
+             for m in re.finditer(r'^\s{8}([\w-]+)\)\n(.*?)\n\s{12};;', b, re.S | re.M)}
+ps_opts = {m.group(1): set(re.findall(r"'(--[a-z][\w-]*)'", m.group(2)))
+           for m in re.finditer(r"'([\w-]+)'\s*\{([^}]*)\}", ps)}
+for cmd in sorted(impl_opts):
+    for label, tbl in (('mwc.bash', bash_opts), ('mwc.ps1', ps_opts)):
+        for o in sorted(tbl.get(cmd, set()) - impl_opts[cmd]):
+            errs.append(f'{label}: `mwc {cmd} {o}` is completable but no such option exists')
 
 if errs:
     print('\n'.join(errs)); sys.exit(1)

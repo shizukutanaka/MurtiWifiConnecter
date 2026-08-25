@@ -50,7 +50,7 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
 
     # サブコマンド・オプション補完
     $suggestions = switch ($command) {
-        'list'          { @('--json', '--status', '--adapter') }
+        'list'          { @('--json', '--status') }
         'scan'          { @('--adapter', '--json', '--advise', '--recommend', '--evil-twin', '--interference', '--mesh') }
         'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden', '--eap-type', '--username', '--domain', '--server-name', '--trusted-root-ca') }
         'passpoint'     { @('--adapter', '--json', '--carriers') }

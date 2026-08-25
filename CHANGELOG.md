@@ -345,6 +345,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **Both completion scripts offered `mwc list --adapter`, an option that does not exist.**
+  `BuildList` declares exactly `--json` and `--status`, so a user who trusted Tab completion got a
+  System.CommandLine parse error. Removed from both scripts, and `tools/verify.sh` now checks
+  option names too — but **in one direction only**: offering a flag that does not exist actively
+  misleads, while failing to offer one that does is merely incomplete, and the reverse direction
+  false-positives on container commands like `multi` and `profile` whose options live on their
+  subcommands. A check that cries wolf gets ignored, so it only reports the harmful direction.
+  Verified by re-adding the bogus flag and watching it fail.
+- **The README's ADR count is now measured rather than asserted.** It claims 25 architecture
+  decision records and there are in fact 25, but nothing checked it, which is precisely how the
+  i18n key count reached 526-against-532. Pinned to the file count.
 - **`mwc eap-stats` and `mwc vpn-advice` were absent from both shell completion scripts.** Both
   commands are implemented and documented in the README, but neither `completions/mwc.bash` nor
   `completions/mwc.ps1` listed them, so pressing Tab hid two working features. Same shape as the

@@ -17,7 +17,7 @@ _mwc_completions()
 
     case "${words[1]}" in
         list)
-            COMPREPLY=( $(compgen -W "--json --status --adapter" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--json --status" -- "$cur") )
             return
             ;;
         scan)
