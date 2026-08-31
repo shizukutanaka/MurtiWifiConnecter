@@ -494,6 +494,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Removed
+- **Deleted 18 dead translation keys — 270 entries across the 15 resx files.** The
+  reference→definition direction was already healthy (every `L.Get` literal and every `L.cs`
+  accessor resolves), but nothing checked definition→reference, so keys orphaned by refactors
+  stayed forever: the `Auth_*` labels superseded by `SecurityBadgeService`'s human-language
+  strings, the `Label_*` detail-pane set superseded by the `Detail*` keys, plus
+  `Captive_Detected` and `Error_PassphraseTooShort`. Every one of those was being translated
+  into 14 languages for nothing. Each key was confirmed dead by bare-name grep (the single hit
+  was a test-method name containing the substring). `tools/verify.sh` now fails on defined-but-
+  unreferenced keys. The check accounts for the one dynamic pattern in the codebase —
+  `GetTroubleshootingAdvice` builds `{prefix}_Title/_Reason/_Steps` at runtime, so a naive grep
+  would condemn all 21 `Trouble_*` keys as dead — and refuses to pass if it parses suspiciously
+  few references, so a broken parser fails loudly instead of approving everything. Key count
+  534 → 516 (badge, README, and the three docs the number guard flagged are updated).
 - **Deleted `GroupPolicyProvider` (167 lines) and, with it, Core's `Microsoft.Win32.Registry`
   dependency.** Its only reference anywhere was a comment in `MWC.Core.csproj` explaining why that
   package reference existed — so an unwired service was the sole reason a dependency sat in the core

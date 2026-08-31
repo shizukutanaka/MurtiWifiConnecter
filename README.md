@@ -4,7 +4,7 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
 [![Tests](https://img.shields.io/badge/tests-892%20methods-22C55E)](#)
-[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20534%20keys-00C4CC)](#)
+[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20516%20keys-00C4CC)](#)
 
 <!-- CI / CodeQL バッジは意図的に外してある。
      .github/workflows/ が存在せず GitHub Actions が一度も実行されていないため
@@ -182,7 +182,7 @@ dotnet test    MWC.sln                    # 892 test methods
 
 新言語サポート: [`docs/i18n-guide.md`](docs/i18n-guide.md) を参照して PR をどうぞ。
 
-すべて Strings.resx ベース。1ファイル 534 キー × 14 ロケール(+ 中立ベース) = 8,010 エントリ完備。
+すべて Strings.resx ベース。1ファイル 516 キー × 14 ロケール(+ 中立ベース) = 7,740 エントリ完備。
 キーの過不足は `LocaleKeyConsistencyTests` が検出する。追加時は `bash tools/verify.sh` で全ロケールの一致を確認できる。
 
 ---

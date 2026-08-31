@@ -227,6 +227,14 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 **次に同じ形を探すなら**: 「型は共有しているがロジックは各自が持っている」ペアを疑うこと。
 ファイル単位の grep では永久に見えない。
 
+- **死んだ翻訳キー** — 定義→参照の向きは誰も検査しておらず、リファクタで置き換えられた
+  キーが 2026-08 の実測で 18 個 × 15 ロケール = 270 エントリ残っていた
+  (`Auth_*` → SecurityBadgeService、`Label_*` 詳細ペイン → `Detail*` への移行の取り残し)。
+  削除し、verify.sh に定義→参照チェックを追加。**罠**: `GetTroubleshootingAdvice` が
+  `{prefix}_Title/_Reason/_Steps` を動的に組むため、素朴な grep は `Trouble_*` の
+  全キー(2026-08 時点で 21 キー)を死骸と誤判定する。チェックはこの
+  プレフィックス剥がしを織り込んである。
+
 ### 1f. 「案内はあるが実装が無い」— 2 つの表が別々に維持されている形
 
 §1e が「型は共有、ロジックは重複」だったのに対し、これは

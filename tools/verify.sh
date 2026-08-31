@@ -449,6 +449,48 @@ PY
 then pass "every CLI command is completable, and vice versa"
 else fail "CLI commands and completions disagree (see above)"; fi
 
+# ── 10. resx: 定義されたキーが実際に使われているか ─────────────────────────
+# 参照→定義の向き(存在しないキーを L.Get する typo)は起きれば英語フォールバックで
+# 露見するが、**定義→参照の向きは誰も見ていなかった**。使われないキーは 15 ロケール分の
+# 死んだエントリになり、翻訳者は永遠にそれを訳し続ける。実測で 18 キー × 15 = 270
+# エントリが死んでいた (Auth_* は SecurityBadgeService の人間語ラベルに、Label_* の
+# 詳細ペイン系は Detail* 群に置き換えられた取り残し)。
+#
+# **動的プレフィックスの罠**: 単純な grep では L.cs の GetTroubleshootingAdvice が
+# Get($"{prefix}_Title") の形で組み立てる Trouble_*_{Title,Reason,Steps} 21 キーを
+# 死骸と誤判定する。suffix を剥がした裸プレフィックスがコードにあれば使用中とみなす。
+head "resx keys are all reachable"
+if python3 - <<'PY'
+import glob, re, sys, xml.etree.ElementTree as ET
+keys = {e.get('name') for e in ET.parse('src/MWC.App/Resources/Strings.resx').findall('.//data')}
+blob = ''
+for p in glob.glob('src/**/*.cs', recursive=True) + glob.glob('src/**/*.xaml', recursive=True):
+    if '/obj/' in p or '/bin/' in p: continue
+    blob += open(p, encoding='utf-8', errors='replace').read()
+
+def used(k):
+    if f'"{k}"' in blob:
+        return True
+    # 動的プレフィックス: Get($"{prefix}_Title") 形式 (L.cs の Troubleshooting)
+    for sfx in ('_Title', '_Reason', '_Steps'):
+        if k.endswith(sfx) and f'"{k[:-len(sfx)]}"' in blob:
+            return True
+    return False
+
+dead = sorted(k for k in keys if not used(k))
+lit = len(re.findall(r'L\.(?:Get|Format)\(\s*"[\w\.]+"', blob))
+if lit < 100:
+    print(f'only {lit} L.Get/Format literals found — the check itself looks broken')
+    sys.exit(1)
+if dead:
+    print('defined but never referenced (wire them or delete them from ALL 15 resx files):')
+    for k in dead: print(f'  {k}')
+    sys.exit(1)
+print(f'{len(keys)} keys, every one reachable (incl. dynamic Trouble_* prefixes)')
+PY
+then pass "no dead translation keys"
+else fail "resx contains dead keys (see above)"; fi
+
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo
 if [ "$FAILED" -eq 0 ]; then
