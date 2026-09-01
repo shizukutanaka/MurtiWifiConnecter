@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using MWC.Core.Abstractions;
+using MWC.Core.Models;         // PhyType.ToShortLabel() は拡張メソッドなので、
+                               // 宣言している名前空間を import しないと解決しない。
 using MWC.Core.Services;
 
 namespace MWC.Cli;

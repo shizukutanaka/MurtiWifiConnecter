@@ -68,8 +68,9 @@ git push
 ### 設置前の確認
 
 ```bash
-bash tools/verify.sh          # ネットワーク・SDK 不要の静的検査
-bash tools/typecheck-core.sh  # SDK があれば MWC.Core を実際にコンパイルする
+bash tools/verify.sh                    # ネットワーク・SDK 不要の静的検査
+bash tools/typecheck-core.sh            # MWC.Core を実際にコンパイル
+bash tools/typecheck-cli.sh --selftest  # MWC.Cli を型検査 (スタブ + 自己検証付き)
 ```
 
 ### AI セッションで `dotnet build` / `dotnet test` を通したい場合(環境側の設定)
@@ -121,7 +122,8 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
 3. `FEATURE-AUDIT.md` §0 を解決済みに更新する
 4. **CI が赤くなったら — どこが怪しいかは 2026-08 に絞り込み済み**:
    `MWC.Core` は `tools/typecheck-core.sh` で**実際にコンパイル済み**(`-warnaserror` 込みで green)。
-   一方 **Cli・App・Platform.Windows・tests は型検査されていない**
+   **Cli も 2026-08 に型検査済み**(`tools/typecheck-cli.sh`。ここでも実在の欠陥 3 件が出た)。
+   一方 **App・Platform.Windows・tests は型検査されていない**
    (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
    いずれもこの環境では入手できないことを確認済み)。構文エラーが無いことだけは確認した。
    **したがって CI が赤くなるとすれば Core 以外の 4 つが第一容疑者。**

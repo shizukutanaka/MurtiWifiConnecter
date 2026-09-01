@@ -384,6 +384,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **MWC.Cli did not type-check either; three more defects.** With Core compiling, the CLI was still
+  unverified because `System.CommandLine` is unobtainable here — and the naive workaround proves
+  nothing: with the `SetHandler` delegate type unresolved, Roslyn never binds the handler lambdas,
+  where nearly all CLI logic lives, so a deliberately broken member name produced no error at all.
+  Type-check-only stubs for `System.CommandLine` and `MWC.Platform.Windows` resolve just enough for
+  the bodies to bind against the **real** `MWC.Core.dll`. That found:
+  `QualityHistoryCommand.cs` was missing `using MWC.Core.Abstractions` and `using MWC.Core.Models`,
+  so `Resolve(IWifiService, …)` returning `WifiAdapter?` could not compile — usings are per-file,
+  and the sibling file of the same `partial class` having them does not help;
+  `MultiAdapterCommand.cs` was missing `using MWC.Core.Models`, so the extension method
+  `PhyType.ToShortLabel()` failed with CS1061; and `Program.cs` assigned the `T?` from
+  `GetValueForArgument` straight into the `required` non-nullable `WifiProfileSpec.Ssid`, giving
+  CS8601 — an error here, and now guarded by an explicit empty-SSID check that is correct
+  regardless of how the real package annotates that return.
+- **`tools/typecheck-cli.sh` refuses to trust itself.** `--selftest` breaks a member name inside a
+  handler lambda on every run and fails loudly if the compiler does not notice, because the whole
+  technique is worthless the moment the bodies stop binding — and that is exactly the state it was
+  in before the stubs. The stubs' headers state plainly which diagnostics are trustworthy (handler
+  bodies, real Core and BCL) and which are not (the CommandLine surface itself: arity, overload
+  resolution, and the nullability of `GetValueFor*`, all of which merely mirror my understanding).
 - **MWC.Core did not compile, and three separate defects were the reason.** The environment turns
   out to carry a .NET SDK, and although `dotnet build` cannot complete (the sandbox blocks
   `api.nuget.org`), Core's only two dependencies — `System.Text.Json` and

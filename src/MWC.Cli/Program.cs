@@ -353,6 +353,18 @@ public static partial class Program
             {
                 if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
 
+                // SSID を非 null に確定させてから spec を組む。GetValueForArgument は
+                // T? を返すため、そのまま required な WifiProfileSpec.Ssid へ代入すると
+                // CS8601 になり、TreatWarningsAsErrors=true の本ビルドでは**エラー**になる。
+                // 空 SSID は ProfileXmlBuilder でも弾かれるが、ここで弾いた方が
+                // メッセージが分かりやすい。
+                if (string.IsNullOrEmpty(s))
+                {
+                    Err("SSID is required");
+                    Environment.Exit(ExitCode.InvalidInput);
+                    return;
+                }
+
                 var svc      = sp.GetRequiredService<IWifiService>();
                 var executor = sp.GetRequiredService<ConnectionExecutor>();
                 var ad       = await Resolve(svc, af);
