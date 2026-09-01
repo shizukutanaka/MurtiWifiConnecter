@@ -1,0 +1,142 @@
+name: Release
+
+# タグ push で配布物を作り、SBOM・署名・provenance を付けて GitHub Release に出す。
+#
+# なぜ要るか:
+#   README と SECURITY.md は長らく「Sigstore keyless signing」「SLSA provenance」
+#   「リリース毎に CycloneDX SBOM 生成」と述べていたが、**リリースワークフローは
+#   存在せず、リリースも 1 度も作られていない**。署名された配布物は 1 つも無い。
+#   主張だけが先に存在していた状態で、これはセキュリティ文書としては最も避けたい形
+#   (利用者が「検証済みの配布物がある」と誤認する)。
+#   このワークフローがその主張を初めて真にする。
+#
+# 設置方法: .github/workflows/ にコピーする (docs/COMPLETION-CHECKLIST.md §1)。
+# 設置しただけでは何も起きない。`git tag v1.2.3 && git push --tags` で初めて走る。
+#
+# **現時点の配布物は zip のみ。** installer/wix/Product.wxs は在るが、
+# 発行済みファイル一覧の harvest (heat 相当) が未整備で MSI をビルドできない。
+# MSI を出すようになったら、署名・ハッシュ・provenance の各ステップは
+# 既に *.msi を拾う書き方にしてあるので、ビルドステップを足すだけで済む。
+#
+# 使う Action について:
+#   actions/checkout・setup-dotnet・attest-build-provenance・upload-artifact は
+#   GitHub 第一者。cosign のみ Sigstore プロジェクト公式の installer を使う
+#   (keyless signing に他の入手経路が無いため)。バージョンはタグで固定する。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.2.3)'
+        required: true
+
+permissions:
+  contents: write        # Release の作成
+  id-token: write        # Sigstore keyless / OIDC
+  attestations: write    # SLSA provenance
+
+jobs:
+  release:
+    name: Build, sign and publish
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version from the tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          if (-not $tag) { $tag = "${{ github.ref_name }}" }
+          $version = $tag -replace '^v', ''
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag"         >> $env:GITHUB_OUTPUT
+
+      # 配布物を作る前にテストを通す。落ちた成果物に署名すると
+      # 「署名されている = 検証された」という誤解を生むため、順序が重要。
+      - name: Build and test
+        run: |
+          dotnet restore MWC.ci-win.slnf
+          dotnet build MWC.ci-win.slnf -c Release --no-restore
+          dotnet test tests/MWC.Core.Tests/MWC.Core.Tests.csproj -c Release --no-build
+
+      - name: Publish (win-x64 / win-arm64)
+        shell: pwsh
+        run: |
+          foreach ($rid in 'win-x64', 'win-arm64') {
+            dotnet publish src/MWC.App/MWC.App.csproj `
+              -c Release -r $rid --self-contained false `
+              -p:Version=${{ steps.ver.outputs.version }} `
+              -o "artifacts/$rid"
+            Compress-Archive -Path "artifacts/$rid/*" `
+              -DestinationPath "artifacts/MWC-${{ steps.ver.outputs.version }}-$rid.zip"
+          }
+
+      # SECURITY.md が「リリース毎に CycloneDX SBOM 生成」と述べている根拠。
+      - name: Generate CycloneDX SBOM
+        run: |
+          dotnet tool install --global CycloneDX
+          dotnet CycloneDX MWC.ci-win.slnf -o artifacts -f sbom.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      # keyless signing: 鍵は保持せず、GitHub OIDC の身元で署名して
+      # Rekor 透明性ログに記録する。検証は cosign verify-blob で行う。
+      - name: Sign the artifacts (Sigstore keyless)
+        shell: pwsh
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+        run: |
+          Get-ChildItem artifacts -Include *.zip, *.msi -Recurse | ForEach-Object {
+            cosign sign-blob --yes $_.FullName `
+              --output-signature "$($_.FullName).sig" `
+              --output-certificate "$($_.FullName).pem"
+          }
+
+      # SECURITY.md が「ハッシュは GitHub Releases に記載」と述べている根拠。
+      - name: Write SHA256SUMS
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts -Include *.zip, *.msi -Recurse |
+            ForEach-Object { "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash, $_.Name } |
+            Set-Content artifacts/SHA256SUMS.txt -Encoding ascii
+
+      # SLSA build provenance。GitHub 第一者の Action で、in-toto 形式の
+      # 証明書を発行し Sigstore に記録する。
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'artifacts/*.zip'
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            --title "${{ steps.ver.outputs.tag }}" \
+            --notes "See CHANGELOG.md for the changes in this release.
+
+          Artifacts are signed with Sigstore keyless signing. Verify with:
+
+              cosign verify-blob \\
+                --certificate <file>.pem \\
+                --signature   <file>.sig \\
+                --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' \\
+                --certificate-oidc-issuer     'https://token.actions.githubusercontent.com' \\
+                <file>" \
+            artifacts/*.zip artifacts/sbom.json artifacts/SHA256SUMS.txt \
+            artifacts/*.sig artifacts/*.pem

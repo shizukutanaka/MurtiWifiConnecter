@@ -10,6 +10,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
+  provenance. No binary has ever been produced.** There is no release workflow, no release, and
+  therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as
+  present tense, the README's comparison table scored "Sigstore 署名 + SBOM" as a ✅ advantage
+  over four competitors, and the install section offered `winget install`, an MSI download link
+  and `dotnet tool install` for artifacts that do not exist. This is the most damaging shape a
+  false claim can take: a reader who believes verification exists will not perform it, and a file
+  circulating as "MWC" would be trusted on the strength of a promise nothing kept. Every one of
+  those claims is now conditional and explicitly marked as not yet in effect, with `SECURITY.md`
+  stating plainly that any file presenting itself as an MWC distribution did not come from this
+  project.
+- **`docs/ci/release.yml` is added so those claims can become true rather than merely be
+  withdrawn.** A tag push builds and tests, publishes win-x64/win-arm64 zips, generates a
+  CycloneDX SBOM, signs with cosign keyless, attests SLSA provenance via
+  `actions/attest-build-provenance`, writes `SHA256SUMS.txt`, and creates the release with the
+  `cosign verify-blob` invocation in its notes. Tests run *before* signing on purpose: signing a
+  failed build teaches users that a signature means the artifact was verified. Only cosign's
+  installer is third-party, because keyless signing has no other source. MSI is deliberately not
+  claimed — `Product.wxs` exists but has no file harvest, so the pipeline ships zips, and the
+  README says so instead of inheriting the old MSI promise.
+- **`ci.yml` gains the `dotnet list package --vulnerable` step that `SECURITY.md` already claimed
+  it had**, with `--include-transitive`, since without it only direct references are examined.
+- **The automation guard now covers supply-chain claims.** It fails if `README.md` or
+  `SECURITY.md` mentions Sigstore, SLSA or an SBOM while no release workflow is installed and the
+  document lacks an explicit disclaimer. Judging tone by regex is not possible, so the rule is
+  concrete: carry the sentence that says no signed artifact exists, or have the pipeline. Proven
+  by deleting the disclaimer and watching it fail.
 - **PEAP's `PeapExtensions` is no longer an empty element: it now carries the V2 server-validation
   settings and, on request, identity privacy.** EAP-TLS already emitted the V2
   `PerformServerValidation`/`AcceptServerName` pair, but PEAP — the method most people actually use,

@@ -39,6 +39,7 @@ git add .github/workflows && git commit -m "ci: install workflows" && git push
 | `ci.yml` | Windows での build + test(`MWC.ci-win.slnf` 経由)、Linux でのクロスプラットフォーム部分ビルド |
 | `codeql.yml` | CodeQL による SAST |
 | `oui-update.yml` | IEEE OUI ベンダー DB の月次更新(差分があれば PR を作る)。README が謳う「月次自動更新」はこれを設置して初めて真になる |
+| `release.yml` | タグ push で zip をビルドし、CycloneDX SBOM・Sigstore keyless 署名・SLSA provenance・SHA256SUMS を付けて Release を作る。README / SECURITY.md が謳う配布物保護はこれを設置して初めて真になる |
 
 ## 設置前に
 

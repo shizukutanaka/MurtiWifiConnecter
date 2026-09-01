@@ -39,7 +39,7 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 | Wi-Fi 7 (802.11be) 対応 | △ | ❌ | ✅ | ✅ | **✅** |
 | 6 GHz バンド対応 | △ | ❌ | ✅ | ✅ | **✅** |
 | Light/Dark/System テーマ | △ | ❌ | ❌ | ❌ | **✅** |
-| Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **✅** |
+| Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **◯**※ |
 | ARM64 ネイティブ | ❌ | ❌ | ❌ | ❌ | **✅** |
 | 14言語 UI | △ | ✅ | ❌ | ❌ | **✅** |
 | WCAG AAA アクセシビリティ | ❌ | ❌ | ❌ | ❌ | **✅** |
@@ -111,15 +111,27 @@ mwc profile delete "OldNet"       # プロファイル削除
 
 ## インストール
 
-### winget (推奨)
+> ⚠️ **リリースはまだ公開されていない。** 現時点で入手方法は「ソースからのビルド」のみ。
+> 下の winget / MSI / dotnet tool は、リリースパイプライン(`docs/ci/release.yml`)を
+> 設置して最初のリリースを切った時点で有効になる(手順: [`docs/COMPLETION-CHECKLIST.md`](docs/COMPLETION-CHECKLIST.md))。
+> 配布物の署名についても同じ — 詳細は [`SECURITY.md`](SECURITY.md)。
+
+### ソースからビルド(現在これだけが有効)
+下記「ビルド」節を参照。
+
+### winget(リリース公開後)
 ```powershell
 winget install ShizukuTanaka.MWC
 ```
 
-### MSI
-[最新リリース](https://github.com/shizukutanaka/MurtiWifiConnecter/releases/latest) から `MWC-x.x.x-win-x64.msi` または `-win-arm64.msi`。
+### zip(リリース公開後)
+[リリース](https://github.com/shizukutanaka/MurtiWifiConnecter/releases) から
+`MWC-x.x.x-win-x64.zip` または `-win-arm64.zip`。SBOM・署名・SHA256SUMS が同梱される。
 
-### dotnet tool (CLI のみ)
+MSI は `installer/wix/Product.wxs` が用意されているが、ファイル harvest が未整備のため
+リリースパイプラインではまだビルドしていない。
+
+### dotnet tool / CLI のみ(リリース公開後)
 ```powershell
 dotnet tool install -g mwc-cli
 ```
@@ -173,7 +185,10 @@ dotnet test    MWC.sln                    # 892 test methods
 - パスワードは **DPAPI** (CurrentUser scope + アプリエントロピー) で保護
 - `netsh.exe` / WMI を一切使わず WlanAPI 直叩き (コマンドインジェクション面ゼロ)
 - `SecureString` + 使用直後ゼロクリア
-- MSI / zip は **Sigstore keyless signing** + **SLSA L3 provenance** 付き
+- ※ **Sigstore keyless signing** + **SLSA provenance** + CycloneDX SBOM は
+  `docs/ci/release.yml` に実装済みだが、**まだ一度も実行されていない**
+  (`.github/workflows/` が空のため)。設置して最初のリリースを切るまで、
+  署名済みの配布物は存在しない
 - 詳細: [`SECURITY.md`](SECURITY.md)
 
 ---

@@ -112,7 +112,19 @@ bash tools/verify.sh
 
 ### あなたがやること
 
-GitHub UI から: Releases → Draft a new release
+**推奨: `docs/ci/release.yml` を設置してタグを push する。**
+そうするとビルド・テスト・CycloneDX SBOM・Sigstore keyless 署名・SLSA provenance・
+SHA256SUMS まで一括で行われ、README / SECURITY.md が謳う配布物保護が初めて実体を持つ。
+(項目 1 のコピー手順 `cp docs/ci/*.yml .github/workflows/` に含まれている)
+
+```bash
+git tag v3.12.0 && git push --tags
+```
+
+**手動で作る場合**は GitHub UI から: Releases → Draft a new release
+— ただしこの場合、署名も SBOM も provenance も付かない。
+その状態で README / SECURITY.md の免責(「署名済みの配布物は存在しない」)を
+外してはいけない(`tools/verify.sh` が検出する)。
 
 - タグ: `v3.12.0`
 - 対象コミット: `ad36a92`(master の該当バージョン)

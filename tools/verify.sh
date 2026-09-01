@@ -519,6 +519,25 @@ if re.search(r'(?:月次)?自動更新', r) and not os.path.exists('.github/work
                 'a script that *could* be scheduled is not automation. '
                 'Install docs/ci/oui-update.yml, or drop the claim.')
 
+# サプライチェーンの主張は最も害が大きい。「署名済みの配布物がある」と読ませたまま
+# リリースパイプラインが無い状態は、利用者に検証済みだと誤認させる。
+# 断定形 (「〜付き」「〜で署名」) だけを拾い、「設置後に有効」等の条件付き記述は許す。
+# 判定は「主張しているか」ではなく「**無条件に**主張しているか」で行う。
+# 文脈まで正規表現で読むのは無理なので、明示的な免責マーカーを 1 つ決めておき、
+# それが在れば条件付き記述とみなす。マーカーは人間が読んで意味が通る一文でもある。
+DISCLAIMER = '署名済みの配布物は存在しない'
+released = os.path.exists('.github/workflows/release.yml')
+docs = [(r, 'README.md')]
+if os.path.exists('SECURITY.md'):
+    docs.append((open('SECURITY.md', encoding='utf-8').read(), 'SECURITY.md'))
+for doc, name in docs:
+    mentions = re.search(r'Sigstore|SLSA|CycloneDX SBOM', doc)
+    if mentions and not released and DISCLAIMER not in doc:
+        errs.append(f'{name} mentions supply-chain protection (Sigstore / SLSA / SBOM) but '
+                    '.github/workflows/release.yml does not exist, no release has ever been '
+                    f'produced, and the document does not carry the disclaimer "{DISCLAIMER}". '
+                    'Install docs/ci/release.yml, or state plainly that no signed artifact exists.')
+
 # docs/ci/ に置いたワークフローは、必ず docs/ci/README.md の一覧に載っていること
 # (設置手順が cp docs/ci/*.yml なので、載っていないファイルは黙って設置される)
 import glob
