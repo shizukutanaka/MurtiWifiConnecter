@@ -640,6 +640,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **`FEATURE-AUDIT` §6 is reconciled with everything found after it was written.** The summary
+  listed seven improvements; six more had landed since, including the supply-chain correction, the
+  Dependabot fix, the WCAG scope, the MLO analyser, and the finding that two of the four recorded
+  blockers were described wrongly. A summary that lags the work it summarises is the same defect
+  as a README that lags the code, so it is brought current rather than left to drift.
+- **§6d now also records what was examined and found healthy.** Negative results were being lost,
+  which invites the next session to re-investigate the same ground: `mwc scan --evil-twin` already
+  states that only one of its four heuristics fires in a stateless run; every `Has*` flag in
+  `NetworkDetailViewModel` besides `HasMlo` distinguishes absent data correctly, with
+  `HasLinkEstimate` notably declining to show a figure its PHY model cannot support; the captive
+  portal dialog is genuinely wired into the connect flow; every `mwc <cmd>` referenced in the docs
+  exists; and resx keys resolve in both directions.
 - **Blocker #3's recorded scope was too wide: only RSSI actually needs hardware.** The checklist
   said MLO link details could not be decomposed because `MloLink.Rssi` is a measured value. True
   of RSSI — but the rest of the record is advertised. `Band`, `Channel` and `FrequencyMhz` follow
