@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | 1 | CI を稼働させる | 権限 | 数分 | なし。**最優先** |
 | 2 | GitHub Release を作る | 権限 | 数分 | 1 が済んでいると望ましい |
-| 3 | MLO のリンク詳細を実装 | 実装 | 半日〜 | Windows + dotnet |
+| 3 | MLO のリンク詳細(RSSI のみ実機。band/channel は RNR に既出) | 実装 | 半日〜 | Windows 実機は RSSI 部分のみ |
 | 4 | 現在の MAC を自動取得して `--mac` の既定にする | 実装 | 数時間 | Windows 実機(判定ロジックは Core 化済み) |
 
 **1 が最優先**である理由: このリポジトリのコードは **GitHub Actions で一度も検証されたことがない**。
@@ -137,7 +137,7 @@ git tag v3.12.0 && git push --tags
 
 ---
 
-## 3. MLO のリンク詳細を実装(Windows 実機)
+## 3. MLO のリンク詳細(実機が要るのは RSSI だけ — 残りは広告されている)
 
 ### 現状
 
@@ -149,20 +149,53 @@ Wi-Fi 7 の **MLO 対応判定は 2026-07 に実装済み** — 802.11be Multi-L
 `MloAnalyzerService` は `IsMlo && MloLinks.Count > 0` の**両方**を要求するため、
 GUI の MLO 行はまだ表示されない。
 
-### なぜ Core に切り出せないか
+### なぜ Core に切り出せないか(2026-08 に範囲を訂正 — 全部が実測ではない)
 
-`MloLink` が要求する `Rssi` は**リンクごとの実測受信強度**で、ビーコンには含まれない。
-接続中のランタイム API からしか得られない。
-(802.11u Interworking や MLO 対応判定が Core に切り出せたのは、あれらが
-「広告される静的な能力情報」だったため。判断基準は AI-SESSION-HANDBOOK §3 参照)
+以前この節は「`MloLink` が要求する `Rssi` は実測値だから Core に切り出せない」と
+だけ書いていた。**RSSI についてはその通りだが、リンク詳細の残りはそうではない。**
+
+第 3 の軸(`AI-SESSION-HANDBOOK.md` §3)で問い直した結果:
+
+| `MloLink` のフィールド | 広告されるか | 状態 |
+|---|---|---|
+| `LinkId` | ✅ RNR の MLD Parameters / Multi-Link の Per-STA Profile に含まれる | **未パース** |
+| `Band` / `Channel` / `FrequencyMhz` | ✅ RNR の Operating Class + Channel から求まる | **既にパース済み**(`RnrNeighborAp`) |
+| `ChannelWidth` | △ Operating Class から推定可 | 未実装 |
+| `Rssi` | ❌ **実測値**。ビーコンには無い | ランタイム API が要る |
+
+つまり実機が要るのは **`Rssi` だけ**で、他は Core で埋められる。
+`RnrParser` は既に Operating Class・Channel・BSSID を取り出しており
+(`BeaconIeSummary.RnrNeighbors`)、その情報は**現在どこからも使われていない**。
+
+**ただし RNR の近隣 AP = MLO リンクではない。** RNR は 6GHz 探索のための
+一般的な近隣 AP 広告であり、同一 AP MLD に属するかどうかは
+**TBTT Information Field の MLD Parameters**(TBTT Info Length が該当長のときのみ存在)
+で判定する必要がある。`RnrParser` はこのフィールドの手前で読み取りを止めている。
+**RNR エントリを無条件に MLO リンクとして扱ってはならない** — 別バンドの
+無関係な AP をリンクとして表示することになる。
+
+> 本パスでこのパースを実装しなかった理由: MLD Parameters のビット配置を
+> 手元の資料で確定できず、**推測でビット位置を書くのは、このセッションが
+> 繰り返し是正してきた誤りそのもの**だから。仕様(802.11be D3.0 9.4.2.170.2)か
+> 実測キャプチャで裏を取れる者が実装すべき。
 
 ### 実装の手がかり
 
-- API: `ManagedNativeWifi` v3.0.1+ の `NativeWifi.GetRealtimeConnectionQuality`(Win11 24H2+)
+**先に直すべきモデルの罠**: `MloLink.Rssi` は `int`(非 null)で既定 0。
+広告情報だけでリンクを埋めると **RSSI が全部 0 のまま** になり、
+`MloAnalyzerService.BestLink` は `OrderByDescending(l => l.Rssi)` で
+**誰も測っていない値で「最良リンク」を選んで表示する**。
+先に `int?` にして、未測定時は RSSI 依存の結論(`BestLink`・リンク間差分)を
+出さないようにすること。現状 `MloLinks` は常に空なので実害は出ていないが、
+埋めた瞬間に顕在化する。
+
+- RSSI の API: `ManagedNativeWifi` v3.0.1+ の
+  `NativeWifi.GetRealtimeConnectionQuality`(Win11 24H2+)
 - **型名衝突に注意**: `ManagedNativeWifi.PhyType` と `MWC.Core.Models.PhyType`
 - API 形状の調査結果は `docs/arxiv-improvement-analysis.md` の 2026-H2 追補にある
 - 埋める先は `WifiNetwork.MloLinks`。`MloAnalyzerService` と GUI は配線済みなので、
   データが入れば表示される
+
 
 ---
 

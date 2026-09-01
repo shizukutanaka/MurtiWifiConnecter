@@ -614,6 +614,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Blocker #3's recorded scope was too wide: only RSSI actually needs hardware.** The checklist
+  said MLO link details could not be decomposed because `MloLink.Rssi` is a measured value. True
+  of RSSI — but the rest of the record is advertised. `Band`, `Channel` and `FrequencyMhz` follow
+  from the Reduced Neighbor Report's operating class and channel, which `RnrParser` **already
+  extracts and nothing consumes**, and `LinkId` is carried in the RNR's MLD Parameters field. The
+  entry now says which fields are advertised and which is measured, so an implementer is not told
+  to wait for hardware they only need for one number.
+- **Recorded the trap that would have been hit first.** `MloLink.Rssi` is a non-nullable `int`
+  defaulting to 0, so populating links from advertised data alone leaves every RSSI at zero, and
+  `MloAnalyzerService.BestLink` orders by `l.Rssi` — it would present a "best link" chosen from a
+  value nobody measured. Harmless today because `MloLinks` is always empty; live the moment it is
+  filled. The fix (make it nullable and withhold RSSI-dependent conclusions when unknown) is now
+  the first instruction in that section.
+- **Did not implement the RNR MLD Parameters parsing, deliberately.** Identifying which neighbours
+  are MLO links of the same AP MLD requires that field, and treating every RNR entry as a link
+  would display unrelated APs on other bands as if they were part of the connection. The exact bit
+  layout could not be confirmed from anything to hand, and guessing at bit positions is the failure
+  this cycle has spent its time correcting. The section names the spec clause instead.
 - **`FEATURE-AUDIT.md` gains §6: a measured summary of the product's strengths, weaknesses and
   remaining improvements.** Each claim the product makes was taken in turn and asked what makes it
   true; anything that could not answer with a measurement was fixed or withdrawn. Strengths are

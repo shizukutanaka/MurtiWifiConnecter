@@ -534,7 +534,7 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 |---|---|---|
 | **CI が一度も実走していない** | `.github/workflows/` が存在しない。本セッションの全コミットは静的検証のみ | 🔴 最大。§0 |
 | GitHub Release が無く、**署名済み配布物が 1 つも存在しない** | タグ push は 403、release 作成ツールも無し。README/SECURITY.md は Sigstore 署名・SLSA provenance・SBOM を現在形で謳っていた(2026-08 に是正、`docs/ci/release.yml` を用意) | 🔴 主張と実態の乖離としては最大 |
-| MLO リンク詳細が空 | `MloLinks` を埋めるプラットフォームコードが無い(§1d) | 🟡 Windows 実機待ち |
+| MLO リンク詳細が空 | `MloLinks` を埋めるコードが無い(§1d)。2026-08 に範囲を訂正 — **実機が要るのは RSSI だけ**で、band/channel は RNR に既出、LinkId は RNR MLD Parameters に在る(未パース) | 🟡 RSSI のみ実機待ち |
 | 現在の MAC を自動取得できない | 判定ロジックは 2026-08 に Core 化済み(`MacAddressModeInference`)。`mwc privacy --mac` で今日使える。残るのは自動供給の配線のみ | 🟢 大部分解消 |
 | OUI DB が凍結 | 更新スクリプトはあるがスケジュールが無かった | 🟢 本パスで是正(`docs/ci/oui-update.yml`) |
 | Dependabot が空のエコシステムを監視 | `automerge:`(スキーマに無いキー)で設定ごと無効の可能性 + 対象が github-actions のみで `.github/workflows/` は空。実依存の NuGet は未監視だった | 🟢 **本パスで実際に修正・push 済み**(`.github/workflows/` 配下ではないため権限が通った) |
