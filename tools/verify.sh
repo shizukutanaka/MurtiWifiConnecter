@@ -525,6 +525,20 @@ if re.search(r'(?:月次)?自動更新', r) and not os.path.exists('.github/work
 # 判定は「主張しているか」ではなく「**無条件に**主張しているか」で行う。
 # 文脈まで正規表現で読むのは無理なので、明示的な免責マーカーを 1 つ決めておき、
 # それが在れば条件付き記述とみなす。マーカーは人間が読んで意味が通る一文でもある。
+# アクセシビリティの無条件主張も禁じる。README は長らく
+# 「WCAG 2.1 AAA / すべての主要カラーペアでコントラスト比 7:1 以上」と述べていたが、
+# 同じリポジトリの ThemeAccessibilityAuditTests が**そうでないことを検証している**:
+# Solarized の本文は AA、Fluent は OS カラー依存で静的検証不可、
+# そしてアクセントボタンの文字色は**全テーマで意図的に AA**。
+# アクセシビリティは「対応している」と信じた利用者が確認をやめる種類の主張なので、
+# 範囲を明示しない全称表現を落とす。
+for bad, why in ((r'すべての主要カラーペア', 'claims every major colour pair meets the bar'),
+                 (r'WCAG\s*(?:2\.1\s*)?AAA\s*アクセシビリティ', 'claims blanket WCAG AAA')):
+    if re.search(bad, r):
+        errs.append(f'README.md {why}, but ThemeAccessibilityAuditTests records that Solarized '
+                    'body text is AA, Fluent is not statically verifiable, and accent-button text '
+                    'is AA by design in every theme. State the scope instead.')
+
 DISCLAIMER = '署名済みの配布物は存在しない'
 released = os.path.exists('.github/workflows/release.yml')
 docs = [(r, 'README.md')]

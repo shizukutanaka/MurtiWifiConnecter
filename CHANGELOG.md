@@ -384,6 +384,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The README claimed blanket WCAG 2.1 AAA. The repository's own tests say otherwise.**
+  `ThemeAccessibilityAuditTests` measures the real XAML colour values and records that Solarized
+  body text is AA (~5.6:1, a deliberate choice not to retune a well-known palette), that Fluent
+  draws its background and foreground from system colours and so cannot be statically verified at
+  all, and — the sharpest point — that **accent-button text is AA by design in every theme**,
+  because saturated accent colours cannot reach 7:1 without wrecking the palette. So
+  "すべての主要カラーペアでコントラスト比 7:1 以上" was false even for Dark and Light: the accent
+  pair is on every primary button in the app. `ROADMAP.md` had this right and named the four AAA
+  themes; only the front page overclaimed, the same shape as the OUI and Sigstore claims. The
+  README now states body text AAA for Dark/Light/Nord/Catppuccin, accent text AA everywhere, and
+  which themes are out of scope. Accessibility is exactly the kind of claim a user stops checking
+  once they believe it, so the guard now rejects the unscoped form outright.
 - **The README claimed the OUI vendor database updates monthly. Nothing ever updated it.**
   `tools/oui-update.ps1` exists and works, and its own header says it "can be run monthly via a
   GitHub Actions schedule" — but no schedule was ever created, so the database has been frozen at

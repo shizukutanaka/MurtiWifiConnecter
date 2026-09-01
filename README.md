@@ -42,7 +42,7 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 | Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **◯**※ |
 | ARM64 ネイティブ | ❌ | ❌ | ❌ | ❌ | **✅** |
 | 14言語 UI | △ | ✅ | ❌ | ❌ | **✅** |
-| WCAG AAA アクセシビリティ | ❌ | ❌ | ❌ | ❌ | **✅** |
+| WCAG アクセシビリティ検証 | ❌ | ❌ | ❌ | ❌ | **✅**(本文 AAA / アクセント AA) |
 | 無料 + MIT | ✅ | ✅ | ❌ | ❌ | **✅** |
 
 ---
@@ -99,10 +99,15 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF  # MAC 追跡の勧告。ランダム化は�
 mwc profile delete "OldNet"       # プロファイル削除
 ```
 
-### アクセシビリティ (WCAG 2.1 AAA)
-- すべての主要カラーペアでコントラスト比 7:1 以上
+### アクセシビリティ (WCAG 2.1)
+- **本文テキストは AAA (7:1 以上)** — Dark / Light / Nord / Catppuccin テーマ。
+  Solarized は著名パレットをそのまま保つため **AA (約 5.6:1)**、
+  Fluent は OS のシステムカラーに従うため静的検証の対象外。
+- **アクセントボタンの文字色は AA (4.5:1 以上)** — 彩度の高いアクセント色で
+  7:1 を満たすと配色が破綻するため、全テーマで意図的に AA。
+- 上記はいずれも `ThemeAccessibilityAuditTests` が実際の XAML 色値を読んで自動検証する。
 - スクリーンリーダー (Narrator/NVDA) Live Region 通知
-- キーボードのみで完全操作可能 (Ctrl+R / Ctrl+F / Tab / Enter)
+- キーボードのみで完全操作可能 (Ctrl+R / Ctrl+F / Ctrl+Tab / F1 / Tab / Enter)
 
 ### 国際化
 **対応14言語** (UI 100% 翻訳済み): ja / en / zh-Hans / zh-Hant / ko / es / fr / de / ru / ar (RTL) / pt-BR / hi / bn / ta

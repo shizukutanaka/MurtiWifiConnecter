@@ -527,6 +527,7 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 | ドキュメント中の `mwc <cmd>` が全て実在 | 全 `docs/*.md` + README を実装コマンド集合と突合 → 不一致 0 | ✅ |
 | JumpList / トースト通知 / ARM64 | `JumpListService` / `NotificationService` / `MWC.App.csproj` の `RuntimeIdentifiers` を確認 | ✅ 実装あり |
 | `netsh.exe` / WMI 不使用 | 依存とコードを検索 | ✅ CLAUDE.md の禁止事項を遵守 |
+| テーマのコントラスト | `ThemeAccessibilityAuditTests` が実 XAML 色値を計算 | ✅ ただし **AAA は本文のみ・4 テーマ**。README の全称主張は 2026-08 に是正 |
 
 ### 6b. 短所 — 実測で確認された弱点
 
