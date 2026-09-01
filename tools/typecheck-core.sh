@@ -31,6 +31,14 @@
 #       * Platform.Windows — ManagedNativeWifi (NuGet) と Windows API が要る。
 #       * tests — xunit / FluentAssertions / NSubstitute が要る。
 #     参照無しの構文チェックだけは実施済みで、Cli/App とも**構文エラーはゼロ**。
+#
+#   - **やってはいけない代替案(実験して否定済み)**: 「本物の MWC.Core.dll を参照して
+#     Cli をコンパイルし、CS0246/CS0234 以外のエラーだけ見る」— これは**無意味**。
+#     System.CommandLine が解決できないと `SetHandler(...)` のデリゲート型が
+#     エラー型になり、Roslyn は**ラムダ本体を束縛しない**。実際に
+#     `MacAddressModeInference.TryParse` を存在しない名前に書き換えて試したが、
+#     エラーは 1 件も出なかった。つまり「エラーが出ない」ことが何の保証にもならない。
+#     偽の安心を与えるだけなので、この手法は採らないこと。
 #     ただし Core で見つかった 3 件はいずれも**束縛エラー**(CS1929/CS1739)であり、
 #     構文チェックでは捕まらない。**Cli・App・tests の型検査は CI 待ちのまま**で、
 #     残存リスクはそこに集中している。

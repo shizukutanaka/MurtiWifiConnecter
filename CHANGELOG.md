@@ -679,6 +679,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Tried to extend type-checking to the CLI, found the approach worthless, and recorded that.**
+  With Core now compiling, an obvious next step is to reference the real `MWC.Core.dll` from a
+  compile of `MWC.Cli` and read only the errors that are not missing-reference noise. That run came
+  back completely clean — which turned out to mean nothing. Testing the test by renaming
+  `MacAddressModeInference.TryParse` to a name that does not exist produced **no error at all**:
+  when `System.CommandLine` cannot be resolved, the delegate type of `SetHandler(...)` becomes an
+  error type and Roslyn never binds the lambda bodies, which is where nearly all CLI logic lives.
+  A clean result from that technique is therefore indistinguishable from a broken one. Both the
+  script header and the checklist now warn against it by name, because the natural reading of "no
+  errors" is "verified", and here it would have been false reassurance of exactly the kind this
+  cycle has spent its time removing.
 - **Named the exact environment setting that would let an AI session run the test suite.** The
   reason `dotnet restore` fails here is not general network isolation: the proxy's own record shows
   `api.nuget.org:443 — gateway answered 403 to CONNECT (policy denial)`, while the same
