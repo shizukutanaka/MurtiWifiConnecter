@@ -33,13 +33,17 @@ public static partial class Program
         var adapterOpt = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
         var ssidOpt    = new Option<string?>("--ssid",
             "Network to advise about (default: the currently connected one)");
+        var macOpt     = new Option<string?>("--mac",
+            "This adapter's current MAC (e.g. from `ipconfig /all`). Randomisation is inferred " +
+            "from the address itself, which is more reliable than --mac-mode.");
         var jsonOpt    = new Option<bool>("--json", "Output JSON");
 
         var cmd = new Command("privacy",
             "Show MAC-tracking privacy advisories (advisory only — never changes MAC settings)");
-        cmd.AddOption(macModeOpt); cmd.AddOption(adapterOpt); cmd.AddOption(ssidOpt); cmd.AddOption(jsonOpt);
+        cmd.AddOption(macModeOpt); cmd.AddOption(macOpt);
+        cmd.AddOption(adapterOpt); cmd.AddOption(ssidOpt); cmd.AddOption(jsonOpt);
 
-        cmd.SetHandler(async (string? macModeStr, string? af, string? ssid, bool j) =>
+        cmd.SetHandler(async (string? macModeStr, string? macStr, string? af, string? ssid, bool j) =>
         {
             try
             {
@@ -48,6 +52,23 @@ public static partial class Program
                 {
                     Err($"unknown --mac-mode '{macModeStr}'. Use: hardware | random-per-network | random-daily");
                     Environment.Exit(ExitCode.InvalidInput); return;
+                }
+
+                // --mac が渡されたらアドレスから判定し、--mac-mode より優先する。
+                // 「明示指定が強い」ではなく「実測が強い」— ユーザーの自己申告より
+                // アドレスのビットの方が確かなため。
+                MacModeEvidence? evidence = null;
+                if (macStr is not null)
+                {
+                    if (!MacAddressModeInference.TryParse(macStr, out var macBytes))
+                    {
+                        Err($"unparsable --mac '{macStr}'. Expected 6 hex octets, e.g. AA:BB:CC:DD:EE:FF");
+                        Environment.Exit(ExitCode.InvalidInput); return;
+                    }
+                    var inferred = MacAddressModeInference.FromAddress(
+                        macBytes, sp.GetService<OuiLookupService>());
+                    evidence = inferred.Evidence;
+                    mode = inferred.Mode;
                 }
 
                 var svc = sp.GetRequiredService<IWifiService>();
@@ -71,6 +92,7 @@ public static partial class Program
                     Print(new
                     {
                         macMode = mode.Value.ToString(),
+                        macModeEvidence = evidence?.ToString(),
                         network = target.Ssid,
                         networkAuth = target.Auth.ToString(),
                         advisories = advisories.Select(a => new
@@ -86,6 +108,8 @@ public static partial class Program
                 }
 
                 Console.WriteLine($"MAC privacy — mode: {mode.Value}, network: {target.Ssid} ({target.Auth})");
+                if (evidence is not null)
+                    Console.WriteLine($"(inferred from the address: {Describe(evidence.Value)})");
                 Console.WriteLine("(informational only — does not change your MAC settings)");
                 Console.WriteLine();
 
@@ -96,12 +120,15 @@ public static partial class Program
                     // 「あなたのプライバシーは良好」と誤読させる — 本製品が避けるべき主張。
                     if (mode.Value == MacAddressMode.Unknown)
                     {
+                        Console.WriteLine("Cannot advise: this run has no MAC information to reason about.");
                         Console.WriteLine(
-                            "Cannot advise: your MAC setting is unknown (this build cannot detect it).");
+                            "Pass --mac with the adapter's current address and it will be determined from " +
+                            "the address itself:");
+                        Console.WriteLine("    ipconfig /all        # find the Wi-Fi adapter's Physical Address");
+                        Console.WriteLine("    mwc privacy --mac AA:BB:CC:DD:EE:FF");
                         Console.WriteLine(
-                            "Check Windows → Settings → Network & internet → Wi-Fi → Random hardware addresses,");
-                        Console.WriteLine(
-                            "then re-run with --mac-mode hardware | random-per-network | random-daily.");
+                            "(--mac-mode hardware | random-per-network | random-daily still works if you " +
+                            "already know your Windows setting.)");
                         return;
                     }
 
@@ -117,15 +144,35 @@ public static partial class Program
                     Console.WriteLine();
                 }
 
-                if (macModeStr is null)
+                if (macModeStr is null && macStr is null)
                     Console.WriteLine(
-                        "Tip: pass --mac-mode with your actual Windows setting for accurate advice.");
+                        "Tip: pass --mac with the adapter's address; randomisation is then determined " +
+                        "from the address rather than taken on trust.");
             }
             catch (Exception ex) { Err($"privacy failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
-        }, macModeOpt, adapterOpt, ssidOpt, jsonOpt);
+        }, macModeOpt, macOpt, adapterOpt, ssidOpt, jsonOpt);
 
         return cmd;
     }
+
+    /// <summary>判定根拠を 1 行の説明に写す。Core は文言を持たないので写像はここで行う。</summary>
+    private static string Describe(MacModeEvidence e) => e switch
+    {
+        MacModeEvidence.LocallyAdministeredBitSet =>
+            "locally-administered bit is set, so this address was generated, not burned in",
+        MacModeEvidence.UniversallyAdministered =>
+            "universally-administered address (IEEE-assigned OUI), i.e. the hardware address",
+        MacModeEvidence.UniversallyAdministeredWithKnownVendor =>
+            "universally-administered address and the OUI resolves to a known vendor",
+        MacModeEvidence.AddressChangedWithinSameSsidAcrossDays =>
+            "the address changed for the same SSID on different days",
+        MacModeEvidence.AddressDiffersPerSsid =>
+            "a different address is used per SSID",
+        MacModeEvidence.NotAUnicastAddress =>
+            "the group bit is set, so this is not a station address",
+        MacModeEvidence.NoObservations => "no observations were supplied",
+        _ => "the address could not be parsed",
+    };
 
     /// <summary>
     /// --mac-mode の文字列を <see cref="MacAddressMode"/> にマップする。
@@ -139,7 +186,9 @@ public static partial class Program
         return key switch
         {
             "hardware" or "fixed"           => MacAddressMode.Hardware,
-            "randompernetwork" or "pernetwork" or "random" => MacAddressMode.RandomPerNetwork,
+            "randompernetwork" or "pernetwork" => MacAddressMode.RandomPerNetwork,
+            // 種類を言っていないのだから種類を決めつけない。
+            "random" or "randomized" => MacAddressMode.Randomized,
             "randomdaily" or "daily"        => MacAddressMode.RandomDaily,
             "unknown"                        => MacAddressMode.Unknown,
             _                                => null,

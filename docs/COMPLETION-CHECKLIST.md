@@ -19,7 +19,7 @@
 | 1 | CI を稼働させる | 権限 | 数分 | なし。**最優先** |
 | 2 | GitHub Release を作る | 権限 | 数分 | 1 が済んでいると望ましい |
 | 3 | MLO のリンク詳細を実装 | 実装 | 半日〜 | Windows + dotnet |
-| 4 | MAC モードの自動検出 | 実装 | 半日〜 | Windows + dotnet |
+| 4 | 現在の MAC を自動取得して `--mac` の既定にする | 実装 | 数時間 | Windows 実機(判定ロジックは Core 化済み) |
 
 **1 が最優先**である理由: このリポジトリのコードは **GitHub Actions で一度も検証されたことがない**。
 2026-07 セッションの全変更(約 3,900 行の追加を含む)も静的チェックのみで、
@@ -166,34 +166,63 @@ GUI の MLO 行はまだ表示されない。
 
 ---
 
-## 4. MAC モードの自動検出(Windows 実機)
+## 4. 現在の MAC の自動取得(判定ロジックは 2026-08 に Core 化済み)
 
 ### 現状
 
-`mwc privacy` は 2026-07 に配線済み。ただし MAC ランダム化状態を検出する層が無いため、
-**ユーザーが `--mac-mode` で手渡す**設計になっている
-(`hardware` | `random-per-network` | `random-daily`)。
+MAC ランダム化の判定は **2026-08 に Core へ切り出した**
+(`MacAddressModeInference`)。アドレスのバイト列だけで
+「ランダム化されているか」が決まるため、OS 設定の照会は要らない。
 
-省略すると `Unknown` になり、コマンドは「助言できない」旨と Windows 設定の確認手順を表示する
-(`PrivacyCommand` の Unknown 分岐)。**「勧告ゼロ = 問題なし」とは表示しない** —
-両者を混同すると、設定を伝えていないユーザーに「あなたのプライバシーは良好」と
-誤読させるため、意図的に分けてある。
+CLI からは今日使える:
 
-### なぜ Core に切り出せないか
+```powershell
+ipconfig /all                          # Wi-Fi アダプターの Physical Address を見る
+mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を出す
+```
 
-これは **OS の設定値そのもの**で、ビーコンに広告される情報ではない。
-解析すべきバイト列が存在しないため、802.11u Interworking や MLO 対応判定のように
-Core へ切り出すことができない
-(判断基準は `AI-SESSION-HANDBOOK.md` §3 の「広告される/実測される」)。
+`--mac-mode`(自己申告)は互換のため残してあるが、`--mac` の方が強い —
+ユーザーの申告よりアドレスのビットの方が確かなため。
 
-### 実装の手がかり
+**残っているのは「現在の MAC を自動で取ってくる配線」だけ。**
 
-- Windows の「ランダムハードウェアアドレス」設定
-  (設定 → ネットワークとインターネット → Wi-Fi)を読み、`MacAddressMode` にマップする
-- 埋める先は `PrivacyAdvisoryService.Analyze` の第 1 引数。
-  実装後は `--mac-mode` の**既定供給元**になる(ユーザー指定は上書きとして残すのがよい)
-- **注意**: `IWifiService` には現在アダプターの能力・設定を返す口が無い。
-  取得経路を足す必要がある(`GetAdaptersAsync` が返す `WifiAdapter` の拡張が素直)
+### かつて「Core に切り出せない」と書いていた理由と、それが誤りだった訳
+
+この節は以前こう述べていた:
+
+> これは **OS の設定値そのもの**で、ビーコンに広告される情報ではない。
+> **解析すべきバイト列が存在しない**ため…Core へ切り出すことができない
+
+これは**問いの取り違え**だった。勧告に要るのは *設定* ではなく **効果** —
+「いま使われている MAC はランダム化されたものか」— であり、
+それはアドレスのバイト列に現れる。解析すべきバイト列は存在した。
+
+- IEEE 802: オクテット 0 の bit 1 = **Locally Administered (LAA)**。
+  IEEE 割当の焼き込みアドレスは必ず LAA=0。ランダム生成 MAC は実在 OUI との
+  衝突を避けるため LAA=1 にする決まりで、Windows のランダム化もこれに従う。
+- よって **LAA=1 → ランダム化済み / LAA=0 → 焼き込み**。設定照会は不要。
+- 決まらないのは **種類**(ネットワーク別か日次か)だけで、これは
+  複数観測の突合で決まる(`MacAddressModeInference.FromHistory`)。
+
+判定基準そのものが誤っていたわけではなく、**適用を誤った**。
+`AI-SESSION-HANDBOOK.md` §3 に第 3 の軸として追記済み:
+**設定は読めなくても、その効果が観測値に現れるなら Core で判定できる。**
+
+### 残作業: 現在の MAC を自動供給する
+
+- 埋める先は `PrivacyCommand` の `--mac` 既定値
+  (ユーザー指定は上書きとして残すのがよい)。
+- **必要なのは Windows 固有 API ではない見込み。**
+  `System.Net.NetworkInformation.NetworkInterface.GetPhysicalAddress()` は BCL であり、
+  P/Invoke も WMI も要らない。WLAN アダプターの GUID と `NetworkInterface.Id` を
+  突き合わせる部分だけがプラットフォーム依存になる。
+  **この見込みは実機で未検証**のため、配線自体はまだ書いていない。
+- `IWifiService` にはアダプターの MAC を返す口が無いので、
+  `GetAdaptersAsync` が返す `WifiAdapter` に足すのが素直
+  (現在の `WifiAdapter` は Id/Name/Description/State/ConnectedSsid のみ)。
+- 履歴からの種類判定 (`FromHistory`) を使うなら、接続の度に
+  (SSID, MAC, 時刻) を記録する必要がある。`NetworkHistoryService` が近い。
+
 
 ---
 

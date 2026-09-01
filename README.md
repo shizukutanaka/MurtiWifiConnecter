@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/tests-892%20methods-22C55E)](#)
+[![Tests](https://img.shields.io/badge/tests-905%20methods-22C55E)](#)
 [![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20516%20keys-00C4CC)](#)
 
 <!-- CI / CodeQL バッジは意図的に外してある。
@@ -95,7 +95,7 @@ mwc history                       # 接続履歴
 mwc eap-stats                     # 802.1X (Enterprise) 認証成功率(SSID×EAPタイプ別)
 mwc passpoint                     # 周囲の Passpoint (Hotspot 2.0) 対応 AP
 mwc vpn-advice                    # VPN 使用推奨(助言のみ、実際の切替は行わない)
-mwc privacy --mac-mode hardware   # MAC 追跡のプライバシー勧告(助言のみ)
+mwc privacy --mac AA:BB:CC:DD:EE:FF  # MAC 追跡の勧告。ランダム化はアドレスから判定
 mwc profile delete "OldNet"       # プロファイル削除
 ```
 
@@ -147,7 +147,7 @@ git clone https://github.com/shizukutanaka/MurtiWifiConnecter.git
 cd MurtiWifiConnecter
 dotnet restore MWC.sln
 dotnet build   MWC.sln -c Release
-dotnet test    MWC.sln                    # 892 test methods
+dotnet test    MWC.sln                    # 905 test methods
 ```
 
 ---

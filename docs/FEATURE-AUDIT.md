@@ -535,7 +535,7 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 | **CI が一度も実走していない** | `.github/workflows/` が存在しない。本セッションの全コミットは静的検証のみ | 🔴 最大。§0 |
 | GitHub Release が無く、**署名済み配布物が 1 つも存在しない** | タグ push は 403、release 作成ツールも無し。README/SECURITY.md は Sigstore 署名・SLSA provenance・SBOM を現在形で謳っていた(2026-08 に是正、`docs/ci/release.yml` を用意) | 🔴 主張と実態の乖離としては最大 |
 | MLO リンク詳細が空 | `MloLinks` を埋めるプラットフォームコードが無い(§1d) | 🟡 Windows 実機待ち |
-| MAC モードを自動検出できない | OS 設定値であり広告情報ではない | 🟡 Windows 実機待ち |
+| 現在の MAC を自動取得できない | 判定ロジックは 2026-08 に Core 化済み(`MacAddressModeInference`)。`mwc privacy --mac` で今日使える。残るのは自動供給の配線のみ | 🟢 大部分解消 |
 | OUI DB が凍結 | 更新スクリプトはあるがスケジュールが無かった | 🟢 本パスで是正(`docs/ci/oui-update.yml`) |
 | Dependabot が空のエコシステムを監視 | `automerge:`(スキーマに無いキー)で設定ごと無効の可能性 + 対象が github-actions のみで `.github/workflows/` は空。実依存の NuGet は未監視だった | 🟢 **本パスで実際に修正・push 済み**(`.github/workflows/` 配下ではないため権限が通った) |
 | bn/hi/ta 訳がネイティブ未レビュー | 機械翻訳のまま。キー完全性のみ保証 | 🟢 §3 に既載 |
@@ -564,7 +564,13 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 2. **「未使用キー」の判定は動的構築キーで偽陽性になる。** `Trouble_*` は
    `L.cs` が `"Trouble_" + 失敗種別 + "_Title"` の形で組み立てるため、
    リテラル検索では未使用に見える。**消す前に構築箇所を探すこと。**
-3. **「可能」と「実施している」は違う。** `oui-update.ps1` は自身のコメントで
+3. **「OS の設定だから無理」は、効果が観測できるか確かめるまで結論ではない。**
+   MAC ランダム化の検出は「OS の設定値そのものなので Core に切り出せない」と
+   記録されていたが、誤りだった。必要なのは設定ではなく **効果**で、それは
+   MAC アドレスの Locally Administered ビットに現れる。バイト列は存在した。
+   ブロッカーの理由を書くときは「読めない値」ではなく
+   「**その設定が効いているとき何が変わるか**」を問うこと(§4 の判定基準に追記済み)。
+4. **「可能」と「実施している」は違う。** `oui-update.ps1` は自身のコメントで
    「schedule で月1回自動実行**可能**」と書いており、README はそれを
    「月次自動更新」と読み替えていた。スクリプトの存在は自動化ではない。
 

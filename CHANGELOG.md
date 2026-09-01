@@ -143,6 +143,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **`mwc privacy --mac` determines MAC randomisation from the address itself.** Pass the adapter's
+  address (from `ipconfig /all`) and the mode is derived rather than taken on trust; it overrides
+  `--mac-mode`, because the bits in the address are better evidence than a user's recollection of
+  a Windows setting. The output states the grounds — "locally-administered bit is set, so this
+  address was generated, not burned in" — instead of asserting a verdict bare.
+- **`MacAddressModeInference` in Core**, with `FromAddress` for a single address and `FromHistory`
+  for resolving *which kind* of randomisation is in use: an address that changes for the same SSID
+  across days is daily rotation, a different address per SSID is per-network. Corroboration via the
+  existing `OuiLookupService` strengthens a hardware verdict but never weakens one, since the
+  bundled OUI list is an extract and a lookup miss proves nothing. A new `MacAddressMode.Randomized`
+  member covers "randomised, kind not yet determined" — previously `--mac-mode random` silently
+  mapped to `RandomPerNetwork`, which asserted more than the input said.
 - **`mwc privacy` — MAC-tracking privacy advisories, wiring the last research-backed orphan
   service.** `PrivacyAdvisoryService` returns advisories grounded in published research (arXiv
   citations on probe-request tracking, IE fingerprinting, and de-randomisation), yet it had no

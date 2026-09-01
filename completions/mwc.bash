@@ -45,7 +45,7 @@ _mwc_completions()
                     return
                     ;;
             esac
-            COMPREPLY=( $(compgen -W "--mac-mode --adapter --ssid --json" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--mac --mac-mode --adapter --ssid --json" -- "$cur") )
             return
             ;;
         passpoint)
