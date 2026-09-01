@@ -618,6 +618,7 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} サンプル)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps 実効、2ストリーム推定)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} リンク  ({1})  {2} Mbps 合算  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) 対応 — リンク別詳細は取得不可</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>シングルリンク</value></data>
   <data name="Mlo_Reliability_DualLink"><value>デュアルリンク</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>トリプルリンク</value></data>

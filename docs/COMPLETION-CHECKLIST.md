@@ -152,8 +152,15 @@ Wi-Fi 7 の **MLO 対応判定は 2026-07 に実装済み** — 802.11be Multi-L
 スキャン一覧で Wi-Fi 7 AP を見分けるにはこれで足りる。
 
 **残るのはリンクごとの詳細** — `WifiNetwork.MloLinks`(各リンクの帯・チャネル・**RSSI**・帯域幅)。
-`MloAnalyzerService` は `IsMlo && MloLinks.Count > 0` の**両方**を要求するため、
-GUI の MLO 行はまだ表示されない。
+
+**2026-08 修正**: `MloAnalyzerService` は以前 `IsMlo && MloLinks.Count > 0` の両方を要求し、
+どちらか欠けると `IsMlo: false` を返していた。これは Wi-Fi 7 AP に対して**事実と異なる**答えで、
+`BeaconIeApplier` が立てた `WifiNetwork.IsMlo` は唯一の消費者であるここで握り潰されていた
+(= 2026-07 のビーコン検出は誰にも届いていなかった)。
+2 つの問いに分割し、MLO 広告あり・リンク詳細なしの場合は
+`IsMlo: true, LinkCount: 0` を返すようにした。**GUI の MLO 行は表示されるようになった**
+(「Wi-Fi 7 (MLO) 対応 — リンク別詳細は取得不可」)。リンク数や集約速度は
+**表示しない** — 測っていない値を測ったように見せないため。
 
 ### なぜ Core に切り出せないか(2026-08 に範囲を訂正 — 全部が実測ではない)
 

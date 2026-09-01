@@ -28,7 +28,12 @@ public sealed class MloAnalyzerService
     /// </summary>
     public MloAnalysis Analyze(WifiNetwork network)
     {
-        if (!network.IsMlo || network.MloLinks.Count == 0)
+        // 「この AP は MLO を広告しているか」と「リンクごとの詳細を持っているか」は
+        // **別の問い**である。以前は両方を 1 つの条件に潰して `IsMlo: false` を返していたため、
+        // ビーコンから MLO を検出できている Wi-Fi 7 AP に対して**事実と異なる答え**を返し、
+        // `BeaconIeApplier` が設定した `WifiNetwork.IsMlo` は誰にも届いていなかった
+        // (`IsMlo` の消費者はここだけで、ここが握り潰していた)。
+        if (!network.IsMlo)
             return new MloAnalysis(
                 IsMlo:            false,
                 LinkCount:        0,
@@ -38,6 +43,23 @@ public sealed class MloAnalyzerService
                 BestLinkRssi:     network.SignalQuality > 0 ? -60 : 0,
                 ReliabilityTier:  MloReliability.SingleLink,
                 Summary:          "MLO not supported (single link).");
+
+        // MLO は広告されているが、リンク詳細を供給するプラットフォーム層がまだ無い。
+        // 「MLO 対応」までは事実として言える。リンク数や集約速度は**言わない** —
+        // 0 を返して呼び出し側に "0-link MLO, 0Mbps" と表示させると、
+        // 測っていない値を測ったかのように見せることになる (LinkCount == 0 が目印)。
+        if (network.MloLinks.Count == 0)
+            return new MloAnalysis(
+                IsMlo:            true,
+                LinkCount:        0,
+                Bands:            Array.Empty<WifiBand>(),
+                IsCrossBand:      false,
+                AggregatedMbps:   0,
+                BestLinkRssi:     0,
+                ReliabilityTier:  MloReliability.SingleLink,
+                Summary:          "Wi-Fi 7 MLO advertised by this AP. Per-link detail is not " +
+                                  "available on this platform, so link count and aggregate " +
+                                  "throughput are not reported.");
 
         var links = network.MloLinks;
         var bands = links.Select(l => l.Band).Distinct().ToList();

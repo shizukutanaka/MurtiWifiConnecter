@@ -613,6 +613,7 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} नमूने)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps प्रभावी, 2-स्ट्रीम अनुमान)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} लिंक  ({1})  {2} Mbps एकत्रित  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) समर्थित — प्रति-लिंक विवरण अनुपलब्ध</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>एकल लिंक</value></data>
   <data name="Mlo_Reliability_DualLink"><value>दोहरा लिंक</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>तिहरा लिंक</value></data>

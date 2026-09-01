@@ -618,6 +618,7 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) compatible: sin detalle por enlace</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
   <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>

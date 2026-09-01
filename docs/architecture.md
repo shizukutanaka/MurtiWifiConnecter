@@ -44,7 +44,7 @@ App層から _wifi.ConnectAsync/DisconnectAsync/RegisterProfileAsync の直接�
 
 App.xaml.cs で全サービスをコンストラクタ注入で解決。重複登録ゼロ。
 
-## i18n (516キー x 14言語 + 中立ベース = 7,740エントリ)
+## i18n (517キー x 14言語 + 中立ベース = 7,755エントリ)
 
 L.cs が型安全アクセサ。L.Get("key") / L.Format("key", args) / L.ActionRefresh 等。
 App層コードのハードコード日本語: 0箇所。

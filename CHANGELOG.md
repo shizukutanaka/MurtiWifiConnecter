@@ -384,6 +384,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The Wi-Fi 7 detection added in 2026-07 never reached a single user.** `BeaconIeApplier` sets
+  `WifiNetwork.IsMlo` from the 802.11be Multi-Link element, and that flag has exactly one consumer:
+  `MloAnalyzerService.Analyze`, which opened with `if (!network.IsMlo || network.MloLinks.Count == 0)`
+  and returned `IsMlo: false`. Since nothing populates `MloLinks`, the analyser answered "not MLO"
+  for every Wi-Fi 7 AP on earth — including ones whose beacons plainly said otherwise — so the
+  detection was computed and immediately discarded, and the GUI's MLO row never appeared.
+  The two questions are now separated, because "does this AP advertise MLO" and "do we have
+  per-link detail" are not the same question and collapsing them produced a false answer to the
+  first. An AP advertising Multi-Link with no link data now reports `IsMlo: true, LinkCount: 0`,
+  and the detail panel shows "Wi-Fi 7 (MLO) supported — per-link detail unavailable"
+  (`Detail_Mlo_NoLinkDetail`, added to all 15 resx files). Link count and aggregate throughput are
+  deliberately withheld rather than rendered as 0: displaying "0-link MLO, 0Mbps" would present
+  numbers nobody measured as though they had been. `Analyze_MloAdvertisedButNoLinkDetail_StillReportsMlo`
+  pins it.
 - **The README claimed blanket WCAG 2.1 AAA. The repository's own tests say otherwise.**
   `ThemeAccessibilityAuditTests` measures the real XAML colour values and records that Solarized
   body text is AA (~5.6:1, a deliberate choice not to retune a well-known palette), that Fluent

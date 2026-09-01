@@ -613,6 +613,7 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} மாதிரிகள்)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps பயனுள்ள, 2-ஸ்ட்ரீம் மதிப்பீடு)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} இணைப்புகள்  ({1})  {2} Mbps திரட்டப்பட்டது  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) ஆதரிக்கப்படுகிறது — இணைப்பு விவரம் இல்லை</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>ஒற்றை இணைப்பு</value></data>
   <data name="Mlo_Reliability_DualLink"><value>இரட்டை இணைப்பு</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>மூன்று இணைப்பு</value></data>
