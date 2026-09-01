@@ -384,6 +384,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **MWC.Core did not compile, and three separate defects were the reason.** The environment turns
+  out to carry a .NET SDK, and although `dotnet build` cannot complete (the sandbox blocks
+  `api.nuget.org`), Core's only two dependencies — `System.Text.Json` and
+  `Microsoft.Extensions.Logging.Abstractions` — both ship inside the SDK's shared frameworks. Core
+  can therefore be compiled by invoking Roslyn directly with the SDK's reference assemblies, no
+  restore required. Doing so produced:
+  `BeaconIeParser` was missing `using System.Linq`, so the `Contains` calls in `HasInterworking`
+  and `HasMultiLink` bound to `MemoryExtensions.Contains` and failed with CS1929 — introduced
+  earlier in this same cycle and carried through roughly sixty commits unnoticed;
+  `RegulatoryDomainService` passed `lowPowerIndoor:`/`veryLowPower:`/`standardPower:` as named
+  arguments to a positional record whose parameters are `LowPowerIndoor`/`VeryLowPower`/
+  `StandardPower`, giving CS1739; and `CertificateStoreService` used the `X509Certificate2(byte[])`
+  constructor, obsolete since .NET 9 (SYSLIB0057) and therefore an **error** here, since
+  `TreatWarningsAsErrors` is on with only CS1591 exempted. All three are fixed, and Core now
+  compiles clean with `-warnaserror`.
+- **`tools/typecheck-core.sh` makes that repeatable.** It locates the SDK, its reference packs and
+  the `[LoggerMessage]`/`[GeneratedRegex]` source generators (without which every generated partial
+  reports CS8795 spuriously), then compiles Core with the same warning policy as the real build.
+  It exits 2 and says why when the SDK or the generators are absent, rather than reporting a
+  misleading pass. Its own header records what it cannot do: it references net10 assemblies while
+  the project targets net9, so it may accept an API that a real build rejects, and it covers only
+  Core — App, Cli, Platform.Windows and the tests all need packages from NuGet.
 - **`dotnet restore` would have failed for every project the moment CI was installed.**
   `Directory.Build.props` injected `<PackageReference Include="Microsoft.SourceLink.GitHub"
   Version="8.0.0" …>` into every project in the repository, while `Directory.Packages.props` sets

@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;          // IReadOnlyList<byte>.Contains (Enumerable.Contains) に必要。
+                            // 無いと MemoryExtensions.Contains(ReadOnlySpan<byte>,byte) しか
+                            // 見えず CS1929 でビルドが落ちる。
 using MWC.Core.Models;
 
 namespace MWC.Core.Services;

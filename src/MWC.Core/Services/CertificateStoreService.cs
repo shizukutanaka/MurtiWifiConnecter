@@ -79,7 +79,11 @@ public sealed class CertificateStoreService
         string? expectedHostname = null)
     {
         X509Certificate2 cert;
-        try { cert = new X509Certificate2(derBytes); }
+        // X509Certificate2(byte[]) は .NET 9 で obsolete (SYSLIB0057)。
+        // このリポジトリは TreatWarningsAsErrors=true で CS1591 しか除外していないため、
+        // 放置するとビルドが**エラーで落ちる**。DER バイト列なので LoadCertificate が正しい
+        // (PKCS#12 なら LoadPkcs12)。
+        try { cert = X509CertificateLoader.LoadCertificate(derBytes); }
         catch (Exception ex)
         { return new(false, "Failed to load certificate", ex.Message, null, null); }
 

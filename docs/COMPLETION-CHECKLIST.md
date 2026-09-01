@@ -68,8 +68,15 @@ git push
 ### 設置前の確認
 
 ```bash
-bash tools/verify.sh
+bash tools/verify.sh          # ネットワーク・SDK 不要の静的検査
+bash tools/typecheck-core.sh  # SDK があれば MWC.Core を実際にコンパイルする
 ```
+
+**`typecheck-core.sh` は 2026-08 に追加。** `api.nuget.org` が塞がれていても
+MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、実際に走らせたところ
+**静的検査 11 種が見逃していたビルド破壊 3 件**が出た(`using System.Linq;` 欠落 /
+位置引数レコードへの camelCase 名前付き引数 / obsolete API が
+`TreatWarningsAsErrors` でエラー化)。**CI 設置前に必ず両方を走らせること。**
 
 特に **restore を落とす 2 つのチェック**が重要。どちらも「CI 設置直後の
 `dotnet restore` が失敗する」形で、CI が一度も走っていないため長く気づかれなかった:
