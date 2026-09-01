@@ -143,6 +143,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **Six `MWC.App` service files are now type-checked as well, and they came back clean.** Most of
+  App needs WPF and CommunityToolkit.Mvvm, neither obtainable here, but 6 of its 46 files touch
+  neither — among them `AutoReconnectService` (backoff, evil-twin guard, baseline persistence),
+  `SettingsService`, and `L.cs` with all 517 resx accessors. Those compile against the real Core
+  under `-warnaserror` with no findings: a genuine negative result, recorded because "we looked and
+  found nothing here" is worth as much to the next session as a defect, and because six of the
+  previous six compilations did surface something. `tools/typecheck-app-services.sh` keeps them
+  compiling and prints how many files of the total it actually covered, so a clean run cannot be
+  mistaken for the whole project passing. Its power was demonstrated the same way as the CLI's, by
+  breaking a call and confirming it is caught.
 - **`mwc privacy --mac` determines MAC randomisation from the address itself.** Pass the adapter's
   address (from `ipconfig /all`) and the mode is derived rather than taken on trust; it overrides
   `--mac-mode`, because the bits in the address are better evidence than a user's recollection of
