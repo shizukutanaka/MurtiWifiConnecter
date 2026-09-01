@@ -38,7 +38,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"
+    <!-- Version はここに書けない。Directory.Packages.props で中央管理しているため
+         (ManagePackageVersionsCentrally=true)、インラインの Version は NU1008 エラーになり
+         **全プロジェクトの restore が失敗する**。バージョンは PackageVersion 項目で指定する。 -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All"
                       Condition="'$(IsTestProject)' != 'true'" />
   </ItemGroup>
 </Project>

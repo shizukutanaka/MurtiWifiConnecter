@@ -5,6 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ビルド専用 (Directory.Build.props が全プロジェクトへ注入) -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub"     Version="8.0.0" />
+
     <!-- Core -->
     <PackageVersion Include="CommunityToolkit.Mvvm"          Version="8.4.0" />
 

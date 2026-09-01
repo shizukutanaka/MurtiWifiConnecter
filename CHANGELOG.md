@@ -384,6 +384,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`dotnet restore` would have failed for every project the moment CI was installed.**
+  `Directory.Build.props` injected `<PackageReference Include="Microsoft.SourceLink.GitHub"
+  Version="8.0.0" …>` into every project in the repository, while `Directory.Packages.props` sets
+  `ManagePackageVersionsCentrally=true`. Under central package management an inline `Version` is
+  **NU1008, an error rather than a warning**, and SourceLink had no `PackageVersion` entry to fall
+  back on either. Because `Directory.Build.props` applies repository-wide, the very first CI step
+  would have failed before compiling a single file — the same shape as the `.slnf` dangling
+  reference found in 2026-07, and invisible for the same reason: GitHub Actions has never run here.
+  The `Version` moves to a `PackageVersion` item where central management requires it.
+  **Reproduced and verified locally**: a scratch copy restored with the installed .NET 10 SDK
+  emitted NU1008, and after the fix that error is gone, leaving only the environment's blocked
+  access to `api.nuget.org`.
+- **`tools/verify.sh` gains a central-package-management check** that needs no network and no SDK:
+  it fails on any `PackageReference` carrying an inline `Version` while CPM is on, and on any
+  reference with no corresponding `PackageVersion`. Both directions were demonstrated by forcing
+  them. This is the second restore-breaking defect found without ever running a build, so the
+  check earns its place next to the `.slnf` one.
 - **The Wi-Fi 7 detection added in 2026-07 never reached a single user.** `BeaconIeApplier` sets
   `WifiNetwork.IsMlo` from the 802.11be Multi-Link element, and that flag has exactly one consumer:
   `MloAnalyzerService.Analyze`, which opened with `if (!network.IsMlo || network.MloLinks.Count == 0)`

@@ -71,9 +71,17 @@ git push
 bash tools/verify.sh
 ```
 
-特に `.slnf` チェックが重要。プロジェクトを削除したときにソリューションフィルタの
-参照を消し忘れると、**CI 設置直後の `dotnet restore` が失敗する**
-(2026-07 に実際に踏んだ。現在は修正済み)。
+特に **restore を落とす 2 つのチェック**が重要。どちらも「CI 設置直後の
+`dotnet restore` が失敗する」形で、CI が一度も走っていないため長く気づかれなかった:
+
+1. **`.slnf` チェック** — プロジェクト削除時にソリューションフィルタの参照を
+   消し忘れると restore が失敗する(2026-07 に実際に踏んだ。修正済み)。
+2. **CPM チェック** — `Directory.Build.props` が
+   `<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" …>` を
+   全プロジェクトに注入していたが、`Directory.Packages.props` は
+   `ManagePackageVersionsCentrally=true`。CPM 下でインライン Version は **NU1008 エラー**で、
+   **全プロジェクトの restore が落ちる**状態だった(2026-08 に発見・修正済み。
+   SDK 10 のローカル restore で実際に再現し、修正後に当該エラーが消えることを確認)。
 
 ### 設置後にやること
 

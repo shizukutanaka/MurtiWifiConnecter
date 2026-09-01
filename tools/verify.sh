@@ -568,6 +568,61 @@ PY
 then pass "nothing claims to be automatic without a workflow to make it so"
 else fail "automation claim is not backed by a workflow (see above)"; fi
 
+# ── 11. 中央パッケージ管理 (CPM) の整合性 ───────────────────────────────────
+# `Directory.Packages.props` が ManagePackageVersionsCentrally=true のとき、
+# PackageReference に **インラインの Version を書いてはならない**。書くと NU1008 で
+# **restore がエラー終了する**(警告ではない)。
+#
+# これは 2026-08 に実際に踏んだ: `Directory.Build.props` が
+# `<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" ...>` を
+# 全プロジェクトに注入しており、しかも SourceLink には PackageVersion が無かった。
+# Directory.Build.props はリポジトリ全体に効くため、**CI を設置した瞬間に
+# 全プロジェクトの restore が落ちる**状態だった。CI が一度も走っていないため
+# 誰も気づいていなかった(.slnf の件と同じ形)。
+#
+# ネットワーク不要で検出できる。dotnet が無い環境でも走る。
+head "Central Package Management consistency"
+if python3 - <<'PY'
+import glob, re, sys, xml.etree.ElementTree as ET
+
+def strip_ns(t): return t.split('}')[-1]
+
+cpm = False
+versions = set()
+if glob.glob('Directory.Packages.props'):
+    root = ET.parse('Directory.Packages.props').getroot()
+    for e in root.iter():
+        if strip_ns(e.tag) == 'ManagePackageVersionsCentrally':
+            cpm = (e.text or '').strip().lower() == 'true'
+        if strip_ns(e.tag) == 'PackageVersion' and e.get('Include'):
+            versions.add(e.get('Include'))
+
+if not cpm:
+    print('central package management is off; nothing to check'); sys.exit(0)
+
+errs, referenced = [], set()
+for p in ['Directory.Build.props'] + sorted(glob.glob('**/*.csproj', recursive=True)):
+    if '/obj/' in p or '/bin/' in p or not glob.glob(p): continue
+    try: root = ET.parse(p).getroot()
+    except Exception as e: errs.append(f'{p}: unparsable: {e}'); continue
+    for e in root.iter():
+        if strip_ns(e.tag) != 'PackageReference' or not e.get('Include'): continue
+        name = e.get('Include')
+        referenced.add(name)
+        if e.get('Version') is not None:
+            errs.append(f'{p}: PackageReference "{name}" carries an inline Version while central '
+                        'package management is on — NU1008 makes restore fail for every project')
+        if name not in versions:
+            errs.append(f'{p}: PackageReference "{name}" has no PackageVersion entry in '
+                        'Directory.Packages.props — restore cannot resolve a version')
+
+if errs:
+    print('\n'.join(sorted(set(errs)))); sys.exit(1)
+print(f'{len(referenced)} package references, all centrally versioned')
+PY
+then pass "no PackageReference violates central package management"
+else fail "central package management is inconsistent — restore would fail (see above)"; fi
+
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo
 if [ "$FAILED" -eq 0 ]; then
