@@ -72,6 +72,26 @@ bash tools/verify.sh          # ネットワーク・SDK 不要の静的検査
 bash tools/typecheck-core.sh  # SDK があれば MWC.Core を実際にコンパイルする
 ```
 
+### AI セッションで `dotnet build` / `dotnet test` を通したい場合(環境側の設定)
+
+**`api.nuget.org` がエグレスポリシーで拒否されている**ため、restore が必ず失敗する。
+プロキシの記録で確定済み(推測ではない):
+
+```
+host: api.nuget.org:443
+kind: connect_rejected
+detail: gateway answered 403 to CONNECT (policy denial or upstream failure)
+```
+
+同じ環境の許可リストには `registry.npmjs.org` / `pypi.org` / `index.crates.io` /
+`proxy.golang.org` が**入っている**。つまり他言語のパッケージレジストリは通るのに
+**NuGet だけが抜けている**。
+
+→ **環境のエグレスポリシーに `api.nuget.org`(および `*.nuget.org`)を追加すれば、
+AI セッションでも `dotnet restore` → `build` → `test` が通せる**ようになり、
+906 のテストメソッドを CI 設置前に実行できる。
+これは GitHub の `workflows` 権限とは別の、独立した設定である。
+
 **`typecheck-core.sh` は 2026-08 に追加。** `api.nuget.org` が塞がれていても
 MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、実際に走らせたところ
 **静的検査 11 種が見逃していたビルド破壊 3 件**が出た(`using System.Linq;` 欠落 /

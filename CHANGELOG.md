@@ -679,6 +679,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Named the exact environment setting that would let an AI session run the test suite.** The
+  reason `dotnet restore` fails here is not general network isolation: the proxy's own record shows
+  `api.nuget.org:443 — gateway answered 403 to CONNECT (policy denial)`, while the same
+  environment's allow-list already contains `registry.npmjs.org`, `pypi.org`, `index.crates.io` and
+  `proxy.golang.org`. Every other language's package registry is permitted and NuGet alone is
+  absent, which looks like an oversight rather than a decision. Adding `api.nuget.org` to the
+  environment's egress policy would make `dotnet restore`, `build` and `test` work in a session
+  like this one, putting the 906 test methods within reach before CI is even installed. Recorded in
+  the checklist as a separate, independent action from the GitHub `workflows` grant, since the two
+  unblock different things.
 - **Located where the remaining compile risk actually is, rather than describing it as uniform.**
   Core is now compiled and clean. The other four projects cannot be type-checked here, and that was
   verified rather than assumed: the SDK does ship `System.CommandLine.dll`, but it is the reworked
