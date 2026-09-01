@@ -60,7 +60,7 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 ### スキャン分析
 - **信号履歴グラフ** — 60分 RSSI 時系列 (WPF DrawingVisual)
 - **チャンネル帯域グラフ** — 2.4G/5G/6G ガウス曲線可視化
-- **MAC ベンダー解決** — IEEE OUI 内蔵 DB、月次自動更新
+- **MAC ベンダー解決** — IEEE OUI 内蔵 DB(更新スクリプト `tools/oui-update.ps1` 同梱)
 - **ネットワーク品質計測** — Ping レイテンシ + パケットロス + 評価グレード
 
 ### Apple HIG 準拠 UX

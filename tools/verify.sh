@@ -257,10 +257,16 @@ if os.path.exists(cl_path):
         errs.append(
             f'COMPLETION-CHECKLIST.md hardcodes a verify.sh check count ({cnt.group(1)}); '
             'checks are added often — describe it without a number')
-    dup = re.search(r'(\d{3,})\s*(?:の)?テストメソッド', cl)
+
+# テスト数の複製は README バッジ以外のどこにも置かせない。docs/ci/README.md が
+# 「850 methods」で取り残されていた (実測 892) のは、走査が docs 直下に
+# 限られていたため。ドキュメント全体を見る。
+for q in sorted(glob.glob('docs/**/*.md', recursive=True)):
+    body = open(q, encoding='utf-8').read()
+    dup = re.search(r'(\d{3,})\s*(?:の)?\s*(?:テストメソッド|methods\b|test methods)', body)
     if dup:
         errs.append(
-            f'COMPLETION-CHECKLIST.md hardcodes a test count ({dup.group(1)}); '
+            f'{q} hardcodes a test count ({dup.group(1)}); '
             'reference the README badge instead so it cannot drift')
 
 # i18n の数値は README だけを守っても腐る。バッジのキー数はこれまで無検査で、
@@ -272,7 +278,7 @@ m = re.search(r'i18n-\d+%20langs%20%C2%B7%20(\d+)%20keys', r)
 if m and int(m.group(1)) != keys:
     errs.append(f'i18n badge claims {m.group(1)} keys, actual {keys}')
 
-for p in ['README.md'] + sorted(glob.glob('docs/*.md')):
+for p in ['README.md'] + sorted(glob.glob('docs/**/*.md', recursive=True)):
     for i, line in enumerate(open(p, encoding='utf-8'), 1):
         if re.search(r'20\d\d-\d\d', line):
             continue
@@ -490,6 +496,44 @@ print(f'{len(keys)} keys, every one reachable (incl. dynamic Trouble_* prefixes)
 PY
 then pass "no dead translation keys"
 else fail "resx contains dead keys (see above)"; fi
+
+# ── 10. 「自動」を謳う主張には、実際に自動実行する仕組みがあるか ────────────
+# README は長らく「IEEE OUI 内蔵 DB、**月次自動更新**」と書いていたが、
+# 更新を走らせるスケジュールは一度も存在しなかった。`tools/oui-update.ps1` は
+# 自身のコメントで「GitHub Actions の schedule で月1回自動実行可能」と述べており、
+# **可能**であることを**実施している**と読み替えたのが誤りの正体だった。
+# スクリプトが在ることは自動化ではない。実行される場所に置かれて初めて自動化になる。
+#
+# ワークフローは docs/ci/ に用意してあるが、GitHub が見るのは .github/workflows/ だけ。
+# よってこの守衛は「主張」と「実際に稼働し得る場所にあるか」を突き合わせる。
+head "Automation claims have actual automation behind them"
+if python3 - <<'PY'
+import os, re, sys
+r = open('README.md', encoding='utf-8').read()
+errs = []
+
+# 「自動更新」を謳うなら、対応するワークフローが .github/workflows/ に居ること
+if re.search(r'(?:月次)?自動更新', r) and not os.path.exists('.github/workflows/oui-update.yml'):
+    errs.append('README claims the OUI database auto-updates, but '
+                '.github/workflows/oui-update.yml does not exist — '
+                'a script that *could* be scheduled is not automation. '
+                'Install docs/ci/oui-update.yml, or drop the claim.')
+
+# docs/ci/ に置いたワークフローは、必ず docs/ci/README.md の一覧に載っていること
+# (設置手順が cp docs/ci/*.yml なので、載っていないファイルは黙って設置される)
+import glob
+listed = open('docs/ci/README.md', encoding='utf-8').read()
+for w in sorted(glob.glob('docs/ci/*.yml')):
+    name = os.path.basename(w)
+    if f'`{name}`' not in listed:
+        errs.append(f'docs/ci/{name} is not described in docs/ci/README.md')
+
+if errs:
+    print('\n'.join(errs)); sys.exit(1)
+print('no unbacked automation claim; every docs/ci workflow is documented')
+PY
+then pass "nothing claims to be automatic without a workflow to make it so"
+else fail "automation claim is not backed by a workflow (see above)"; fi
 
 # ── 結果 ─────────────────────────────────────────────────────────────────────
 echo

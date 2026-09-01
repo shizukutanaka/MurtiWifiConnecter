@@ -345,6 +345,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The README claimed the OUI vendor database updates monthly. Nothing ever updated it.**
+  `tools/oui-update.ps1` exists and works, and its own header says it "can be run monthly via a
+  GitHub Actions schedule" — but no schedule was ever created, so the database has been frozen at
+  whenever someone last ran the script by hand. `docs/FEATURE-AUDIT.md` had already recorded the
+  gap; the README went on advertising it anyway. The claim is corrected to say what is true (the
+  script ships with the product), and `docs/ci/oui-update.yml` is added so that installing the
+  workflows makes the original claim true rather than merely plausible: a monthly cron runs the
+  script and opens a PR when the database actually changed. It uses the built-in `GITHUB_TOKEN`
+  and `gh pr create` rather than a third-party action — the existing `ci.yml` uses only
+  first-party actions, and a workflow that runs unattended every month is the wrong place to add
+  supply-chain surface for something a few lines of shell already do.
+- **`docs/ci/README.md` still described the test suite as "850 methods".** The real figure is in
+  the README badge and is far higher. The number guard added earlier this cycle only globbed
+  `docs/*.md`, so nothing under `docs/ci/` was ever checked — the same blind spot in a different
+  directory. The count is replaced with a pointer to the badge, the guard now walks `docs/**`
+  recursively, and the install instructions there are switched to `cp docs/ci/*.yml` so a newly
+  added workflow cannot be silently left behind.
 - **Both completion scripts offered `mwc list --adapter`, an option that does not exist.**
   `BuildList` declares exactly `--json` and `--status`, so a user who trusted Tab completion got a
   System.CommandLine parse error. Removed from both scripts, and `tools/verify.sh` now checks
@@ -558,6 +575,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **`FEATURE-AUDIT.md` gains §6: a measured summary of the product's strengths, weaknesses and
+  remaining improvements.** Each claim the product makes was taken in turn and asked what makes it
+  true; anything that could not answer with a measurement was fixed or withdrawn. Strengths are
+  listed with the evidence that backs them, weaknesses with severity and whether they are blocked
+  externally, and each improvement is tagged with which step of the delete/simplify/automate
+  sequence resolved it. It is appended to the existing audit rather than published as a new
+  document, because a second document asserting the same facts is precisely the defect class this
+  cycle spent its time removing. §6d records three judgement traps found along the way: a name
+  mentioned in a comment is not a usage, a key assembled at runtime is not an unused key, and a
+  script that *can* be scheduled is not automation.
 - **The i18n key count in the README badge had been stale for an unknown length of time, and the
   same rot had spread to two other documents.** The base `Strings.resx` holds **532** keys, but the
   badge — the most-read number in the repository — said 526, `AI-SESSION-HANDBOOK.md` said 526, and

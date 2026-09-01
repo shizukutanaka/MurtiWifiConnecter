@@ -20,7 +20,7 @@
 
 ```bash
 mkdir -p .github/workflows
-cp docs/ci/ci.yml docs/ci/codeql.yml .github/workflows/
+cp docs/ci/*.yml .github/workflows/
 git add .github/workflows && git commit -m "ci: install workflows" && git push
 ```
 
@@ -28,7 +28,8 @@ git add .github/workflows && git commit -m "ci: install workflows" && git push
 
 1. `README.md` の CI / CodeQL バッジを復活させる(markup は README 内の HTML コメントに保存済み)
 2. 実際に `dotnet test` が走った実測値でテストバッジを `N passing` に更新する
-   (現在は静的に数えられる「850 methods」表記にしてある)
+   (現在は静的に数えた `N methods` 表記。実数は `README.md` のバッジが唯一の出所で、
+   `tools/verify.sh` が実測と突き合わせている。ここに数値を複製しないこと)
 3. `docs/FEATURE-AUDIT.md` §0 を解決済みに更新する
 
 ## 中身
@@ -37,6 +38,7 @@ git add .github/workflows && git commit -m "ci: install workflows" && git push
 |---|---|
 | `ci.yml` | Windows での build + test(`MWC.ci-win.slnf` 経由)、Linux でのクロスプラットフォーム部分ビルド |
 | `codeql.yml` | CodeQL による SAST |
+| `oui-update.yml` | IEEE OUI ベンダー DB の月次更新(差分があれば PR を作る)。README が謳う「月次自動更新」はこれを設置して初めて真になる |
 
 ## 設置前に
 

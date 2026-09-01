@@ -4,6 +4,7 @@
 > 各項目に「なぜ AI が実行できなかったか(実際に試した結果)」と「あなたが何をすればよいか」を書いてある。
 > 作業方法一般は [AI-SESSION-HANDBOOK.md](AI-SESSION-HANDBOOK.md)、
 > 機能の過不足詳細は [FEATURE-AUDIT.md](FEATURE-AUDIT.md) を参照。
+> 製品全体の長所・短所・改善点の総括は同ファイルの **§6**(2026-08 ソクラテス問答パス)にある。
 
 作成: 2026-07 の監査・改善セッション。
 
@@ -76,6 +77,9 @@ bash tools/verify.sh
 
 ### 設置後にやること
 
+0. **`README.md` の「MAC ベンダー解決」に「月次自動更新」を書き戻してよい。**
+   `docs/ci/oui-update.yml` を設置すると、IEEE OUI DB の月次更新 PR が実際に走るようになる。
+   それまでは主張しない(`tools/verify.sh` の automation-claim チェックが強制する)。
 1. `README.md` の CI / CodeQL バッジを戻す(markup は README 内の HTML コメントに保存済み)
 2. テストバッジを実測値に戻す — 現在は静的に数えた `NNN methods` 表記。
    `dotnet test` の結果で `N passing` にできる
