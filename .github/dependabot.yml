@@ -1,10 +1,44 @@
+# Dependabot 設定。
+#
+# 以前の版には 2 つの問題があった:
+#
+#   1. `automerge:` キーを使っていた。**これは dependabot.yml のスキーマに存在しない**
+#      (提案されたが採用されていない)。Dependabot の設定検証は未知のキーを
+#      エラーにするため、この設定は丸ごと無視されていた可能性が高い。
+#      自動マージが要るなら GitHub の auto-merge 機能とワークフロー側で行う。
+#
+#   2. 対象が `github-actions` だけだった。ところがこのリポジトリの
+#      `.github/workflows/` は空(docs/FEATURE-AUDIT.md §0)なので、
+#      更新すべきファイルが 1 つも無い。一方で実際の依存は **NuGet** にあり
+#      (10 個の csproj、ManagedNativeWifi / CommunityToolkit.Mvvm / Serilog 等)、
+#      そちらは監視対象外だった。
+#      SECURITY.md は「Dependabot で週次自動更新」と述べており、実態と食い違っていた。
+#
+# nuget を主対象にし、github-actions はワークフロー設置後に効くよう残す。
+
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
+  # 実際の依存はこちら。Directory.Packages.props / 各 csproj を見る。
+  - package-ecosystem: "nuget"
     directory: "/"
-    allow:
-      - dependency-type: "direct"
-    automerge:
-      - dependency-type: "direct"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+    # パッチ/マイナーはまとめて 1 PR にする。レビュー負荷を下げ、
+    # 週次で PR が乱立して無視されるようになるのを防ぐため。
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "deps"
+
+  # ワークフローを .github/workflows/ に設置すると、こちらが効き始める
+  # (設置手順は docs/COMPLETION-CHECKLIST.md §1)。
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
