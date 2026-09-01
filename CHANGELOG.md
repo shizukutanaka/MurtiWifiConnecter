@@ -679,6 +679,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Located where the remaining compile risk actually is, rather than describing it as uniform.**
+  Core is now compiled and clean. The other four projects cannot be type-checked here, and that was
+  verified rather than assumed: the SDK does ship `System.CommandLine.dll`, but it is the reworked
+  API with no `SetHandler`, incompatible with the `2.0.0-beta4` this project pins, so referencing it
+  would produce noise rather than signal; WPF's reference pack is not installed; Platform.Windows
+  needs ManagedNativeWifi and Windows APIs; the tests need xunit and FluentAssertions. A
+  reference-free parse of Cli and App does come back with **zero syntax errors** — but all three
+  defects found in Core were *binding* errors (CS1929, CS1739, SYSLIB0057), which a parse cannot
+  see. So the checklist now names Cli, App, Platform.Windows and the tests as the first suspects if
+  CI goes red, instead of saying the whole session is unverified when a third of it no longer is.
 - **`FEATURE-AUDIT` §6 is reconciled with everything found after it was written.** The summary
   listed seven improvements; six more had landed since, including the supply-chain correction, the
   Dependabot fix, the WCAG scope, the MLO analyser, and the finding that two of the four recorded

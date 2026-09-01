@@ -22,8 +22,18 @@
 #   - 参照は SDK に入っている **net10** の参照アセンブリ。実際の対象は net9.0 なので、
 #     net10 で追加された API を誤って許してしまう可能性がある。**本物の
 #     `dotnet build` の代わりにはならない。**
-#   - 検査できるのは MWC.Core だけ。App(WPF)・Cli(System.CommandLine)・
-#     Platform.Windows(ManagedNativeWifi)・tests(xunit)は NuGet が要る。
+#   - 検査できるのは MWC.Core だけ。**他プロジェクトを同じ手で検査できないことは
+#     確認済み**(推測ではない):
+#       * Cli — SDK に System.CommandLine.dll は入っているが `SetHandler` を持たない
+#         新 API 版で、本プロジェクトが固定する 2.0.0-beta4 と非互換。参照すると
+#         偽のエラーが大量に出る。
+#       * App — WPF (Microsoft.WindowsDesktop.App) の参照パックが未インストール。
+#       * Platform.Windows — ManagedNativeWifi (NuGet) と Windows API が要る。
+#       * tests — xunit / FluentAssertions / NSubstitute が要る。
+#     参照無しの構文チェックだけは実施済みで、Cli/App とも**構文エラーはゼロ**。
+#     ただし Core で見つかった 3 件はいずれも**束縛エラー**(CS1929/CS1739)であり、
+#     構文チェックでは捕まらない。**Cli・App・tests の型検査は CI 待ちのまま**で、
+#     残存リスクはそこに集中している。
 #   - それでも「型が合うか」の下限は確認できる。CI が動くまでの繋ぎとして使う。
 #
 # 使い方: bash tools/typecheck-core.sh

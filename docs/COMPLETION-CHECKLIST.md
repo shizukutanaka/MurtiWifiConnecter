@@ -99,7 +99,17 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
 2. テストバッジを実測値に戻す — 現在は静的に数えた `NNN methods` 表記。
    `dotnet test` の結果で `N passing` にできる
 3. `FEATURE-AUDIT.md` §0 を解決済みに更新する
-4. **CI が赤くなったら**: このセッションの変更はコンパイル検証されていない。
+4. **CI が赤くなったら — どこが怪しいかは 2026-08 に絞り込み済み**:
+   `MWC.Core` は `tools/typecheck-core.sh` で**実際にコンパイル済み**(`-warnaserror` 込みで green)。
+   一方 **Cli・App・Platform.Windows・tests は型検査されていない**
+   (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
+   いずれもこの環境では入手できないことを確認済み)。構文エラーが無いことだけは確認した。
+   **したがって CI が赤くなるとすれば Core 以外の 4 つが第一容疑者。**
+   Core で実際に出た 3 件はすべて束縛エラー(CS1929 / CS1739 / SYSLIB0057)で、
+   同種のものが他プロジェクトに残っている可能性が高い。
+
+   参考: 以前の記載「このセッションの変更はコンパイル検証されていない」は
+   Core については**もう当てはまらない**。
    特に WPF 側(`ConnectDialog` の Enterprise パネル)は静的検証しかできていない
    (XAML パース・`x:Name` とコードビハインドの対応・リソースキーとテーマブラシの実在は確認済み)。
 
