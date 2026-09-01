@@ -89,7 +89,7 @@ detail: gateway answered 403 to CONNECT (policy denial or upstream failure)
 
 → **環境のエグレスポリシーに `api.nuget.org`(および `*.nuget.org`)を追加すれば、
 AI セッションでも `dotnet restore` → `build` → `test` が通せる**ようになり、
-906 のテストメソッドを CI 設置前に実行できる。
+README のテストバッジが示す数のテストメソッドを CI 設置前に実行できる。
 これは GitHub の `workflows` 権限とは別の、独立した設定である。
 
 **`typecheck-core.sh` は 2026-08 に追加。** `api.nuget.org` が塞がれていても
