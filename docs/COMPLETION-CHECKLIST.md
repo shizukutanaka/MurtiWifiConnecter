@@ -73,6 +73,7 @@ bash tools/typecheck-core.sh            # MWC.Core を実際にコンパイル
 bash tools/typecheck-cli.sh --selftest  # MWC.Cli を型検査 (スタブ + 自己検証付き)
 bash tools/typecheck-app-services.sh    # MWC.App のうち WPF 非依存分
 bash tools/typecheck-tests.sh --selftest # テスト (MWC.App 依存分と FsCheck を除く)
+bash tools/typecheck-platform.sh        # Platform.Windows のうち循環せず検査できる分
 bash tools/run-tests.sh                 # ★テストを実際に実行する (xunit 無しの近似ランナー)
 bash tools/mutation-check.sh            # そのスイートに検出力があるかを変異注入で実測
 ```
@@ -136,7 +137,8 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
    修正には保存先を注入可能にする API 変更が要るので、判断を所有者に委ねている。
 
    **テストも 2026-08 に型検査済み**(`tools/typecheck-tests.sh`。ここでも実在の欠陥 5 件が出た)。
-   一方 **App の WPF 依存分・Platform.Windows・MWC.App を参照するテストは型検査されていない**
+   **Platform.Windows も一部は型検査済み**(`tools/typecheck-platform.sh`)。
+   一方 **App の WPF 依存分・ManagedNativeWifi 依存分・MWC.App を参照するテストは型検査されていない**
    (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
    いずれもこの環境では入手できないことを確認済み)。構文エラーが無いことだけは確認した。
    **したがって CI が赤くなるとすれば Core 以外の 4 つが第一容疑者。**

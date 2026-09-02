@@ -143,6 +143,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **`MWC.Platform.Windows` is now partly type-checked — the first time any of it has been
+  compiled.** `HttpConnectivityChecker` needs only `HttpClient` and compiles with no stub at all;
+  `DpapiSecretProtector` needs only `ProtectedData`, which is Windows-only and absent from the
+  installed reference packs. The remaining four files need ManagedNativeWifi and are deliberately
+  left alone: stubbing a third-party WLAN API means **inferring its surface from the code being
+  checked**, so passing would only confirm that the calls match my guess, and a wrong guess fails
+  silently as a false negative across dozens of types.
+  The line is drawn on one question — *is the stub derived from the code under test?* `ProtectedData`
+  is not: it is a published, stable BCL API whose signature is known independently, so checking the
+  calls against it is meaningful. The dialog and WLAN stubs would be, so they are refused.
+  `tools/typecheck-platform.sh` prints 2-of-6 on success so a pass cannot be read as the project
+  compiling, and its power was confirmed by corrupting a `DataProtectionScope` member.
 - **Measured whether the test run actually detects anything, instead of asserting that it does.**
   A suite executed by a hand-written runner against approximated assertions could easily be a
   facade that passes everything — this cycle has already been fooled twice by exactly that shape,
