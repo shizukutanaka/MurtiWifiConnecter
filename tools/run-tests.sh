@@ -32,11 +32,14 @@
 #   つまりこのスイートは通るだけの張りぼてではなく、実際に意味論を検証している。
 #   **主張する前に測ること** — 本サイクルで最も高くついた教訓。
 #
-# 既知の残課題 (未修正。設計判断が要るため):
-#   NetworkHistoryService 等は LocalApplicationData の**固定パス**に永続化するため、
-#   テスト間で状態が漏れる。実行前に消しても、同一実行内の他テストの書き込みは混ざる
-#   (`NetworkHistoryService_ConcurrentWrites_ThreadSafe` が実際に落ちる)。
-#   本来はパスを注入可能にするべきで、これは API 変更を伴う。
+# 5 件目の欠陥 (2026-08 に修正済み。上の 4 件と同じくテスト実行で初めて判明した):
+#   NetworkHistoryService は保存先を `static readonly` の固定パスで持っていたため、
+#   **同一プロセス内の全インスタンスが 1 つのファイルを共有**していた。
+#   テストは互いの書き込みを読み、`NetworkHistoryService_ConcurrentWrites_ThreadSafe` が
+#   他テストの SSID を拾って落ちていた。xunit はテストクラスを既定で並列実行するので、
+#   これは CI で**不定期に落ちる**種類の製品欠陥である (テストの都合ではない)。
+#   コンストラクタに `historyPath` を足して注入可能にした。引数を省略した既存の
+#   呼び出しは従来どおり動く。
 #
 # 使い方: bash tools/run-tests.sh [--verbose]
 # 終了コード: 0 = 全合格 / 1 = 失敗あり / 2 = SDK 等が無くスキップ

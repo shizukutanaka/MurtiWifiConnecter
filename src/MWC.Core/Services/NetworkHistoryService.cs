@@ -19,9 +19,23 @@ public sealed class NetworkHistoryService
 {
     private const int MaxEntries = 500;       // 90日分を収容
     private const int RetentionDays = 90;
-    private static readonly string HistoryPath = Path.Combine(
+    /// <summary>既定の保存先。ユーザーごとの LocalApplicationData 配下。</summary>
+    public static string DefaultHistoryPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "history.json");
+
+    /// <summary>
+    /// 実際の保存先。既定は <see cref="DefaultHistoryPath"/>。
+    ///
+    /// **なぜインスタンスごとに持つのか**: 以前は `static readonly` の固定パスだったため、
+    /// 同一プロセス内の全インスタンスが同じファイルを共有していた。テストは互いの
+    /// 書き込みを読んでしまい、`NetworkHistoryService_ConcurrentWrites_ThreadSafe` が
+    /// 他テストの SSID を拾って落ちていた (2026-08 に初めてテストを実行して判明)。
+    /// xunit は既定でテストクラスを並列実行するため、これは実際には**不定期に落ちる**
+    /// 不具合になる。コンストラクタで差し替え可能にし、テストは一時ディレクトリを使う。
+    /// 引数を省略した既存の呼び出しは従来どおり動く (後方互換)。
+    /// </summary>
+    private readonly string HistoryPath;
 
     private readonly List<ConnectionHistoryEntry> _entries;
     private readonly ILogger<NetworkHistoryService> _log;
@@ -34,9 +48,15 @@ public sealed class NetworkHistoryService
 
     /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。
     /// logger 省略時は NullLogger を使う (テスト容易性のため)。</summary>
-    public NetworkHistoryService(ILogger<NetworkHistoryService>? log = null)
+    /// <param name="log">ロガー。省略時は NullLogger。</param>
+    /// <param name="historyPath">
+    /// 履歴ファイルの保存先。省略時は <see cref="DefaultHistoryPath"/>。
+    /// テストは一時パスを渡して互いの状態から隔離すること。
+    /// </param>
+    public NetworkHistoryService(ILogger<NetworkHistoryService>? log = null, string? historyPath = null)
     {
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance;
+        HistoryPath = historyPath ?? DefaultHistoryPath;
         _entries = Load();
     }
 

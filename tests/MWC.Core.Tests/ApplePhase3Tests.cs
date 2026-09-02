@@ -60,7 +60,7 @@ public class NetworkHistoryServiceTests
     [Fact]
     public void RecordConnection_Success_IncrementsCount()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("TestNet", true);
         var e = svc.GetEntry("TestNet");
         e.Should().NotBeNull();
@@ -71,7 +71,7 @@ public class NetworkHistoryServiceTests
     [Fact]
     public void RecordConnection_Failure_IncrementsFailCount()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("TestNet", false);
         var e = svc.GetEntry("TestNet");
         e!.FailCount.Should().Be(1);
@@ -82,7 +82,7 @@ public class NetworkHistoryServiceTests
     [Fact]
     public void RecordConnection_MultipleEntries_MostRecentFirst()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Old",    true);
         svc.RecordConnection("Recent", true);
         var recent = svc.GetRecentSsids(2);
@@ -93,7 +93,7 @@ public class NetworkHistoryServiceTests
     [Fact]
     public void Forget_RemovesEntry()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("ToForget", true);
         svc.Forget("ToForget");
         svc.GetEntry("ToForget").Should().BeNull();

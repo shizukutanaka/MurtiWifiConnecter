@@ -404,6 +404,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`NetworkHistoryService` shared one file across every instance in the process.** Its persistence
+  path was a `static readonly` field, so two services constructed in the same process read and wrote
+  the same `history.json` — each one silently seeing the other's entries. This surfaced only when
+  the suite was first actually executed: `NetworkHistoryService_ConcurrentWrites_ThreadSafe` picked
+  up SSIDs written by unrelated tests and failed. It is a **product defect rather than a test
+  inconvenience**, and the failure mode is the unpleasant kind — xunit runs test classes in parallel
+  by default, so it fails intermittently rather than reliably, which is exactly the sort of thing
+  that gets re-run until it goes green and then ignored. The constructor now takes an optional
+  `historyPath`, defaulting to the same location as before, so every existing call site is
+  unaffected; tests pass a fresh temporary path. With that, the suite runs **1094 passed, 0 failed**,
+  and `tools/mutation-check.sh` still kills all five substantive mutants while the comment-only
+  control survives, so the pass is not a hollow one.
 - **Corrected a wrong diagnosis of my own and widened test coverage from 64 to 68 files.** The
   previous commit claimed the App-dependent tests could not be included because adding them made
   test-helper class names collide. That was never checked against the actual compiler output, and

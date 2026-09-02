@@ -13,6 +13,21 @@ namespace MWC.Core.Tests;
 //  FrozenDictionary 最適化 (.NET 9)
 // ══════════════════════════════════════════════════════════════
 
+/// <summary>
+/// テストごとに独立した履歴ファイルのパスを作る。
+///
+/// NetworkHistoryService の既定の保存先はプロセス全体で共有されるため、
+/// 隔離しないと他テストが書いた履歴を読んでしまい、非決定的に落ちる
+/// (2026-08 にテストを初めて実行して実際に踏んだ)。
+/// xunit はテストクラスを既定で並列実行するので、CI では特に顕在化しやすい。
+/// </summary>
+internal static class TestHistoryPath
+{
+    public static string Fresh() =>
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                               $"mwc-history-{System.Guid.NewGuid():N}.json");
+}
+
 public class EhtCapabilityTests
 {
     /// <summary>
@@ -175,7 +190,7 @@ public class DotNet9LanguageFeatureTests
     [Fact]
     public void NetworkHistoryService_ConcurrentWrites_ThreadSafe()
     {
-        var svc  = new NetworkHistoryService();
+        var svc  = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var tasks = Enumerable.Range(0, 20).Select(i =>
             System.Threading.Tasks.Task.Run(() =>
                 svc.RecordConnection($"SSID_{i % 5}", i % 2 == 0)));
@@ -209,7 +224,7 @@ public class NetworkHistoryLockTests
     [Fact]
     public void RecordConnection_ParallelWrites_NoConcurrentModificationException()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
         // 50スレッドから同時書き込み
@@ -234,7 +249,7 @@ public class NetworkHistoryLockTests
     [Fact]
     public void GetAll_WhileRecording_ReturnsSnapshot()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Initial", true);
 
         // 読み取りはスナップショットを返すべき
