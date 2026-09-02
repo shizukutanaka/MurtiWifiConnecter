@@ -138,7 +138,11 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
 
    **テストも 2026-08 に型検査済み**(`tools/typecheck-tests.sh`。ここでも実在の欠陥 5 件が出た)。
    **Platform.Windows も一部は型検査済み**(`tools/typecheck-platform.sh`)。
-   一方 **App の WPF 依存分・ManagedNativeWifi 依存分・MWC.App を参照するテストは型検査されていない**
+   一方 **App の XAML コードビハインド・ManagedNativeWifi 依存分・一部のテストは型検査されていない**。
+   XAML 分は 2026-08 に実測済み(15 クラス / 72 フィールド / 20 コントロール型)。
+   生成自体は可能だが、コントロールのメンバを「コードが要求した順に」足す形になり
+   検査が空洞化するため見送った。**`Microsoft.WindowsDesktop.App.Ref` を入れるのが正攻法**
+   (詳細は `tools/stubs/WpfMinimal.Stub.cs` のヘッダ)。
    (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
    いずれもこの環境では入手できないことを確認済み)。構文エラーが無いことだけは確認した。
    **したがって CI が赤くなるとすれば Core 以外の 4 つが第一容疑者。**

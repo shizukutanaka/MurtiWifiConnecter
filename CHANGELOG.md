@@ -903,6 +903,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **Measured the XAML code-behind layer and stopped there deliberately, with the numbers recorded.**
+  Generating the partials MSBuild produces from `.xaml` — `InitializeComponent` plus the `x:Name`
+  fields — is possible and was prototyped: **15 classes, 72 fields, 20 control types across four
+  namespaces**. The generation itself is not circular, being the same trick as `.resx` → `.resources`.
+  What stops it is the *member* surface. Adding `TextBox.Text`, `ComboBox.SelectedIndex`,
+  `WebBrowser.Navigate` and their neighbours means adding members **because the code asked for
+  them** — and while each name is a published API, letting the code under test decide what the stub
+  contains hollows out the check along that dimension. That is different in kind from the `Key`
+  enum, a small closed definition writable in full. Code-behind correctness is also mostly runtime
+  behaviour — binding, layout, event order — which no stub verifies, so the value per line is the
+  lowest of anything remaining.
+  The right fix is one environment setting: install `Microsoft.WindowsDesktop.App.Ref`. Piling up
+  several hundred lines of approximation against a problem a reference pack solves correctly would
+  be the wrong trade, and the reasoning is written into the stub header so the next session inherits
+  the measurement rather than repeating it.
 - **Tried to extend type-checking to the CLI, found the approach worthless, and recorded that.**
   With Core now compiling, an obvious next step is to reference the real `MWC.Core.dll` from a
   compile of `MWC.Cli` and read only the errors that are not missing-reference noise. That run came
