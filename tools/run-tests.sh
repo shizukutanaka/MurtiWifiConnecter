@@ -92,13 +92,14 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 #   QualityImprovementTests … System.Windows.Input (KeyboardShortcutService)
 #   PropertyBasedTests … FsCheck
 #   FinalValidationV8Tests / OnboardingTests / BugFixRegressionTests … ViewModel / Dialog 依存
-#   RefactoringTests / QualityScanV8Tests (中の LocalizationTests 等) … L.cs は .resx をコンパイルして
-#     埋め込んだ .resources を必要とする。csc 直叩きでは resgen 相当が無く生成できないため、
-#     実行すると MissingManifestResourceException になる (製品の不具合ではない)。
+#   QualityScanV8Tests … KeyboardShortcutService (System.Windows.Input) 依存。
+#   (RefactoringTests は 2026-08 に**取り込んだ**: L.cs が要求する .resources を
+#    tools/stubs/ResxToResources.cs で .resx から生成し -resource で埋め込むようにしたため、
+#    MissingManifestResourceException は解消した。i18n アクセサ層が初めて実行検証される。)
 WPF_DEPENDENT="NetworkDetailViewModelVpnEapWiringTests.cs OweWiringTests.cs \
 ProfileManagerViewModelErrorHandlingTests.cs QualityImprovementTests.cs SignalIconWiringTests.cs \
 FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs \
-RefactoringTests.cs QualityScanV8Tests.cs"
+QualityScanV8Tests.cs"
 
 APP_SOURCES=""
 for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do
@@ -117,7 +118,25 @@ for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); d
 done
 
 # shellcheck disable=SC2086
-dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 -nullable:enable -main:MwcMiniRunner.Program \
+# L.cs は ResourceManager 経由で MWC.App.Resources.Strings.resources を読む。
+# 製品ビルドでは MSBuild が .resx をコンパイルして埋め込むが、csc 直叩きには
+# resgen 相当が無い。tools/stubs/ResxToResources.cs で生成して -resource で埋め込む。
+# これが無いと LocalizationTests が MissingManifestResourceException で落ちる
+# (製品の不具合ではなくハーネスの不足)。
+RESARG=""
+if [ -f src/MWC.App/Resources/Strings.resx ]; then
+  # shellcheck disable=SC2086
+  dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 \
+    -out:"$RUNDIR/resx2res.dll" $REFS tools/stubs/ResxToResources.cs > /dev/null 2>&1
+  printf '{"runtimeOptions":{"tfm":"net10.0","framework":{"name":"Microsoft.NETCore.App","version":"10.0.0"}}}' \
+    > "$RUNDIR/resx2res.runtimeconfig.json"
+  if dotnet "$RUNDIR/resx2res.dll" src/MWC.App/Resources/Strings.resx \
+       "$RUNDIR/Strings.resources" > /dev/null 2>&1; then
+    RESARG="-resource:$RUNDIR/Strings.resources,MWC.App.Resources.Strings.resources"
+  fi
+fi
+
+dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 -nullable:enable -main:MwcMiniRunner.Program $RESARG \
   -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
   -out:"$RUNDIR/run.dll" $REFS -r:"$RUNDIR/MWC.Core.dll" \
   $STUBS tools/stubs/MiniRunner.cs $APP_SOURCES $FILES

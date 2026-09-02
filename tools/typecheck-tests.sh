@@ -96,7 +96,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 WPF_DEPENDENT="NetworkDetailViewModelVpnEapWiringTests.cs OweWiringTests.cs \
 ProfileManagerViewModelErrorHandlingTests.cs QualityImprovementTests.cs SignalIconWiringTests.cs \
 FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs \
-RefactoringTests.cs QualityScanV8Tests.cs"
+QualityScanV8Tests.cs"
 
 APP_SOURCES=""
 for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do

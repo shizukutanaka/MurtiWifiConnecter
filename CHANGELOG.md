@@ -143,6 +143,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **The i18n accessor layer is now actually executed — 1104 tests pass, up from 1094.**
+  `RefactoringTests` (which contains `LocalizationTests`) had been excluded from both the
+  type-check and the run because `L.cs` reads `MWC.App.Resources.Strings.resources` through
+  `ResourceManager`, and compiling with `csc` directly gave no way to produce the compiled
+  `.resources` that MSBuild normally embeds — the tests died with
+  `MissingManifestResourceException`. That was recorded as a harness limitation and left alone.
+  It did not need to be: `System.Resources.Writer` is present in the reference packs, so
+  `tools/stubs/ResxToResources.cs` reads the `.resx` and writes the `.resources`, which
+  `run-tests.sh` then embeds with `-resource`. All 517 keys and the `L.Get`/`L.Format` accessors
+  are covered by executed tests for the first time.
+- **The test type-check widened from 68 files to 69** for the same reason. The exclusion list had
+  gone stale: it was written when far less of `MWC.App` compiled, and `RefactoringTests` no longer
+  needed excluding. The other exclusions were re-measured and still hold — `OnboardingTests`
+  requires `MWC.App.Views`, and the rest need view models, `KeyboardShortcutService` or FsCheck.
 - **`MWC.Platform.Windows` is now partly type-checked — the first time any of it has been
   compiled.** `HttpConnectivityChecker` needs only `HttpClient` and compiles with no stub at all;
   `DpapiSecretProtector` needs only `ProtectedData`, which is Windows-only and absent from the
