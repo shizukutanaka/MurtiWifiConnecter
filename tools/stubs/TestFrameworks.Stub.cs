@@ -395,6 +395,17 @@ namespace FluentAssertions
         { var l = _items.ToList(); for (int i = 1; i < l.Count; i++) if (Cmp.Compare(l[i-1], l[i]) < 0) Cmp.Fail("not descending", because); return this; }
         public CollectionChain<T> Equal(IEnumerable<T> e, string? because = null, params object?[] args)
         { if (!Cmp.SeqEq(_items, e)) Cmp.Fail($"expected {Cmp.Show(e)} but found {Cmp.Show(_items)}", because); return this; }
+        public CollectionChain<T> OnlyHaveUniqueItems(string? because = null, params object?[] args)
+        {
+            var seen = new List<T>();
+            foreach (var x in _items)
+            {
+                if (seen.Any(y => Cmp.Eq(x, y)))
+                    Cmp.Fail($"expected only unique items but {Cmp.Show(x)} appears more than once", because);
+                seen.Add(x);
+            }
+            return this;
+        }
     }
 
     public static class AssertionExtensions

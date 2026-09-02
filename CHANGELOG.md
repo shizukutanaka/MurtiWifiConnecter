@@ -143,6 +143,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **`KeyboardShortcutService` and its two test files now compile and run — 1149 passing across 74
+  files.** The service needed only WPF's `Key` and `ModifierKeys` enums, which had previously been
+  refused on the grounds that transcribing ~170 members would mean copying them *from the code being
+  checked*. That reasoning was half right: copying from the code would indeed be vacuous, but the
+  enums are a **published, stable definition**, so writing the standard member set — including the
+  many members MWC never uses — keeps the check meaningful. A reference to a member WPF does not
+  define now fails here. The stub says so explicitly, and warns against ever adding a member because
+  the code asked for one.
+- **`OnlyHaveUniqueItems` is added to the assertion stub with real verification**, not a no-op, so
+  the two newly-included test files are genuinely checked rather than merely compiled.
 - **The i18n accessor layer is now actually executed — 1104 tests pass, up from 1094.**
   `RefactoringTests` (which contains `LocalizationTests`) had been excluded from both the
   type-check and the run because `L.cs` reads `MWC.App.Resources.Strings.resources` through

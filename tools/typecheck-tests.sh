@@ -93,9 +93,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 #   RefactoringTests / QualityScanV8Tests (中の LocalizationTests 等) … L.cs は .resx をコンパイルして
 #     埋め込んだ .resources を必要とする。csc 直叩きでは resgen 相当が無く生成できないため、
 #     実行すると MissingManifestResourceException になる (製品の不具合ではない)。
-WPF_DEPENDENT="OweWiringTests.cs QualityImprovementTests.cs \
-FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs \
-QualityScanV8Tests.cs"
+WPF_DEPENDENT="OweWiringTests.cs FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs"
 
 APP_SOURCES=""
 for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do
@@ -105,7 +103,8 @@ for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/
 done
 
 # WPF のごく一部で足りるサービス 3 件。
-for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs; do
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
+             Services/KeyboardShortcutService.cs; do
   [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
 done
 

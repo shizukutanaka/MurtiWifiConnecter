@@ -83,7 +83,11 @@ done
 # WPF を使うが tools/stubs/WpfMinimal.Stub.cs の**ごく小さな**面だけで足りる 3 件。
 # 追加の可否は実測で決めた: 他の WPF 依存ファイルはダイアログ/ViewModel/WinForms を
 # 必要とし、スタブを書くと検査が循環する (WpfMinimal.Stub.cs のヘッダに詳細)。
-for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs; do
+# KeyboardShortcutService は Key/ModifierKeys 列挙のみを要する。
+# その 2 つは WPF の**公表された定義**を WpfMinimal.Stub.cs が再現しているため
+# 循環しない (コードに合わせてメンバを足していない点が重要)。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
+             Services/KeyboardShortcutService.cs; do
   [ -f "src/MWC.App/$extra" ] && FILES="$FILES src/MWC.App/$extra"
 done
 

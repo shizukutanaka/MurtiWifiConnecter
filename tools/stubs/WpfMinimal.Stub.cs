@@ -141,3 +141,54 @@ namespace System.Windows.Automation
         public static void SetLiveSetting(DependencyObject element, object value) { }
     }
 }
+
+namespace System.Windows.Input
+{
+    /// <summary>
+    /// WPF の <c>Key</c> 列挙。**公表された安定した API** を再現したもので、
+    /// 検査対象のコードから逆算していない — 実際 MWC が使うのは 17 個だけだが、
+    /// ここには WPF の標準メンバを一通り置いてある。
+    /// そうすることで「実在しないメンバを参照している」誤りがここで落ちる。
+    /// (コードに合わせてメンバを足すと検査が空になる。絶対にやらないこと。)
+    /// 値は列挙の順序のみ意味を持ち、実際の仮想キーコードとは対応させていない。
+    /// </summary>
+    public enum Key
+    {
+        None = 0, Cancel, Back, Tab, LineFeed, Clear, Return, Pause, Capital, CapsLock,
+        Escape, Space, Prior, PageUp, Next, PageDown, End, Home,
+        Left, Up, Right, Down, Select, Print, Execute, PrintScreen, Snapshot, Insert, Delete, Help,
+        D0, D1, D2, D3, D4, D5, D6, D7, D8, D9,
+        A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+        LWin, RWin, Apps, Sleep,
+        NumPad0, NumPad1, NumPad2, NumPad3, NumPad4, NumPad5, NumPad6, NumPad7, NumPad8, NumPad9,
+        Multiply, Add, Separator, Subtract, Decimal, Divide,
+        F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+        F13, F14, F15, F16, F17, F18, F19, F20, F21, F22, F23, F24,
+        NumLock, Scroll, LeftShift, RightShift, LeftCtrl, RightCtrl, LeftAlt, RightAlt,
+        OemSemicolon, OemPlus, OemComma, OemMinus, OemPeriod, OemQuestion, OemTilde,
+        OemOpenBrackets, OemPipe, OemCloseBrackets, OemQuotes, OemBackslash,
+        System, Attn, CrSel, ExSel, EraseEof, Play, Zoom, NoName, Pa1, OemClear
+    }
+
+    /// <summary>WPF の <c>ModifierKeys</c>。同じく公表された定義。</summary>
+    [Flags]
+    public enum ModifierKeys
+    {
+        None = 0, Alt = 1, Control = 2, Shift = 4, Windows = 8
+    }
+
+    /// <summary>InputBinding / KeyBinding は型として参照されるだけ。</summary>
+    public class InputBinding
+    {
+        public ICommand? Command { get; set; }
+    }
+
+    public class KeyBinding : InputBinding
+    {
+        public KeyBinding() { }
+        public KeyBinding(ICommand command, Key key, ModifierKeys modifiers)
+        { Command = command; Key = key; Modifiers = modifiers; }
+        public Key Key { get; set; }
+        public ModifierKeys Modifiers { get; set; }
+    }
+}
