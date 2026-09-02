@@ -404,6 +404,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`AccessibilityService` was missing `using System.Windows.Automation.Peers`.** It uses
+  `AutomationNotificationKind` and `AutomationNotificationProcessing` unqualified while
+  fully-qualifying `Peers.UIElementAutomationPeer` two lines below — so the author knew the
+  namespace was separate and dropped only the enums' import. CS0246, and the twentieth compile
+  defect this cycle. Found by widening the App type-check to three more files.
+- **The App type-check now covers nine of forty-six files, and the boundary is measured rather than
+  guessed.** Classifying every App file by what actually blocks it: fifteen are `*.xaml.cs` and need
+  the partials a XAML compiler generates; eight need CommunityToolkit.Mvvm's source generator, where
+  hand-writing the output would only check my guess at what the generator emits; and of the twelve
+  that use WPF plainly, nine were **deliberately left out** — `MainWindowCommands` and
+  `AdapterConnectExtension` require eight dialog classes and the view models, so stubbing them would
+  mean defining the very signatures under test, and `SystemTrayService`/`JumpListService` are mostly
+  WinForms interaction where passing against a stub establishes nothing. `KeyboardShortcutService`
+  needs the ~170-member `Key` enum, whose names I would be transcribing *from the code being
+  checked* — vacuous by construction. The remaining three were small, non-circular and carry real
+  logic, so `WpfMinimal.Stub.cs` covers exactly their surface and its header records why the rest
+  was refused, so nobody repeats the analysis.
 - **`NetworkHistoryService` shared one file across every instance in the process.** Its persistence
   path was a `static readonly` field, so two services constructed in the same process read and wrote
   the same `history.json` — each one silently seeing the other's entries. This surfaced only when

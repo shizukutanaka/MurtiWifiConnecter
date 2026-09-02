@@ -14,12 +14,21 @@
 #
 # 対象から外すもの(理由つき):
 #   - `*.xaml.cs`             … XAML 生成の partial が無いと CS0759 が出る
-#   - WPF / CommunityToolkit.Mvvm を使うファイル
-#   - `using Serilog` を含むファイル … Serilog は NuGet で未入手
-#   - `App.Version` を参照するファイル … `App` は WPF の Application 派生クラス
+#   - CommunityToolkit.Mvvm を使うファイル … ソースジェネレータの出力が要る
+#   - ダイアログ/ViewModel/WinForms に依存するファイル … スタブを書くと
+#     **呼び出し側が使う署名をこちらで定義する**ことになり検査が循環する
+#     (どのファイルがなぜ外れるかの実測は tools/stubs/WpfMinimal.Stub.cs のヘッダ)
 #
-# スタブ: `NotificationService` のみ(Windows トーストに依存するが、対象ファイルは
-#         型として参照するだけ)。署名は本物と一致させること。
+# スタブ: `NotificationService`、`Serilog`、および WPF のごく一部
+#         (`WpfMinimal.Stub.cs`: Window / Application / Clipboard / DataObject /
+#          RoutedEventArgs / TextBlock / Automation の通知列挙)。
+#         **WPF スタブを育てないこと** — 育てたくなったら本物の参照パックを用意する合図。
+#         署名は本物と一致させること。
+#
+# 2026-08 にこの範囲を広げた際、`AccessibilityService` の
+# `using System.Windows.Automation.Peers;` 欠落 (CS0246) が実際に見つかった。
+# 同ファイルは下の行で `Peers.UIElementAutomationPeer` を完全修飾しており、
+# 名前空間が別なのを知りながら列挙 2 つの using だけ落としていた。
 #
 # ★ 通っても保証されないこと: WPF 側のコード、XAML との対応、実行時挙動。
 #   **App の大部分は依然として未検査**であり、CI が初めて走るときの主な риск源である。
@@ -71,6 +80,13 @@ for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/
   grep -qE "$EXCLUDE" "$f" || FILES="$FILES $f"
 done
 
+# WPF を使うが tools/stubs/WpfMinimal.Stub.cs の**ごく小さな**面だけで足りる 3 件。
+# 追加の可否は実測で決めた: 他の WPF 依存ファイルはダイアログ/ViewModel/WinForms を
+# 必要とし、スタブを書くと検査が循環する (WpfMinimal.Stub.cs のヘッダに詳細)。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs; do
+  [ -f "src/MWC.App/$extra" ] && FILES="$FILES src/MWC.App/$extra"
+done
+
 if [ -z "$FILES" ]; then
   echo "SKIP: no WPF-free files found in src/MWC.App (the exclusion rules may need revisiting)"
   exit 2
@@ -80,7 +96,8 @@ fi
 output=$(dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
   -warnaserror -nowarn:CS1591 \
   -out:"$OUT/app.dll" $REFS -r:"$OUT/MWC.Core.dll" \
-  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/MwcAppNotification.Stub.cs $FILES 2>&1)
+  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/MwcAppNotification.Stub.cs \
+  tools/stubs/WpfMinimal.Stub.cs tools/stubs/Serilog.Stub.cs $FILES 2>&1)
 status=$?
 [ -n "$output" ] && echo "$output"
 
