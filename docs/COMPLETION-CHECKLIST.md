@@ -74,6 +74,7 @@ bash tools/typecheck-cli.sh --selftest  # MWC.Cli を型検査 (スタブ + 自�
 bash tools/typecheck-app-services.sh    # MWC.App のうち WPF 非依存分
 bash tools/typecheck-tests.sh --selftest # テスト (MWC.App 依存分と FsCheck を除く)
 bash tools/run-tests.sh                 # ★テストを実際に実行する (xunit 無しの近似ランナー)
+bash tools/mutation-check.sh            # そのスイートに検出力があるかを変異注入で実測
 ```
 
 ### AI セッションで `dotnet build` / `dotnet test` を通したい場合(環境側の設定)

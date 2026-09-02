@@ -143,6 +143,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **Measured whether the test run actually detects anything, instead of asserting that it does.**
+  A suite executed by a hand-written runner against approximated assertions could easily be a
+  facade that passes everything — this cycle has already been fooled twice by exactly that shape,
+  once when a type-check bound nothing and reported zero errors, and once when the assertions were
+  silent no-ops. So `tools/mutation-check.sh` injects deliberate defects into product code and
+  checks that failures increase: the locally-administered bit constant, the WMM minimum parameter
+  length, the beacon vendor element id, an inverted `IsSuspect`, and `WPA2` parsing as `Open`.
+  All five were killed, raising failures from 1 to 10, 2, 5, 7 and 2 respectively, and a
+  control mutation that edits only a comment left the count unchanged. The suite verifies
+  semantics; it is not a facade. That claim is now reproducible rather than rhetorical.
 - **Six `MWC.App` service files are now type-checked as well, and they came back clean.** Most of
   App needs WPF and CommunityToolkit.Mvvm, neither obtainable here, but 6 of its 46 files touch
   neither — among them `AutoReconnectService` (backoff, evil-twin guard, baseline persistence),
