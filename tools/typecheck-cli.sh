@@ -58,12 +58,19 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# CLI が必要とするスタブだけを列挙する。glob (tools/stubs/*.cs) は
+# MiniRunner.cs や ResxToResources.cs (いずれも Main を持つ) やテスト用フレームワークまで
+# 巻き込んでいた。-target:library のおかげで動いていただけで、
+# 新しいスタブが型衝突を持ち込めば黙って壊れる。必要なものだけを明示する。
+CLI_STUBS="tools/stubs/ImplicitUsings.Stub.cs tools/stubs/SystemCommandLine.Stub.cs \
+tools/stubs/MwcPlatformWindows.Stub.cs"
+
 compile_cli() {
   # shellcheck disable=SC2086
   dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
     -warnaserror -nowarn:CS1591 \
     -out:"$1" $REFS -r:"$OUT/MWC.Core.dll" \
-    tools/stubs/*.cs \
+    $CLI_STUBS \
     $(find src/MWC.Cli -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*') 2>&1
 }
 

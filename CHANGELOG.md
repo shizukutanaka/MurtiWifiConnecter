@@ -375,6 +375,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- **`typecheck-cli.sh` compiled every stub in the directory via a glob, including two files with a
+  `Main` method and the entire test-assertion framework.** None of it is needed to check the CLI;
+  it worked only because `-target:library` ignores `Main`, so a future stub introducing a type
+  clash would have broken the script for reasons that look nothing like the cause. The three stubs
+  the CLI actually needs are now named explicitly, and each was confirmed necessary by removing it
+  and watching the compile fail.
 - **Collapsed the .NET environment discovery that I had duplicated across six scripts.** Each of
   `typecheck-{core,cli,app-services,tests,platform}.sh` and `run-tests.sh` carried its own copy of
   the SDK, Roslyn, reference-pack and source-generator lookup — 147 lines of duplication, all of it
