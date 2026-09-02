@@ -404,6 +404,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **Corrected a wrong diagnosis of my own and widened test coverage from 64 to 68 files.** The
+  previous commit claimed the App-dependent tests could not be included because adding them made
+  test-helper class names collide. That was never checked against the actual compiler output, and
+  it is false — these files all coexist in the real test project, so a genuine duplicate would
+  break the real build too. Reading the errors properly showed every one of them to be an ordinary
+  missing dependency: `System.Windows.Input`, `MWC.App.ViewModels`, `KeyboardShortcutService`.
+  Supplying three small stubs — `App.Version`, `Serilog.Log`, and the existing
+  `NotificationService` — brings in the App service layer and the tests that use it, taking the
+  run from 1037 to **1092 passing**. Only files that genuinely need WPF, ViewModels, FsCheck, or
+  the compiled `.resx` resources are excluded now, and each is listed by name with its reason.
+  The earlier "collision" note is deleted rather than left to mislead the next reader; the lesson
+  is the session's own, applied to itself: diagnose from the output, not from a plausible story.
 - **`CatImportService` duplicated every profile when the CAT file had no XML namespace.** The
   provider scan read `root.Descendants(ns + "EAPIdentityProvider").Concat(root.Descendants("EAPIdentityProvider"))`
   to tolerate older namespace-less files. When `ns` is empty the two queries are *identical*, so

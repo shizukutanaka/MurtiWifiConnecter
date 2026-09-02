@@ -262,9 +262,9 @@ namespace FluentAssertions
         public Chain BeInRange(object? lo, object? hi, string? because = null, params object?[] args)
         { if (Cmp.Compare(S, lo) < 0 || Cmp.Compare(S, hi) > 0)
               Cmp.Fail($"expected between {Cmp.Show(lo)} and {Cmp.Show(hi)} but found {Cmp.Show(S)}", because); return this; }
-        public Chain BeApproximately(object? e, object? prec, string? because = null, params object?[] args)
+        public Chain BeApproximately(object? e, object? precision, string? because = null, params object?[] args)
         { var d = Math.Abs(Convert.ToDouble(S) - Convert.ToDouble(e));
-          if (d > Convert.ToDouble(prec)) Cmp.Fail($"expected {Cmp.Show(e)} +/- {Cmp.Show(prec)} but found {Cmp.Show(S)}", because);
+          if (d > Convert.ToDouble(precision)) Cmp.Fail($"expected {Cmp.Show(e)} +/- {Cmp.Show(precision)} but found {Cmp.Show(S)}", because);
           return this; }
         public Chain BeOneOf(params object?[] valid)
         { if (!valid.Any(v => Cmp.Eq(S, v))) Cmp.Fail($"expected one of {Cmp.Show(valid)} but found {Cmp.Show(S)}", null); return this; }
