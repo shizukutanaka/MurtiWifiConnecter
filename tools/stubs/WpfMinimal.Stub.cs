@@ -55,10 +55,20 @@ namespace System.Windows
         public void Hide() { }
     }
 
+    /// <summary>WPF の ResourceDictionary。ThemeService がテーマ .xaml を差し替えるのに使う。</summary>
+    public class ResourceDictionary : System.Collections.Generic.Dictionary<object, object>
+    {
+        public Uri? Source { get; set; }
+        public System.Collections.Generic.List<ResourceDictionary> MergedDictionaries { get; } = new();
+    }
+
     public class Application
     {
         public static Application Current { get; } = new();
         public Window? MainWindow { get; set; }
+        public ResourceDictionary Resources { get; } = new();
+        /// <summary>UI スレッドのディスパッチャ。ThemeService が OS 通知を UI へ渡すのに使う。</summary>
+        public System.Windows.Threading.Dispatcher Dispatcher { get; } = new();
         public void Shutdown() { }
     }
 
@@ -190,5 +200,59 @@ namespace System.Windows.Input
         { Command = command; Key = key; Modifiers = modifiers; }
         public Key Key { get; set; }
         public ModifierKeys Modifiers { get; set; }
+    }
+}
+
+namespace System.Windows.Shell
+{
+    using System.Collections.Generic;
+
+    /// <summary>タスクバーのジャンプリスト。公表された WPF の定義を再現。</summary>
+    public class JumpItem { }
+
+    public class JumpTask : JumpItem
+    {
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? ApplicationPath { get; set; }
+        public string? Arguments { get; set; }
+        public string? CustomCategory { get; set; }
+        public string? IconResourcePath { get; set; }
+        public int IconResourceIndex { get; set; }
+        public string? WorkingDirectory { get; set; }
+    }
+
+    public class JumpList
+    {
+        public List<JumpItem> JumpItems { get; } = new();
+        public bool ShowRecentCategory { get; set; }
+        public bool ShowFrequentCategory { get; set; }
+        public void Apply() { }
+        public static void SetJumpList(System.Windows.Application application, JumpList value) { }
+        public static JumpList? GetJumpList(System.Windows.Application application) => null;
+    }
+}
+
+namespace Microsoft.Win32
+{
+    /// <summary>OS の設定変更通知。ThemeService が System テーマ追従に使う。</summary>
+    public enum UserPreferenceCategory
+    {
+        Accessibility, Color, Desktop, General, Icon, Keyboard, Locale,
+        Menu, Mouse, Policy, Power, Screensaver, VisualStyle, Window
+    }
+
+    public class UserPreferenceChangedEventArgs : EventArgs
+    {
+        public UserPreferenceChangedEventArgs(UserPreferenceCategory category) { Category = category; }
+        public UserPreferenceCategory Category { get; }
+    }
+
+    public delegate void UserPreferenceChangedEventHandler(object sender, UserPreferenceChangedEventArgs e);
+
+    public static class SystemEvents
+    {
+        public static event UserPreferenceChangedEventHandler? UserPreferenceChanged;
+        public static void RaiseForStub() => UserPreferenceChanged?.Invoke(null!, new(UserPreferenceCategory.General));
     }
 }

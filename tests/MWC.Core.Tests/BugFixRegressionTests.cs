@@ -118,7 +118,7 @@ public class NetworkHistoryAdvancedTests
     [Fact]
     public void RecordConnection_SameNetwork_UpdatesNotDuplicates()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Net", true);
         svc.RecordConnection("Net", true);
         svc.RecordConnection("Net", false);
@@ -132,7 +132,7 @@ public class NetworkHistoryAdvancedTests
     [Fact]
     public void GetRecentSsids_RespectsLimit()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         for (int i = 0; i < 15; i++)
             svc.RecordConnection($"Net{i}", true);
         svc.GetRecentSsids(5).Should().HaveCount(5);
@@ -142,7 +142,7 @@ public class NetworkHistoryAdvancedTests
     [Fact]
     public void ClearAll_EmptiesHistory()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("A", true);
         svc.RecordConnection("B", true);
         svc.ClearAll();
@@ -152,7 +152,7 @@ public class NetworkHistoryAdvancedTests
     [Fact]
     public void GetStats_ReturnsCorrectAggregates()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         // "Alpha": 3 successes, 1 failure
         svc.RecordConnection("Alpha", true);
         svc.RecordConnection("Alpha", true);
@@ -174,7 +174,7 @@ public class NetworkHistoryAdvancedTests
     [Fact]
     public void GetStats_ZeroHistory_SuccessRateIsOne()
     {
-        var svc   = new NetworkHistoryService();
+        var svc   = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var stats = svc.GetStats(30);
         stats.TotalConnects.Should().Be(0);
         stats.TotalFails.Should().Be(0);
@@ -187,7 +187,7 @@ public class NetworkHistoryAdvancedTests
     [InlineData(-30)]
     public void GetStats_NonPositiveDays_Throws(int days)
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.Invoking(s => s.GetStats(days))
            .Should().Throw<ArgumentOutOfRangeException>()
            .WithParameterName("days");
@@ -291,7 +291,7 @@ public class AppUpdateServiceTests
     {
         // 複数スレッドから同時に RecordConnection / GetRecent / GetStats を呼び出し、
         // デッドロック・IndexOutOfRange・InvalidOperationException が発生しないことを確認。
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         const int writers = 4;
         const int readers = 4;
         const int ops     = 50;
@@ -303,7 +303,9 @@ public class AppUpdateServiceTests
                 svc.RecordConnection($"Net{w}_{i % 5}", i % 3 == 0);
         }, cts.Token));
 
-        var readerTasks = Enumerable.Range(0, readers).Select(_ => Task.Run(() =>
+        // 仮引数を `_` にしない: 内側の `_ = svc.GetRecent(10);` 等が破棄ではなく
+        // この int への代入として束縛され CS0029 になる (AdapterPreferencesTests と同型)。
+        var readerTasks = Enumerable.Range(0, readers).Select(reader => Task.Run(() =>
         {
             for (int i = 0; i < ops && !cts.IsCancellationRequested; i++)
             {
@@ -324,7 +326,7 @@ public class AppUpdateServiceTests
     [Fact]
     public async Task NetworkHistory_ConcurrentForgetAndRecord_NoCrash()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         for (int i = 0; i < 20; i++) svc.RecordConnection($"Net{i}", true);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -357,7 +359,7 @@ public class ConnectionExecutorShouldRegisterTests
             .Returns(Task.FromResult(ConnectionResult.Ok("Net", true, false)));
 
         var executor = new ConnectionExecutor(
-            wifi, new NetworkHistoryService(),
+            wifi, new NetworkHistoryService(null, TestHistoryPath.Fresh()),
             NullLogger<ConnectionExecutor>.Instance);
         return (executor, wifi);
     }
@@ -423,7 +425,7 @@ public class ConnectionExecutorDisconnectInhibitTests
         wifi.DisconnectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(true));
         return (new ConnectionExecutor(
-            wifi, new NetworkHistoryService(),
+            wifi, new NetworkHistoryService(null, TestHistoryPath.Fresh()),
             NullLogger<ConnectionExecutor>.Instance), wifi);
     }
 

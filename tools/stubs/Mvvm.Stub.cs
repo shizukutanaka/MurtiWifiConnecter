@@ -97,9 +97,14 @@ namespace System.Windows.Threading
         public void Stop()  { IsEnabled = false; _ = Tick; }
     }
 
+    // NOTE: Dispatcher / DispatcherTimer は本来 WPF の型なので WpfMinimal.Stub.cs が
+    // 置き場所として正しい。MainViewModel が先に必要としたためここに在るだけで、
+    // 分類上の意味は無い。移動するなら重複定義に注意すること。
     public class Dispatcher
     {
         public void Invoke(Action a) => a();
+        public object BeginInvoke(Delegate method, params object?[] args) => new();
+        public object BeginInvoke(Action a) { a(); return new(); }
         public System.Threading.Tasks.Task InvokeAsync(Action a) { a(); return System.Threading.Tasks.Task.CompletedTask; }
         public bool CheckAccess() => true;
     }

@@ -74,7 +74,14 @@ namespace NSubstitute
 {
     public static class Substitute
     {
-        public static T For<T>(params object?[] constructorArguments) where T : class => default!;
+        /// <summary>
+        /// 本物の NSubstitute は動的プロキシを生成する。このハーネスには再現できないため、
+        /// **null を返して後段で NullReferenceException にする代わりに**、専用の例外で
+        /// 「この harness では実行できない」と明示する。MiniRunner はこれを skip として扱う。
+        /// 黙って null を返すと、原因不明の NRE として failure に混ざってしまう。
+        /// </summary>
+        public static T For<T>(params object?[] constructorArguments) where T : class
+            => throw new SubstituteUnavailableException(typeof(T).Name);
     }
 
     public static class SubstituteExtensions
@@ -82,9 +89,25 @@ namespace NSubstitute
         public static ConfiguredCall Returns<T>(this T value, T returnThis, params T[] returnThese)
             => new();
         public static ConfiguredCall Returns<T>(this T value, Func<object, T> returnThis) => new();
+
+        // NSubstitute は Task/ValueTask を返すメンバ向けに専用オーバーロードを持つ
+        // (`svc.GetAsync().Returns(list)` と書けるのはこれのため)。公表された API。
+        public static ConfiguredCall Returns<T>(this System.Threading.Tasks.Task<T> value,
+                                                T returnThis, params T[] returnThese) => new();
+        public static ConfiguredCall Returns<T>(this System.Threading.Tasks.Task<T> value,
+                                                Func<object, T> returnThis) => new();
+        public static ConfiguredCall Returns<T>(this System.Threading.Tasks.ValueTask<T> value,
+                                                T returnThis, params T[] returnThese) => new();
         public static T Received<T>(this T substitute) where T : class => substitute;
         public static T Received<T>(this T substitute, int requiredNumberOfCalls) where T : class => substitute;
         public static T DidNotReceive<T>(this T substitute) where T : class => substitute;
+    }
+
+    /// <summary>NSubstitute が使えないことを示す。MiniRunner が skip 判定に使う。</summary>
+    public sealed class SubstituteUnavailableException : Exception
+    {
+        public SubstituteUnavailableException(string typeName)
+            : base($"NSubstitute is unavailable in this harness (Substitute.For<{typeName}>)") { }
     }
 
     public class ConfiguredCall
@@ -240,6 +263,26 @@ namespace FluentAssertions
         { if (S is not null && Count(S) != 0) Cmp.Fail("expected null or empty", because); return this; }
         public Chain NotBeNullOrEmpty(string? because = null, params object?[] args)
         { if (S is null || Count(S) == 0) Cmp.Fail("expected non-null and non-empty", because); return this; }
+        /// <summary>ArgumentException の ParamName を検査する (FluentAssertions の API)。</summary>
+        public Chain WithParameterName(string expected, string? because = null, params object?[] args)
+        {
+            if (S is ArgumentException ae && ae.ParamName != expected)
+                Cmp.Fail($"expected parameter name {expected} but found {ae.ParamName}", because);
+            return this;
+        }
+
+        public Chain NotContainAny(params object?[] unexpected)
+        {
+            var hay = S?.ToString() ?? "";
+            foreach (var u in unexpected)
+            {
+                var n = u?.ToString();
+                if (!string.IsNullOrEmpty(n) && hay.Contains(n, StringComparison.Ordinal))
+                    Cmp.Fail($"did not expect {Cmp.Show(u)} to appear in {Cmp.Show(hay)}", null);
+            }
+            return this;
+        }
+
         public Chain NotBeNullOrWhiteSpace(string? because = null, params object?[] args)
         { if (S is not string s || string.IsNullOrWhiteSpace(s)) Cmp.Fail("expected non-blank text", because); return this; }
 
@@ -356,7 +399,15 @@ namespace FluentAssertions
                 {
                     case Action act: act(); return null;
                     case Func<Task> ft: ft().GetAwaiter().GetResult(); return null;
-                    case Func<object?> fo: fo(); return null;
+                    // `var act = () => svc.Returns值();` は Func<T> に推論される。
+                    // Action / Func<object?> だけを見ていると**呼び出されず**、
+                    // 「何も投げられなかった」と誤報告する (実際に踏んだ)。
+                    // 任意のデリゲートを DynamicInvoke で呼ぶ。
+                    case Delegate d:
+                        try { d.DynamicInvoke(); }
+                        catch (System.Reflection.TargetInvocationException tie)
+                            when (tie.InnerException is not null) { return tie.InnerException; }
+                        return null;
                     default: return null;
                 }
             }
@@ -410,6 +461,13 @@ namespace FluentAssertions
 
     public static class AssertionExtensions
     {
+        /// <summary>`obj.Invoking(o => o.M()).Should().Throw&lt;T&gt;()` の形を通すための拡張。
+        /// 公表された FluentAssertions の API。</summary>
+        public static Action Invoking<T>(this T subject, Action<T> action)
+            => () => action(subject);
+        public static Func<Task> InvokingAsync<T>(this T subject, Func<T, Task> action)
+            => () => action(subject);
+
         public static Chain Should(this object? subject) => new(subject);
         public static CollectionChain<T> Should<T>(this IEnumerable<T>? subject) => new(subject);
         public static Chain Should(this Action action) => new(action);

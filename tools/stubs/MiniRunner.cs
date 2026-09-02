@@ -60,7 +60,11 @@ public static class Program
     {
         bool verbose = argv.Contains("--verbose");
         int pass = 0, fail = 0, skip = 0, error = 0;
+        // 反射呼び出しは例外を TargetInvocationException で包む。判定は中身で行う。
+        static Exception Unwrap(Exception e)
+            => e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
         var failures = new List<string>();
+        var skipped  = new List<string>();
 
         var types = Assembly.GetExecutingAssembly().GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && !t.IsNested)
@@ -105,11 +109,21 @@ public static class Program
                         pass++;
                         if (verbose) Console.WriteLine($"  PASS {type.Name}.{m.Name}");
                     }
+                    // NSubstitute 由来は下の skip 節に回す。ここで先に捕まえると
+                    // 「実行できなかったもの」が failure に混ざる。
                     catch (TargetInvocationException tie)
+                        when (Unwrap(tie) is not NSubstitute.SubstituteUnavailableException)
                     {
                         var ex = tie.InnerException ?? tie;
                         fail++;
                         failures.Add($"{type.Name}.{m.Name}: {ex.GetType().Name}: {ex.Message}");
+                    }
+                    catch (Exception ex) when (Unwrap(ex) is NSubstitute.SubstituteUnavailableException)
+                    {
+                        // 本物の NSubstitute が要るテスト。**失敗ではなく skip**。
+                        // 実行できなかったものを failure に混ぜると数が濁る。
+                        skip++;
+                        skipped.Add($"{type.Name}.{m.Name}: needs NSubstitute");
                     }
                     catch (Exception ex)
                     {
@@ -123,6 +137,13 @@ public static class Program
 
         Console.WriteLine();
         Console.WriteLine($"passed {pass}   failed {fail}   skipped {skip}   harness-errors {error}");
+        if (skipped.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"skipped ({skipped.Count}) — these need a real dependency this harness lacks:");
+            foreach (var sk in skipped.Take(5)) Console.WriteLine("  " + sk);
+            if (skipped.Count > 5) Console.WriteLine($"  ... and {skipped.Count - 5} more");
+        }
         if (failures.Count > 0)
         {
             Console.WriteLine();

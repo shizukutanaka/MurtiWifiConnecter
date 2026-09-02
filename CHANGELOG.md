@@ -440,6 +440,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The same `_`-shadowing trap was hiding in a second file.** `BugFixRegressionTests` named an
+  outer lambda parameter `_`, so the inner `_ = svc.GetRecent(10)` and its four siblings bound as
+  assignments to that captured `int` instead of discards — CS0029, the twenty-second compile defect
+  and an exact repeat of the one found in `AdapterPreferencesTests`. Worth noting as a pattern: the
+  code reads as an obviously-correct discard, and only a compiler distinguishes the two.
+- **Ten more `NetworkHistoryService` instances were sharing one file.** Same defect as the earlier
+  fix, in tests that had been excluded at the time and so were never updated. They now take a fresh
+  temporary path.
+- **`ThemeService`, `JumpListService` and `KeyboardShortcutService` type-check (19 of 46 App
+  files), which admits `BugFixRegressionTests` — 1231 tests now pass across 75 files.** All three
+  needed only published framework definitions — `ResourceDictionary`, `JumpList`/`JumpTask`,
+  `SystemEvents`, `Key`/`ModifierKeys` — never project types, so no signature is inferred from the
+  code under test.
+- **Tests requiring NSubstitute are reported as skipped rather than failed.** The stub cannot build
+  dynamic proxies, so `Substitute.For<T>()` now throws a named exception the runner recognises and
+  counts as *skipped*, listing them with the reason. Previously it returned null and the tests died
+  as `NullReferenceException` among the failures — work that was never run, presented as work that
+  ran and broke. 15 tests are skipped on these grounds and the summary says so.
+- **A stub gap nearly read as a product defect.** `var act = () => svc.CalcContrast(bad, "#FFF")`
+  infers `Func<double>`, and the assertion helper only invoked `Action` and `Func<Task>`, so it
+  reported "expected ArgumentException but nothing was thrown" for input that `ParseHex` does in
+  fact reject. The helper now invokes any delegate. I checked `ParseHex` before believing the
+  result — had I not, this would have been filed as a validation bug that does not exist.
 - **A test fake had drifted out of sync with the interface it implements.**
   `ProfileManagerViewModelErrorHandlingTests.ThrowingWifiService` declared
   `ConnectAsync(Guid, string, string, CancellationToken)` while `IWifiService` requires a

@@ -96,7 +96,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 #   (RefactoringTests は 2026-08 に**取り込んだ**: L.cs が要求する .resources を
 #    tools/stubs/ResxToResources.cs で .resx から生成し -resource で埋め込むようにしたため、
 #    MissingManifestResourceException は解消した。i18n アクセサ層が初めて実行検証される。)
-WPF_DEPENDENT="OweWiringTests.cs FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs"
+WPF_DEPENDENT="OweWiringTests.cs FinalValidationV8Tests.cs OnboardingTests.cs PropertyBasedTests.cs"
 
 APP_SOURCES=""
 for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do
@@ -107,7 +107,8 @@ done
 
 # WPF のごく一部で足りるサービス 3 件。
 for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
-             Services/KeyboardShortcutService.cs; do
+             Services/KeyboardShortcutService.cs \
+             Services/ThemeService.cs Services/JumpListService.cs; do
   [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
 done
 

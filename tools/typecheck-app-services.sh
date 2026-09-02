@@ -87,7 +87,8 @@ done
 # その 2 つは WPF の**公表された定義**を WpfMinimal.Stub.cs が再現しているため
 # 循環しない (コードに合わせてメンバを足していない点が重要)。
 for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
-             Services/KeyboardShortcutService.cs; do
+             Services/KeyboardShortcutService.cs \
+             Services/ThemeService.cs Services/JumpListService.cs; do
   [ -f "src/MWC.App/$extra" ] && FILES="$FILES src/MWC.App/$extra"
 done
 
