@@ -71,7 +71,7 @@ git push
 bash tools/verify.sh                    # ネットワーク・SDK 不要の静的検査
 bash tools/typecheck-core.sh            # MWC.Core を実際にコンパイル
 bash tools/typecheck-cli.sh --selftest  # MWC.Cli を型検査 (スタブ + 自己検証付き)
-bash tools/typecheck-app-services.sh    # MWC.App のうち WPF 非依存分
+bash tools/typecheck-app-services.sh    # MWC.App のうち検査可能な分 (ViewModel 含む。件数を表示)
 bash tools/typecheck-tests.sh --selftest # テスト (MWC.App 依存分と FsCheck を除く)
 bash tools/typecheck-platform.sh        # Platform.Windows のうち循環せず検査できる分
 bash tools/run-tests.sh                 # ★テストを実際に実行する (xunit 無しの近似ランナー)
