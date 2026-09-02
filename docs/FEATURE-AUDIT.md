@@ -13,6 +13,23 @@
 
 ## §0 🔴 最重要・未解決: CI が実際には実走していない(2026-07 第3パスで発見)
 
+> **2026-08 更新 — 「一度も検証されていない」はもう正確ではない。**
+> `.github/workflows/` が空である事実は変わらないが、CI を待たずに次が実施済み:
+>
+> | 検証 | 手段 | 結果 |
+> |---|---|---|
+> | Core / Cli の型検査 | `tools/typecheck-core.sh` / `typecheck-cli.sh` | 全ファイル green(`-warnaserror`) |
+> | App / Platform.Windows | `typecheck-app-services.sh` / `typecheck-platform.sh` | 部分。件数を毎回表示 |
+> | テストの型検査 | `tools/typecheck-tests.sh --selftest` | 大半のファイル |
+> | **テストの実行** | `tools/run-tests.sh` | **全て合格**(件数は実行時出力) |
+> | 検出力 | `tools/mutation-check.sh` | 実質変異を全て kill、対照は生存 |
+>
+> これらで **コンパイル欠陥 22 件・実行時欠陥 5 件・検証ツール自身の欠陥 1 件**が出た。
+> いずれも CI の初回で赤くなるもので、CI 設置前に潰せた分である。
+> **ただし本物の `dotnet build` / `dotnet test` の代替ではない**
+> (アサーション意味論は近似、XAML コードビハインドと ManagedNativeWifi 依存は未検査)。
+> 各スクリプトのヘッダに「何を検査し、何を検査していないか」を明記してある。
+
 > **`.github/workflows/` が存在せず、GitHub Actions の
 > CI/CodeQL/リリース自動化がおそらく一度も実走していない。** CLAUDE.md はこのディレクトリ構成を
 > 前提として文書化しているが、GitHub がワークフローとして認識する唯一のパス
@@ -533,7 +550,7 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 
 | 弱点 | 実測 | 深刻度 |
 |---|---|---|
-| **CI が一度も実走していない** | `.github/workflows/` が存在しない。本セッションの全コミットは静的検証のみ | 🔴 最大。§0 |
+| **CI が一度も実走していない** | `.github/workflows/` が存在しない。ただし 2026-08 に型検査とテスト実行を CI 抜きで実施済み(§0 の表)。残るのは本物の `dotnet build`/`dotnet test` と、XAML・ManagedNativeWifi 依存分 | 🟠 §0 |
 | GitHub Release が無く、**署名済み配布物が 1 つも存在しない** | タグ push は 403、release 作成ツールも無し。README/SECURITY.md は Sigstore 署名・SLSA provenance・SBOM を現在形で謳っていた(2026-08 に是正、`docs/ci/release.yml` を用意) | 🔴 主張と実態の乖離としては最大 |
 | MLO リンク詳細が空(対応判定自体は 2026-08 に GUI へ到達)| `MloLinks` を埋めるコードが無い(§1d)。2026-08 に範囲を訂正 — **実機が要るのは RSSI だけ**で、band/channel は RNR に既出、LinkId は RNR MLD Parameters に在る(未パース) | 🟡 RSSI のみ実機待ち |
 | 現在の MAC を自動取得できない | 判定ロジックは 2026-08 に Core 化済み(`MacAddressModeInference`)。`mwc privacy --mac` で今日使える。残るのは自動供給の配線のみ | 🟢 大部分解消 |
@@ -559,6 +576,12 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 | 11 | MLO 判定が「広告あり」と「詳細あり」を潰し、全 Wi-Fi 7 AP に false を返す | ③単純化 | 2 つの問いに分割。2026-07 のビーコン検出が初めて GUI に到達 |
 | 12 | MAC モード検出を「OS 設定なので不可」と誤記 | ①要件を疑う | 効果は LAA ビットに現れる。Core 化し `mwc privacy --mac` で今日使える |
 | 13 | ブロッカーの記載理由が未検証のまま引き継がれていた | ①要件を疑う | 4 件を 1 件ずつ再検証。**2 件は記載が誤り**、2 件は記載どおりと確認 |
+| 14 | テストが一度も実行されていなかった | ⑤自動化 | `tools/run-tests.sh`(xunit 無しで実行)。初回で**実行時の欠陥 5 件**が出た |
+| 15 | 「近似ランナーだから当てにならない」という懸念 | ①要件を疑う | `tools/mutation-check.sh` で**検出力を実測**。主張する前に測る |
+| 16 | `mutation-check` が SKIP を成功として報告 | ①要件を疑う | 検証していないものを検証済みと言っていた。SKIP は非ゼロ終了に |
+| 17 | NSubstitute 依存テストが NRE で failure に混入 | ③単純化 | 専用例外 + skip 表示。実行できなかったものを failure に混ぜない |
+| 18 | 型検査が Core だけ / その後 Cli・App・tests・Platform へ | ⑤自動化 | 5 スクリプト。いずれも `--selftest` か件数表示で「部分検査」を明示 |
+| 19 | 除外リストが被覆拡大後に陳腐化(2 回) | ①要件を疑う | 「除外リストは書いた時点の可能性のスナップショット」— 拡大の度に再測定する |
 
 **未処置(意図的)**: §2b の `SecureString` 方針は**ユーザー裁定待ち**。
 利害得失が対立する設計判断であり、AI が勝手に決めない。

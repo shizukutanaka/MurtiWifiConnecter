@@ -903,6 +903,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Docs
+- **`FEATURE-AUDIT` §0 and §6 had gone stale again, and §0's staleness mattered most.** Its headline
+  said the repository has never been verified — accurate when written, and no longer true. The
+  workflows directory is still empty, but type-checking now covers Core and Cli completely and App,
+  Platform.Windows and the tests partially, the suite actually executes, and mutation testing
+  measures its detection power. Twenty-two compile defects, five runtime defects and one defect in
+  the verification tooling were found that way, all of them things that would have turned the first
+  CI run red. §0 now carries a table of what is verified, by which script, with the standing caveat
+  that none of it replaces a real `dotnet build`/`dotnet test`. §6 gains the six improvements that
+  landed after it was last reconciled.
+  This is the third time this cycle a summary has lagged the work it summarises, which is worth
+  stating as its own finding: **summary documents rot faster than the code, because nothing fails
+  when they do.** The guards added this cycle catch drifting numbers, not drifting prose.
 - **Measured the XAML code-behind layer and stopped there deliberately, with the numbers recorded.**
   Generating the partials MSBuild produces from `.xaml` — `InitializeComponent` plus the `x:Name`
   fields — is possible and was prototyped: **15 classes, 72 fields, 20 control types across four
