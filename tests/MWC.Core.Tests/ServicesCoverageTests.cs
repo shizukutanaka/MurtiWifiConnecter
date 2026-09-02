@@ -139,7 +139,8 @@ public class CatImportServiceExtendedTests
                 </CredentialApplicability>
                 <ProviderInfo><DisplayName>Test Univ</DisplayName></ProviderInfo>
               </EAPIdentityProvider>
-            </EAPIdentityProviderList>""";
+            </EAPIdentityProviderList>
+            """;
 
         var profiles = _svc.ParseEapConfig(xml);
         profiles.Should().HaveCount(1);

@@ -28,7 +28,9 @@ public class OuiLookupServiceTests
 
     [Fact]
     public void Lookup_Null_ReturnsNull()
-        => _sut.Lookup(null!).Should().BeNull();
+        // オーバーロードを明示する。`null!` だけだと Lookup(string) と
+        // Lookup(ReadOnlySpan<byte>) の双方に変換可能で曖昧になり得る。
+        => _sut.Lookup((string)null!).Should().BeNull();
 
     [Fact]
     public void Lookup_DashSeparated_Works()

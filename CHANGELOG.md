@@ -394,6 +394,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The test project did not compile either; five more defects.** The tests are Core's widest
+  consumer — they actually *call* its APIs across roughly 900 methods — yet xunit and
+  FluentAssertions come only from NuGet, so the project had never been compiled in this
+  environment. Type-check-only stubs let the test bodies bind against the real `MWC.Core.dll`,
+  and every one of these would have turned the first CI run red:
+  a raw string literal in `ServicesCoverageTests` closed its `"""` on the same line as content
+  (CS9000); `AdapterPreferencesTests` named an outer lambda parameter `_`, so the inner
+  `_ = svc.All()` bound as an assignment to that captured `int` instead of a discard (CS0029) — a
+  C# trap nothing but a compiler finds; `ApplePhase3Tests` used `UpdateCheckResult` without
+  `using MWC.App.Services`; `ValidationAndSecurityTests` used `NetworkHistoryService` and
+  `ConnectionExecutor` without `using MWC.Core.Services`; and `HighDensityScenarioTests`
+  constructed `BssInfo` five times without its `required` `Bssid` (CS9035). `ServicesTests`'
+  `Lookup(null!)` is also disambiguated to `(string)null!`, since the argument can convert to both
+  the `string` and `ReadOnlySpan<byte>` overloads.
+- **`tools/typecheck-tests.sh` locks that in and states its own limits.** It reports how many files
+  it checked *and* how many it skipped, so a pass cannot be read as the whole suite compiling, and
+  `--selftest` corrupts an enum member inside a test on every run to prove the bodies are really
+  being bound. What it cannot check is the meaning of any assertion: the stub's `Be(object?)`
+  accepts anything, so `x.Should().Be("wrong type")` still passes. Type-checking is not testing,
+  and the header says so in those words.
 - **MWC.Cli did not type-check either; three more defects.** With Core compiling, the CLI was still
   unverified because `System.CommandLine` is unobtainable here — and the naive workaround proves
   nothing: with the `SetHandler` delegate type unresolved, Roslyn never binds the handler lambdas,

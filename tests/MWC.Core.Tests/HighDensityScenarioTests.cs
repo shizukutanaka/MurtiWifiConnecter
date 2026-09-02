@@ -604,7 +604,7 @@ public class BssInfoModelTests
     [Fact]
     public void BssInfo_HasInterworkingElement_DefaultFalse()
     {
-        var bss = new BssInfo();
+        var bss = new BssInfo { Bssid = "" };   // Bssid は required
         bss.HasInterworkingElement.Should().BeFalse();
         bss.Bssid.Should().BeNullOrEmpty();
     }
@@ -617,7 +617,7 @@ public class BssInfoModelTests
             Ssid   = "Open",
             Auth   = AuthMethod.Open,
             Band   = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = false } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = false } }
         };
         openNet.IsPasspoint.Should().BeFalse("Open AP は Passpoint 非対応");
 
@@ -626,7 +626,7 @@ public class BssInfoModelTests
             Ssid   = "Corp",
             Auth   = AuthMethod.WPA2Enterprise,
             Band   = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = true } }
         };
         passpointNet.IsPasspoint.Should().BeTrue();
         passpointNet.Auth.Should().Be(AuthMethod.WPA2Enterprise);
@@ -644,7 +644,7 @@ public class BssInfoModelTests
             Ssid       = "CorpNet",
             Auth       = auth,
             Band       = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = true } }
         };
         net.IsPasspoint.Should().BeTrue(
             because: $"{auth} is an enterprise auth method and must be recognized as Passpoint-capable");
@@ -745,7 +745,7 @@ public class Hotspot20ServiceBasicTests
         var nets = new[]
         {
             new WifiNetwork { Ssid = "Corp", Auth = AuthMethod.WPA2Enterprise, Band = WifiBand.Band5GHz, SignalQuality = 75,
-                BssEntries = new[]{ new BssInfo { HasInterworkingElement = true } } },
+                BssEntries = new[]{ new BssInfo { Bssid = "", HasInterworkingElement = true } } },
             new WifiNetwork { Ssid = "Home", Auth = AuthMethod.WPA2PSK, Band = WifiBand.Band5GHz, SignalQuality = 90 },
         };
         var passpoint = _svc.FilterPasspointNetworks(nets);

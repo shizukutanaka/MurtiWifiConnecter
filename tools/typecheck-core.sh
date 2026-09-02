@@ -24,13 +24,14 @@
 #     `dotnet build` の代わりにはならない。**
 #   - このスクリプトが見るのは MWC.Core だけ。**Cli は tools/typecheck-cli.sh が
 #     別途カバーする**(型検査専用スタブでデリゲート型を解決させる方式)。
-#     残る未検査は次の 3 つで、いずれも入手不能を確認済み:
-#       * App — WPF (Microsoft.WindowsDesktop.App) の参照パックが未インストール。
-#       * Platform.Windows — ManagedNativeWifi (NuGet) と Windows API が要る。
-#       * tests — xunit / FluentAssertions / NSubstitute が要る。
-#     App は参照無しの構文チェックのみ実施済みで、構文エラーはゼロ。
-#     ただし実際に見つかった欠陥はすべて**束縛エラー**(CS1929/CS1739/CS1061/CS8601)で、
-#     構文チェックでは捕まらない。**App と tests の型検査は CI 待ちのまま。**
+#     他プロジェクトも順に専用スクリプトでカバーした:
+#       * Cli   — tools/typecheck-cli.sh(スタブでデリゲート型を解決)
+#       * App   — tools/typecheck-app-services.sh(WPF 非依存分のみ)
+#       * tests — tools/typecheck-tests.sh(MWC.App 依存分と FsCheck を除く)
+#     **残る真の未検査**は App の WPF 依存分と Platform.Windows
+#     (ManagedNativeWifi と Windows API が要る)。いずれも入手不能を確認済み。
+#     実際に見つかった欠陥はすべて**束縛エラー**(CS1929/CS1739/CS1061/CS8601/
+#     CS0029/CS9035)で、構文チェックでは捕まらない種類だった。
 #
 #   - **素朴にやると無意味になる点**(実験で確認): 本物の Core を参照して Cli を
 #     コンパイルし「参照欠落以外のエラーだけ見る」方式は**何も検査していない**。
