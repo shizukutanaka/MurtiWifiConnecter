@@ -375,6 +375,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- **Collapsed the .NET environment discovery that I had duplicated across six scripts.** Each of
+  `typecheck-{core,cli,app-services,tests,platform}.sh` and `run-tests.sh` carried its own copy of
+  the SDK, Roslyn, reference-pack and source-generator lookup — 147 lines of duplication, all of it
+  written in this same cycle. It is precisely the "N places declaring one fact" defect this cycle
+  has spent its time removing, committed by me while removing it, and it had the usual consequence:
+  a change to the SDK layout would need six edits. `tools/lib/dotnet-env.sh` now holds it once.
+  Two things were lost in the consolidation and caught immediately by running everything afterwards:
+  `Microsoft.Extensions.Logging.Console`, without which the CLI's `AddSimpleConsole` no longer
+  resolved, and the runtime shared-framework paths `run-tests.sh` needs to place a real DLL beside
+  the built assembly. Both are restored with a comment explaining why the shared list must be the
+  **union** of what the callers need, not the intersection. The lesson is the plain one: a
+  refactor's value is only realised if the full suite runs after it, and here it turned two silent
+  breakages into two immediate ones.
 - **README's remaining stale numbers corrected, and `verify.sh` now guards them.** Fixing the badges
   earlier left three untrue figures in the body: the build section claimed 525 tests (actual: 858
   declared methods), and the translation section claimed 508 keys and 7,112 entries (actual: 532

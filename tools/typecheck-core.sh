@@ -46,41 +46,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-DOTNET_ROOT_DIR=${DOTNET_ROOT:-/usr/lib/dotnet}
-SDK_DIR=$(ls -d "$DOTNET_ROOT_DIR"/sdk/*/ 2>/dev/null | sort -V | tail -1)
-CSC="${SDK_DIR}Roslyn/bincore/csc.dll"
-
-if [ ! -f "$CSC" ]; then
-  echo "SKIP: no .NET SDK found under $DOTNET_ROOT_DIR (nothing to type-check with)"
-  exit 2
-fi
-
-NETREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.NETCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
-ASPREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.AspNetCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
-
-if [ -z "$NETREF" ] || [ -z "$ASPREF" ]; then
-  echo "SKIP: reference packs not installed (need Microsoft.NETCore.App.Ref and Microsoft.AspNetCore.App.Ref)"
-  exit 2
-fi
-
-REFS=""
-for f in "$NETREF"*.dll; do REFS="$REFS -r:$f"; done
-REFS="$REFS -r:${ASPREF}Microsoft.Extensions.Logging.Abstractions.dll"
-
-# ソースジェネレータ。無いと [LoggerMessage] / [GeneratedRegex] の partial が
-# 実装無しとみなされ CS8795 が大量に出る(実際の欠陥ではない)。
-GEN=""
-for name in Microsoft.Extensions.Logging.Generators.dll System.Text.RegularExpressions.Generator.dll; do
-  # packs/*/analyzers/dotnet/cs/ に置かれている。バージョンは複数あり得るので最新を採る。
-  g=$(find "$DOTNET_ROOT_DIR/packs" -path '*/analyzers/dotnet/cs/*' -name "$name" 2>/dev/null | sort -V | tail -1)
-  if [ -n "$g" ]; then
-    GEN="$GEN -analyzer:$g"
-  else
-    echo "SKIP: source generator $name not found; [LoggerMessage]/[GeneratedRegex] partials would" >&2
-    echo "      report CS8795 spuriously, so the result would be meaningless." >&2
-    exit 2
-  fi
-done
+. "$(dirname "$0")/lib/dotnet-env.sh"
 
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT

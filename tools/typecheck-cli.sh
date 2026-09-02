@@ -42,30 +42,7 @@ cd "$(dirname "$0")/.."
 SELFTEST=0
 [ "${1:-}" = "--selftest" ] && SELFTEST=1
 
-DOTNET_ROOT_DIR=${DOTNET_ROOT:-/usr/lib/dotnet}
-SDK_DIR=$(ls -d "$DOTNET_ROOT_DIR"/sdk/*/ 2>/dev/null | sort -V | tail -1)
-CSC="${SDK_DIR}Roslyn/bincore/csc.dll"
-NETREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.NETCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
-ASPREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.AspNetCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
-
-if [ ! -f "$CSC" ] || [ -z "$NETREF" ] || [ -z "$ASPREF" ]; then
-  echo "SKIP: .NET SDK or reference packs not available"
-  exit 2
-fi
-
-REFS=""
-for f in "$NETREF"*.dll; do REFS="$REFS -r:$f"; done
-for d in Microsoft.Extensions.Logging.Abstractions Microsoft.Extensions.DependencyInjection.Abstractions \
-         Microsoft.Extensions.DependencyInjection Microsoft.Extensions.Logging \
-         Microsoft.Extensions.Logging.Console Microsoft.Extensions.Options; do
-  [ -f "$ASPREF$d.dll" ] && REFS="$REFS -r:$ASPREF$d.dll"
-done
-
-GEN=""
-for name in Microsoft.Extensions.Logging.Generators.dll System.Text.RegularExpressions.Generator.dll; do
-  g=$(find "$DOTNET_ROOT_DIR/packs" -path '*/analyzers/dotnet/cs/*' -name "$name" 2>/dev/null | sort -V | tail -1)
-  [ -n "$g" ] && GEN="$GEN -analyzer:$g"
-done
+. "$(dirname "$0")/lib/dotnet-env.sh"
 
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
