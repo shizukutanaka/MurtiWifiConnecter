@@ -33,7 +33,7 @@ namespace MWC.Core.Services;
 /// </summary>
 public static class MacAddressModeInference
 {
-    /// <summary>IEEE 802 オクテット 0 の bit 1 — Locally Administered。</summary>
+    /// <summary>(control mutant: comment only)</summary>
     public const byte LocallyAdministeredBit = 0x02;
 
     /// <summary>IEEE 802 オクテット 0 の bit 0 — Group/Multicast。端末アドレスでは 0。</summary>

@@ -55,7 +55,11 @@ if a not in s: raise SystemExit(1)
 open(p, 'w', encoding='utf-8').write(s.replace(a, b, 1))
 PY
   then
-    printf '  %-44s SKIP (pattern no longer present)\n' "$label"
+    # **SKIP を合格として扱わない。** 対象パターンが消えていれば、その変異は
+    # 一度も試されていない。それを「殺した/生存した」と報告するのは
+    # 検証していないことを検証したと言うのと同じ。
+    printf '  \033[33mSKIP\033[0m   %-39s pattern no longer present — this mutant was NOT tested\n' "$label"
+    skipped=$((skipped + 1))
     mv "$file.mutbak" "$file"; return
   fi
 
@@ -70,6 +74,8 @@ PY
     else printf '  \033[31mCONTROL FAILED\033[0m %-37s failures %s -> %s (should be unchanged)\n' "$label" "$BASE" "$n"; rc=1; fi
   fi
 }
+
+skipped=0
 
 try src/MWC.Core/Services/MacAddressModeInference.cs \
     "LocallyAdministeredBit = 0x02" "LocallyAdministeredBit = 0x04" \
@@ -87,13 +93,17 @@ try src/MWC.Core/Profile/WifiUri.cs \
     '"WPA2"         => AuthMethod.WPA2PSK,' '"WPA2"         => AuthMethod.Open,' \
     "WifiUri: WPA2 parses as Open" kill
 try src/MWC.Core/Services/MacAddressModeInference.cs \
-    "/// <summary>IEEE 802 オクテット 0 の bit 1 — Locally Administered。</summary>" \
-    "/// <summary>(control mutant: comment only)</summary>" \
+    "///   - オクテット 0 の bit 1 = **Locally Administered (LAA)**。" \
+    "///   - (control mutant: comment only)" \
     "CONTROL: comment-only edit" survive
 
 echo
-if [ $rc -eq 0 ]; then
+if [ $rc -eq 0 ] && [ "${skipped:-0}" -eq 0 ]; then
   printf '\033[32mevery mutant was killed and the control survived\033[0m — the suite has real detection power\n'
+elif [ $rc -eq 0 ]; then
+  printf '\033[33m%s mutant(s) were skipped\033[0m — their target text has drifted, so those paths are\n' "$skipped"
+  printf 'NOT known to be verified. Update the patterns in this script before trusting the result.\n'
+  rc=1
 else
   printf '\033[31mmutation check failed\033[0m — a surviving mutant means those paths are not actually verified\n'
 fi

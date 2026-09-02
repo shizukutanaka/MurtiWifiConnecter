@@ -87,6 +87,24 @@ for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Service
   [ -f "src/MWC.App/$extra" ] && FILES="$FILES src/MWC.App/$extra"
 done
 
+# ViewModel 群。CommunityToolkit.Mvvm のソースジェネレータ出力を
+# tools/stubs/MvvmGenerate.py が**公表された命名規約どおりに**再現する
+# (循環しない理由は同スクリプトの docstring)。
+# AllAdaptersOverviewViewModel だけは MWC.App.Views (XAML ダイアログ) を要するため外す。
+VM=""
+for f in $(grep -rlE 'ObservableProperty|RelayCommand|ObservableObject' src/MWC.App --include=*.cs \
+           | grep -v '\.xaml\.cs' | grep -v AllAdaptersOverviewViewModel); do
+  VM="$VM $f"
+done
+GENSRC=""
+if [ -n "$VM" ] && command -v python3 > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if python3 tools/stubs/MvvmGenerate.py "$OUT/mvvm.g.cs" $VM > /dev/null 2>&1; then
+    GENSRC="$OUT/mvvm.g.cs"
+    FILES="$FILES $VM"
+  fi
+fi
+
 if [ -z "$FILES" ]; then
   echo "SKIP: no WPF-free files found in src/MWC.App (the exclusion rules may need revisiting)"
   exit 2
@@ -97,7 +115,8 @@ output=$(dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullab
   -warnaserror -nowarn:CS1591 \
   -out:"$OUT/app.dll" $REFS -r:"$OUT/MWC.Core.dll" \
   tools/stubs/ImplicitUsings.Stub.cs tools/stubs/MwcAppNotification.Stub.cs \
-  tools/stubs/WpfMinimal.Stub.cs tools/stubs/Serilog.Stub.cs $FILES 2>&1)
+  tools/stubs/WpfMinimal.Stub.cs tools/stubs/Serilog.Stub.cs tools/stubs/Mvvm.Stub.cs \
+  $GENSRC $FILES 2>&1)
 status=$?
 [ -n "$output" ] && echo "$output"
 

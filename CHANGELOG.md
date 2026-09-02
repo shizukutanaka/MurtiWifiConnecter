@@ -430,6 +430,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`mutation-check.sh` reported success while silently skipping a mutant.** If a mutant's target
+  text had drifted, the run printed `SKIP` and moved on, and the summary still declared that every
+  mutant was killed and the control survived. That is the tool which certifies every other check
+  claiming a verification it never performed — the same defect this cycle has been removing from
+  documentation, sitting in the thing doing the removing. Skips are now counted, reported in colour
+  as *not tested*, and force a non-zero exit; the control mutant's stale pattern is updated so it
+  actually runs. Proven by pointing a mutant at text that does not exist and watching the run fail.
+- **The App type-check now covers sixteen of forty-six files, including seven view models.**
+  `tools/stubs/MvvmGenerate.py` reproduces CommunityToolkit.Mvvm's generated members from its
+  **published naming convention** — `_fooBar` becomes `FooBar` with `OnFooBarChanging`/`Changed`
+  partials, `[RelayCommand] Save()` becomes `SaveCommand` — so a view model referencing a name the
+  convention would not produce fails here rather than in CI. That is the same test applied to every
+  stub in this repository: the convention is published, so it is not inferred from the code under
+  test. `MainViewModel`, `AdapterViewModel`, `NetworkFilterViewModel`, `ProfileManagerViewModel`,
+  `SettingsViewModel`, `NetworkItemViewModel` and `NetworkDetailViewModel` are now checked against
+  the real Core; only `AllAdaptersOverviewViewModel` remains, needing `MWC.App.Views`.
+  Two incidental findings: `System.Windows.Input.ICommand` is **already present** in the reference
+  packs, so the stub that duplicated it was shadowing the real type; and `NetworkDetailViewModel`
+  had been excluded on the strength of a `ThemeService` mention that turned out to be **inside a
+  comment** — the same false positive the orphan check was fixed for earlier in this cycle.
 - **`AccessibilityService` was missing `using System.Windows.Automation.Peers`.** It uses
   `AutomationNotificationKind` and `AutomationNotificationProcessing` unqualified while
   fully-qualifying `Peers.UIElementAutomationPeer` two lines below — so the author knew the
