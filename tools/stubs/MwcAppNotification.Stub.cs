@@ -7,12 +7,18 @@
 //
 // 署名は本物 (src/MWC.App/Services/NotificationService.cs) と一致させること。
 // ずれると偽のエラー/偽の安心を生む。
+using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
 
 namespace MWC.App.Services;
 
 public sealed class NotificationService
 {
+    // 本物は (ILogger<NotificationService>, NotifyIcon? = null) を取る。
+    // NotifyIcon は WinForms なのでスタブでは省略し、既定値付きの第2引数として
+    // 表現しない — テストは第1引数のみで構築している。
+    public NotificationService(ILogger<NotificationService> log) { }
+
     public void NotifyConnected(string ssid, bool hasInternet, bool captive) { }
     public void NotifyFailover(string title, bool hasInternet, bool captive) { }
     public void NotifyDisconnected(string ssid) { }
