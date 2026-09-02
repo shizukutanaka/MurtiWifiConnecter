@@ -430,6 +430,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **A test fake had drifted out of sync with the interface it implements.**
+  `ProfileManagerViewModelErrorHandlingTests.ThrowingWifiService` declared
+  `ConnectAsync(Guid, string, string, CancellationToken)` while `IWifiService` requires a
+  `TimeSpan timeout` parameter — CS0535, the twenty-first compile defect. It surfaced the moment
+  the view-model wiring tests became compilable, which is the point: a fake that no longer matches
+  its interface is invisible until something builds it.
+- **Three more test files now compile and run — 1125 passing, up from 1104, across 72 files.**
+  `NetworkDetailViewModelVpnEapWiringTests`, `ProfileManagerViewModelErrorHandlingTests` and
+  `SignalIconWiringTests` were excluded because they need view models. Seven view models became
+  checkable in the previous change, so the exclusion list had gone stale for the second time this
+  cycle. The remaining seven exclusions were re-measured and still hold: `OweWiringTests` and
+  `FinalValidationV8Tests` need `AllAdaptersOverviewViewModel` (which needs `MWC.App.Views`),
+  `BugFixRegressionTests` needs `JumpListService`/`ThemeService`, `QualityImprovementTests` and
+  `QualityScanV8Tests` need `KeyboardShortcutService`, `OnboardingTests` needs `MWC.App.Views`,
+  and `PropertyBasedTests` needs FsCheck.
+  The lesson is now recurring often enough to state as a rule: **every time coverage widens, the
+  exclusion lists that depend on it must be re-measured, because they encode a snapshot of what
+  was possible when they were written.**
 - **`mutation-check.sh` reported success while silently skipping a mutant.** If a mutant's target
   text had drifted, the run printed `SKIP` and moved on, and the summary still declared that every
   mutant was killed and the control survived. That is the tool which certifies every other check

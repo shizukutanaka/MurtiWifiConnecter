@@ -96,8 +96,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 #   (RefactoringTests は 2026-08 に**取り込んだ**: L.cs が要求する .resources を
 #    tools/stubs/ResxToResources.cs で .resx から生成し -resource で埋め込むようにしたため、
 #    MissingManifestResourceException は解消した。i18n アクセサ層が初めて実行検証される。)
-WPF_DEPENDENT="NetworkDetailViewModelVpnEapWiringTests.cs OweWiringTests.cs \
-ProfileManagerViewModelErrorHandlingTests.cs QualityImprovementTests.cs SignalIconWiringTests.cs \
+WPF_DEPENDENT="OweWiringTests.cs QualityImprovementTests.cs \
 FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs \
 QualityScanV8Tests.cs"
 
@@ -108,9 +107,31 @@ for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/
     || APP_SOURCES="$APP_SOURCES $f"
 done
 
+# WPF のごく一部で足りるサービス 3 件。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs; do
+  [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
+done
+
+# ViewModel 群 + CommunityToolkit.Mvvm 生成メンバの再現。
+# これが入ることで ViewModel 配線テストが実行できるようになる。
+# AllAdaptersOverviewViewModel だけは MWC.App.Views (XAML) を要するため外す。
+GENSRC=""
+VMSRC=""
+for f in $(grep -rlE 'ObservableProperty|RelayCommand|ObservableObject' src/MWC.App --include=*.cs \
+           | grep -v '\.xaml\.cs' | grep -v AllAdaptersOverviewViewModel); do
+  VMSRC="$VMSRC $f"
+done
+if [ -n "$VMSRC" ] && command -v python3 > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if python3 tools/stubs/MvvmGenerate.py "$RUNDIR/mvvm.g.cs" $VMSRC > /dev/null 2>&1; then
+    GENSRC="$RUNDIR/mvvm.g.cs"; APP_SOURCES="$APP_SOURCES $VMSRC"
+  fi
+fi
+
 STUBS="tools/stubs/ImplicitUsings.Stub.cs tools/stubs/TestFrameworks.Stub.cs \
 tools/stubs/MwcAppNotification.Stub.cs tools/stubs/MwcAppVersion.Stub.cs \
-tools/stubs/Serilog.Stub.cs"
+tools/stubs/Serilog.Stub.cs \
+tools/stubs/WpfMinimal.Stub.cs tools/stubs/Mvvm.Stub.cs"
 
 FILES=""; SKIPPED=0
 for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); do
@@ -139,7 +160,7 @@ fi
 dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 -nullable:enable -main:MwcMiniRunner.Program $RESARG \
   -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
   -out:"$RUNDIR/run.dll" $REFS -r:"$RUNDIR/MWC.Core.dll" \
-  $STUBS tools/stubs/MiniRunner.cs $APP_SOURCES $FILES
+  $STUBS $GENSRC tools/stubs/MiniRunner.cs $APP_SOURCES $FILES
 [ $? -eq 0 ] || { echo "tests do not compile; run tools/typecheck-tests.sh"; exit 1; }
 
 cat > "$RUNDIR/run.runtimeconfig.json" <<EOF

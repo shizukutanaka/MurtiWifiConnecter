@@ -93,8 +93,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 #   RefactoringTests / QualityScanV8Tests (中の LocalizationTests 等) … L.cs は .resx をコンパイルして
 #     埋め込んだ .resources を必要とする。csc 直叩きでは resgen 相当が無く生成できないため、
 #     実行すると MissingManifestResourceException になる (製品の不具合ではない)。
-WPF_DEPENDENT="NetworkDetailViewModelVpnEapWiringTests.cs OweWiringTests.cs \
-ProfileManagerViewModelErrorHandlingTests.cs QualityImprovementTests.cs SignalIconWiringTests.cs \
+WPF_DEPENDENT="OweWiringTests.cs QualityImprovementTests.cs \
 FinalValidationV8Tests.cs OnboardingTests.cs BugFixRegressionTests.cs PropertyBasedTests.cs \
 QualityScanV8Tests.cs"
 
@@ -105,9 +104,31 @@ for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/
     || APP_SOURCES="$APP_SOURCES $f"
 done
 
+# WPF のごく一部で足りるサービス 3 件。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs; do
+  [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
+done
+
+# ViewModel 群 + CommunityToolkit.Mvvm 生成メンバの再現。
+# これが入ることで ViewModel 配線テストが実行できるようになる。
+# AllAdaptersOverviewViewModel だけは MWC.App.Views (XAML) を要するため外す。
+GENSRC=""
+VMSRC=""
+for f in $(grep -rlE 'ObservableProperty|RelayCommand|ObservableObject' src/MWC.App --include=*.cs \
+           | grep -v '\.xaml\.cs' | grep -v AllAdaptersOverviewViewModel); do
+  VMSRC="$VMSRC $f"
+done
+if [ -n "$VMSRC" ] && command -v python3 > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if python3 tools/stubs/MvvmGenerate.py "$OUT/mvvm.g.cs" $VMSRC > /dev/null 2>&1; then
+    GENSRC="$OUT/mvvm.g.cs"; APP_SOURCES="$APP_SOURCES $VMSRC"
+  fi
+fi
+
 STUBS="tools/stubs/ImplicitUsings.Stub.cs tools/stubs/TestFrameworks.Stub.cs \
 tools/stubs/MwcAppNotification.Stub.cs tools/stubs/MwcAppVersion.Stub.cs \
-tools/stubs/Serilog.Stub.cs"
+tools/stubs/Serilog.Stub.cs \
+tools/stubs/WpfMinimal.Stub.cs tools/stubs/Mvvm.Stub.cs"
 
 FILES=""; SKIPPED=0
 for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); do
@@ -121,7 +142,7 @@ compile_tests() {
   dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
     -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
     -out:"$1" $REFS -r:"$OUT/MWC.Core.dll" \
-    $STUBS $APP_SOURCES $FILES 2>&1
+    $STUBS $GENSRC $APP_SOURCES $FILES 2>&1
 }
 
 if [ "$SELFTEST" -eq 1 ]; then
