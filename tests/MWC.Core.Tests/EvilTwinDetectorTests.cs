@@ -77,7 +77,10 @@ public class EvilTwinDetectorTests
         var verdict = detector.Analyze(fake, new[] { fake });
 
         verdict.IsSuspect.Should().BeTrue();
-        verdict.Reasons.Should().Contain(r => r.Contains("impersonation"));
+        // 製品が出す理由は "Security downgrade detected: known WPA2PSK vs current Open"。
+        // "impersonation" という語は一度も生成されないため、元の期待は必ず外れていた。
+        // 検出の中身は正しいので、実際の (より具体的な) 文言に合わせる。
+        verdict.Reasons.Should().Contain(r => r.Contains("downgrade"));
     }
 
     [Fact]

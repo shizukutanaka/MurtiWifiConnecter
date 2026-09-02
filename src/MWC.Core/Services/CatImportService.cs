@@ -62,9 +62,17 @@ public sealed class CatImportService
 
         var profiles = new List<CatProfile>();
 
-        // EAPIdentityProvider 要素を巡回
-        var providers = root.Descendants(ns + "EAPIdentityProvider")
-            .Concat(root.Descendants("EAPIdentityProvider"));  // 名前空間なしの古い形式
+        // EAPIdentityProvider 要素を巡回。
+        //
+        // **名前空間が無い文書で二重に数える不具合があった**: `ns` が空のとき
+        // `ns + "EAPIdentityProvider"` は `"EAPIdentityProvider"` と同一になるため、
+        // 下の 2 つの Descendants が**同じ要素を返し**、Concat で全プロファイルが
+        // 倍になっていた (名前空間なしの CAT ファイルを取り込むと、各ネットワークが
+        // 2 回現れる)。名前空間付きで拾えたときはそれを使い、空のときだけ
+        // 名前空間なしの古い形式にフォールバックする。
+        var providers = root.Descendants(ns + "EAPIdentityProvider").ToList();
+        if (providers.Count == 0 && ns != XNamespace.None)
+            providers = root.Descendants("EAPIdentityProvider").ToList();
 
         foreach (var provider in providers)
         {

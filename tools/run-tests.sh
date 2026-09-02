@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# tools/run-tests.sh — テストを **NuGet 無しで実際に実行する**。
+#
+# なぜ在るか:
+#   `api.nuget.org` がエグレス拒否のため xunit のランナーが入らず、このリポジトリの
+#   テストは**一度も実行されたことがなかった**。しかし
+#     - アサーションは tools/stubs/TestFrameworks.Stub.cs が実際に検証し、
+#     - [Fact]/[Theory] の反射呼び出しは tools/stubs/MiniRunner.cs が行う
+#   ので、xunit 無しでも走らせて合否が出せる。
+#
+#   2026-08 の初回実行で **1037 件合格 / 実在の欠陥 4 件**が判明した:
+#     1. CatImportService — 名前空間なしの CAT ファイルで全プロファイルが**二重**になる
+#        (`ns + "X"` と `"X"` が同一クエリになり Concat で倍増)。**製品の不具合**。
+#     2. SlnRegistrationTests — 「GUID が 3 回以上出たら重複」は .sln の形式に対して
+#        常に偽。プロジェクト GUID は宣言 1 + 構成 4 = 最低 5 回出る。
+#     3. EvilTwinDetectorTests — 製品が出さない語 "impersonation" を期待していた。
+#     4. HighDensityWifiUriRoundTripTests — WIFI: URI は WPA と WPA2 を区別できないので
+#        WPAPSK の完全往復は原理的に不可能だった。
+#   いずれも CI の初回で赤くなるもので、型検査では捕まらない **実行時**の欠陥。
+#
+# 本物の `dotnet test` との差 (必ず承知して使うこと):
+#   - 対象は typecheck-tests.sh と同じ範囲 (MWC.App 依存と FsCheck を除く)。
+#   - アサーション意味論は近似。BeEquivalentTo は反射による構造比較で、
+#     本物の FluentAssertions とは差異があり得る。
+#   - 並列実行なし。xunit の collection/fixture は未対応。
+#   - **合格は「この近似の下で通った」という意味**であり、`dotnet test` の代わりにならない。
+#
+# 既知の残課題 (未修正。設計判断が要るため):
+#   NetworkHistoryService 等は LocalApplicationData の**固定パス**に永続化するため、
+#   テスト間で状態が漏れる。実行前に消しても、同一実行内の他テストの書き込みは混ざる
+#   (`NetworkHistoryService_ConcurrentWrites_ThreadSafe` が実際に落ちる)。
+#   本来はパスを注入可能にするべきで、これは API 変更を伴う。
+#
+# 使い方: bash tools/run-tests.sh [--verbose]
+# 終了コード: 0 = 全合格 / 1 = 失敗あり / 2 = SDK 等が無くスキップ
+# ─────────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+DOTNET_ROOT_DIR=${DOTNET_ROOT:-/usr/lib/dotnet}
+SDK_DIR=$(ls -d "$DOTNET_ROOT_DIR"/sdk/*/ 2>/dev/null | sort -V | tail -1)
+CSC="${SDK_DIR}Roslyn/bincore/csc.dll"
+NETREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.NETCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
+ASPREF=$(ls -d "$DOTNET_ROOT_DIR"/packs/Microsoft.AspNetCore.App.Ref/*/ref/net*/ 2>/dev/null | sort -V | tail -1)
+SHARED=$(ls -d "$DOTNET_ROOT_DIR"/shared/Microsoft.AspNetCore.App/*/ 2>/dev/null | sort -V | tail -1)
+RUNTIME_VER=$(basename "$(ls -d "$DOTNET_ROOT_DIR"/shared/Microsoft.NETCore.App/*/ 2>/dev/null | sort -V | tail -1)")
+
+if [ ! -f "$CSC" ] || [ -z "$NETREF" ] || [ -z "$ASPREF" ]; then
+  echo "SKIP: .NET SDK or reference packs not available"; exit 2
+fi
+
+REFS=""
+for f in "$NETREF"*.dll; do REFS="$REFS -r:$f"; done
+for d in Microsoft.Extensions.Logging.Abstractions Microsoft.Extensions.DependencyInjection.Abstractions \
+         Microsoft.Extensions.DependencyInjection Microsoft.Extensions.Logging Microsoft.Extensions.Options; do
+  [ -f "$ASPREF$d.dll" ] && REFS="$REFS -r:$ASPREF$d.dll"
+done
+GEN=""
+for name in Microsoft.Extensions.Logging.Generators.dll System.Text.RegularExpressions.Generator.dll; do
+  g=$(find "$DOTNET_ROOT_DIR/packs" -path '*/analyzers/dotnet/cs/*' -name "$name" 2>/dev/null | sort -V | tail -1)
+  [ -n "$g" ] && GEN="$GEN -analyzer:$g"
+done
+
+# 出力先の深さが重要: RepositoryIntegrityTests / SlnRegistrationTests は
+# アセンブリ位置から 5 階層上をリポジトリルートとみなす (通常のビルド出力と同じ深さ)。
+# 浅い場所に置くとルートを見つけられず、それらのテストが偽陽性で落ちる。
+RUNDIR="artifacts/bin/MiniRunner/Release/net10.0"
+mkdir -p "$RUNDIR"
+
+# shellcheck disable=SC2086
+dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable -nowarn:CS1591 \
+  -out:"$RUNDIR/MWC.Core.dll" $REFS $GEN \
+  $(find src/MWC.Core -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*') > /dev/null 2>&1 \
+  || { echo "MWC.Core does not compile; run tools/typecheck-core.sh"; exit 1; }
+
+FILES=""; SKIPPED=0
+for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); do
+  if [ "$(basename "$f")" = "PropertyBasedTests.cs" ] || grep -qE 'using MWC\.App|MWC\.App\.' "$f"; then
+    SKIPPED=$((SKIPPED+1))
+  else
+    FILES="$FILES $f"
+  fi
+done
+
+# shellcheck disable=SC2086
+dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 -nullable:enable -main:MwcMiniRunner.Program \
+  -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
+  -out:"$RUNDIR/run.dll" $REFS -r:"$RUNDIR/MWC.Core.dll" \
+  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/TestFrameworks.Stub.cs tools/stubs/MiniRunner.cs $FILES
+[ $? -eq 0 ] || { echo "tests do not compile; run tools/typecheck-tests.sh"; exit 1; }
+
+cat > "$RUNDIR/run.runtimeconfig.json" <<EOF
+{ "runtimeOptions": { "tfm": "net10.0",
+  "framework": { "name": "Microsoft.NETCore.App", "version": "${RUNTIME_VER:-10.0.0}" } } }
+EOF
+[ -n "$SHARED" ] && cp "$SHARED"Microsoft.Extensions.Logging.Abstractions.dll "$RUNDIR/" 2>/dev/null
+
+# 永続化された前回の状態を消す。消さないと EapAuthStatsService 等の件数が積み上がり、
+# 製品の不具合と紛らわしい失敗になる (実際に踏んだ)。
+rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/MWC"
+
+echo "running $(echo "$FILES" | wc -w) test files ($SKIPPED skipped: MWC.App-dependent or FsCheck)"
+dotnet "$RUNDIR/run.dll" "$@"

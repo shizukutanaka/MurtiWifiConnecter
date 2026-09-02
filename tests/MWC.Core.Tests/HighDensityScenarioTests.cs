@@ -30,7 +30,13 @@ public class HighDensityWifiUriRoundTripTests
         var parsed = WifiUri.TryParse(uri);
         parsed.Should().NotBeNull();
         parsed!.Ssid.Should().Be(ssid);
-        parsed.Auth.Should().Be(auth);
+        // WIFI: URI スキームは WPA と WPA2 を区別できない (どちらも "T:WPA")。
+        // したがって WPAPSK は往復で WPA2PSK になる — これは仕様上避けられず、
+        // 「完全に往復する」という元の期待は達成不可能だった (CI 未実行のため露見せず)。
+        // 実際の契約は「WPA 系は WPA2PSK に正規化される」こと。
+        var expected = auth == AuthMethod.WPAPSK ? AuthMethod.WPA2PSK : auth;
+        parsed.Auth.Should().Be(expected,
+            "the WIFI: URI scheme cannot distinguish WPA from WPA2, so WPAPSK normalises to WPA2PSK");
         if (passphrase is not null)
             parsed.Passphrase.Should().Be(passphrase);
     }
@@ -593,9 +599,21 @@ public class SlnRegistrationTests
             .Select(m => m.Value.ToUpperInvariant())
             .ToList();
 
-        var projectGuids = guids.GroupBy(g => g).Where(g => g.Count() > 2).ToList();
-        // プロジェクトGUIDは NestedProjects等で2回出るが3回以上は重複
-        projectGuids.Should().BeEmpty("No GUID should appear 3+ times in sln");
+        // 「3 回以上出たら重複」は **.sln の形式に対して誤り**だった。プロジェクト GUID は
+        // Project(...) 宣言で 1 回、GlobalSection の構成 4 行 (Debug/Release × ActiveCfg/Build.0)
+        // で 4 回、合計 5 回以上必ず現れる。プロジェクト型 GUID も全プロジェクトで共有される。
+        // よってこの不変条件はどんな正当な .sln でも必ず破れ、テストは常に落ちる
+        // (CI が一度も走っていなかったため気づかれていなかった)。
+        //
+        // 実際の危険は「**別々のプロジェクトが同じ GUID を宣言している**」こと。それを検査する。
+        var declared = System.Text.RegularExpressions.Regex.Matches(
+                System.IO.File.ReadAllText(slnPath),
+                @"Project\(""\{[0-9A-Fa-f-]+\}""\)\s*=\s*""[^""]+"",\s*""[^""]+"",\s*""(\{[0-9A-Fa-f-]+\})""")
+            .Select(m => m.Groups[1].Value.ToUpperInvariant())
+            .ToList();
+
+        declared.GroupBy(g => g).Where(g => g.Count() > 1).Should()
+            .BeEmpty("two projects must never declare the same GUID");
     }
 }
 

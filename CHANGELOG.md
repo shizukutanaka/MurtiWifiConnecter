@@ -394,6 +394,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **`CatImportService` duplicated every profile when the CAT file had no XML namespace.** The
+  provider scan read `root.Descendants(ns + "EAPIdentityProvider").Concat(root.Descendants("EAPIdentityProvider"))`
+  to tolerate older namespace-less files. When `ns` is empty the two queries are *identical*, so
+  `Concat` returned each provider twice and `mwc import-cat` would have shown every eduroam network
+  duplicated. The namespaced query is now used when it matches, falling back to the bare name only
+  when it finds nothing. Found by executing the tests, not by reading them: this is a runtime
+  defect that four separate type-checks could not see.
+- **Three tests asserted things that were provably false, so they could never have passed.**
+  `SolutionFile_HasNoDuplicateGuids` required that no GUID appear three or more times in `MWC.sln`,
+  but every project GUID appears at least five times — once in its `Project(...)` declaration and
+  four more in the Debug/Release configuration rows — so the invariant is false for any valid
+  solution. It now checks the hazard that actually matters: that no two projects declare the same
+  GUID. `Analyze_OpenImpersonatingEncrypted_HighRisk` looked for the word "impersonation" in the
+  verdict, which `EvilTwinDetector` never emits; the detection itself is correct and reports
+  "Security downgrade detected: known WPA2PSK vs current Open", so the test now asserts that.
+  `RoundTrip_MultipleAuthTypes_PreservesData` expected `WPAPSK` to survive a WIFI: URI round trip,
+  but the scheme has no way to distinguish WPA from WPA2 — both render as `T:WPA` — so the value
+  normalises to `WPA2PSK` by necessity; the test now states that contract explicitly.
+- **Reported but not fixed: the tests share on-disk state.** `NetworkHistoryService` and its
+  siblings persist to a fixed `LocalApplicationData` path held in a `static readonly` field, so
+  entries written by `FinalValidationV9Tests` leak into
+  `NetworkHistoryService_ConcurrentWrites_ThreadSafe`, which then fails. Clearing the directory
+  before a run does not help, because the collision happens *within* one run. Under xunit's default
+  parallel collections this is a latent flake rather than a certainty, which is exactly why it has
+  never been noticed. The honest fix is to make the storage path injectable, and that changes a
+  public API — a decision for the owner rather than something to rush at the end of a session.
 - **The test project did not compile either; five more defects.** The tests are Core's widest
   consumer — they actually *call* its APIs across roughly 900 methods — yet xunit and
   FluentAssertions come only from NuGet, so the project had never been compiled in this

@@ -73,6 +73,7 @@ bash tools/typecheck-core.sh            # MWC.Core を実際にコンパイル
 bash tools/typecheck-cli.sh --selftest  # MWC.Cli を型検査 (スタブ + 自己検証付き)
 bash tools/typecheck-app-services.sh    # MWC.App のうち WPF 非依存分
 bash tools/typecheck-tests.sh --selftest # テスト (MWC.App 依存分と FsCheck を除く)
+bash tools/run-tests.sh                 # ★テストを実際に実行する (xunit 無しの近似ランナー)
 ```
 
 ### AI セッションで `dotnet build` / `dotnet test` を通したい場合(環境側の設定)
@@ -126,6 +127,13 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
    `MWC.Core` は `tools/typecheck-core.sh` で**実際にコンパイル済み**(`-warnaserror` 込みで green)。
    **Cli も 2026-08 に型検査済み**(`tools/typecheck-cli.sh`。ここでも実在の欠陥 3 件が出た)。
    App は **WPF 非依存の 6 ファイルのみ**検査済み(`tools/typecheck-app-services.sh`)。
+   **テストは 2026-08 に型検査だけでなく実行もした** — `tools/run-tests.sh` が
+   xunit 無しで反射実行し、初回で 1037 件が合格、**実在の欠陥 4 件**が出た
+   (製品側 1: `CatImportService` の二重取り込み / テスト側 3: 常に偽の不変条件)。
+   **残る既知の失敗 1 件**: `NetworkHistoryService_ConcurrentWrites_ThreadSafe` は
+   テスト間で `LocalApplicationData` の固定パスを共有するため落ちる。
+   修正には保存先を注入可能にする API 変更が要るので、判断を所有者に委ねている。
+
    **テストも 2026-08 に型検査済み**(`tools/typecheck-tests.sh`。ここでも実在の欠陥 5 件が出た)。
    一方 **App の WPF 依存分・Platform.Windows・MWC.App を参照するテストは型検査されていない**
    (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
