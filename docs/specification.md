@@ -95,8 +95,8 @@
 |---|---|---|
 | FR-80 | Windows 実装(製品本体)。Linux/macOS は部分実装 | MWC.Platform.{Windows,Linux,MacOS} |
 | FR-81 | MWC.Core / MWC.SDK ライブラリ(net9.0) | §11 |
-| FR-82 | winget/scoop/choco/msix/MSI 配布 | installer/* |
-| FR-83 | Sigstore 署名 + SLSA + SBOM | Directory.Build.props / ci |
+| FR-82 | winget/scoop/choco/msix/MSI 配布マニフェスト。**一度もリリースを作成できていないため、いずれも実際には未公開**(タグ push 権限不足。MSI は WiX バージョン不一致で未ビルドが確定・§12 参照) | installer/* |
+| FR-83 | SBOM 生成(`GenerateSBOM`)は実際に有効。**Sigstore 署名 + SLSA provenance は未実行**——`docs/ci/release.yml` にドラフトはあるが `.github/workflows/` に未設置で一度も走っていない | Directory.Build.props / docs/ci/release.yml(未設置) |
 
 ## 11. ビルド / 品質ゲート
 - net9.0 単一ターゲット(ns2.0 は net6+ API 多用のため撤廃。`docs/build-blockers-2026.md`)。
