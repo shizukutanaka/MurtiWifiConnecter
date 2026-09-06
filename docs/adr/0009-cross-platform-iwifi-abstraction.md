@@ -56,3 +56,12 @@ CLAUDE.md の Why が「**Windows PC** で複数の無線アダプターを管�
 `MWC.Platform.Linux`(nmcli)と `MWC.Platform.MacOS`(airport/networksetup)は現存する
 — 前者は完全実装、後者は `RegisterProfileAsync` が未実装の半実装プロトタイプ
 (詳細は `docs/FEATURE-AUDIT.md` §1c、ファイル自身のコメント参照)。
+
+上記「## netstandard2.0 除外対象」節も同様に古い。`MWC.Core` は 2026-06-23 に
+`netstandard2.0 + net8.0` のマルチターゲットから **`net9.0` 単一ターゲット**へ変更された
+(`docs/build-blockers-2026.md` #4 — `Math.Clamp`/`ArgumentNullException.ThrowIfNull`/
+`Random.Shared`/`.ToHashSet()` 等の net6+ 専用 API を約10ファイルで使っており、
+netstandard2.1+ 止まりの netstandard2.0 ではポリフィル不可だったため)。
+現行の `src/MWC.Core/MWC.Core.csproj` に `<TargetFramework>net9.0</TargetFramework>` の
+単一指定のみで `<Compile Remove>` は存在せず、この節が挙げていた `PluginHost` 自体も
+その後(別の理由 — 未配線かつ MEF 依存が壊れていた)削除済み。
