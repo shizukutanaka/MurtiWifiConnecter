@@ -1004,6 +1004,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HKLM\SOFTWARE\Policies\MWC` would see no effect whatsoever: the code advertised manageability
   that did not exist. Verified nothing else in Core touches the registry before removing the package
   reference, and the resulting `.csproj` still parses as valid XML.
+- **Removed the `NSubstitute` package reference from `MWC.Core.Tests` and its central version pin —
+  confirmed zero remaining usages.** An earlier session replaced its call sites with
+  `Fakes/FakeWifiService.cs` because `Substitute.For<T>()` cannot be meaningfully stubbed by this
+  environment's type-check harness (dynamic proxy generation). Grepping the entire `tests/` and
+  `src/` trees for `NSubstitute`/`Substitute\.` turned up only explanatory comments about that
+  migration — zero `using NSubstitute;`, zero `Substitute.For<...>()` calls. `MWC.Core.Tests` is
+  also the only test project in the solution, so nothing else could have depended on it either.
+  A dependency that compiles nothing and gets called from nowhere is pure attack surface with no
+  offsetting benefit. Left the corresponding fake `NSubstitute` namespace in
+  `tools/stubs/TestFrameworks.Stub.cs` and its skip-handling in `MiniRunner.cs` alone — those cost
+  nothing (they're never the real package, just names the harness recognizes) and stay ready if a
+  future test reintroduces it. `tools/verify.sh`'s package-reference count moved from 22 to 21
+  accordingly (computed at runtime, not hardcoded, so nothing else needed updating); the full
+  verification sweep and `tools/run-tests.sh` (1250/1250) were unaffected.
 - **Deleted `WifiDirectService` (217 lines) and its tests.** It orchestrates Wi-Fi Direct
   peer-to-peer pairing through an `IWifiDirectAdapter` whose platform implementation
   (`WindowsWifiDirectAdapter`) has never existed, so the service could not run. Beyond that, Wi-Fi
