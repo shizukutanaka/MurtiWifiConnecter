@@ -65,12 +65,22 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 # (以前「テストヘルパーのクラス名衝突」と書いたが**それは誤り**だった。実際の失敗理由は
 #  すべて System.Windows.Input / MWC.App.ViewModels への依存で、衝突は 1 件も無い。
 #  同じ誤診を繰り返さないよう、除外理由をファイル名とともに明記する。)
-#   NetworkDetailViewModelVpnEapWiringTests / OweWiringTests /
-#   ProfileManagerViewModelErrorHandlingTests / SignalIconWiringTests … ViewModel 依存
-#   QualityImprovementTests … System.Windows.Input (KeyboardShortcutService)
-#   PropertyBasedTests … FsCheck
-#   FinalValidationV8Tests / OnboardingTests / BugFixRegressionTests … ViewModel / Dialog 依存
-#   QualityScanV8Tests … KeyboardShortcutService (System.Windows.Input) 依存。
+#
+# ★ 以前この節は NetworkDetailViewModelVpnEapWiringTests / ProfileManagerViewModelErrorHandlingTests /
+#   SignalIconWiringTests / QualityImprovementTests / BugFixRegressionTests も「ViewModel / Dialog /
+#   System.Windows.Input 依存」として除外中と書いていたが、**それは誤り**だった —
+#   下の WPF_DEPENDENT には含まれておらず、実際には 4 者ともコンパイル・実行されている。
+#   Mvvm.Stub.cs / tools/stubs/MvvmGenerate.py / WpfMinimal.Stub.cs によるスタブ面の拡大に
+#   合わせて自然に取り込まれていたが、この説明コメントだけが同期されず古いまま残っていた —
+#   本節が戒めている「同じ誤診を繰り返さない」を、この節自身が破っていたことになる。
+#   除外リストを変更したら、この一覧も同じコミットで直すこと。
+#
+#   現在も除外が要るのは以下の 4 者だけ:
+#   OweWiringTests / FinalValidationV8Tests / OnboardingTests … AllAdaptersOverviewViewModel か
+#     Dialog クラス (ConnectionProgressDialog 等) を要求し、いずれも XAML コンパイラでしか
+#     生成できない InitializeComponent partial が必要 (tools/stubs/WpfMinimal.Stub.cs のヘッダ参照)。
+#   PropertyBasedTests … FsCheck (NuGet 専用パッケージ、スタブ化していない)。
+#
 #   (RefactoringTests は 2026-08 に**取り込んだ**: L.cs が要求する .resources を
 #    tools/stubs/ResxToResources.cs で .resx から生成し -resource で埋め込むようにしたため、
 #    MissingManifestResourceException は解消した。i18n アクセサ層が初めて実行検証される。)
