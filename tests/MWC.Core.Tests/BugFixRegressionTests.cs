@@ -13,7 +13,6 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Profile;
 using MWC.Core.Services;
-using NSubstitute;
 using Xunit;
 
 namespace MWC.Core.Tests;
@@ -347,16 +346,16 @@ public class AppUpdateServiceTests
 /// </summary>
 public class ConnectionExecutorShouldRegisterTests
 {
-    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
+    // NSubstitute はこの harness で使えない (SubstituteUnavailableException) ため、
+    // 呼び出し回数・引数を自前で記録する FakeWifiService に置き換える。
+    // Received(1)/DidNotReceive() は RegisterCallCount/LastConnectArgs の直接検査に対応する。
+    private static (ConnectionExecutor Executor, Fakes.FakeWifiService Wifi) Build()
     {
-        var wifi = Substitute.For<IWifiService>();
-        wifi.RegisterProfileAsync(
-                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(true));
-        wifi.ConnectAsync(
-                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(ConnectionResult.Ok("Net", true, false)));
+        var wifi = new Fakes.FakeWifiService
+        {
+            NextRegisterResult = true,
+            NextConnectResult  = ConnectionResult.Ok("Net", true, false),
+        };
 
         var executor = new ConnectionExecutor(
             wifi, new NetworkHistoryService(null, TestHistoryPath.Fresh()),
@@ -375,7 +374,11 @@ public class ConnectionExecutorShouldRegisterTests
     [InlineData(AuthMethod.WPA3SAE,        "",        false)]
     [InlineData(AuthMethod.WPA3Transition, "",        false)]
     [InlineData(AuthMethod.WEP,            "",        false)]
-    [InlineData(AuthMethod.WPA2PSK,        "pass123", true)]
+    // "pass123" (7文字) は WifiProfileValidator の WPA 最小長 8 文字を割り込み、
+    // ProfileXmlBuilder.Build が ArgumentException を投げる — テストデータの不備。
+    // NSubstitute が使えず、この Theory 行は 2026-08 まで一度も実行されたことが
+    // なかったため、書かれた時点から気づかれずに残っていた。
+    [InlineData(AuthMethod.WPA2PSK,        "pass1234", true)]
     [InlineData(AuthMethod.Open,           "",        true)]
     [InlineData(AuthMethod.OWE,            "",        true)]
     public async Task RegisterProfileAsync_CalledOrSkipped(
@@ -386,11 +389,14 @@ public class ConnectionExecutorShouldRegisterTests
         await executor.ConnectAsync(Guid.NewGuid(), "Net", auth, passphrase);
 
         if (expectRegistration)
-            await wifi.Received(1).RegisterProfileAsync(
-                Arg.Any<Guid>(), Arg.Any<string>(), true, Arg.Any<CancellationToken>());
+        {
+            wifi.RegisterCallCount.Should().Be(1);
+            wifi.LastRegisterOverwrite.Should().BeTrue();
+        }
         else
-            await wifi.DidNotReceive().RegisterProfileAsync(
-                Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        {
+            wifi.RegisterCallCount.Should().Be(0);
+        }
     }
 
     [Fact]
@@ -402,8 +408,8 @@ public class ConnectionExecutorShouldRegisterTests
 
         var result = await executor.ConnectAsync(adapterId, "Net", AuthMethod.WPA2PSK, "");
 
-        await wifi.Received(1).ConnectAsync(
-            adapterId, "Net", "Net", Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>());
+        wifi.ConnectCallCount.Should().Be(1);
+        wifi.LastConnectArgs.Should().Be((adapterId, "Net", "Net"));
         result.Success.Should().BeTrue();
     }
 }
@@ -419,20 +425,17 @@ public class ConnectionExecutorShouldRegisterTests
 /// </summary>
 public class ConnectionExecutorDisconnectInhibitTests
 {
-    private static (ConnectionExecutor Executor, IWifiService Wifi) Build()
-    {
-        var wifi = Substitute.For<IWifiService>();
-        wifi.DisconnectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(true));
-        return (new ConnectionExecutor(
-            wifi, new NetworkHistoryService(null, TestHistoryPath.Fresh()),
-            NullLogger<ConnectionExecutor>.Instance), wifi);
-    }
+    // FakeWifiService.DisconnectAsync は常に true を返すため、NSubstitute の
+    // Returns() 設定は不要 — 置き換えるだけで足りる。
+    private static ConnectionExecutor Build()
+        => new(new Fakes.FakeWifiService(),
+               new NetworkHistoryService(null, TestHistoryPath.Fresh()),
+               NullLogger<ConnectionExecutor>.Instance);
 
     [Fact]
     public async Task AfterDisconnect_WasRecentlyDisconnectedByUser_ReturnsTrue()
     {
-        var (executor, _) = Build();
+        var executor = Build();
         var id = Guid.NewGuid();
 
         await executor.DisconnectAsync(id);
@@ -444,7 +447,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     [Fact]
     public void WithoutDisconnect_WasRecentlyDisconnectedByUser_ReturnsFalse()
     {
-        var (executor, _) = Build();
+        var executor = Build();
         var id = Guid.NewGuid();
 
         executor.WasRecentlyDisconnectedByUser(id, TimeSpan.FromSeconds(15))
@@ -454,7 +457,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     [Fact]
     public async Task DifferentAdapter_NotInhibited()
     {
-        var (executor, _) = Build();
+        var executor = Build();
         var idA = Guid.NewGuid();
         var idB = Guid.NewGuid();
 
@@ -467,7 +470,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     [Fact]
     public async Task ZeroWindow_AlwaysReturnsFalse()
     {
-        var (executor, _) = Build();
+        var executor = Build();
         var id = Guid.NewGuid();
 
         await executor.DisconnectAsync(id);
@@ -488,47 +491,40 @@ public class ConnectionExecutorDisconnectInhibitTests
 /// 完全に無効になる (条件 wasConnected = false のままでトリガーしない)。
 ///
 /// 修正: WindowsWifiService.GetAdaptersAsync() で ConnectedSsid = GetConnectedSsid(i.Id)
-/// を設定するよう変更。このテストは IWifiService 実装がその契約を守るかを確認する。
+/// を設定するよう変更。
+///
+/// **このテストが実際に確認するのは WifiAdapter モデルの形だけ** — 以前は
+/// IWifiService をモックして「モックが返した値をそのまま読み返す」だけの構成だったが、
+/// それは WindowsWifiService の契約を何も検証していなかった (モックは production コードを
+/// 一切呼ばない)。実機の Windows でしか検証できない部分は検証できないと認め、
+/// モックの見せかけを外して直接構築にした。
 /// </summary>
 public class IWifiServiceGetAdaptersConnectedSsidTests
 {
     [Fact]
-    public async Task GetAdapters_ConnectedAdapter_HasNonNullConnectedSsid()
+    public void ConnectedAdapter_HasNonNullConnectedSsid()
     {
-        // Before fix: WindowsWifiService.GetAdaptersAsync omitted ConnectedSsid,
-        // so every adapter reported null — AdapterFailoverService could never detect
-        // wasConnected→disconnected transitions.
-        var wifi = Substitute.For<IWifiService>();
-        var id   = Guid.NewGuid();
-        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
-            .Returns(new System.Collections.Generic.List<WifiAdapter>
-            {
-                new() { Id = id, Name = "Wi-Fi", Description = "Test",
-                        State = AdapterState.Connected, ConnectedSsid = "HomeNet" }
-            });
+        var adapter = new WifiAdapter
+        {
+            Id = Guid.NewGuid(), Name = "Wi-Fi", Description = "Test",
+            State = AdapterState.Connected, ConnectedSsid = "HomeNet"
+        };
 
-        var adapters = await wifi.GetAdaptersAsync();
-
-        adapters[0].ConnectedSsid.Should().Be("HomeNet",
+        adapter.ConnectedSsid.Should().Be("HomeNet",
             "a Connected-state adapter must report the SSID it is connected to; " +
-            "null here silently disables AdapterFailoverService");
+            "null here would silently disable AdapterFailoverService");
     }
 
     [Fact]
-    public async Task GetAdapters_DisconnectedAdapter_ConnectedSsidIsNull()
+    public void DisconnectedAdapter_ConnectedSsidIsNull()
     {
-        var wifi = Substitute.For<IWifiService>();
-        var id   = Guid.NewGuid();
-        wifi.GetAdaptersAsync(Arg.Any<System.Threading.CancellationToken>())
-            .Returns(new System.Collections.Generic.List<WifiAdapter>
-            {
-                new() { Id = id, Name = "Wi-Fi 2", Description = "Test",
-                        State = AdapterState.Disconnected, ConnectedSsid = null }
-            });
+        var adapter = new WifiAdapter
+        {
+            Id = Guid.NewGuid(), Name = "Wi-Fi 2", Description = "Test",
+            State = AdapterState.Disconnected, ConnectedSsid = null
+        };
 
-        var adapters = await wifi.GetAdaptersAsync();
-
-        adapters[0].ConnectedSsid.Should().BeNull(
+        adapter.ConnectedSsid.Should().BeNull(
             "a Disconnected adapter correctly reports null ConnectedSsid");
     }
 

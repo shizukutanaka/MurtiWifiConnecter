@@ -459,6 +459,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **The last 15 skipped tests — all of them NSubstitute-dependent — now run, and running them
+  found a test-data bug that had existed since the file was written.** `ConnectionExecutorShouldRegisterTests`
+  and `ConnectionExecutorDisconnectInhibitTests` were the only two classes still using
+  `Substitute.For<IWifiService>()`, which this harness cannot provide (dynamic proxying is out of
+  reach without the real package), so every test in them reported `needs NSubstitute` rather than
+  pass or fail. Both were rewritten against `FakeWifiService`, which already backs most of the
+  suite; it gained `RegisterCallCount`/`LastRegisterOverwrite`/`LastConnectArgs` so the interaction
+  assertions (`Received(1)`, `DidNotReceive()`) could be replaced with direct counts — a strictly
+  additive change to the fake, so every other caller is unaffected. Running the converted test for
+  the first time immediately failed: `[InlineData(AuthMethod.WPA2PSK, "pass123", true)]` used a
+  7-character passphrase against a validator whose documented WPA minimum is 8, so
+  `ProfileXmlBuilder.Build` threw before `RegisterProfileAsync` was ever called. The test data was
+  wrong from the day it was written and nothing could have caught it, because nothing had ever run
+  it. Fixed to `"pass1234"`. Two more tests in the same file were reduced to direct model
+  construction rather than routed through a mock that only echoed back canned data and exercised no
+  real interface contract. Skip count: 15 → 0.
 - **The same `_`-shadowing trap was hiding in a second file.** `BugFixRegressionTests` named an
   outer lambda parameter `_`, so the inner `_ = svc.GetRecent(10)` and its four siblings bound as
   assignments to that captured `int` instead of discards — CS0029, the twenty-second compile defect

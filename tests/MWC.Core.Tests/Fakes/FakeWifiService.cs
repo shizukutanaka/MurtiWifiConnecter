@@ -86,6 +86,12 @@ public sealed class FakeWifiService : IWifiService
     public int ScanCallCount  { get; private set; }
     public int ConnectCallCount { get; private set; }
 
+    // 呼び出し検証用。NSubstitute の Received()/Arg.Any() の代わりに
+    // 「何回・どんな引数で呼ばれたか」を直接記録する。
+    public int RegisterCallCount { get; private set; }
+    public bool? LastRegisterOverwrite { get; private set; }
+    public (Guid AdapterId, string ProfileName, string Ssid)? LastConnectArgs { get; private set; }
+
     private readonly Channel<WifiEvent> _events = Channel.CreateUnbounded<WifiEvent>();
 
     public Task<IReadOnlyList<WifiAdapter>> GetAdaptersAsync(CancellationToken ct = default)
@@ -102,12 +108,17 @@ public sealed class FakeWifiService : IWifiService
 
     public Task<bool> RegisterProfileAsync(Guid adapterId, string profileXml, bool overwrite,
         CancellationToken ct = default)
-        => Task.FromResult(NextRegisterResult);
+    {
+        RegisterCallCount++;
+        LastRegisterOverwrite = overwrite;
+        return Task.FromResult(NextRegisterResult);
+    }
 
     public async Task<ConnectionResult> ConnectAsync(Guid adapterId, string profileName, string ssid,
         TimeSpan timeout, CancellationToken ct = default)
     {
         ConnectCallCount++;
+        LastConnectArgs = (adapterId, profileName, ssid);
         await _events.Writer.WriteAsync(
             new WifiEvent(adapterId, WifiEventType.Connecting, ssid, DateTimeOffset.UtcNow), ct);
         await Task.Delay(50, ct);  // 非同期を演出
