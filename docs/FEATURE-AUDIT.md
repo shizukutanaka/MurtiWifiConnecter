@@ -7,7 +7,9 @@
 > 記載の数値は 2026-07 時点。作業前に必ず「§5 再監査手順」のコマンドで最新状態を再検証すること。
 > **作業方法・環境の罠・モデル別注意は [AI-SESSION-HANDBOOK.md](AI-SESSION-HANDBOOK.md) を参照。**
 > **所有者が実行すべき残作業は [COMPLETION-CHECKLIST.md](COMPLETION-CHECKLIST.md) にまとめてある**
-> (CI 設置・Release・MLO リンク詳細の 3 件。各々に「なぜ AI が実行できなかったか」の実測結果付き)。
+> (CI 設置・Release・MLO リンク詳細・MAC 自動取得の 4 件。各々に「なぜ AI が実行できなかったか」の
+> 実測結果付き。ただし MAC 自動取得は 2026-08 に判定ロジックと CLI 配線を Core 化済みで、
+> 残るのは Windows 側で実アドレスを供給する 1 箇所だけ — 他 3 件ほど手つかずではない)。
 
 ---
 
