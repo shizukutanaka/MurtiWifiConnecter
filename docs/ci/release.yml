@@ -14,9 +14,14 @@ name: Release
 # 設置しただけでは何も起きない。`git tag v1.2.3 && git push --tags` で初めて走る。
 #
 # **現時点の配布物は zip のみ。** installer/wix/Product.wxs は在るが、
-# 発行済みファイル一覧の harvest (heat 相当) が未整備で MSI をビルドできない。
-# MSI を出すようになったら、署名・ハッシュ・provenance の各ステップは
-# 既に *.msi を拾う書き方にしてあるので、ビルドステップを足すだけで済む。
+# その `<Files Include="...">` ワイルドカードハーベストは WiX **v5 以降**の機能で
+# (github.com/wixtoolset/wix の実ソースを v4.0.0〜v4.0.6 と v5.0.0 で突き合わせて
+# 確認済み — v4.x のどのパッチにも存在しない)、docs/adr/0005-multi-channel-distribution.md
+# が明記する「WiX v4」とは版数不一致。詳細は Product.wxs 自身のコメント参照。
+# MSI を出すようになったら、この版数不一致を先に解消すること
+# (v5 系ツールセットを使うか、この要素を v4 対応の書き方に置き換えるか)。
+# 署名・ハッシュ・provenance の各ステップは既に *.msi を拾う書き方にしてあるので、
+# それ自体はビルドステップを足すだけで済む。
 #
 # 使う Action について:
 #   actions/checkout・setup-dotnet・attest-build-provenance・upload-artifact は

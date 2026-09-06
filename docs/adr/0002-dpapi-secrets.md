@@ -13,7 +13,15 @@ WiFi パスフレーズ等の機密情報を保存する必要がある(「保�
 
 ## Decision
 
-**Windows DPAPI (`ProtectedData.Protect`)** を `DataProtectionScope.CurrentUser` で使用。アプリ識別エントロピー(`"MWC-v1"` 8 バイト)を追加。
+**Windows DPAPI (`ProtectedData.Protect`)** を `DataProtectionScope.CurrentUser` で使用。アプリ識別エントロピー(`"WiFix-v1"` 8 バイト)を追加。
+
+> **2026-09 訂正**: 以前の版はこのエントロピー文字列を `"MWC-v1"`(6 バイト、
+> 「8 バイト」という記載自体とも矛盾)と誤記していた。実装
+> (`src/MWC.Platform.Windows/DpapiSecretProtector.cs`)は一貫して `"WiFix-v1"` を使っている
+> ——`docs/FEATURE-AUDIT.md` が指摘する通り、リブランド前の旧製品名の残骸と見られる。
+> **この文字列は既存ユーザーの暗号化済みデータのため絶対に変更してはならない**
+> (CLAUDE.md 必須事項・`docs/AI-SESSION-HANDBOOK.md` 変更禁止リスト)。ここは
+> ADR 本文の誤記を実装に合わせて訂正したものであり、決定内容が変わったわけではない。
 
 ## Consequences
 

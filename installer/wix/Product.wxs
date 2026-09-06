@@ -49,7 +49,22 @@
 
     <!-- Components -->
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
-      <!-- Harvest all files from the published output -->
+      <!-- Harvest all files from the published output.
+           ⚠ 2026-09 実測: この <Files Include> ワイルドカードハーベストは
+           WiX **v5 以降**の機能。github.com/wixtoolset/wix の実ソースを
+           v4.0.0〜v4.0.6(v4.x の全パッチ)と v5.0.0 で突き合わせたところ、
+           このハーベスト用パーサ(テストスイート "HarvestFiles" 一式含む)は
+           v5.0.0 にのみ存在し、v4.x のどのバージョンにも存在しなかった。
+           xmlns の URI が "v4/wxs" のままなのはスキーマ世代の命名であり、
+           ツールセットのバージョンとは無関係(v5.0.0 のテスト .wxs も同じ
+           xmlns を使っている)——これに惑わされて「v4 対応」と誤認しないこと。
+           docs/adr/0005-multi-channel-distribution.md は「WiX v4」を明記して
+           いるが、実際に MSI をビルドするなら **v5 系のツールセットを使うか、
+           この要素を v4 で使える手段(heat.exe 相当や手書き Component 列挙)に
+           書き換えるか**のどちらかが必要。docs/ci/release.yml のコメントが
+           「harvest 未整備」とだけ書いているのは、この版数不一致を指していない
+           可能性があるため、実際に WiX でビルドを試すセッションはまずここを
+           確認すること。 -->
       <Files Include="$(AppPath)\**" />
     </ComponentGroup>
 
