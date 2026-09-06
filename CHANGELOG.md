@@ -35,6 +35,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reproduction commands in both files' doc comments and in
   `docs/COMPLETION-CHECKLIST.md` §5, so whoever implements the fix on real Windows hardware starts
   from verified facts rather than re-deriving them.
+- **The `GetConnectedSsid` fix above was verified by compiling one method in isolation, not the
+  file it lives in — and `WindowsWifiService.cs` turned out to have five more references that
+  never matched the real ManagedNativeWifi 3.0.2 API.** Built a permanent stub
+  (`tools/stubs/ManagedNativeWifi.Stub.cs`, transcribed from the real cloned source, not derived
+  from the code under test) and wired it into `tools/typecheck-platform.sh` so the whole file
+  compiles against it — `WindowsWifiService.cs` had never once been checked as a unit. Found:
+  `MapAuth` referenced a type `AuthAlgorithm` that doesn't exist (the real type is
+  `AuthenticationAlgorithm`) with member names in .NET-style PascalCase (`RsnaPsk`, `WpaPsk`) that
+  don't match the real, DOT11-constant-style names (`RSNA_PSK`, `WPA_PSK`) — enum members are
+  case-sensitive, so none of the seven cases matched. `MapCipher` had the right type name but the
+  same casing mismatch (`Ccmp`/`Tkip`/`Wep`/`Gcmp256` vs. real `CCMP`/`TKIP`/`WEP`/`GCMP_256`).
+  `MapPhy` referenced members `B`/`A`/`G`/`N`/`Ac`/`Ax`/`Be` that don't exist on the real `PhyType`
+  enum at all (real members are `HrDsss`/`Ofdm`/`Erp`/`Ht`/`Vht`/`He`/`Eht` — ManagedNativeWifi's
+  own `PhyTypeExtension.ToProtocolName()` documents the same mapping). `BuildBssMap` treated
+  `BssNetworkInfo.Band` as a nullable KHz frequency (`bss.Band.HasValue`); the real member is a
+  non-nullable `float` representing the GHz band, and the real KHz frequency lives on a different
+  member, `Frequency` — while the channel-width lookup called `bss.Bandwidth`, which doesn't exist
+  on any version of this type because ManagedNativeWifi 3.0.2 exposes no channel-width data at
+  all. And `SubscribeEventsAsync` read `e.Ssid` off `NetworkStateChangedEventArgs`, a field that
+  type has never had. Fixed all five: correct type/member names for auth and cipher mapping,
+  correct PHY mapping table, `ChannelWidth` now honestly returns `0` (no real data source exists
+  in this library version) instead of calling a nonexistent member, and the SSID field is now
+  honestly `null` for the same reason. Also fixed a `using PhyType_ = ManagedNativeWifi.PhyType;`
+  alias that `WindowsWifiService.cs` was relying on from a *different file*
+  (`NetworkStateChangedEventHandlerBridge.cs`) — `using` aliases are file-scoped in C#, so that
+  reference had never resolved either; added the alias directly to this file. Confirmed the stub
+  has real detection power via `--selftest` (corrupts one known-good enum member and checks the
+  type check still fails) before trusting any of this. `tools/typecheck-platform.sh` now checks
+  4 of 6 `MWC.Platform.Windows` files (was 3); the remaining two
+  (`ConnectionWaiter.cs`/`NetworkStateChangedEventHandlerBridge.cs`) still can't be checked for the
+  reason described above — that gap is unrelated to this fix and remains open.
 - **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
   provenance. No binary has ever been produced.** There is no release workflow, no release, and
   therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as

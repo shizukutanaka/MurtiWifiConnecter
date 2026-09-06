@@ -34,8 +34,12 @@
 >
 > **2026-09 追記 — ManagedNativeWifi 依存分も「未検査」で済まなくなった。**
 > NuGet を経由せず ManagedNativeWifi の公開ソースを直接取得し実ソースと突き合わせたところ、
-> `MWC.Platform.Windows` に**実在しない API への参照が 3 件**見つかった。うち 1 件
-> (`WindowsWifiService.GetConnectedSsid`)は実 API に置き換え済み。残る 2 件は
+> `MWC.Platform.Windows` に**実在しない/取り違えた API 参照が計 8 件**見つかった
+> (最初の裏取りで 3 件、その後 `tools/stubs/ManagedNativeWifi.Stub.cs` を恒久化して
+> `WindowsWifiService.cs` 全体を検査したところ同じファイルからさらに 5 件)。
+> うち 6 件(`WindowsWifiService.cs` 全体)は実 API に置き換え・修正済みで、
+> `tools/typecheck-platform.sh`(4/6 ファイル、`--selftest` 込み)に組み込んで
+> 継続検査できるようにした。残る 2 件は
 > **CLAUDE.md 必須事項「接続成功は WlanNotification の 2 段判定」の前段そのもの**
 > (`ConnectionWaiter`)に関わり、設計判断が要るため実機セッションに委ねている。
 > 詳細と再現手順は `docs/COMPLETION-CHECKLIST.md` §5。
@@ -596,6 +600,7 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 | 20 | NSubstitute 依存 15 件が skip のまま(#17 は緩和しただけで解消していない) | ②削除 | `FakeWifiService` に呼び出し記録を追加し置き換え。**skip 0 件に**。過程で "pass123"(7 文字、WPA 最小長 8 未満)という**テストデータ自体の不備**が発覚 — 一度も実行されなかったため書かれた時から気づかれていなかった |
 | 21 | 「隣接ファイルと同じ扱い」を検証せずグループ化(`WlanBssIeProvider` を ManagedNativeWifi 依存と誤分類) | ①要件を疑う | 1 ファイルずつ `using` を確認。実は自前 P/Invoke のみで単独コンパイル可能だった。`typecheck-platform.sh` に追加 |
 | 22 | `NativeWifi.NetworkStateChanged`/`ChannelBandwidth`/`EnumerateConnectedNetworks` が全て実在しない架空 API 参照だった(CLAUDE.md 必須事項の接続完了検知の中核を含む) | ①要件を疑う → ⑤自動化 | NuGet 経由でなく GitHub から実ソースを直接取得し突き合わせ、推測でなく実測で確定。`GetConnectedSsid` は実 API に置換・検証済み。`ConnectionWaiter` の設計判断が要る 2 件は class doc に根拠を全文引用し実機セッションへ委譲(詳細: `docs/COMPLETION-CHECKLIST.md` §5) |
+| 23 | 「`GetConnectedSsid` 1 メソッドだけ単体コンパイルして直った」で `WindowsWifiService.cs` 全体を検証済みと扱っていた。実際にファイル全体を実ソース由来のスタブでコンパイルすると、さらに 5 件(`AuthAlgorithm`→`AuthenticationAlgorithm`、`CipherAlgorithm`/`PhyType` のメンバー名不一致、`ChannelBandwidth`/`Bandwidth` の不在、`NetworkStateChangedEventArgs.Ssid` の不在)が出た | ②単体テストを疑う → ⑤自動化 | 「1 メソッドが直った」≠「ファイルが直った」。`tools/stubs/ManagedNativeWifi.Stub.cs` を恒久化し `tools/typecheck-platform.sh`(`--selftest` 込み)に組み込んで `WindowsWifiService.cs` 全体を継続検査(4/6 ファイルに拡大) |
 
 **未処置(意図的)**: §2b の `SecureString` 方針は**ユーザー裁定待ち**。
 利害得失が対立する設計判断であり、AI が勝手に決めない。

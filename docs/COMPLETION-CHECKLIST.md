@@ -139,14 +139,16 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
    | `MWC.Core` | `tools/typecheck-core.sh` | **実際にコンパイル済み**(`-warnaserror` 込みで green) |
    | `MWC.Cli` | `tools/typecheck-cli.sh --selftest` | 型検査済み(実在の欠陥 3 件が出て修正済み) |
    | `MWC.App` | `tools/typecheck-app-services.sh` | WPF 非依存の **19/46 ファイル**を型検査(件数は実行時表示、ハードコードしない) |
-   | `MWC.Platform.Windows` | `tools/typecheck-platform.sh` | ManagedNativeWifi に依存しない **3/6 ファイル**を型検査 |
+   | `MWC.Platform.Windows` | `tools/typecheck-platform.sh --selftest` | **4/6 ファイル**を型検査(2026-09: `tools/stubs/ManagedNativeWifi.Stub.cs` を実ソースから起こして `WindowsWifiService.cs` も対象に追加。導入直後に実欠陥 4 件が見つかり修正済み — §5 参照) |
    | テスト(型検査) | `tools/typecheck-tests.sh --selftest` | MWC.App 依存分と FsCheck を除く **75/79 ファイル** |
    | テスト(実行) | `tools/run-tests.sh` | xunit 無しで反射実行。**現在は全件合格**(件数は実行時表示。当初の実行で実在の欠陥が複数出て修正済み) |
    | 検出力 | `tools/mutation-check.sh` | 意図的な欠陥注入 5 件を全て kill、コメントのみの対照は生存 |
 
    **依然として型検査も実行もされていないのは実質 2 つ**: App の XAML コードビハインド
-   (27 ファイル、`InitializeComponent` partial が要る)・`MWC.Platform.Windows` の
-   ManagedNativeWifi 依存分(3 ファイル)。いずれも Windows 実機か
+   (27 ファイル、`InitializeComponent` partial が要る)・`MWC.Platform.Windows` のうち
+   `ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs` の 2 ファイル
+   (ManagedNativeWifi のイベント購読 API が実 API と食い違ったままで、直すには
+   実機 Windows での設計判断が要る。§5 参照)。いずれも Windows 実機か
    `Microsoft.WindowsDesktop.App.Ref`/NuGet アクセスの少なくとも一方が要る。
    XAML 分は 2026-08 に実測済み(15 クラス / 72 フィールド / 20 コントロール型)。
    生成自体は可能だが、コントロールのメンバを「コードが要求した順に」足す形になり
@@ -161,10 +163,10 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
    > `--selftest` フラグはこれを毎回確かめる。
 
    Core・Cli・App・Platform.Windows・テストで実際に出た欠陥はすべて**束縛エラー**
-   (CS1929 / CS1739 / SYSLIB0057 / CS0246 / CS1061 / CS0029 / CS9035 等)であり、
-   静的な構文チェックでは捕まらない種類だった。同種の欠陥が
-   XAML コードビハインドと ManagedNativeWifi 依存分にも残っている可能性は排除できない
-   ——それらは今も未検査であることに変わりないため。
+   (CS1929 / CS1739 / SYSLIB0057 / CS0246 / CS1061 / CS0029 / CS9035 / CS0117 / CS0104 等)
+   であり、静的な構文チェックでは捕まらない種類だった。同種の欠陥が
+   XAML コードビハインドと `ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs`
+   にも残っている可能性は排除できない——それらは今も未検査であることに変わりないため。
 
 ---
 
@@ -367,6 +369,28 @@ ManagedNativeWifi に対してコンパイルしたことが一度もなかっ�
 | `NetworkStateChangedEventHandlerBridge.cs` | `ManagedNativeWifi.ChannelBandwidth`(型エイリアス) | 存在しない。実ソースのどこにも無い(大小文字無視で 0 件)。本体では未使用の死んだ `using` だった |
 | `WindowsWifiService.cs` の `GetConnectedSsid` | `NativeWifi.EnumerateConnectedNetworks()` | 存在しない。正しくは `NativeWifi.GetCurrentConnection(Guid interfaceId)` — `(ActionResult, CurrentConnectionInfo)` を返し、`CurrentConnectionInfo.Ssid` が同じ `NetworkIdentifier` 型 |
 
+**2026-09 追記: 上記の修正時、`GetConnectedSsid` 1 メソッドだけを単体でスタブに対して
+コンパイルして「直った」と判断していたが、`WindowsWifiService.cs` 全体を本物の
+ManagedNativeWifi 実ソース由来のスタブ(`tools/stubs/ManagedNativeWifi.Stub.cs`。
+`tools/typecheck-platform.sh` に組み込み、実際に csc でコンパイルして確認)に対して
+検査したところ、同じファイルの中にさらに 4 件の実在しない/取り違えた API 参照が
+見つかった。ファイル全体は一度もコンパイルされていなかった:**
+
+| 箇所 | 参照していた(誤った)もの | 実際の API |
+|---|---|---|
+| `MapAuth` | 型 `AuthAlgorithm`、メンバー `RsnaPsk`/`WpaPsk`/`Rsna`/`Wpa`/`Wpa3Sae`/`Owe`/`Wpa3Enterprise192` | 型名は `AuthenticationAlgorithm`。メンバーは .NET 風 PascalCase ではなくネイティブ DOT11 定数由来の表記(`RSNA_PSK`/`WPA_PSK`/`RSNA`/`WPA`/`WPA3_SAE`/`OWE`/`WPA3_ENT_192`) |
+| `MapCipher` | メンバー `Ccmp`/`Tkip`/`Wep`/`Gcmp256` | 型名 `CipherAlgorithm` は合っていたが、メンバーは `CCMP`/`TKIP`/`WEP`/`GCMP_256`(enum は大文字小文字を区別する) |
+| `MapPhy` | メンバー `PhyType_.B`/`.A`/`.G`/`.N`/`.Ac`/`.Ax`/`.Be` | 存在しない。実際は `Ofdm`(a)/`HrDsss`(b)/`Erp`(g)/`Ht`(n)/`Vht`(ac)/`He`(ax)/`Eht`(be) — ManagedNativeWifi 自身が `PhyTypeExtension.ToProtocolName()` で同じ対応表を公開している |
+| `BuildBssMap` | `bss.Band.HasValue`(kHz として扱う)、`bss.Bandwidth` | `BssNetworkInfo.Band` は `float`(GHz 帯域を示すだけで Nullable ではない)。周波数(KHz)は別メンバー `Frequency`。`Bandwidth`/`ChannelBandwidth` はチャネル幅を表す手段としてこのバージョンに一切存在しない(型自体が実ソースのどこにも無い) |
+| `SubscribeEventsAsync` の `OnChanged` | `e.Ssid`(`NetworkStateChangedEventArgs` から) | 存在しない。この自製型は `InterfaceId`/`State`/`Reason`/`ConnectionMode` のみを持つ |
+
+いずれも修正済み(`AuthenticationAlgorithm`/`CipherAlgorithm`/`PhyType` は実メンバー名に
+訂正、チャネル幅は取得手段が無いため素直に `0`、SSID は取得手段が無いため素直に `null` を
+返す)。`PhyType_` エイリアス自体も、以前は `WindowsWifiService.cs` 内で一度も
+定義されていなかった(`using` エイリアスはファイル単位でしか効かないため、
+`NetworkStateChangedEventHandlerBridge.cs` 側の別名は無関係だった)ことが判明し、
+このファイルに追加した。
+
 **なぜ重大か**: `ConnectionWaiter` は CLAUDE.md が必須事項として掲げる
 「接続成功は `WlanNotification` の `connection_complete` 受信 + 疎通確認の 2 段」の
 **前段そのもの**。つまりこのリポジトリの最も安全性に関わる中核メカニズムが、
@@ -386,11 +410,16 @@ grep -n 'EnumerateConnectedNetworks\b' /tmp/mnw-src/Source/ManagedNativeWifi/*.c
 grep -n 'GetCurrentConnection' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.cs  # 実在する
 ```
 
+この裏取りは使い捨てにせず、`tools/stubs/ManagedNativeWifi.Stub.cs`(実ソースからの
+引き写し。ヘッダに根拠と収録範囲を明記)として恒久化し、`tools/typecheck-platform.sh`
+に組み込んだ。`bash tools/typecheck-platform.sh --selftest` で再現・継続検査できる。
+
 ### 2026-09 に対応済み
 
-- **`WindowsWifiService.GetConnectedSsid`** — `GetCurrentConnection` を使うよう修正済み。
-  実 API の形と一致することを、上記手順で取得した実ソースから転記した検証用スタブに対する
-  実コンパイルで確認済み(`-warnaserror` 込みで green)。
+- **`WindowsWifiService.cs`** — 上記 5 件すべて修正済み。**ファイル全体**が
+  実ソース由来のスタブに対して `-warnaserror` 込みで green になることを
+  `tools/typecheck-platform.sh` で確認済み(以前は `GetConnectedSsid` 1 メソッドの
+  単体コンパイルのみで「直った」としており、それ以外の箇所は未検査のままだった)。
 - **`ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs`** — class doc に
   上記の根拠を全文引用済み。**コードの書き換えはしていない** — 単純な名前の付け替えでは
   済まず、「1 つの状態変化イベント」という現在の設計を実 API の「7 種の instance イベント
@@ -424,7 +453,7 @@ grep -n 'GetCurrentConnection' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.
 | 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` / `mwc privacy` |
 | セキュリティ | RADIUS サーバ検証の強制、PEAP の V2 拡張、evil twin 防御の永続化、BSSID の位置プライバシー是正 |
 | 静的検証 | `tools/verify.sh`(dotnet 無しで走る静的チェック一式) |
-| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 3/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 22 件に集約) |
+| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 4/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 22 件に集約) |
 | 実行検証 | `tools/run-tests.sh` — xunit 無しで実際にテストを実行。**1250 件合格 / 0 件失敗 / 0 件 skip**。`tools/mutation-check.sh` が検出力を実測(意図的な欠陥注入 5 件すべて kill、コメントのみの対照は生存) |
 
 **まだ未検証なのは 4 点だけ**: (1) `dotnet build`/`dotnet test` そのもの — 上記は `csc` 直叩き + 手製ランナーによる**近似**であり、`api.nuget.org` へのアクセスと CI 設置のいずれかが要る。(2) App の WPF 依存 27 ファイル(参照パック未入手)。(3) Platform.Windows(ManagedNativeWifi と Windows API が要る)。(4) MLO のリンク詳細(RSSI は実機測定値)。項目 1〜4 の解消がこれらを埋める。

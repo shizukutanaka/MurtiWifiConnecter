@@ -11,6 +11,15 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
 
+// MWC.Core.Models にも PhyType がある(WifiNetwork の公開型)ため、
+// ManagedNativeWifi 側は別名で参照する。`using` エイリアスはファイル単位で
+// 有効(名前空間やクラスをまたいで共有できない)ため、この別名を使う
+// メソッドは全て本ファイル内にある必要がある — 2026-09 に気づいた実際の欠陥として、
+// 以前はこの別名を定義せずに `PhyType_` を参照しており、単体では一度もコンパイル
+// できていなかった(NetworkStateChangedEventHandlerBridge.cs 側の別名は別ファイルの
+// ものであり効かない)。
+using PhyType_ = ManagedNativeWifi.PhyType;
+
 namespace MWC.Platform.Windows;
 
 /// <summary>
@@ -96,7 +105,7 @@ public sealed class WindowsWifiService : IWifiService
             // 取得し UTF-8 検証 → 失敗時 cp932 フォールバック(System.Text.Encoding.CodePages)
             // が必要。実機(Windows)での検証が要るため将来対応とする。
             var networks = NativeWifi.EnumerateAvailableNetworks()
-                .Where(n => n.Interface.Id == adapterId)
+                .Where(n => n.InterfaceInfo.Id == adapterId)
                 .GroupBy(n => n.Ssid.ToString())
                 .Where(g => !string.IsNullOrWhiteSpace(g.Key))
                 .Select(g =>
@@ -108,7 +117,7 @@ public sealed class WindowsWifiService : IWifiService
                     int ch  = bssList.Length > 0 ? bssList[0].Channel  : 0;
                     int rssi = bssList.Length > 0 ? bssList[0].Rssi    : 0;
                     int freq = bssList.Length > 0 ? bssList[0].FrequencyMhz : 0;
-                    var phy  = bssList.Length > 0 ? bssList[0].Phy     : PhyType.Unknown;
+                    var phy  = bssList.Length > 0 ? bssList[0].Phy     : MWC.Core.Models.PhyType.Unknown;
 
                     return new WifiNetwork
                     {
@@ -116,9 +125,9 @@ public sealed class WindowsWifiService : IWifiService
                         BssEntries   = bssList,
                         SignalQuality = (int)first.SignalQuality,
                         Rssi         = rssi != 0 ? rssi : null,
-                        Auth         = first.CipherAlgorithm is CipherAlgorithm.Wep
+                        Auth         = first.CipherAlgorithm is CipherAlgorithm.WEP
                                        ? AuthMethod.WEP
-                                       : MapAuth(first.AuthAlgorithm),
+                                       : MapAuth(first.AuthenticationAlgorithm),
                         Cipher       = MapCipher(first.CipherAlgorithm),
                         Band         = FreqToBand(freq > 0 ? freq : ChannelToFreq(ch)),
                         Channel      = ch,
@@ -174,7 +183,7 @@ public sealed class WindowsWifiService : IWifiService
         try
         {
             foreach (var bss in NativeWifi.EnumerateBssNetworks()
-                         .Where(b => b.Interface.Id == adapterId))
+                         .Where(b => b.InterfaceInfo.Id == adapterId))
             {
                 var ssid = bss.Ssid.ToString();
                 if (string.IsNullOrWhiteSpace(ssid)) continue;
@@ -182,8 +191,12 @@ public sealed class WindowsWifiService : IWifiService
                 if (!map.TryGetValue(ssid, out var list))
                     map[ssid] = list = new();
 
-                int freqMhz = bss.Band.HasValue
-                    ? (int)(bss.Band.Value / 1000)   // kHz → MHz
+                // 実 API の `BssNetworkInfo.Frequency` は中心周波数(KHz)。
+                // 2026-09 修正: 以前は `bss.Band`(GHz 帯域を示すだけの float。
+                // Nullable でもない)を KHz 値のように扱っており存在しないメンバー
+                // `.HasValue` 経由でコンパイルすら通っていなかった。
+                int freqMhz = bss.Frequency > 0
+                    ? bss.Frequency / 1000
                     : ChannelToFreq(bss.Channel);
 
                 list.Add(new BssInfo
@@ -193,7 +206,12 @@ public sealed class WindowsWifiService : IWifiService
                     Channel      = bss.Channel,
                     FrequencyMhz = freqMhz,
                     Phy          = MapPhy(bss.PhyType),
-                    ChannelWidth = MapWidth(bss.Bandwidth),
+                    // ManagedNativeWifi 3.0.2 はチャネル幅を一切公開していない
+                    // (`ChannelBandwidth` という型自体が実ソースに存在しない —
+                    // 2026-09 に実ソースを直接確認。以前の `bss.Bandwidth` 参照は
+                    // 存在しないメンバーで、これもコンパイルできていなかった)。
+                    // 取得手段が無い以上 0(不明)を返すのが正直な実装。
+                    ChannelWidth = 0,
                 });
             }
         }
@@ -208,9 +226,13 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
+            // profileSecurity は all-user プロファイルの SDDL セキュリティ記述子
+            // (省略可能。ネイティブ WlanSetProfile は NULL を許容する)。
+            // ライブラリのシグネチャに `?` は無いが、既定のセキュリティ設定を使う
+            // 意図で null を渡す。
             return Task.FromResult(
                 NativeWifi.SetProfile(adapterId, ProfileType.AllUser,
-                    profileXml, null, overwrite));
+                    profileXml, null!, overwrite));
         }
         catch (Exception ex)
         {
@@ -276,7 +298,7 @@ public sealed class WindowsWifiService : IWifiService
         CancellationToken ct = default)
     {
         var list = NativeWifi.EnumerateProfiles()
-            .Where(p => p.Interface.Id == adapterId)
+            .Where(p => p.InterfaceInfo.Id == adapterId)
             .Select(p => p.Name).ToList();
         return Task.FromResult<IReadOnlyList<string>>(list);
     }
@@ -289,10 +311,15 @@ public sealed class WindowsWifiService : IWifiService
 
         void OnChanged(object? s, NetworkStateChangedEventArgs e)
         {
+            // 2026-09 修正: `NetworkStateChangedEventArgs`(ConnectionWaiter.cs で定義)は
+            // InterfaceId/State/Reason/ConnectionMode のみを持ち、`Ssid` は存在しない
+            // (以前の参照は一度もコンパイルできていなかった)。この型自体がまだ実 API
+            // (NativeWifiPlayer の 7 instance イベント)に対応する再設計を待っている
+            // 状態のため(docs/COMPLETION-CHECKLIST.md §5)、ここでは正直に null を渡す。
             ch.Writer.TryWrite(new WifiEvent(
                 e.InterfaceId,
                 MapEventType(e.State),
-                e.Ssid,
+                null,
                 DateTimeOffset.UtcNow));
         }
 
@@ -340,50 +367,49 @@ public sealed class WindowsWifiService : IWifiService
         _                            => AdapterState.NotReady,
     };
 
-    private static AuthMethod MapAuth(AuthAlgorithm a) => a switch
+    // 2026-09 修正: 実 API の型名は `AuthenticationAlgorithm`(`AuthAlgorithm` は
+    // 実在しない)。メンバー名も .NET 風 PascalCase (`RsnaPsk` 等) ではなく、ネイティブ
+    // DOT11 定数に合わせた表記 (`RSNA_PSK` 等)。以前の版はどちらも誤っており、
+    // このメソッド全体が一度もコンパイルされていなかった。
+    private static AuthMethod MapAuth(AuthenticationAlgorithm a) => a switch
     {
-        AuthAlgorithm.Open       => AuthMethod.Open,
-        AuthAlgorithm.RsnaPsk    => AuthMethod.WPA2PSK,
-        AuthAlgorithm.WpaPsk     => AuthMethod.WPAPSK,
-        AuthAlgorithm.Rsna       => AuthMethod.WPA2Enterprise,
-        AuthAlgorithm.Wpa        => AuthMethod.WPA2Enterprise,
-        AuthAlgorithm.Wpa3Sae    => AuthMethod.WPA3SAE,
-        AuthAlgorithm.Owe        => AuthMethod.OWE,
-        AuthAlgorithm.Wpa3Enterprise192 => AuthMethod.WPA3Enterprise192,
+        AuthenticationAlgorithm.Open         => AuthMethod.Open,
+        AuthenticationAlgorithm.RSNA_PSK     => AuthMethod.WPA2PSK,
+        AuthenticationAlgorithm.WPA_PSK      => AuthMethod.WPAPSK,
+        AuthenticationAlgorithm.RSNA         => AuthMethod.WPA2Enterprise,
+        AuthenticationAlgorithm.WPA          => AuthMethod.WPA2Enterprise,
+        AuthenticationAlgorithm.WPA3_SAE     => AuthMethod.WPA3SAE,
+        AuthenticationAlgorithm.OWE          => AuthMethod.OWE,
+        AuthenticationAlgorithm.WPA3_ENT_192 => AuthMethod.WPA3Enterprise192,
         _ => AuthMethod.Open,
     };
 
+    // 2026-09 修正: メンバー名が .NET 風 PascalCase (`Ccmp` 等) ではなく
+    // ネイティブ DOT11 定数由来の表記 (`CCMP` 等)。C# の enum メンバーは
+    // 大文字小文字を区別するため、以前の版は 1 つも一致せずコンパイル不能だった。
     private static CipherType MapCipher(CipherAlgorithm c) => c switch
     {
-        CipherAlgorithm.Ccmp    => CipherType.AES,
-        CipherAlgorithm.Tkip    => CipherType.TKIP,
-        CipherAlgorithm.Wep     => CipherType.WEP,
-        CipherAlgorithm.Gcmp256 => CipherType.GCMP256,
-        CipherAlgorithm.None    => CipherType.None,
+        CipherAlgorithm.CCMP     => CipherType.AES,
+        CipherAlgorithm.TKIP     => CipherType.TKIP,
+        CipherAlgorithm.WEP      => CipherType.WEP,
+        CipherAlgorithm.GCMP_256 => CipherType.GCMP256,
+        CipherAlgorithm.None     => CipherType.None,
         _ => CipherType.AES,
     };
 
-    private static PhyType MapPhy(PhyType_ p) => p switch
+    // 2026-09 修正: `PhyType_.B/.A/.G/.N/.Ac/.Ax/.Be` は実ソースのどこにも存在しない
+    // (実際の命名は下記の Ofdm/HrDsss 等。ManagedNativeWifi 自身が
+    // `PhyTypeExtension.ToProtocolName()` で同じ対応表を公開している)。
+    private static MWC.Core.Models.PhyType MapPhy(PhyType_ p) => p switch
     {
-        PhyType_.B     => PhyType.Dot11b,
-        PhyType_.A     => PhyType.Dot11a,
-        PhyType_.G     => PhyType.Dot11g,
-        PhyType_.N     => PhyType.Dot11n,
-        PhyType_.Ac    => PhyType.Dot11ac,
-        PhyType_.Ax    => PhyType.Dot11ax,
-        PhyType_.Be    => PhyType.Dot11be,
-        _ => PhyType.Unknown,
-    };
-
-    private static int MapWidth(ChannelBandwidth? bw) => bw switch
-    {
-        ChannelBandwidth.Width20    => 20,
-        ChannelBandwidth.Width40    => 40,
-        ChannelBandwidth.Width80    => 80,
-        ChannelBandwidth.Width80p80 => 80,
-        ChannelBandwidth.Width160   => 160,
-        ChannelBandwidth.Width320   => 320,
-        _ => 0,
+        PhyType_.HrDsss => MWC.Core.Models.PhyType.Dot11b,
+        PhyType_.Ofdm   => MWC.Core.Models.PhyType.Dot11a,
+        PhyType_.Erp    => MWC.Core.Models.PhyType.Dot11g,
+        PhyType_.Ht     => MWC.Core.Models.PhyType.Dot11n,
+        PhyType_.Vht    => MWC.Core.Models.PhyType.Dot11ac,
+        PhyType_.He     => MWC.Core.Models.PhyType.Dot11ax,
+        PhyType_.Eht    => MWC.Core.Models.PhyType.Dot11be,
+        _ => MWC.Core.Models.PhyType.Unknown,
     };
 
     private static WifiBand FreqToBand(int mhz) =>
