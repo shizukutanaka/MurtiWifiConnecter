@@ -77,6 +77,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   either would make `typecheck-app-services.sh` fail loudly (not silently pass) if added later.
   Documented both in the script's header so that failure is recognized immediately instead of
   re-derived.
+- **`tools/stubs/SystemCommandLine.Stub.cs` explicitly disclaimed trust in its own `SetHandler`
+  surface ("this is just my understanding, may not match reality") — so it was audited against
+  real source rather than left as an open caveat.** Cloned `dotnet/command-line-api` at tag
+  `2.0.0-beta4.22272.1` (exact match for the pin) and found the stub's `SetHandler<T1..T8>`
+  overloads accepted a loosely-typed `params IValueDescriptor[]` for the option/argument
+  descriptors, when the real API takes **individually typed parameters**
+  (`IValueDescriptor<T1> symbol1, IValueDescriptor<T2> symbol2, ...`). The difference is not
+  cosmetic: the real API rejects a descriptor passed in the wrong position when its type doesn't
+  match, which the loose stub could never catch. Rewrote all fourteen `SetHandler` overloads
+  (Action and Func, T1 through T8 — the stub previously had Action only up to T4 despite the real
+  API supporting T1-T8 for both) to match the real per-parameter typed signatures. Also fixed
+  `ParseResult.GetValueForArgument<T>`, which the stub had returning `T?`; the real signature
+  returns non-nullable `T` (`GetValueForOption<T>` is the nullable one — the two are
+  asymmetric in the real API, and the stub had them identical). Re-ran `typecheck-cli.sh
+  --selftest` against the corrected stub: no live handler-wiring bug surfaced, but the check itself
+  is now meaningfully stronger — a future SetHandler call with descriptors in the wrong
+  type-mismatched order would now be caught.
 - **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
   provenance. No binary has ever been produced.** There is no release workflow, no release, and
   therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as
