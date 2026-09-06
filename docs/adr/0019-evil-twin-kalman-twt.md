@@ -30,3 +30,12 @@ WifiNetwork に TargetWakeTime / RestrictedTwt を追加。IoT/バッテリー�
 - Kalman で信号予測の精度が向上 (SignalQualityPredictor と選択可能)
 - TWT 対応 AP を識別し、省電力性を提示できる
 - 全サービスがゼロ外部依存を維持
+
+## 2026-09 追記 — KalmanRssiFilter は削除済み
+
+`KalmanRssiFilter` は製品コード(App/CLI)からの参照が一度も無い、既に配線済みだった
+`SignalQualityPredictor`(EMA 実装)の未配線な重複だったため削除済み
+(CHANGELOG `[Unreleased]` / `docs/FEATURE-AUDIT.md` §1a 参照)。アルゴリズムとしては
+Kalman の方が優れているため、平滑化を改善する際は git 履歴から復元して EMA を
+**置き換える**形の、実機検証を伴う意図的な変更として行うこと — 2 つ目の未使用実装を
+また作らない。`EvilTwinDetector` と TWT フラグは現存し、この ADR の該当箇所は今も有効。
