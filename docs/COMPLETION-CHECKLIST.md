@@ -125,20 +125,26 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
 2. テストバッジを実測値に戻す — 現在は静的に数えた `NNN methods` 表記。
    `dotnet test` の結果で `N passing` にできる
 3. `FEATURE-AUDIT.md` §0 を解決済みに更新する
-4. **CI が赤くなったら — どこが怪しいかは 2026-08 に絞り込み済み**:
-   `MWC.Core` は `tools/typecheck-core.sh` で**実際にコンパイル済み**(`-warnaserror` 込みで green)。
-   **Cli も 2026-08 に型検査済み**(`tools/typecheck-cli.sh`。ここでも実在の欠陥 3 件が出た)。
-   App は **WPF 非依存の 6 ファイルのみ**検査済み(`tools/typecheck-app-services.sh`)。
-   **テストは 2026-08 に型検査だけでなく実行もした** — `tools/run-tests.sh` が
-   xunit 無しで反射実行し、初回で 1037 件が合格、**実在の欠陥 4 件**が出た
-   (製品側 1: `CatImportService` の二重取り込み / テスト側 3: 常に偽の不変条件)。
-   **残る既知の失敗 1 件**: `NetworkHistoryService_ConcurrentWrites_ThreadSafe` は
-   テスト間で `LocalApplicationData` の固定パスを共有するため落ちる。
-   修正には保存先を注入可能にする API 変更が要るので、判断を所有者に委ねている。
+4. **CI が赤くなったら — どこが怪しいかは 2026-08 に絞り込み済み**
+   (この項目は複数回のセッションにまたがって更新されており、以前の版は
+   `NetworkHistoryService_ConcurrentWrites_ThreadSafe` を「残る既知の失敗」と書いていたが、
+   それは**既に修正済み**——保存先を注入可能にする API 変更を行い、全件合格するように
+   なった(具体的な件数はここに複製しない。`bash tools/run-tests.sh` の実行時出力が
+   単一の真実の源)。以下が現在の状態):
 
-   **テストも 2026-08 に型検査済み**(`tools/typecheck-tests.sh`。ここでも実在の欠陥 5 件が出た)。
-   **Platform.Windows も一部は型検査済み**(`tools/typecheck-platform.sh`)。
-   一方 **App の XAML コードビハインド・ManagedNativeWifi 依存分・一部のテストは型検査されていない**。
+   | 対象 | 検査 | 状態 |
+   |---|---|---|
+   | `MWC.Core` | `tools/typecheck-core.sh` | **実際にコンパイル済み**(`-warnaserror` 込みで green) |
+   | `MWC.Cli` | `tools/typecheck-cli.sh --selftest` | 型検査済み(実在の欠陥 3 件が出て修正済み) |
+   | `MWC.App` | `tools/typecheck-app-services.sh` | WPF 非依存の **19/46 ファイル**を型検査(件数は実行時表示、ハードコードしない) |
+   | `MWC.Platform.Windows` | `tools/typecheck-platform.sh` | ManagedNativeWifi に依存しない **2/6 ファイル**を型検査 |
+   | テスト(型検査) | `tools/typecheck-tests.sh --selftest` | MWC.App 依存分と FsCheck を除く **75/79 ファイル** |
+   | テスト(実行) | `tools/run-tests.sh` | xunit 無しで反射実行。**現在は全件合格**(件数は実行時表示。当初の実行で実在の欠陥が複数出て修正済み) |
+   | 検出力 | `tools/mutation-check.sh` | 意図的な欠陥注入 5 件を全て kill、コメントのみの対照は生存 |
+
+   **依然として型検査も実行もされていないのは 3 つ**: App の XAML コードビハインド(27 ファイル、
+   `InitializeComponent` partial が要る)・`MWC.Platform.Windows` の ManagedNativeWifi 依存分(4 ファイル)・
+   `--mac` の実引き渡し等の実機固有の挙動。いずれも Windows 実機と NuGet アクセスの少なくとも一方が要る。
    XAML 分は 2026-08 に実測済み(15 クラス / 72 フィールド / 20 コントロール型)。
    生成自体は可能だが、コントロールのメンバを「コードが要求した順に」足す形になり
    検査が空洞化するため見送った。**`Microsoft.WindowsDesktop.App.Ref` を入れるのが正攻法**
@@ -363,7 +369,7 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 | 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` / `mwc privacy` |
 | セキュリティ | RADIUS サーバ検証の強制、PEAP の V2 拡張、evil twin 防御の永続化、BSSID の位置プライバシー是正 |
 | 静的検証 | `tools/verify.sh`(dotnet 無しで走る静的チェック一式) |
-| 型検査 | `tools/typecheck-{core,cli,app-services,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 20 件に集約) |
+| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 2/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 20 件に集約) |
 | 実行検証 | `tools/run-tests.sh` — xunit 無しで実際にテストを実行。**1250 件合格 / 0 件失敗 / 0 件 skip**。`tools/mutation-check.sh` が検出力を実測(意図的な欠陥注入 5 件すべて kill、コメントのみの対照は生存) |
 
 **まだ未検証なのは 4 点だけ**: (1) `dotnet build`/`dotnet test` そのもの — 上記は `csc` 直叩き + 手製ランナーによる**近似**であり、`api.nuget.org` へのアクセスと CI 設置のいずれかが要る。(2) App の WPF 依存 27 ファイル(参照パック未入手)。(3) Platform.Windows(ManagedNativeWifi と Windows API が要る)。(4) MLO のリンク詳細(RSSI は実機測定値)。項目 1〜4 の解消がこれらを埋める。
