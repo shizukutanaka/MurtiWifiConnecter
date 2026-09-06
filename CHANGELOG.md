@@ -10,6 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **`ConnectionWaiter` — the class CLAUDE.md names as the mechanism for real
+  connection-completion detection — has never compiled against the actual ManagedNativeWifi
+  package it depends on, and neither has the code around it.** `api.nuget.org` being blocked meant
+  `MWC.Platform.Windows` had never once been built against its real dependency in this
+  environment, so this was verified by fetching ManagedNativeWifi's public source directly from
+  GitHub (`emoacht/ManagedNativeWifi`; confirmed HEAD is the pinned 3.0.2 by reading its own
+  `.csproj`) and compiling against it. Three references turned out to be fictional:
+  `NativeWifi.NetworkStateChanged` — the static event `ConnectionWaiter` and
+  `NetworkStateChangedEventHandlerBridge` both subscribe to — does not exist; `NativeWifi` is a
+  static class with zero public events. State-change notifications are instead seven separate
+  instance events (`ConnectionChanged`, `InterfaceChanged`, `RadioStateChanged`, and four more) on
+  `NativeWifiPlayer`, a disposable object you construct, not a static event bag you add/remove
+  from. `ManagedNativeWifi.ChannelBandwidth`, aliased but never used in the bridge file, does not
+  exist under any name. And `WindowsWifiService.GetConnectedSsid` called
+  `NativeWifi.EnumerateConnectedNetworks()`, which also does not exist; the real, exact-match API
+  is `GetCurrentConnection(Guid interfaceId)`.
+  Fixed `GetConnectedSsid` to use `GetCurrentConnection` — verified by compiling the corrected
+  method against a stub built from the real source, not guessed. Did **not** rewrite
+  `ConnectionWaiter`/`NetworkStateChangedEventHandlerBridge`: collapsing a seven-event,
+  instance-lifecycle API onto a one-event, static-subscription design is a real design decision,
+  not a rename, and this is the literal implementation of a CLAUDE.md-mandated safety mechanism
+  that no test harness here can exercise end-to-end. Cited the exact real API, file paths, and
+  reproduction commands in both files' doc comments and in
+  `docs/COMPLETION-CHECKLIST.md` §5, so whoever implements the fix on real Windows hardware starts
+  from verified facts rather than re-deriving them.
 - **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
   provenance. No binary has ever been produced.** There is no release workflow, no release, and
   therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as

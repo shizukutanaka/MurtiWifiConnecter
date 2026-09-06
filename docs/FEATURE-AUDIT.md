@@ -26,10 +26,19 @@
 > | **テストの実行** | `tools/run-tests.sh` | **全て合格**(件数は実行時出力) |
 > | 検出力 | `tools/mutation-check.sh` | 実質変異を全て kill、対照は生存 |
 >
-> これらで **コンパイル欠陥 22 件・実行時欠陥 5 件・検証ツール自身の欠陥 1 件**が出た。
-> いずれも CI の初回で赤くなるもので、CI 設置前に潰せた分である。
+> これらで **コンパイル欠陥 22 件・実行時欠陥 5 件・検証ツール自身の欠陥 1 件**が出た
+> (2026-08 時点。上記の型検査/実行スイート経由での発見数であり、下記の 2026-09 の
+> 発見は含まない)。いずれも CI の初回で赤くなるもので、CI 設置前に潰せた分である。
 > **ただし本物の `dotnet build` / `dotnet test` の代替ではない**
 > (アサーション意味論は近似、XAML コードビハインドと ManagedNativeWifi 依存は未検査)。
+>
+> **2026-09 追記 — ManagedNativeWifi 依存分も「未検査」で済まなくなった。**
+> NuGet を経由せず ManagedNativeWifi の公開ソースを直接取得し実ソースと突き合わせたところ、
+> `MWC.Platform.Windows` に**実在しない API への参照が 3 件**見つかった。うち 1 件
+> (`WindowsWifiService.GetConnectedSsid`)は実 API に置き換え済み。残る 2 件は
+> **CLAUDE.md 必須事項「接続成功は WlanNotification の 2 段判定」の前段そのもの**
+> (`ConnectionWaiter`)に関わり、設計判断が要るため実機セッションに委ねている。
+> 詳細と再現手順は `docs/COMPLETION-CHECKLIST.md` §5。
 > 各スクリプトのヘッダに「何を検査し、何を検査していないか」を明記してある。
 
 > **`.github/workflows/` が存在せず、GitHub Actions の
@@ -585,6 +594,8 @@ grep -rl "\bServiceName\b" src/MWC.App/ src/MWC.Cli/
 | 18 | 型検査が Core だけ / その後 Cli・App・tests・Platform へ | ⑤自動化 | 5 スクリプト。いずれも `--selftest` か件数表示で「部分検査」を明示 |
 | 19 | 除外リストが被覆拡大後に陳腐化(2 回) | ①要件を疑う | 「除外リストは書いた時点の可能性のスナップショット」— 拡大の度に再測定する |
 | 20 | NSubstitute 依存 15 件が skip のまま(#17 は緩和しただけで解消していない) | ②削除 | `FakeWifiService` に呼び出し記録を追加し置き換え。**skip 0 件に**。過程で "pass123"(7 文字、WPA 最小長 8 未満)という**テストデータ自体の不備**が発覚 — 一度も実行されなかったため書かれた時から気づかれていなかった |
+| 21 | 「隣接ファイルと同じ扱い」を検証せずグループ化(`WlanBssIeProvider` を ManagedNativeWifi 依存と誤分類) | ①要件を疑う | 1 ファイルずつ `using` を確認。実は自前 P/Invoke のみで単独コンパイル可能だった。`typecheck-platform.sh` に追加 |
+| 22 | `NativeWifi.NetworkStateChanged`/`ChannelBandwidth`/`EnumerateConnectedNetworks` が全て実在しない架空 API 参照だった(CLAUDE.md 必須事項の接続完了検知の中核を含む) | ①要件を疑う → ⑤自動化 | NuGet 経由でなく GitHub から実ソースを直接取得し突き合わせ、推測でなく実測で確定。`GetConnectedSsid` は実 API に置換・検証済み。`ConnectionWaiter` の設計判断が要る 2 件は class doc に根拠を全文引用し実機セッションへ委譲(詳細: `docs/COMPLETION-CHECKLIST.md` §5) |
 
 **未処置(意図的)**: §2b の `SecureString` 方針は**ユーザー裁定待ち**。
 利害得失が対立する設計判断であり、AI が勝手に決めない。

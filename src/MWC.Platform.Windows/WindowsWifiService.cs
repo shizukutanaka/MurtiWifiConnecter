@@ -312,13 +312,19 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
+    // 2026-09 修正: `NativeWifi.EnumerateConnectedNetworks()` は ManagedNativeWifi 3.0.2
+    // (github.com/emoacht/ManagedNativeWifi, Source/ManagedNativeWifi/NativeWifi.cs で実ソース確認)
+    // に**存在しない**メソッドだった — この呼び出しは一度もコンパイルされたことがなく、
+    // `WindowsWifiService.cs` 全体が NuGet 未取得のため型検査対象外だったため誰も気づけなかった。
+    // 正しい実 API は `GetCurrentConnection(Guid interfaceId)` で、アダプター単位で直接引ける
+    // (`CurrentConnectionInfo.Ssid` は同じ `NetworkIdentifier` 型 — 元コードの `.ToString()` は
+    // そのまま使える)。
     private string? GetConnectedSsid(Guid adapterId)
     {
         try
         {
-            return NativeWifi.EnumerateConnectedNetworks()
-                .FirstOrDefault(n => n.Interface.Id == adapterId)
-                ?.Ssid.ToString();
+            var (result, info) = NativeWifi.GetCurrentConnection(adapterId);
+            return result == ActionResult.Success ? info.Ssid.ToString() : null;
         }
         catch (Exception ex) { _log.LogDebug(ex, "GetConnectedSsid failed for adapter {Id}", adapterId); return null; }
     }

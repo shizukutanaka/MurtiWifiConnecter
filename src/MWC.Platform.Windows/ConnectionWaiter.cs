@@ -18,7 +18,17 @@ internal enum ConnectionOutcome
 
 /// <summary>
 /// 接続要求後、ACM connection_complete 通知を待機。
-/// netshのExitCode依存ではなく実通知で判定。
+/// netshのExitCode依存ではなく実通知で判定 …**する設計だったが、下記の通り現状は
+/// コンパイルできない**。
+///
+/// ⚠ **2026-09 実測**: 下で購読している `NativeWifi.NetworkStateChanged` は
+/// ManagedNativeWifi 3.0.2(ピン留めバージョン。GitHub 実ソースで確認済み)に
+/// 存在しない。詳細な根拠・実 API・修正に必要な設計判断は
+/// `NetworkStateChangedEventHandlerBridge.cs` の class doc に記載(同じ問題の
+/// 原因はそちらに一本化してある)。CLAUDE.md が必須事項として掲げる
+/// 「接続成功は WlanNotification の connection_complete 受信 + 疎通確認の 2 段」
+/// のうち、前段を担うのが本クラスであるため、この欠陥は静的解析やモックを使う
+/// テストでは検出できず、実機 Windows での接続検証を経て初めて発覚しうるものだった。
 /// </summary>
 internal sealed class ConnectionWaiter : IDisposable
 {

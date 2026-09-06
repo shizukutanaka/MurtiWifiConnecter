@@ -12,14 +12,16 @@
 
 ## 全体像
 
-残る作業は **4 件**。うち 2 件は権限操作(数分)、2 件は Windows 実機での実装。
+残る作業は **5 件**。うち 2 件は権限操作(数分)、3 件は Windows 実機での実装。
+**項目 5 は最も深刻** — 接続完了検知という CLAUDE.md 必須事項の中核が現状コンパイルできない。
 
 | # | 項目 | 種別 | 所要 | 依存 |
 |---|---|---|---|---|
-| 1 | CI を稼働させる | 権限 | 数分 | なし。**最優先** |
+| 1 | CI を稼働させる | 権限 | 数分 | なし。**最優先(権限側)** |
 | 2 | GitHub Release を作る | 権限 | 数分 | 1 が済んでいると望ましい |
 | 3 | MLO のリンク詳細(RSSI のみ実機。band/channel は RNR に既出) | 実装 | 半日〜 | Windows 実機は RSSI 部分のみ |
 | 4 | 現在の MAC を自動取得して `--mac` の既定にする | 実装 | 数時間 | Windows 実機(判定ロジックは Core 化済み) |
+| 5 | 🔴 `ConnectionWaiter` の接続完了検知が実 API と不一致 | 設計+実装 | 半日〜1日 | Windows 実機(検証必須)。**実装側の最優先** |
 
 **1 が最優先**である理由: このリポジトリのコードは **GitHub Actions で一度も検証されたことがない**。
 2026-07 セッションの全変更(約 3,900 行の追加を含む)も静的チェックのみで、
@@ -345,6 +347,71 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 - 履歴からの種類判定 (`FromHistory`) を使うなら、接続の度に
   (SSID, MAC, 時刻) を記録する必要がある。`NetworkHistoryService` が近い。
 
+---
+
+## 5. 🔴 `ConnectionWaiter` の接続完了検知が実 API と一致しない
+
+### 何が起きているか(2026-09 に GitHub 実ソースを取得して実測。推測ではない)
+
+`api.nuget.org` がエグレス拒否のため、この環境では `MWC.Platform.Windows` を
+ManagedNativeWifi に対してコンパイルしたことが一度もなかった。そこで
+**NuGet を経由せず**、ManagedNativeWifi の公開ソース
+(`github.com/emoacht/ManagedNativeWifi`、HEAD の
+`Source/ManagedNativeWifi/ManagedNativeWifi.csproj` が `<Version>3.0.2</Version>` —
+`Directory.Packages.props` のピン留めと一致することを確認済み)を直接取得し、
+実際のコンパイルで突き合わせた。結果、**3 件の実在しない API 参照**が見つかった:
+
+| ファイル | 参照している(架空の)API | 実際の API |
+|---|---|---|
+| `ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs` | `NativeWifi.NetworkStateChanged`(static event) | 存在しない。`NativeWifi` は static クラスで `public static event` は 0 件(実ソース全体を grep して確認)。状態変化は代わりに **`NativeWifiPlayer`**(構築して使う `IDisposable` の instance クラス)が `NetworkRefreshed` / `ConnectionChanged` / `InterfaceChanged` / `ProfileChanged` / `RadioStateChanged` / `SignalQualityChanged` / `AvailabilityChanged` という **7 つに分かれた** instance イベントとして公開している |
+| `NetworkStateChangedEventHandlerBridge.cs` | `ManagedNativeWifi.ChannelBandwidth`(型エイリアス) | 存在しない。実ソースのどこにも無い(大小文字無視で 0 件)。本体では未使用の死んだ `using` だった |
+| `WindowsWifiService.cs` の `GetConnectedSsid` | `NativeWifi.EnumerateConnectedNetworks()` | 存在しない。正しくは `NativeWifi.GetCurrentConnection(Guid interfaceId)` — `(ActionResult, CurrentConnectionInfo)` を返し、`CurrentConnectionInfo.Ssid` が同じ `NetworkIdentifier` 型 |
+
+**なぜ重大か**: `ConnectionWaiter` は CLAUDE.md が必須事項として掲げる
+「接続成功は `WlanNotification` の `connection_complete` 受信 + 疎通確認の 2 段」の
+**前段そのもの**。つまりこのリポジトリの最も安全性に関わる中核メカニズムが、
+実際の依存パッケージに対して一度もコンパイルされたことがなかった。
+モックを使うテスト(`IWifiService` を差し替える)ではこの欠陥を検出できない —
+`WindowsWifiService`/`ConnectionWaiter` 自体が対象から外れているため。
+実機 Windows で接続を試すか、NuGet を経由してこのファイル群を実際にビルドして
+初めて表面化する種類の欠陥だった。
+
+### 検証方法(再現手順)
+
+```bash
+git clone https://github.com/emoacht/ManagedNativeWifi.git /tmp/mnw-src
+grep -n 'public static event' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.cs   # 0 件
+grep -rni 'channelbandwidth' /tmp/mnw-src/Source/ManagedNativeWifi/*.cs             # 0 件
+grep -n 'EnumerateConnectedNetworks\b' /tmp/mnw-src/Source/ManagedNativeWifi/*.cs   # 0 件
+grep -n 'GetCurrentConnection' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.cs  # 実在する
+```
+
+### 2026-09 に対応済み
+
+- **`WindowsWifiService.GetConnectedSsid`** — `GetCurrentConnection` を使うよう修正済み。
+  実 API の形と一致することを、上記手順で取得した実ソースから転記した検証用スタブに対する
+  実コンパイルで確認済み(`-warnaserror` 込みで green)。
+- **`ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs`** — class doc に
+  上記の根拠を全文引用済み。**コードの書き換えはしていない** — 単純な名前の付け替えでは
+  済まず、「1 つの状態変化イベント」という現在の設計を実 API の「7 種の instance イベント
+  + `IDisposable` ライフサイクル」にどう対応させるかという設計判断が要るため。
+  実機で検証できないままの推測実装は、この欠陥そのものより有害になりうる。
+
+### あなたが(または Windows 実機を使えるセッションが)やること
+
+1. `NativeWifiPlayer` を構築し、`ConnectionWaiter`/`WindowsWifiService.SubscribeEventsAsync`
+   のライフサイクル(いつ構築し、いつ `Dispose` するか)に組み込む設計を決める。
+2. `ConnectionWaiter` が実際に必要としている情報 —
+   「指定アダプターが `connected`/`disconnecting`/認証失敗 のどれに遷移したか、
+   理由コードは何か」— を、7 種の実イベントのどれ(おそらく `ConnectionChanged` が主、
+   `RadioStateChanged`/`ProfileChanged` も要検討)から再構成するかを設計する。
+3. 各イベントの実引数型(`ConnectionChangedEventArgs` 等、いずれも
+   `Source/ManagedNativeWifi/*EventArgs.cs` に実在)を確認し、
+   現在の `NetworkStateChangedEventArgs.State`/`Reason` 相当の情報が
+   実際に得られるかを確かめる。得られない情報があれば、`ConnectionWaiter` の
+   判定ロジック自体の見直しが要る。
+4. 実機 Windows で実際に接続・切断・認証失敗を発生させ、想定どおりに
+   `ConnectionOutcome` が解決されることを確認する。
 
 ---
 
@@ -357,7 +424,7 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 | 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` / `mwc privacy` |
 | セキュリティ | RADIUS サーバ検証の強制、PEAP の V2 拡張、evil twin 防御の永続化、BSSID の位置プライバシー是正 |
 | 静的検証 | `tools/verify.sh`(dotnet 無しで走る静的チェック一式) |
-| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 3/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 20 件に集約) |
+| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 3/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 22 件に集約) |
 | 実行検証 | `tools/run-tests.sh` — xunit 無しで実際にテストを実行。**1250 件合格 / 0 件失敗 / 0 件 skip**。`tools/mutation-check.sh` が検出力を実測(意図的な欠陥注入 5 件すべて kill、コメントのみの対照は生存) |
 
 **まだ未検証なのは 4 点だけ**: (1) `dotnet build`/`dotnet test` そのもの — 上記は `csc` 直叩き + 手製ランナーによる**近似**であり、`api.nuget.org` へのアクセスと CI 設置のいずれかが要る。(2) App の WPF 依存 27 ファイル(参照パック未入手)。(3) Platform.Windows(ManagedNativeWifi と Windows API が要る)。(4) MLO のリンク詳細(RSSI は実機測定値)。項目 1〜4 の解消がこれらを埋める。
