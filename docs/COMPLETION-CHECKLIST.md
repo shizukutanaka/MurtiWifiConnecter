@@ -302,7 +302,8 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 `--mac-mode`(自己申告)は互換のため残してあるが、`--mac` の方が強い —
 ユーザーの申告よりアドレスのビットの方が確かなため。
 
-**残っているのは「現在の MAC を自動で取ってくる配線」だけ。**
+**残っているのは「Windows から現在の MAC を実際に取ってくる」その 1 箇所だけ**
+(モデルと CLI 側の配線は済んでいる — 下記追記を参照)。
 
 ### かつて「Core に切り出せない」と書いていた理由と、それが誤りだった訳
 
@@ -326,18 +327,27 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 `AI-SESSION-HANDBOOK.md` §3 に第 3 の軸として追記済み:
 **設定は読めなくても、その効果が観測値に現れるなら Core で判定できる。**
 
-### 残作業: 現在の MAC を自動供給する
+### 2026-08 追記: モデルと CLI 側の配線は完了。残るのは Windows 側の 1 箇所だけ
 
-- 埋める先は `PrivacyCommand` の `--mac` 既定値
-  (ユーザー指定は上書きとして残すのがよい)。
+`WifiAdapter` に `PhysicalAddress`(コロン区切り文字列、null 許容)を追加し、
+`PrivacyCommand` は `effectiveMac = --mac ?? ad.PhysicalAddress` という優先順位で
+使うよう配線済み(明示 `--mac` が最優先、次に自動供給、その次が自己申告
+`--mac-mode`)。この優先順位と `MacAddressModeInference` への受け渡しは
+`PrivacyCliContractTests` でテスト済み(Core だけで検証可能なため実行もされている —
+`tools/run-tests.sh`)。
+
+**残るのは 1 箇所だけ**: `WindowsWifiService.GetAdaptersAsync` が
+`WifiAdapter.PhysicalAddress` を実際に埋めること。
+
 - **必要なのは Windows 固有 API ではない見込み。**
   `System.Net.NetworkInformation.NetworkInterface.GetPhysicalAddress()` は BCL であり、
   P/Invoke も WMI も要らない。WLAN アダプターの GUID と `NetworkInterface.Id` を
   突き合わせる部分だけがプラットフォーム依存になる。
-  **この見込みは実機で未検証**のため、配線自体はまだ書いていない。
-- `IWifiService` にはアダプターの MAC を返す口が無いので、
-  `GetAdaptersAsync` が返す `WifiAdapter` に足すのが素直
-  (現在の `WifiAdapter` は Id/Name/Description/State/ConnectedSsid のみ)。
+  **この見込みは実機で未検証**のため、配線自体はまだ書いていない
+  (書けば動くはずという推測でコードを足すのは、本セッションが繰り返し
+  戒めてきた「検証していない主張」そのものになる)。
+- 埋めなければ `PhysicalAddress` は null のままで、`mwc privacy` は従来どおり
+  `--mac`/`--mac-mode` をユーザーに求める — 退行はしない。
 - 履歴からの種類判定 (`FromHistory`) を使うなら、接続の度に
   (SSID, MAC, 時刻) を記録する必要がある。`NetworkHistoryService` が近い。
 

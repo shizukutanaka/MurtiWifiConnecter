@@ -183,6 +183,16 @@ public sealed record WifiAdapter
     public required string Description { get; init; }
     public AdapterState State { get; init; }
     public string? ConnectedSsid { get; init; }
+
+    /// <summary>
+    /// このアダプターの現在の MAC アドレス(コロン区切り 6 オクテット、例: "AA:BB:CC:DD:EE:FF")。
+    /// 取得できない/未実装のプラットフォームでは null。
+    ///
+    /// <see cref="MWC.Core.Services.MacAddressModeInference"/> の判定入力として使う。null のままなら
+    /// `mwc privacy` は従来どおり `--mac`/`--mac-mode` をユーザーに求める
+    /// (docs/COMPLETION-CHECKLIST.md §4 参照 — Windows での実供給はまだ書かれていない)。
+    /// </summary>
+    public string? PhysicalAddress { get; init; }
 }
 
 public enum AdapterState

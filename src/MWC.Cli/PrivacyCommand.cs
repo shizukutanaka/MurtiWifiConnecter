@@ -54,15 +54,29 @@ public static partial class Program
                     Environment.Exit(ExitCode.InvalidInput); return;
                 }
 
-                // --mac が渡されたらアドレスから判定し、--mac-mode より優先する。
+                var svc = sp.GetRequiredService<IWifiService>();
+                var ad  = await Resolve(svc, af);
+                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                // 有効な MAC 文字列を決める。明示 --mac を最優先し、無ければアダプターが
+                // 供給する実アドレス (ad.PhysicalAddress) にフォールバックする。どちらも
+                // 「実測」であって自己申告 (--mac-mode) より確からしいため、これが得られた
+                // 場合は --mac-mode より優先する。
+                // (2026-08 時点: PhysicalAddress を実際に埋めるのは Windows 側の配線が
+                // 必要でまだ未実装 — docs/COMPLETION-CHECKLIST.md §4。ここでは
+                // 供給されればそれを使うだけで、供給元の有無には依存しない。)
+                bool macWasAutoSupplied = macStr is null && ad.PhysicalAddress is not null;
+                var effectiveMac = macStr ?? ad.PhysicalAddress;
+
+                // effectiveMac が渡されたらアドレスから判定し、--mac-mode より優先する。
                 // 「明示指定が強い」ではなく「実測が強い」— ユーザーの自己申告より
                 // アドレスのビットの方が確かなため。
                 MacModeEvidence? evidence = null;
-                if (macStr is not null)
+                if (effectiveMac is not null)
                 {
-                    if (!MacAddressModeInference.TryParse(macStr, out var macBytes))
+                    if (!MacAddressModeInference.TryParse(effectiveMac, out var macBytes))
                     {
-                        Err($"unparsable --mac '{macStr}'. Expected 6 hex octets, e.g. AA:BB:CC:DD:EE:FF");
+                        Err($"unparsable --mac '{effectiveMac}'. Expected 6 hex octets, e.g. AA:BB:CC:DD:EE:FF");
                         Environment.Exit(ExitCode.InvalidInput); return;
                     }
                     var inferred = MacAddressModeInference.FromAddress(
@@ -70,10 +84,6 @@ public static partial class Program
                     evidence = inferred.Evidence;
                     mode = inferred.Mode;
                 }
-
-                var svc = sp.GetRequiredService<IWifiService>();
-                var ad  = await Resolve(svc, af);
-                if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
                 var nets = await svc.ScanAsync(ad.Id);
 
@@ -93,6 +103,7 @@ public static partial class Program
                     {
                         macMode = mode.Value.ToString(),
                         macModeEvidence = evidence?.ToString(),
+                        macAutoSupplied = macWasAutoSupplied,
                         network = target.Ssid,
                         networkAuth = target.Auth.ToString(),
                         advisories = advisories.Select(a => new
@@ -109,7 +120,12 @@ public static partial class Program
 
                 Console.WriteLine($"MAC privacy — mode: {mode.Value}, network: {target.Ssid} ({target.Auth})");
                 if (evidence is not null)
-                    Console.WriteLine($"(inferred from the address: {Describe(evidence.Value)})");
+                {
+                    var source = macWasAutoSupplied
+                        ? "the adapter's current address (auto-detected)"
+                        : "the address you provided";
+                    Console.WriteLine($"(inferred from {source}: {Describe(evidence.Value)})");
+                }
                 Console.WriteLine("(informational only — does not change your MAC settings)");
                 Console.WriteLine();
 
@@ -144,7 +160,7 @@ public static partial class Program
                     Console.WriteLine();
                 }
 
-                if (macModeStr is null && macStr is null)
+                if (macModeStr is null && effectiveMac is null)
                     Console.WriteLine(
                         "Tip: pass --mac with the adapter's address; randomisation is then determined " +
                         "from the address rather than taken on trust.");

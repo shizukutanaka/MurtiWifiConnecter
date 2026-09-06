@@ -143,6 +143,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **`WifiAdapter` gains `PhysicalAddress`, and `mwc privacy` now prefers it over `--mac-mode` when
+  a platform supplies it.** MAC-randomisation detection was already Core-side
+  (`MacAddressModeInference`, an earlier fix in this file), reachable today via
+  `mwc privacy --mac <address>`; the piece still missing was a place for a platform to hand that
+  address over automatically. `PrivacyCommand` now resolves `effectiveMac = --mac ?? ad.PhysicalAddress`
+  — an explicit `--mac` still wins if given, but an adapter-supplied address is preferred over the
+  self-reported `--mac-mode`, since both are measurements and only the latter is a guess. Pinned in
+  `PrivacyCliContractTests` with four new cases covering the priority order and the null-adapter
+  fallback. **What this does not do**: populate `PhysicalAddress` from `WindowsWifiService`. That
+  needs an untested assumption (`NetworkInterface.GetPhysicalAddress()` matched against a WLAN
+  adapter's GUID) that this environment cannot verify on real hardware, so it is documented as the
+  one remaining step in `docs/COMPLETION-CHECKLIST.md` §4 rather than written speculatively. Until
+  it lands, `PhysicalAddress` stays null and behaviour is unchanged.
 - **`KeyboardShortcutService` and its two test files now compile and run — 1149 passing across 74
   files.** The service needed only WPF's `Key` and `ModifierKeys` enums, which had previously been
   refused on the grounds that transcribing ~170 members would mean copying them *from the code being

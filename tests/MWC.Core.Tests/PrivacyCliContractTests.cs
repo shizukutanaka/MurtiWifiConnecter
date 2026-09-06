@@ -91,6 +91,60 @@ public class PrivacyCliContractTests
         advisories.Should().NotContain(a => a.Code == "MWC-PRIV-001");
     }
 
+    // ── (2b) --mac の既定値としての WifiAdapter.PhysicalAddress ──────
+    //
+    // 2026-08: WifiAdapter に PhysicalAddress を追加し、PrivacyCommand は
+    //   effectiveMac = macStr ?? ad.PhysicalAddress
+    // という優先順位で使う(CLI 側は private なのでここに同じ規則を写す —
+    // 本ファイル冒頭の ParseMacMode と同じ方針)。Windows での PhysicalAddress
+    // 実供給はまだ書かれていない(docs/COMPLETION-CHECKLIST.md §4)が、
+    // 供給された場合の優先順位はここで固定できる。
+
+    private static string? EffectiveMac(string? macStr, string? adapterPhysicalAddress)
+        => macStr ?? adapterPhysicalAddress;
+
+    [Fact]
+    public void ExplicitMacOverridesAdapterSuppliedAddress()
+    {
+        EffectiveMac(macStr: "11:11:11:11:11:11", adapterPhysicalAddress: "22:22:22:22:22:22")
+            .Should().Be("11:11:11:11:11:11",
+                because: "a user-provided --mac is at least as good a measurement as the " +
+                         "adapter's own reported address, and overriding it would be surprising");
+    }
+
+    [Fact]
+    public void AdapterSuppliedAddressIsUsed_WhenNoExplicitMacGiven()
+    {
+        EffectiveMac(macStr: null, adapterPhysicalAddress: "AA:BB:CC:DD:EE:FF")
+            .Should().Be("AA:BB:CC:DD:EE:FF",
+                because: "an auto-detected address is still a measurement, and should be preferred " +
+                         "over the self-reported --mac-mode string");
+    }
+
+    [Fact]
+    public void NoMacSourceAtAll_LeavesEffectiveMacNull()
+    {
+        EffectiveMac(macStr: null, adapterPhysicalAddress: null).Should().BeNull(
+            because: "with neither source available, the CLI must fall back to --mac-mode or Unknown, " +
+                     "never invent an address");
+    }
+
+    [Fact]
+    public void AdapterSuppliedAddress_FlowsThroughInferenceLikeAnyOtherAddress()
+    {
+        // PrivacyCommand が実際にたどる経路の縮図: WifiAdapter.PhysicalAddress →
+        // MacAddressModeInference.TryParse → FromAddress。特別扱いは無いことを固定する。
+        var adapter = new WifiAdapter
+        {
+            Id = System.Guid.NewGuid(), Name = "Wi-Fi", Description = "Test",
+            PhysicalAddress = "02:00:00:00:00:01",   // LAA ビット (bit 1) が立っている
+        };
+
+        MacAddressModeInference.TryParse(adapter.PhysicalAddress, out var bytes).Should().BeTrue();
+        MacAddressModeInference.FromAddress(bytes).Mode.Should().Be(MacAddressMode.Randomized,
+            because: "locally-administered addresses are inferred the same way regardless of source");
+    }
+
     // ── (3) 横断不変条件 ──────────────────────────────────────────
 
     [Fact]
