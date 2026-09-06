@@ -94,6 +94,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   --selftest` against the corrected stub: no live handler-wiring bug surfaced, but the check itself
   is now meaningfully stronger — a future SetHandler call with descriptors in the wrong
   type-mismatched order would now be caught.
+- **`tools/stubs/TestFrameworks.Stub.cs`'s `BeEquivalentTo` approximation compared collections
+  position-by-position; real FluentAssertions compares them ignoring order by default.** Confirmed
+  against FluentAssertions 7.0.0's own source (`GenericCollectionAssertions.cs` documents
+  `NotBeEquivalentTo` — and by extension `BeEquivalentTo` — as "regardless of the order" unless
+  `WithStrictOrdering()` is explicitly requested, which nothing in this codebase does). The stub's
+  header had already flagged this exact gap as a known approximation. Rewrote the enumerable branch
+  of `Cmp.Structural` to do multiset (greedy bipartite) matching instead of positional comparison —
+  each element in the actual collection must structurally match some not-yet-consumed element in
+  the expected collection, in any order. Verified directly (not just by re-running the suite): a
+  throwaway program confirmed `new[]{1,2,3}.Should().BeEquivalentTo(new[]{3,1,2})` now passes while
+  `new[]{1,2,3}.Should().BeEquivalentTo(new[]{1,2,4})` still correctly fails. `tools/run-tests.sh`
+  stays at 1250/1250 and `tools/mutation-check.sh` still kills all five mutants, so this closes a
+  real semantic gap without weakening the suite's actual detection power.
 - **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
   provenance. No binary has ever been produced.** There is no release workflow, no release, and
   therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as

@@ -21,8 +21,10 @@
 //  ★ 2026-08 追記: アサーションは **実際に検証する** ようになった (以前は no-op)。
 //    これにより tools/run-tests.sh がテストを**本当に実行**できる。型検査時の
 //    シグネチャは変えていないので typecheck-tests.sh の動作は不変。
-//    ただし意味論は FluentAssertions の**近似**であり、特に BeEquivalentTo は
-//    本物の構造比較ではなく順序付き列挙比較にすぎない。差異が出たら本物が正。
+//    意味論は FluentAssertions の**近似**であり、差異が出たら本物が正。
+//    ★ 2026-09 追記: BeEquivalentTo のコレクション比較を、本物の既定動作
+//    (FluentAssertions 7.0.0 実ソースで確認済み — `WithStrictOrdering()` を
+//    明示しない限り順序無視)に合わせて位置比較→多重集合比較に修正した。
 //
 //  使い方: tools/typecheck-tests.sh と tools/run-tests.sh から参照される。
 //          製品ビルドに混ぜないこと。
@@ -179,9 +181,24 @@ namespace FluentAssertions
 
             if (a is IEnumerable ea && b is IEnumerable eb)
             {
+                // 2026-09 修正: 本物の BeEquivalentTo はコレクションを**順序無視**で比較する
+                // (`WithStrictOrdering()` を明示しない限り既定は順序非依存 — FluentAssertions
+                // 7.0.0 実ソース `GenericCollectionAssertions.cs` の NotBeEquivalentTo ドキュ
+                // メントコメント "regardless of the order" で確認済み)。以前はここが
+                // 位置ごとの比較だったため、同じ要素が並び順だけ違う場合に本物なら合格する
+                // ところをここでは不合格にしていた(逆方向の誤検知は無かった — 位置一致は
+                // 常に多重集合一致でもあるため)。要素同士の対応は貪欲マッチングで十分
+                // (テスト用途の小さいコレクションが対象、最適マッチングは要らない)。
                 var la = ea.Cast<object?>().ToList(); var lb = eb.Cast<object?>().ToList();
                 if (la.Count != lb.Count) return false;
-                for (int i = 0; i < la.Count; i++) if (!Structural(la[i], lb[i], depth + 1)) return false;
+                var used = new bool[lb.Count];
+                foreach (var x in la)
+                {
+                    int i = 0;
+                    for (; i < lb.Count; i++)
+                        if (!used[i] && Structural(x, lb[i], depth + 1)) { used[i] = true; break; }
+                    if (i == lb.Count) return false;
+                }
                 return true;
             }
 
