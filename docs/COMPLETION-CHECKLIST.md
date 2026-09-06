@@ -137,44 +137,32 @@ MWC.Core は SDK 同梱の参照アセンブリだけでコンパイルでき、
    | `MWC.Core` | `tools/typecheck-core.sh` | **実際にコンパイル済み**(`-warnaserror` 込みで green) |
    | `MWC.Cli` | `tools/typecheck-cli.sh --selftest` | 型検査済み(実在の欠陥 3 件が出て修正済み) |
    | `MWC.App` | `tools/typecheck-app-services.sh` | WPF 非依存の **19/46 ファイル**を型検査(件数は実行時表示、ハードコードしない) |
-   | `MWC.Platform.Windows` | `tools/typecheck-platform.sh` | ManagedNativeWifi に依存しない **2/6 ファイル**を型検査 |
+   | `MWC.Platform.Windows` | `tools/typecheck-platform.sh` | ManagedNativeWifi に依存しない **3/6 ファイル**を型検査 |
    | テスト(型検査) | `tools/typecheck-tests.sh --selftest` | MWC.App 依存分と FsCheck を除く **75/79 ファイル** |
    | テスト(実行) | `tools/run-tests.sh` | xunit 無しで反射実行。**現在は全件合格**(件数は実行時表示。当初の実行で実在の欠陥が複数出て修正済み) |
    | 検出力 | `tools/mutation-check.sh` | 意図的な欠陥注入 5 件を全て kill、コメントのみの対照は生存 |
 
-   **依然として型検査も実行もされていないのは 3 つ**: App の XAML コードビハインド(27 ファイル、
-   `InitializeComponent` partial が要る)・`MWC.Platform.Windows` の ManagedNativeWifi 依存分(4 ファイル)・
-   `--mac` の実引き渡し等の実機固有の挙動。いずれも Windows 実機と NuGet アクセスの少なくとも一方が要る。
+   **依然として型検査も実行もされていないのは実質 2 つ**: App の XAML コードビハインド
+   (27 ファイル、`InitializeComponent` partial が要る)・`MWC.Platform.Windows` の
+   ManagedNativeWifi 依存分(3 ファイル)。いずれも Windows 実機か
+   `Microsoft.WindowsDesktop.App.Ref`/NuGet アクセスの少なくとも一方が要る。
    XAML 分は 2026-08 に実測済み(15 クラス / 72 フィールド / 20 コントロール型)。
    生成自体は可能だが、コントロールのメンバを「コードが要求した順に」足す形になり
    検査が空洞化するため見送った。**`Microsoft.WindowsDesktop.App.Ref` を入れるのが正攻法**
    (詳細は `tools/stubs/WpfMinimal.Stub.cs` のヘッダ)。
-   (それぞれ System.CommandLine beta4 / WPF 参照パック / ManagedNativeWifi / xunit が要り、
-   いずれもこの環境では入手できないことを確認済み)。構文エラーが無いことだけは確認した。
-   **したがって CI が赤くなるとすれば Core 以外の 4 つが第一容疑者。**
 
-   > **注意**: 「本物の `MWC.Core.dll` を参照して Cli をコンパイルし、参照欠落以外の
-   > エラーだけ見る」という近道は**効かない**。System.CommandLine が無いと
-   > `SetHandler(...)` のデリゲート型がエラー型になり、Roslyn はラムダ本体を
+   > **注意 (`tools/typecheck-cli.sh` を書いたときの教訓)**: 「本物の `MWC.Core.dll` を
+   > 参照してコンパイルし、参照欠落以外のエラーだけ見る」という近道は**効かない**。
+   > 未解決のデリゲート型(`SetHandler(...)` 等)があると Roslyn はラムダ本体を
    > 束縛しないため、Core の API 名を間違えていてもエラーが出ない
    > (2026-08 に実際に試して確認)。**「エラーが出なかった」を検証済みと解釈しないこと。**
-   Core で実際に出た 3 件はすべて束縛エラー(CS1929 / CS1739 / SYSLIB0057)で、
-   同種のものが他プロジェクトに残っている可能性が高い。
+   > `--selftest` フラグはこれを毎回確かめる。
 
-   参考: 以前の記載「このセッションの変更はコンパイル検証されていない」は
-   Core については**もう当てはまらない**。
-   特に WPF 側(`ConnectDialog` の Enterprise パネル)は静的検証しかできていない
-   (XAML パース・`x:Name` とコードビハインドの対応・リソースキーとテーマブラシの実在は確認済み)。
-
-   ただし**コンパイルの下限は 2026-07 に静的監査済み**で、以下は確認できている
-   (= CI が赤くなるなら typo より深い意味的問題の可能性が高い):
-   - 新規 CLI コマンド 3 件の `SetHandler` アリティ(オプション数 = ラムダ引数数)一致
-   - 新規テストが参照する Core API メンバ 13 種すべての実在
-   - record の `with` 式で使う全フィールド・全 enum 値の実在
-   - 全新規ファイルの `using` 充足(型が推論される箇所は不要)
-   - テストクラス名の重複なし(あれば即コンパイルエラー)
-   - `BeaconIeSummary` への追加フィールドは optional 既定で既存構築を壊さない
-   未確認なのは**意味論**(実行時挙動)と **WPF/プラットフォーム層の実コンパイル**のみ。
+   Core・Cli・App・Platform.Windows・テストで実際に出た欠陥はすべて**束縛エラー**
+   (CS1929 / CS1739 / SYSLIB0057 / CS0246 / CS1061 / CS0029 / CS9035 等)であり、
+   静的な構文チェックでは捕まらない種類だった。同種の欠陥が
+   XAML コードビハインドと ManagedNativeWifi 依存分にも残っている可能性は排除できない
+   ——それらは今も未検査であることに変わりないため。
 
 ---
 
@@ -369,7 +357,7 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 | 新機能 | GUI の Enterprise 認証情報入力 / `mwc import-cat`(eduroam)/ `mwc passpoint` / `mwc privacy` |
 | セキュリティ | RADIUS サーバ検証の強制、PEAP の V2 拡張、evil twin 防御の永続化、BSSID の位置プライバシー是正 |
 | 静的検証 | `tools/verify.sh`(dotnet 無しで走る静的チェック一式) |
-| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 2/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 20 件に集約) |
+| 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 3/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 20 件に集約) |
 | 実行検証 | `tools/run-tests.sh` — xunit 無しで実際にテストを実行。**1250 件合格 / 0 件失敗 / 0 件 skip**。`tools/mutation-check.sh` が検出力を実測(意図的な欠陥注入 5 件すべて kill、コメントのみの対照は生存) |
 
 **まだ未検証なのは 4 点だけ**: (1) `dotnet build`/`dotnet test` そのもの — 上記は `csc` 直叩き + 手製ランナーによる**近似**であり、`api.nuget.org` へのアクセスと CI 設置のいずれかが要る。(2) App の WPF 依存 27 ファイル(参照パック未入手)。(3) Platform.Windows(ManagedNativeWifi と Windows API が要る)。(4) MLO のリンク詳細(RSSI は実機測定値)。項目 1〜4 の解消がこれらを埋める。

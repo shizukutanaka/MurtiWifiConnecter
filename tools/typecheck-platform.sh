@@ -2,20 +2,31 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # tools/typecheck-platform.sh — MWC.Platform.Windows のうち、**循環せずに検査できる分**。
 #
-# なぜ 6 ファイル中 2 件だけなのか (2026-08 の実測。範囲を広げる前に読むこと):
-#   ManagedNativeWifi (NuGet) を要するもの … 4 件
-#     ConnectionWaiter / WindowsWifiService / WlanBssIeProvider /
-#     NetworkStateChangedEventHandlerBridge
+# なぜ 6 ファイル中 3 件だけなのか (2026-08 の実測。範囲を広げる前に読むこと):
+#
+#   ★ 以前は「ManagedNativeWifi を要するもの 4 件」とひとまとめにしていたが、
+#     それは**個別に確認せず隣接ファイルから類推しただけ**だった。実際に 1 ファイルずつ
+#     `using` を見たところ、`WlanBssIeProvider.cs` には `using ManagedNativeWifi` が
+#     **無い** — 自前の P/Invoke (`wlanapi.dll` の DllImport + 手書きネイティブ構造体) のみで、
+#     スタブすら要らずに単独でコンパイルできた(`-warnaserror` 込みで green、実測済み)。
+#     この「未検証のまま隣と同じ扱いにする」は、本セッションが繰り返し戒めてきた誤りそのもの。
+#
+#   ManagedNativeWifi (NuGet) を実際に要するもの … 3 件
+#     ConnectionWaiter / WindowsWifiService / NetworkStateChangedEventHandlerBridge
 #     → スタブを書くと、**第三者ライブラリの API を検査対象のコードから逆算して
 #       定義する**ことになる。そのスタブに対して通っても「私の推測どおりに
 #       呼んでいる」ことしか分からず、本物の ManagedNativeWifi と合っている保証は無い。
 #       WLAN の型は数十あり、誤りは静かに false negative になる。よって手を出さない。
 #
-#   検査できる 2 件:
+#   検査できる 3 件:
 #     HttpConnectivityChecker … BCL のみ (HttpClient)。スタブ不要。
 #     DpapiSecretProtector    … ProtectedData のみ。これは**公開された安定した BCL API** で、
 #                               署名を検査対象から逆算していないため循環しない
 #                               (tools/stubs/ProtectedData.Stub.cs のヘッダ参照)。
+#     WlanBssIeProvider       … 自前 P/Invoke のみ。スタブ不要、外部依存ゼロ。
+#                               ⚠ ただしネイティブ構造体マーシャリングの**正しさ**
+#                               (レイアウト一致・オフセット計算)自体は実機 Windows でしか
+#                               確認できない。ここで確認できるのは「コンパイルが通る」まで。
 #
 #   この線引きは「スタブが検査対象のコードから導かれるか否か」で引いている。
 #   導かれるなら検査は空になる。導かれないなら意味がある。
@@ -40,7 +51,7 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
   || { echo "MWC.Core does not compile; run tools/typecheck-core.sh first"; head -5 "$OUT/core.log"; exit 1; }
 
 FILES=""
-for f in HttpConnectivityChecker.cs DpapiSecretProtector.cs; do
+for f in HttpConnectivityChecker.cs DpapiSecretProtector.cs WlanBssIeProvider.cs; do
   [ -f "src/MWC.Platform.Windows/$f" ] && FILES="$FILES src/MWC.Platform.Windows/$f"
 done
 total=$(find src/MWC.Platform.Windows -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' | wc -l)
