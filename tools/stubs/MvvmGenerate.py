@@ -20,6 +20,27 @@
   生成メンバそのものの正しさ (本物のジェネレータと細部が違い得る)。
   変更通知の実挙動 (PropertyChanged の発火順序など) は一切検証していない。
 
+2026-09 追記 — 上記の「公表された命名規約」を実ソースで裏取り済み
+(`github.com/CommunityToolkit/dotnet`、タグ `v8.4.0` — `Directory.Packages.props`
+のピン留めと一致)。このリポジトリの実際の [ObservableProperty]/[RelayCommand]
+使用箇所すべてで一致することを確認したが、本スクリプトが**対応していない**
+実ジェネレータの挙動が 2 つ見つかっている(現状どの ViewModel も使っていないため
+実害は無いが、将来これらのパターンが追加されると **誤って型検査が失敗する**
+[誤検知であり見逃しではない] ので、原因調査の時間を省くためにここに記録する):
+
+  1. `On<Prop>Changing`/`On<Prop>Changed` の **2 引数版**
+     (`(T oldValue, T newValue)`)。実ジェネレータは 1 引数版・2 引数版のどちらを
+     実装したかを検出して対応する宣言を生成するが、本スクリプトは 1 引数版
+     (`(T value)`) しか生成しない。
+     (実ソース: ObservablePropertyGenerator.Execute.cs 1461-1538 行付近)
+  2. `[RelayCommand]` メソッド名が `On` で始まる場合の接頭辞除去
+     (実ジェネレータは `OnSave()` → `SaveCommand` のように `On` を剥がす。
+     ただし 3 文字目が小文字なら剥がさない — `Onboard` 対策)。
+     加えてパラメータ付きメソッドの `IRelayCommand<T>`/`IAsyncRelayCommand<T>` も
+     未対応(本スクリプトは常に非ジェネリックの `IRelayCommand`/`IAsyncRelayCommand`
+     を生成する)。
+     (実ソース: RelayCommandGenerator.Execute.cs 480-510 行付近)
+
 使い方: python3 tools/stubs/MvvmGenerate.py <出力ファイル> <入力.cs...>
 """
 import re

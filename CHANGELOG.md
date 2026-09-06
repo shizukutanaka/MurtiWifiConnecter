@@ -66,6 +66,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   4 of 6 `MWC.Platform.Windows` files (was 3); the remaining two
   (`ConnectionWaiter.cs`/`NetworkStateChangedEventHandlerBridge.cs`) still can't be checked for the
   reason described above — that gap is unrelated to this fix and remains open.
+- **Audited whether `tools/stubs/Mvvm.Stub.cs`/`MvvmGenerate.py`'s "published stable naming
+  convention" claim for CommunityToolkit.Mvvm had ever actually been checked against real source —
+  it hadn't.** Cloned the real source (`CommunityToolkit/dotnet`, tag `v8.4.0`, matching the pin)
+  and compared its `[ObservableProperty]`/`[RelayCommand]` naming logic line-by-line against what
+  `MvvmGenerate.py` reproduces. Every actual usage in this codebase matches. Found two behaviors the
+  real generator supports that this stub doesn't (two-parameter `On<Prop>Changed(old, new)`
+  overloads, and stripping a leading `On`/generating `IRelayCommand<T>` for `[RelayCommand]`
+  methods) — neither pattern exists anywhere in this codebase today, so there's no live defect, but
+  either would make `typecheck-app-services.sh` fail loudly (not silently pass) if added later.
+  Documented both in the script's header so that failure is recognized immediately instead of
+  re-derived.
 - **`SECURITY.md` told security researchers the binaries were Sigstore-signed with SLSA
   provenance. No binary has ever been produced.** There is no release workflow, no release, and
   therefore no signature, no SBOM and no provenance — yet `SECURITY.md` stated all three as
