@@ -8,7 +8,7 @@
   ├─ Views (XAML)            ├─ AdapterCommand
   ├─ Services                └─ MultiAdapterCmd
   ├─ Controls / Converters
-  ├─ Resources (L.cs + 12 resx)
+  ├─ Resources (L.cs + 15 resx: 中立ベース + 14言語)
   └─ Themes (Dark/Light)
   ─────────────────────────────────────────────
   MWC.Platform.Windows                             プラットフォーム層
