@@ -2,8 +2,14 @@
 
 ## 目標
 - 既定: 日本語(`Strings.ja.resx`)
-- 完全対応: ja, en, zh-Hans, zh-Hant, ko, es, fr, de, pt-BR, ru, ar, hi, vi, th, id, it, tr, pl, nl, sv (上位 20言語)
-- コミュニティ駆動: 30以上の追加言語(Crowdin)
+- 完全対応: ja, en, zh-Hans, zh-Hant, ko, es, fr, de, pt-BR, ru, ar, hi, bn, ta
+  (14言語 + 中立ベース `Strings.resx`。517 キー全言語一致を `tools/verify.sh` が保証)
+  ——**2026-09 訂正**: 以前の版は vi/th/id/it/tr/pl/nl/sv を含む「上位20言語」を
+  謳っていたが、これらの resx は実在しない。逆に bn(ベンガル語)/ta(タミル語)は
+  実在するのに以前の版のリストに含まれていなかった。実ファイル一覧
+  (`src/MWC.App/Resources/Strings.*.resx`)から書き直した。
+- コミュニティ駆動の追加言語(Crowdin): **未設置**。下記「自動化」節が
+  「将来」と明記する通り、resx→JSON→Crowdin 同期の仕組みはまだ無い。
 
 ## ファイル命名
 `Strings.<culture>.resx` 形式。`<culture>` は BCP-47 (例: `ja`, `en`, `zh-Hans`, `pt-BR`)
