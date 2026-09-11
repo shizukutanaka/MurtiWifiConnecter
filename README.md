@@ -133,8 +133,10 @@ winget install ShizukuTanaka.MWC
 [リリース](https://github.com/shizukutanaka/MurtiWifiConnecter/releases) から
 `MWC-x.x.x-win-x64.zip` または `-win-arm64.zip`。SBOM・署名・SHA256SUMS が同梱される。
 
-MSI は `installer/wix/Product.wxs` が用意されているが、ファイル harvest が未整備のため
-リリースパイプラインではまだビルドしていない。
+MSI は `installer/wix/Product.wxs` が用意されているが、そのファイル harvest 構文が
+WiX v5 以降の機能で、この構成が前提とする WiX v4 には存在しないため
+(`docs/adr/0005-multi-channel-distribution.md` の追記参照)、リリースパイプラインでは
+まだビルドしていない。
 
 ### dotnet tool / CLI のみ(リリース公開後)
 ```powershell

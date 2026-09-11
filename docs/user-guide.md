@@ -4,7 +4,12 @@ MWC (Multi WiFi Connector) は Windows / Linux / macOS で動作する Wi-Fi 管
 
 ## インストール
 
-### Windows
+> ⚠️ **リリースはまだ公開されていない。** 現時点で入手方法は「ソースからのビルド」のみ。
+> 下記の winget/Scoop/Chocolatey/dotnet tool はリリースパイプライン
+> (`docs/ci/release.yml`)設置後、最初のリリースを切って初めて有効になる
+> (詳細: [`README.md`](../README.md#インストール)、[`docs/COMPLETION-CHECKLIST.md`](COMPLETION-CHECKLIST.md))。
+
+### Windows(リリース公開後)
 
 ```powershell
 # winget
@@ -17,10 +22,10 @@ scoop install mwc
 choco install mwc
 ```
 
-### CLI
+### CLI(リリース公開後)
 
 ```bash
-dotnet tool install --global MWC.Cli
+dotnet tool install --global mwc-cli
 ```
 
 主なコマンド(全コマンドは `mwc --help`、各コマンドは `mwc <cmd> --help`):
