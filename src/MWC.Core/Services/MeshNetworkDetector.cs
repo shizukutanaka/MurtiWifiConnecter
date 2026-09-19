@@ -43,10 +43,8 @@ public sealed class MeshNetworkDetector
         "C8:D3:A3", // Linksys Velop
     };
 
-    private readonly OuiLookupService _oui;
-
-    public MeshNetworkDetector(OuiLookupService? oui = null)
-        => _oui = oui ?? new OuiLookupService();
+    // OuiLookupService は注入しない — 既知メッシュベンダーの OUI 前方一致で十分。
+    // (ベンダー名の表示解決が要る場合は MeshGroup 側にフィールドを足してから配線する)
 
     /// <summary>
     /// 可視ネットワーク一覧からメッシュ候補をグループ化して返す。

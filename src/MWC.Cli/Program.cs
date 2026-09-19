@@ -272,7 +272,7 @@ public static partial class Program
 
             if (msh)
             {
-                var detector = new MeshNetworkDetector(oui);
+                var detector = new MeshNetworkDetector();
                 var groups = detector.Detect(enriched);
                 Console.WriteLine();
                 if (groups.Count == 0)
