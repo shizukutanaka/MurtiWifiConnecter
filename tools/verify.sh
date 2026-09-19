@@ -396,7 +396,11 @@ impl_opts = {}
 unresolved = []
 for c in re.findall(r'root\.AddCommand\(\s*([\w\.]+)\s*\(', prog):
     cls, meth = (c.split('.', 1) if '.' in c else (None, c))
-    path, seg = locate(meth, cls)
+    # 修飾なし呼び出しは partial class Program のメソッド。同名メソッドが
+    # 別クラスに在ると衝突する (実例: MultiAdapterCommand.BuildConnect は
+    # `mwc multi connect` であって root の `mwc connect` ではない) ので、
+    # cls が無いときも 'class Program' を含むファイルだけを見る。
+    path, seg = locate(meth, cls or 'Program')
     name = None
     if seg:
         n = re.search(r'new Command\(\s*"([\w-]+)"', seg)
