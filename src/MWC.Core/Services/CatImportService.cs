@@ -21,8 +21,6 @@ namespace MWC.Core.Services;
 /// </summary>
 public sealed class CatImportService
 {
-    private static readonly XNamespace Ns = "urn:ietf:params:xml:ns:yang:ietf-eap-metadata";
-
     // ── Public API ───────────────────────────────────────────────────
 
     /// <summary>
@@ -189,11 +187,15 @@ public sealed class CatImportService
         try
         {
             var bytes = Convert.FromBase64String(base64Der);
-            using var sha1 = System.Security.Cryptography.SHA1.Create();
-            var hash = sha1.ComputeHash(bytes);
-            return BitConverter.ToString(hash).Replace("-", "");
+            // Windows WLAN プロファイル XML の <TrustedRootCA> は CA 証明書の
+            // SHA-1 サムプリントを要求する (Microsoft のスキーマ定義上の制約)。
+            // 証明書の同一性照合に使う識別子であり、署名検証の暗号強度とは無関係。
+#pragma warning disable CA5350
+            var hash = System.Security.Cryptography.SHA1.HashData(bytes);
+#pragma warning restore CA5350
+            return Convert.ToHexString(hash);
         }
-        catch { return null; }
+        catch (FormatException) { return null; }
     }
 }
 

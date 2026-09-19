@@ -138,14 +138,14 @@ public static class WifiProfileValidator
     public static bool TryValidate(WifiProfileSpec spec, out string? errorMessage)
     {
         try { Validate(spec); errorMessage = null; return true; }
-        catch (Exception ex) { errorMessage = ex.Message; return false; }
+        catch (ArgumentException ex) { errorMessage = ex.Message; return false; }
     }
 
     /// <summary>SSID が有効かどうかを返す。</summary>
     public static bool IsValidSsid(string ssid)
     {
         try { ValidateSsid(ssid); return true; }
-        catch { return false; }
+        catch (ArgumentException) { return false; }
     }
 
     // ── Private ─────────────────────────────────────────────────

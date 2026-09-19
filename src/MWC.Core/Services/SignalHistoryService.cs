@@ -25,8 +25,8 @@ public sealed class SignalHistoryService
     // バッファ蓄積(1件約5KB)を防ぐ上限。
     public SignalHistoryService(int maxSamples = 360, int maxSsids = 256)
     {
-        if (maxSamples < 2) throw new ArgumentOutOfRangeException(nameof(maxSamples));
-        if (maxSsids  < 1) throw new ArgumentOutOfRangeException(nameof(maxSsids));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxSamples, 2);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxSsids, 1);
         _maxSamples = maxSamples;
         _maxSsids   = maxSsids;
     }

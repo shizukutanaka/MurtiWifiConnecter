@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
 
@@ -94,6 +95,6 @@ public static partial class MwcLog
             hash ^= c;
             hash *= prime;
         }
-        return hash.ToString("x8");
+        return hash.ToString("x8", CultureInfo.InvariantCulture);
     }
 }

@@ -25,7 +25,6 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace OneXNs   = "http://www.microsoft.com/networking/OneX/v1";
     private static readonly XNamespace EhcNs    = "http://www.microsoft.com/provisioning/EapHostConfig";
     private static readonly XNamespace EcNs     = "http://www.microsoft.com/provisioning/EapCommon";
-    private static readonly XNamespace BeNs     = "http://www.microsoft.com/provisioning/BaseEapMethodConfig";
     private static readonly XNamespace BepNs    = "http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1";
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
     // PeapExtensions の中身 (PerformServerValidation / AcceptServerName / IdentityPrivacy) は

@@ -5,7 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <!-- CA1822 (mark as static) は意図的にエラーにしない。DI/インスタンス経由で呼ぶ
+         サービス設計を崩すため。警告としては残し、表示のみとする。
+         (.editorconfig の severity=warning と同じ意図; TWaE で昇格するのを止める) -->
+    <WarningsNotAsErrors>CS1591;CA1822</WarningsNotAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>

@@ -84,7 +84,7 @@ public sealed class CertificateStoreService
         // 放置するとビルドが**エラーで落ちる**。DER バイト列なので LoadCertificate が正しい
         // (PKCS#12 なら LoadPkcs12)。
         try { cert = X509CertificateLoader.LoadCertificate(derBytes); }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is CryptographicException or ArgumentException)
         { return new(false, "Failed to load certificate", ex.Message, null, null); }
 
         using (cert)

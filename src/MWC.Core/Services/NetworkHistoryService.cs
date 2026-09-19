@@ -24,6 +24,8 @@ public sealed class NetworkHistoryService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "history.json");
 
+    private static readonly JsonSerializerOptions JsonWriteOptions = new() { WriteIndented = false };
+
     /// <summary>
     /// 実際の保存先。既定は <see cref="DefaultHistoryPath"/>。
     ///
@@ -204,8 +206,7 @@ public sealed class NetworkHistoryService
                 // 一時ファイルへ書いてから置換し、書き込み中クラッシュでの破損を防ぐ。
                 var tmp = HistoryPath + ".tmp";
                 File.WriteAllText(tmp,
-                    JsonSerializer.Serialize(snapshot,
-                        new JsonSerializerOptions { WriteIndented = false }));
+                    JsonSerializer.Serialize(snapshot, JsonWriteOptions));
                 File.Move(tmp, HistoryPath, overwrite: true);
             }
             catch (IOException ex) { _log.LogWarning(ex, "Failed to save history file {Path}", HistoryPath); }

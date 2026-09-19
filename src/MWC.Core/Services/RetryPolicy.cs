@@ -48,7 +48,12 @@ public sealed class RetryPolicy
         double capped      = Math.Min(exponential, _maxDelay.TotalMilliseconds);
 
         // Full Jitter: [0, capped] の一様乱数
+        // CA5394: ジッターはセキュリティ目的の乱数ではない (接続リトライの時間分散)。
+        // Random のままにするのは、シード固定の Random を注入して遅延分布を
+        // 決定論的に検証できるようにするため。
+#pragma warning disable CA5394
         double jittered = _rng.NextDouble() * capped;
+#pragma warning restore CA5394
 
         return TimeSpan.FromMilliseconds(jittered);
     }

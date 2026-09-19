@@ -41,15 +41,15 @@ public static class ExportService
             sb.AppendLine(string.Join(",",
                 CsvEscape(n.Ssid),
                 CsvEscape(bssid),
-                n.SignalQuality,
-                n.Rssi?.ToString() ?? "",
+                n.SignalQuality.ToString(CultureInfo.InvariantCulture),
+                n.Rssi?.ToString(CultureInfo.InvariantCulture) ?? "",
                 n.Band.ToString(),
-                n.Channel,
-                n.ChannelWidth > 0 ? n.ChannelWidth.ToString() : "",
+                n.Channel.ToString(CultureInfo.InvariantCulture),
+                n.ChannelWidth > 0 ? n.ChannelWidth.ToString(CultureInfo.InvariantCulture) : "",
                 n.Phy.ToShortLabel(),
                 n.Auth,
                 n.Cipher,
-                n.MaxLinkSpeedMbps?.ToString() ?? "",
+                n.MaxLinkSpeedMbps?.ToString(CultureInfo.InvariantCulture) ?? "",
                 CsvEscape(n.VendorName ?? ""),
                 n.IsConnected,
                 n.HasProfile,
@@ -85,35 +85,35 @@ public static class ExportService
         ArgumentNullException.ThrowIfNull(networks);
         var sb = new StringBuilder();
         sb.AppendLine("MWC Scan Report");
-        sb.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine(new string('─', 72));
         sb.AppendLine();
 
         int i = 1;
         foreach (var n in networks)
         {
-            sb.AppendLine($"[{i++:D3}] {n.Ssid}{(n.IsConnected ? "  ← Connected" : "")}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"[{i++:D3}] {n.Ssid}{(n.IsConnected ? "  ← Connected" : "")}");
             sb.AppendLine($"     Signal   : {n.SignalQuality}%  {BuildBar(n.SignalQuality)}" +
                           (n.Rssi.HasValue ? $"  ({n.Rssi} dBm)" : ""));
-            sb.AppendLine($"     Auth     : {n.Auth}  /  {n.Cipher}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"     Auth     : {n.Auth}  /  {n.Cipher}");
             sb.AppendLine($"     Band     : {BandLabel(n.Band)}  Ch {n.Channel}" +
                           (n.ChannelWidth > 0 ? $"  ({n.ChannelWidth} MHz wide)" : ""));
-            sb.AppendLine($"     PHY      : {n.Phy.ToGenerationLabel()}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"     PHY      : {n.Phy.ToGenerationLabel()}");
             if (n.MaxLinkSpeedMbps.HasValue)
-                sb.AppendLine($"     Max Speed: {n.MaxLinkSpeedMbps} Mbps");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"     Max Speed: {n.MaxLinkSpeedMbps} Mbps");
             if (n.BssEntries.Count > 0)
             {
-                sb.AppendLine($"     BSSIDs   :");
+                sb.AppendLine("     BSSIDs   :");
                 foreach (var b in n.BssEntries)
                     sb.AppendLine($"               {b.Bssid}  {b.Rssi} dBm  Ch{b.Channel}" +
                                   (string.IsNullOrEmpty(n.VendorName) ? "" : $"  ({n.VendorName})"));
             }
             if (n.HasProfile)
-                sb.AppendLine($"     Profile  : {n.ProfileName ?? "(saved)"}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"     Profile  : {n.ProfileName ?? "(saved)"}");
             sb.AppendLine();
         }
         sb.AppendLine(new string('─', 72));
-        sb.AppendLine($"Total: {i - 1} networks");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total: {i - 1} networks");
         return sb.ToString();
     }
 

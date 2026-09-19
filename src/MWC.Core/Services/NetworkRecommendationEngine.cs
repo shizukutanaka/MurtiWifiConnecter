@@ -93,7 +93,8 @@ public sealed class NetworkRecommendationEngine
     public NetworkScore? Recommend(
         IEnumerable<WifiNetwork> networks, UsageProfile profile = UsageProfile.General)
     {
-        return Rank(networks, profile).FirstOrDefault();
+        var ranked = Rank(networks, profile);
+        return ranked.Count > 0 ? ranked[0] : null;
     }
 
     /// <summary>

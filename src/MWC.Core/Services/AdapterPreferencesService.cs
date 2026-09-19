@@ -24,6 +24,8 @@ public sealed class AdapterPreferencesService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "adapters.json");
 
+    private static readonly JsonSerializerOptions JsonWriteOptions = new() { WriteIndented = true };
+
     private readonly Dictionary<Guid, AdapterPreferences> _store;
     private readonly ILogger<AdapterPreferencesService> _log;
     // _store 保護用。AutoReconnectService(バックグラウンド)が Get/PickBestSsid で読み取る一方、
@@ -277,8 +279,7 @@ public sealed class AdapterPreferencesService
                 // 一時ファイル経由で原子的に置換し、書き込み中クラッシュでの破損を防ぐ。
                 var tmp = ConfigPath + ".tmp";
                 File.WriteAllText(tmp,
-                    JsonSerializer.Serialize(snapshot,
-                        new JsonSerializerOptions { WriteIndented = true }));
+                    JsonSerializer.Serialize(snapshot, JsonWriteOptions));
                 File.Move(tmp, ConfigPath, overwrite: true);
             }
             catch (IOException ex) { _log.LogWarning(ex, "Failed to save adapter prefs {Path}", ConfigPath); }
@@ -303,9 +304,9 @@ public sealed record AdapterPreferences
     /// <summary>フェイルオーバー先アダプターID。このアダプターが切断時に自動切替 (null = 無効)</summary>
     public Guid?             FailoverAdapterId { get; init; }
     /// <summary>フェイルオーバー機能を有効にする</summary>
-    public bool              EnableFailover { get; init; } = false;
+    public bool              EnableFailover { get; init; }
     /// <summary>ネットワーク一覧フィルタ: セキュアのみ表示</summary>
-    public bool              ShowSecuredOnly { get; init; } = false;
+    public bool              ShowSecuredOnly { get; init; }
     /// <summary>ネットワーク一覧フィルタ: お気に入りを先頭表示</summary>
     public bool              ShowFavoritesFirst { get; init; } = true;
 }

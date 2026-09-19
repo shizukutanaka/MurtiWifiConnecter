@@ -1261,6 +1261,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   redo this investigation or "fix" a non-problem.
 
 
+### Fixed
+- **First real `dotnet build` on all non-Windows projects — `MWC.Platform.Linux` had never
+  compiled.** Now that NuGet restore works in this environment, the Linux backend surfaced five
+  real defects that no prior static check could reach: it assigned to `WifiAdapter.IsEnabled`, a
+  property that does not exist (the model has `State`/`AdapterState`; nmcli states are now mapped
+  onto it); its `ConnectAsync` declared `(ssid, profileName)` — the **reverse** of
+  `IWifiService.ConnectAsync(adapterId, profileName, ssid, …)` — so it would have connected to the
+  profile *name* string rather than the SSID, and it now matches the Windows contract by bringing
+  the registered connection up (`nmcli connection up id <profileName>`, which also keeps the PSK
+  out of `/proc/<pid>/cmdline`); `SubscribeEventsAsync` yielded inside a `try`/`catch`, which is
+  CS1626 and un-compilable — restructured so reads happen in `try` and yields outside it; three
+  `catch {}` blocks either swallowed `OperationCanceledException` or used the general-clause form
+  the analyzers reject — all now filtered so cancellation propagates and only
+  `Win32Exception`/`IOException`/`InvalidOperationException` (process missing / pipe broken) are
+  treated as retryable; and the class doc-comment carried unescaped `<ssid>`/`<pass>`/`<iface>`
+  tags (CS1570).
+- **The whole `MWC.Core` analyzer surface is now clean under `TreatWarningsAsErrors` +
+  `AnalysisMode=AllEnabledByDefault` (~130 error sites).** Mechanical fixes: `AppendLine`/`ToString`
+  calls that format numbers/dates now pass `CultureInfo.InvariantCulture` (CA1305 — also removes
+  real locale variance in the CSV/TXT exporters and the diagnostic bundle); `JsonSerializerOptions`
+  instances created per-save are cached statically (CA1869); `= false` initializers on `bool`
+  properties removed (CA1805); `ThrowIfNegativeOrZero`/`ThrowIfLessThan` replace hand-rolled
+  guards (CA1512); `Rank(...).FirstOrDefault()` became indexed access (CA1826); four malformed or
+  orphaned XML doc comments repaired (CS1570/CS1587/CS1734). Judgment calls: CA1822
+  (mark-as-static) is downgraded to `WarningsNotAsErrors` because making every public DI-service
+  method `static` is a source-breaking change to the shipped SDK surface; CA1707 (underscores in
+  identifiers) is suppressed at type scope for `EapType`/`WifiBand`/`WcagCriterion`/`BandPreference`
+  since the names mirror IANA EAP method numbers and WCAG criterion numbers; CA5394 (`Random` in
+  `RetryPolicy`) and CA5350 (SHA-1 thumbprints, mandated by the Windows TrustedRootCA profile
+  schema) are suppressed at call-site with justification comments — the latter also modernised to
+  `SHA1.HashData` + `Convert.ToHexString`. `catch` clauses that folded any platform failure into a
+  `Result` now carry `when` exception filters so `OutOfMemoryException`/`StackOverflowException`
+  propagate instead of being masked (CA1031).
+- **`tools/verify.sh` reported ~20 phantom "option does not exist" failures** because its
+  `locate()` matched the first method of the right *name* across all classes —
+  `MultiAdapterCommand.BuildConnect` (`mwc multi connect`) collided with the root `mwc connect`.
+  Unqualified calls are now searched only in files containing `class Program`.
+
+### Removed
+- **`MeshNetworkDetector` took an `OuiLookupService` constructor parameter it never read** — `Detect`
+  consults the static `MeshVendorOuis` table, so the dependency was pure dead weight (and forced
+  every callsite, including `Program.cs`, to construct a lookup it didn't need). Parameter removed;
+  callers updated.
+
 ## [3.12.0] - 2026-07-16
 
 ### Fixed

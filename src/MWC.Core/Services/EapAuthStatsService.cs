@@ -30,6 +30,8 @@ public sealed class EapAuthStatsService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "eap-stats.json");
 
+    private static readonly JsonSerializerOptions JsonWriteOptions = new() { WriteIndented = false };
+
     private readonly List<EapAuthStat> _entries;
     private readonly ILogger<EapAuthStatsService> _log;
     // _entries 保護用。RecordAttempt は ConnectionExecutor から、GetAll/GetStat は
@@ -136,8 +138,7 @@ public sealed class EapAuthStatsService
                 Directory.CreateDirectory(Path.GetDirectoryName(StatsPath)!);
                 var tmp = StatsPath + ".tmp";
                 File.WriteAllText(tmp,
-                    JsonSerializer.Serialize(snapshot,
-                        new JsonSerializerOptions { WriteIndented = false }));
+                    JsonSerializer.Serialize(snapshot, JsonWriteOptions));
                 File.Move(tmp, StatsPath, overwrite: true);
             }
             catch (IOException ex) { _log.LogWarning(ex, "Failed to save EAP stats file {Path}", StatsPath); }
