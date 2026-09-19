@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -22,8 +24,8 @@ namespace MWC.Platform.Linux;
 /// 主なコマンドマッピング:
 ///   GetAdaptersAsync()      → nmcli -t -f DEVICE,TYPE,STATE device
 ///   ScanAsync()             → nmcli -t -f SSID,BSSID,MODE,CHAN,FREQ,RATE,SIGNAL,SECURITY dev wifi list --rescan yes
-///   ConnectAsync()          → nmcli device wifi connect <ssid> password <pass>
-///   DisconnectAsync()       → nmcli device disconnect <iface>
+///   ConnectAsync()          → nmcli connection up id <c>profileName</c>
+///   DisconnectAsync()       → nmcli device disconnect <c>iface</c>
 ///   RegisterProfileAsync()  → nmcli connection add / modify
 /// </summary>
 public sealed class NmcliWifiService : IWifiService
@@ -57,7 +59,13 @@ public sealed class NmcliWifiService : IWifiService
                 Id            = GuidFromString(device),
                 Name          = device,
                 Description   = $"Linux Wi-Fi ({device})",
-                IsEnabled     = state != "unavailable" && state != "unmanaged",
+                State         = state switch
+                {
+                    "connected"  => AdapterState.Connected,
+                    "connecting" => AdapterState.Associating,
+                    "disconnected" => AdapterState.Disconnected,
+                    _            => AdapterState.NotReady,
+                },
                 ConnectedSsid = state == "connected" ? conn : null,
             });
         }
@@ -90,7 +98,7 @@ public sealed class NmcliWifiService : IWifiService
             var freq     = int.TryParse(Regex.Replace(cols[4], @"[^\d]", ""), out var f) ? f : 0;
             var signal   = int.TryParse(cols[6], out var s) ? s : 0;
             var security = cols[7].Trim();
-            var inUse    = cols.Length > 8 && cols[8].Contains("*");
+            var inUse    = cols.Length > 8 && cols[8].Contains('*');
             var auth     = ParseSecurity(security);
             var band     = freq >= 5000 ? (freq >= 5950 ? WifiBand.Band6GHz : WifiBand.Band5GHz)
                                         : WifiBand.Band2_4GHz;
@@ -195,14 +203,16 @@ public sealed class NmcliWifiService : IWifiService
     }
 
     public async Task<ConnectionResult> ConnectAsync(
-        Guid adapterId, string ssid, string profileName,
+        Guid adapterId, string profileName, string ssid,
         TimeSpan timeout, CancellationToken ct = default)
     {
         var iface = await ResolveIface(adapterId, ct).ConfigureAwait(false);
 
-        // nmcli device wifi connect <ssid> ifname <iface>
+        // 契約上 ConnectAsync の直前に RegisterProfileAsync が呼ばれる (Windows と同じ)。
+        // 登録済み connection を up することで PSK を nmcli 引数に出さずに済む
+        // (/proc/<pid>/cmdline への露出回避)。profileName は connection 名 = SSID。
         var (exit, stdout, stderr) = await RunNmcliFullAsync(
-            ["device", "wifi", "connect", ssid, "ifname", iface],
+            ["connection", "up", "id", profileName, "ifname", iface],
             ct).ConfigureAwait(false);
 
         if (exit == 0)
@@ -211,8 +221,9 @@ public sealed class NmcliWifiService : IWifiService
             return ConnectionResult.Ok(ssid, hasInternet, false);
         }
 
-        var failure = stderr.Contains("No network with SSID") ? ConnectionFailure.NotInRange
-                    : stderr.Contains("Secrets were required") ? ConnectionFailure.BadCredentials
+        var failure = stderr.Contains("No network with SSID", StringComparison.Ordinal) ? ConnectionFailure.NotInRange
+                    : stderr.Contains("Secrets were required", StringComparison.Ordinal) ? ConnectionFailure.BadCredentials
+                    : stderr.Contains("unknown connection", StringComparison.Ordinal) ? ConnectionFailure.ProfileRejected
                     : ConnectionFailure.Unknown;
         return ConnectionResult.Fail(failure);
     }
@@ -307,7 +318,10 @@ public sealed class NmcliWifiService : IWifiService
         {
             // Dispose() does not terminate a running child — kill it so a
             // cancelled scan does not leave an orphaned nmcli process behind.
-            try { if (!proc.HasExited) proc.Kill(); } catch { /* best effort */ }
+            try { if (!proc.HasExited) proc.Kill(); }
+            catch (InvalidOperationException) { /* best effort */ }
+            catch (Win32Exception)            { /* best effort */ }
+            catch (NotSupportedException)     { /* best effort */ }
             throw;
         }
     }
@@ -320,7 +334,12 @@ public sealed class NmcliWifiService : IWifiService
                 ["networking", "connectivity", "check"], ct).ConfigureAwait(false);
             return exit == 0;
         }
-        catch { return false; }
+        // OperationCanceledException は飲み込まず伝播させる (キャンセル契約)。
+        // nmcli 未インストール (Win32Exception) などは「疎通なし」として扱う。
+        catch (Exception e) when (e is Win32Exception or IOException or InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static AuthMethod ParseSecurity(string security)
@@ -399,11 +418,27 @@ public sealed class NmcliWifiService : IWifiService
             {
                 proc.Start();
                 started = proc;
-                // stdout を非同期で行単位に読み込む
+            }
+            // nmcli 未インストール (Win32Exception) / パイプ切断 (IOException) 等は
+            // 3 秒後に再起動してリトライ。OCE は伝播 (キャンセル契約)。
+            catch (Exception e) when (e is Win32Exception or IOException or InvalidOperationException)
+            {
+            }
+
+            if (started is not null)
+            {
                 while (!ct.IsCancellationRequested)
                 {
-                    var readTask = proc.StandardOutput.ReadLineAsync(ct).AsTask();
-                    var line = await readTask.ConfigureAwait(false);
+                    string? line;
+                    try
+                    {
+                        line = await proc.StandardOutput.ReadLineAsync(ct).ConfigureAwait(false);
+                    }
+                    // 読み取り中のパイプ異常はプロセス死亡として扱い再起動ループへ。
+                    catch (Exception e) when (e is IOException or InvalidOperationException or ObjectDisposedException)
+                    {
+                        line = null;
+                    }
                     if (line is null) break;  // プロセス終了
 
                     // 形式: "<iface>: connected to \"<ssid>\""  or  "<iface>: disconnected"
@@ -428,13 +463,14 @@ public sealed class NmcliWifiService : IWifiService
                             null, DateTimeOffset.UtcNow);
                     }
                 }
-            }
-            catch (OperationCanceledException) { break; }
-            catch { /* nmcli が見つからない等は再試行 */ }
-            finally
-            {
-                if (started is not null && !started.HasExited)
-                    try { started.Kill(); } catch { }
+
+                if (!started.HasExited)
+                {
+                    try { started.Kill(); }
+                    catch (InvalidOperationException) { }
+                    catch (Win32Exception)            { }
+                    catch (NotSupportedException)     { }
+                }
             }
 
             // プロセス死亡後は 3 秒待って再起動
