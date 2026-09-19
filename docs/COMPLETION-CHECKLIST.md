@@ -46,6 +46,7 @@ refusing to allow a GitHub App to create or update workflow
 
 GitHub API 経由(MCP)でも同じ理由で `403 Resource not accessible by integration`。
 **2 経路とも同じ原因** — push に使われる GitHub App トークンに `workflows` スコープが無い。
+(2026-09-19 に専用ブランチで再試行済み: 同じエラーで拒否。依然として所有者操作が必要。)
 
 > ⚠️ **AI セッションがこれを試す場合の注意**: このコミットを作ると
 > **そのブランチへの以降の push がすべて失敗する**。試して拒否されたら

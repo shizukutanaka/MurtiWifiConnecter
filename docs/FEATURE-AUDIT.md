@@ -44,6 +44,23 @@
 > (`ConnectionWaiter`)に関わり、設計判断が要るため実機セッションに委ねている。
 > 詳細と再現手順は `docs/COMPLETION-CHECKLIST.md` §5。
 > 各スクリプトのヘッダに「何を検査し、何を検査していないか」を明記してある。
+>
+> **2026-09-19 追記 — 本物の `dotnet build` が実行可能になり、想定どおり新規欠陥が見つかった。**
+> NuGet egress が通るようになったため `.NET 9 SDK` で実ビルドを実施。結果:
+>
+> | 対象 | 結果 |
+> |---|---|
+> | `MWC.Core` | **0 エラー**(当初 ~130 件のアナライザー違反を全解消) |
+> | `MWC.ci-linux.slnf` (Core + Platform.Linux + PSModule + SDK) | **0 エラー** |
+> | `MWC.ci-win.slnf` + `EnableWindowsTargeting` (macOS 上) | コードは全てクリーン。残るは Windows 限定プロジェクトの NETSDK1135 のみ(クロスコンパイル由来・実害なし) |
+> | `dotnet test` | 実行不可 — テストプロジェクトが net9.0-windows + WPF のため Windows 必須(CI 側で実走する想定) |
+>
+> 実ビルドで初めて見えた実欠陥: `NmcliWifiService` が**一度もコンパイルされたことがなかった**
+> (`WifiAdapter.IsEnabled` 不存在への代入、`ConnectAsync` の引数順がインターフェースと逆、
+> try 内 yield (CS1626)、`catch{}` が OperationCanceledException を飲み込む等 5 件 — 全て修正済み)。
+> `packages.lock.json` も生成・コミット済み(`MWC_LOCKED_RESTORE=true` が実際に使えるようになった)。
+> `.github/workflows/` 未設置は変わらず — 再度試行したが GitHub App トークンの `workflow`
+> スコープ不足で push 拒否(所有者アクション要、COMPLETION-CHECKLIST §1)。
 
 > **`.github/workflows/` が存在せず、GitHub Actions の
 > CI/CodeQL/リリース自動化がおそらく一度も実走していない。** CLAUDE.md はこのディレクトリ構成を
