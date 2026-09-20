@@ -45,8 +45,7 @@ public sealed class SettingsService
     public void TogglePin(string ssid)
     {
         var list = new System.Collections.Generic.List<string>(_current.PinnedNetworks);
-        if (list.Contains(ssid)) list.Remove(ssid);
-        else list.Add(ssid);
+        if (!list.Remove(ssid)) list.Add(ssid);
         Save(_current with { PinnedNetworks = list });
     }
 
@@ -86,7 +85,7 @@ public sealed class SettingsService
                 File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Opts));
                 File.Move(tmp, ConfigPath, overwrite: true);
             }
-            catch (Exception ex) { _log.LogError(ex, "Settings save failed"); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogError(ex, "Settings save failed"); }
         }
     }
 
@@ -100,7 +99,7 @@ public sealed class SettingsService
                 return JsonSerializer.Deserialize<AppSettings>(json, Opts) ?? new();
             }
         }
-        catch (Exception ex) { _log.LogWarning(ex, "Settings load failed, using defaults"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "Settings load failed, using defaults"); }
         return new AppSettings();
     }
 }
@@ -130,7 +129,7 @@ public sealed record AppSettings
     public bool ShowConnectionNotifications { get; init; } = true;
 
     /// <summary>初回起動済みフラグ</summary>
-    public bool HasCompletedFirstRun { get; init; } = false;
+    public bool HasCompletedFirstRun { get; init; }
 
     /// <summary>ピン留めネットワーク(SSID リスト)</summary>
     public System.Collections.Generic.List<string> PinnedNetworks { get; init; } = new();

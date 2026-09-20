@@ -63,7 +63,7 @@ public static class BrowserLauncher
             Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // ブラウザ未関連付け・ユーザーキャンセル等。クラッシュさせず記録する。
             Log.Warning(ex, "BrowserLauncher failed to launch the default browser");

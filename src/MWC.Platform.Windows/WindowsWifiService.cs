@@ -14,10 +14,7 @@ using MWC.Core.Services;
 // MWC.Core.Models にも PhyType がある(WifiNetwork の公開型)ため、
 // ManagedNativeWifi 側は別名で参照する。`using` エイリアスはファイル単位で
 // 有効(名前空間やクラスをまたいで共有できない)ため、この別名を使う
-// メソッドは全て本ファイル内にある必要がある — 2026-09 に気づいた実際の欠陥として、
-// 以前はこの別名を定義せずに `PhyType_` を参照しており、単体では一度もコンパイル
-// できていなかった(NetworkStateChangedEventHandlerBridge.cs 側の別名は別ファイルの
-// ものであり効かない)。
+// メソッドは全て本ファイル内にある必要がある。
 using PhyType_ = ManagedNativeWifi.PhyType;
 
 namespace MWC.Platform.Windows;
@@ -65,7 +62,8 @@ public sealed class WindowsWifiService : IWifiService
                 .ToList();
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(list);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
         {
             _log.LogError(ex, "EnumerateInterfaces failed");
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(Array.Empty<WifiAdapter>());
@@ -84,7 +82,10 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            await NativeWifi.ScanNetworksAsync(adapterId, TimeSpan.FromSeconds(8), ct);
+            // ScanNetworksAsync の実シグネチャは (ScanMode, IEnumerable<Guid>, TimeSpan, ct)。
+            // (interfaceId, timeout, ct) というオーバーロードは実在しない。
+            await NativeWifi.ScanNetworksAsync(ScanMode.OnlySpecified,
+                new[] { adapterId }, TimeSpan.FromSeconds(8), ct);
         }
         catch (OperationCanceledException) { throw; }
         catch (UnauthorizedAccessException ex)
@@ -92,7 +93,9 @@ public sealed class WindowsWifiService : IWifiService
             _log.LogWarning(ex, "Wi-Fi scan denied — grant Location permission in " +
                 "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
         }
-        catch (Exception ex) { _log.LogWarning(ex, "ScanNetworks warning"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
+        { _log.LogWarning(ex, "ScanNetworks warning"); }
 
         try
         {
@@ -155,7 +158,8 @@ public sealed class WindowsWifiService : IWifiService
                 var rawBeacons = _ieProvider.GetRawBeacons(adapterId);
                 return _enrichment.Enrich(marked, rawBeacons);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException)
             {
                 _log.LogDebug(ex, "Beacon IE enrichment skipped");
                 return marked;
@@ -170,7 +174,8 @@ public sealed class WindowsWifiService : IWifiService
                 "Windows Settings > Privacy & security > Location (required on Windows 11 24H2+).");
             return Array.Empty<WifiNetwork>();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
         {
             _log.LogError(ex, "EnumerateAvailableNetworks failed");
             return Array.Empty<WifiNetwork>();
@@ -215,7 +220,9 @@ public sealed class WindowsWifiService : IWifiService
                 });
             }
         }
-        catch (Exception ex) { _log.LogDebug(ex, "EnumerateBssNetworks skipped"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
+        { _log.LogDebug(ex, "EnumerateBssNetworks skipped"); }
 
         return map.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray());
     }
@@ -234,7 +241,8 @@ public sealed class WindowsWifiService : IWifiService
                 NativeWifi.SetProfile(adapterId, ProfileType.AllUser,
                     profileXml, null!, overwrite));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
         {
             _log.LogError(ex, "SetProfile failed");
             return Task.FromResult(false);
@@ -248,20 +256,29 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
-            using var waiter = new ConnectionWaiter(adapterId, _log);
-            bool req = NativeWifi.ConnectNetwork(adapterId, profileName, BssType.Any);
-            if (!req) return ConnectionResult.Fail(ConnectionFailure.ProfileRejected);
+            // プロファイル未登録なら要求自体を拒否 (ProfileRejected)。
+            // ConnectNetworkAsync はプロファイル不在時も単に false を返すだけなので、
+            // 「要求が受理されなかった」と「接続失敗」をここで分けておく。
+            var profiles = await ListProfilesAsync(adapterId, ct);
+            if (!profiles.Contains(profileName, StringComparer.Ordinal))
+                return ConnectionResult.Fail(ConnectionFailure.ProfileRejected);
 
-            var outcome = await waiter.WaitAsync(timeout, ct);
-            if (outcome != ConnectionOutcome.Connected)
-                return ConnectionResult.Fail(outcome switch
-                {
-                    ConnectionOutcome.BadCredentials => ConnectionFailure.BadCredentials,
-                    ConnectionOutcome.NotInRange     => ConnectionFailure.NotInRange,
-                    ConnectionOutcome.Timeout        => ConnectionFailure.Timeout,
-                    ConnectionOutcome.Cancelled      => ConnectionFailure.Cancelled,
-                    _ => ConnectionFailure.Unknown
-                });
+            // ManagedNativeWifi.ConnectNetworkAsync は ACM の connection_complete /
+            // connection_attempt_fail 通知を内部で購読し、wlanReasonCode==SUCCESS まで
+            // 確認した上で bool を返す — CLAUDE.md 必須事項「WlanNotification の
+            // connection_complete 受信 + 疎通確認の 2 段」の前段はこの呼出で実現される。
+            // 自前の Task.Delay とレースさせるのは、ライブラリの false が「失敗か
+            // タイムアウトか」を区別しないため。ライブラリ側タイムアウトは僅かに
+            // 長くし、我々のタイマーが先に切れた場合のみ Timeout と確定できる
+            // (レースで放棄した connectTask はライブラリ側タイムアウトで自浄する)。
+            var libraryTimeout = timeout + TimeSpan.FromSeconds(5);
+            var connectTask = NativeWifi.ConnectNetworkAsync(
+                adapterId, profileName, BssType.Any, libraryTimeout, ct);
+            var completed = await Task.WhenAny(connectTask, Task.Delay(timeout, ct));
+            if (completed != connectTask)
+                return ConnectionResult.Fail(ConnectionFailure.Timeout);
+            if (!connectTask.Result)
+                return ConnectionResult.Fail(ConnectionFailure.Unknown);
 
             // 疎通確認は「今接続したこのアダプター」に束縛して行う。既定ルートが
             // 別アダプター(有線/別 Wi-Fi)の場合、束縛しないとそちらの疎通を誤報告する。
@@ -272,7 +289,9 @@ public sealed class WindowsWifiService : IWifiService
             { return ConnectionResult.Fail(ConnectionFailure.Cancelled); }
         catch (UnauthorizedAccessException)
             { return ConnectionResult.Fail(ConnectionFailure.InsufficientPrivilege); }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException
+                                   and not ThreadAbortException)
         {
             _log.LogError(ex, "ConnectAsync failed for {Ssid}", PiiMask.Ssid(ssid));
             return ConnectionResult.Fail(ConnectionFailure.OsError);
@@ -283,7 +302,8 @@ public sealed class WindowsWifiService : IWifiService
     public Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
     {
         try   { return Task.FromResult(NativeWifi.DisconnectNetwork(adapterId)); }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
         {
             _log.LogError(ex, "DisconnectAsync failed for adapter {Id}", adapterId);
             return Task.FromResult(false);
@@ -309,23 +329,23 @@ public sealed class WindowsWifiService : IWifiService
     {
         var ch = Channel.CreateUnbounded<WifiEvent>();
 
-        void OnChanged(object? s, NetworkStateChangedEventArgs e)
+        // NativeWifiPlayer は ACM/MSM の WLAN 通知を受ける instance (IDisposable)。
+        // この列挙の寿命に束縛して生成し、finally で購読解除+破棄する。
+        using var player = new NativeWifiPlayer();
+
+        void OnChanged(object? s, ConnectionChangedEventArgs e)
         {
-            // 2026-09 修正: `NetworkStateChangedEventArgs`(ConnectionWaiter.cs で定義)は
-            // InterfaceId/State/Reason/ConnectionMode のみを持ち、`Ssid` は存在しない
-            // (以前の参照は一度もコンパイルできていなかった)。この型自体がまだ実 API
-            // (NativeWifiPlayer の 7 instance イベント)に対応する再設計を待っている
-            // 状態のため(docs/COMPLETION-CHECKLIST.md §5)、ここでは正直に null を渡す。
+            // Data (WLAN_CONNECTION_NOTIFICATION_DATA 相当) から実際の SSID が
+            // 取れる。取得できない場合は null (契約上許容)。
+            var ssid = e.Data?.Ssid?.ToString();
             ch.Writer.TryWrite(new WifiEvent(
                 e.InterfaceId,
-                MapEventType(e.State),
-                null,
+                MapEventType(e.ChangedState),
+                ssid,
                 DateTimeOffset.UtcNow));
         }
 
-        // ManagedNativeWifi が NetworkStateChanged を公開している場合のみ購読
-        // (バージョンによりイベント名が異なるため型で安全に判定)
-        NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged, _log);
+        player.ConnectionChanged += OnChanged;
         try
         {
             await foreach (var ev in ch.Reader.ReadAllAsync(ct))
@@ -333,7 +353,7 @@ public sealed class WindowsWifiService : IWifiService
         }
         finally
         {
-            NetworkStateChangedEventHandlerBridge.Unsubscribe(OnChanged);
+            player.ConnectionChanged -= OnChanged;
             ch.Writer.TryComplete();
         }
     }
@@ -353,7 +373,9 @@ public sealed class WindowsWifiService : IWifiService
             var (result, info) = NativeWifi.GetCurrentConnection(adapterId);
             return result == ActionResult.Success ? info.Ssid.ToString() : null;
         }
-        catch (Exception ex) { _log.LogDebug(ex, "GetConnectedSsid failed for adapter {Id}", adapterId); return null; }
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException)
+        { _log.LogDebug(ex, "GetConnectedSsid failed for adapter {Id}", adapterId); return null; }
     }
 
     private static AdapterState MapState(InterfaceState s) => s switch
@@ -436,12 +458,13 @@ public sealed class WindowsWifiService : IWifiService
         return 0;                                                // 不明 / 無効チャンネル
     }
 
-    private static WifiEventType MapEventType(string? s) => (s ?? "").ToLowerInvariant() switch
+    private static WifiEventType MapEventType(ConnectionChangedState s) => s switch
     {
-        "connected"    => WifiEventType.Connected,
-        "disconnected" => WifiEventType.Disconnected,
-        "associating"  => WifiEventType.Connecting,
-        "discovering"  => WifiEventType.Connecting,
-        _              => WifiEventType.ScanComplete,
+        ConnectionChangedState.Started       => WifiEventType.Connecting,
+        ConnectionChangedState.Completed     => WifiEventType.Connected,
+        ConnectionChangedState.Failed        => WifiEventType.Failed,
+        ConnectionChangedState.Disconnecting => WifiEventType.Disconnected,
+        ConnectionChangedState.Disconnected  => WifiEventType.Disconnected,
+        _                                    => WifiEventType.ScanComplete,
     };
 }

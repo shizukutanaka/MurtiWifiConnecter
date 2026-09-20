@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- CA1707: テストメソッド名の Method_When_Result アンダースコア規約は意図的
+         (可読性)。CA1861: テスト内の new[] リテラルは実行パフォーマンスに無関係。 -->
+    <NoWarn>$(NoWarn);CA1707;CA1861</NoWarn>
     <CollectCoverage>true</CollectCoverage>
     <CoverletOutputFormat>cobertura</CoverletOutputFormat>
     <CoverletOutput>../../artifacts/coverage/MWC.Core.Tests.</CoverletOutput>

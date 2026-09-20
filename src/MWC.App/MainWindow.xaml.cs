@@ -12,6 +12,7 @@ using MWC.App.Services;
 using MWC.App.ViewModels;
 using MWC.App.Views;
 using MWC.Core.Models;
+using MWC.Core.Services;
 namespace MWC.App;
 
 /// <summary>
@@ -57,7 +58,7 @@ public partial class MainWindow : Window
             UpdateJumpList(vm);
             CheckForUpdatesAsync(vm).Forget();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             MessageBox.Show(MWC.App.Resources.L.Format("Error_Startup", ex.Message), "MWC",
                 MessageBoxButton.OK, MessageBoxImage.Error);
@@ -83,7 +84,7 @@ public partial class MainWindow : Window
             if (r.HasUpdate)
                 Dispatcher.Invoke(() => vm.StatusMessage = MWC.App.Resources.L.Format("Status_UpdateAvailable", r.LatestVersion));
         }
-        catch (Exception ex) { Log.Debug(ex, "Background update check failed"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { Log.Debug(ex, "Background update check failed"); }
     }
 
     // ── キーボードショートカット ──────────────────────
@@ -131,7 +132,7 @@ public partial class MainWindow : Window
                     UpdateJumpList(vm); e.Handled = true; break;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             vm.StatusMessage = MWC.App.Resources.L.Format("Error_Operation", ex.Message);
         }
@@ -336,7 +337,7 @@ public partial class MainWindow : Window
                 var ad = Dispatcher.Invoke(() => vm.Adapters.FirstOrDefault(a => a.Id == adapterId));
                 if (ad is null) return;
                 await ad.DisconnectCommand.ExecuteAsync(null);
-                Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
+                _ = Dispatcher.InvokeAsync(() => { if (DataContext is MainViewModel v) UpdateTray(v); });
             });
 
         if (vm.SelectedAdapter is { } sel)

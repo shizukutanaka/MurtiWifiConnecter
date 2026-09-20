@@ -165,7 +165,8 @@ public static partial class Program
                         "Tip: pass --mac with the adapter's address; randomisation is then determined " +
                         "from the address rather than taken on trust.");
             }
-            catch (Exception ex) { Err($"privacy failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"privacy failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, macModeOpt, macOpt, adapterOpt, ssidOpt, jsonOpt);
 
         return cmd;

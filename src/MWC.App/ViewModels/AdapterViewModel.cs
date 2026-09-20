@@ -47,9 +47,9 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     /// <summary>信号履歴タブのタイトル (resx 経由でローカライズ済み)</summary>
     public string SignalHistoryTitle =>
-        _selected is null
+        Selected is null
             ? MWC.App.Resources.L.MainSelectHistoryHint
-            : MWC.App.Resources.L.MainSignalHistoryTitle(_selected.Ssid);
+            : MWC.App.Resources.L.MainSignalHistoryTitle(Selected.Ssid);
 
     /// <summary>UI表示用 NetworkItemViewModel 一覧</summary>
     public ObservableCollection<NetworkItemViewModel> Networks { get; } = new();
@@ -72,13 +72,13 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     /// <summary>選択中 SSID の信号履歴サンプル (SignalHistoryCanvas用)</summary>
     public IReadOnlyList<MWC.Core.Services.SignalSample> SelectedHistory
-        => _selected is null
+        => Selected is null
             ? Array.Empty<MWC.Core.Services.SignalSample>()
-            : _history.GetHistory(_selected.Ssid);
+            : _history.GetHistory(Selected.Ssid);
 
-    partial void OnSelectedChanged(NetworkItemViewModel? v)
+    partial void OnSelectedChanged(NetworkItemViewModel? value)
     {
-        Detail.Load(v?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(v?.Ssid));
+        Detail.Load(value?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(value?.Ssid));
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
@@ -88,7 +88,7 @@ public sealed partial class AdapterViewModel : ObservableObject
         => _connectedSince.HasValue ? DateTimeOffset.UtcNow - _connectedSince.Value : null;
 
     /// <summary>指定 SSID の RSSI 履歴 (信号トレンド予測用)。</summary>
-    private IReadOnlyList<int>? RssiHistoryFor(string? ssid)
+    private List<int>? RssiHistoryFor(string? ssid)
         => ssid is null ? null
             : _history.GetHistory(ssid)
                        .Where(s => s.Rssi.HasValue)
@@ -202,13 +202,13 @@ public sealed partial class AdapterViewModel : ObservableObject
             OnPropertyChanged(nameof(CurrentSignal));
 
             // 選択中の詳細・履歴を最新化
-            if (_selected is not null && byKey.TryGetValue(_selected.Ssid, out var upd))
-                _selected.Update(upd);
-            Detail.Load(_selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(_selected?.Ssid));
+            if (Selected is not null && byKey.TryGetValue(Selected.Ssid, out var upd))
+                Selected.Update(upd);
+            Detail.Load(Selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(Selected?.Ssid));
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // スキャン失敗を無音で握りつぶさない。AsyncRelayCommand 経由の呼び出しは
             // 例外を ExecutionTask に格納するだけで UI に伝播しないため、ここで
@@ -294,9 +294,9 @@ public sealed partial class AdapterViewModel : ObservableObject
             await RefreshAsync();
             return res;
         }
-        catch (System.Exception ex)
+        catch (System.Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            _log.LogWarning(ex, "ConnectToSsid {ssid}", PiiMask.Ssid(ssid));
+            _log.LogWarning(ex, "ConnectToSsid {Ssid}", PiiMask.Ssid(ssid));
             return MWC.Core.Models.ConnectionResult.Fail(MWC.Core.Models.ConnectionFailure.OsError);
         }
     }

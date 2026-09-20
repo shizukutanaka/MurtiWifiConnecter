@@ -115,7 +115,7 @@ public class PasspointWiringTests
     [Fact]
     public void CarrierProfile_BuildsFromPreset()
     {
-        var preset = Hotspot20Service.KnownCarriers.First();
+        var preset = Hotspot20Service.KnownCarriers[0];
         var spec = new Hotspot20Service().BuildCarrierProfile(preset);
 
         spec.Ssid.Should().Be(preset.Ssid);

@@ -38,17 +38,14 @@ public partial class CaptivePortalDialog : Window
 
     private void OnLoaded(object sender, NavigationEventArgs e)
     {
+        // レガシー WebBrowser には NavigationFailed イベントが存在しない
+        // (Navigating/Navigated/LoadCompleted のみ)。失敗時は IE エラーページが
+        // 描画され LoadCompleted が発火しないため、失敗検知は実装不能ではなく
+        // 「読み込み完了ラベルが更新されない」ことでユーザに伝わる。
         var url = e.Uri?.ToString() ?? "";
         StatusLabel.Text = url.Contains("msftconnecttest.com/connecttest.txt")
             ? MWC.App.Resources.L.Get("Captive_InternetOk")
             : MWC.App.Resources.L.Get("Captive_PageLoaded");
-    }
-
-    private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
-    {
-        e.Handled = true;
-        StatusLabel.Text = MWC.App.Resources.L.Get("Captive_NavigationFailed");
-        Serilog.Log.Warning("Captive portal navigation failed (error handled in UI)");
     }
 
     private void OnOpenExternal(object sender, RoutedEventArgs e)

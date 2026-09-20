@@ -48,7 +48,7 @@ public partial class QrCodeDialog : Window
                 darkColorRgba:  new byte[] { 0, 0, 0, 255 },
                 lightColorRgba: new byte[] { 255, 255, 255, 255 });
         }
-        catch (Exception ex) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
     }
 
     private void OnCopy(object sender, RoutedEventArgs e)

@@ -189,7 +189,7 @@ public class NetworkHistoryAdvancedTests
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.Invoking(s => s.GetStats(days))
            .Should().Throw<ArgumentOutOfRangeException>()
-           .WithParameterName("days");
+           .WithParameterName(nameof(days));
     }
 
     [Theory]

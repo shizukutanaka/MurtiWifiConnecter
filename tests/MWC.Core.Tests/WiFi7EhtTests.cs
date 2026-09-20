@@ -188,14 +188,14 @@ public class DotNet9LanguageFeatureTests
 {
     /// <summary>System.Threading.Lock (C# 13) のスレッド安全性確認</summary>
     [Fact]
-    public void NetworkHistoryService_ConcurrentWrites_ThreadSafe()
+    public async Task NetworkHistoryService_ConcurrentWrites_ThreadSafe()
     {
         var svc  = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var tasks = Enumerable.Range(0, 20).Select(i =>
             System.Threading.Tasks.Task.Run(() =>
                 svc.RecordConnection($"SSID_{i % 5}", i % 2 == 0)));
 
-        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+        await System.Threading.Tasks.Task.WhenAll(tasks.ToArray());
 
         // データ破損なく全記録が完了
         var count = svc.Count;
@@ -222,7 +222,7 @@ public class DotNet9LanguageFeatureTests
 public class NetworkHistoryLockTests
 {
     [Fact]
-    public void RecordConnection_ParallelWrites_NoConcurrentModificationException()
+    public async Task RecordConnection_ParallelWrites_NoConcurrentModificationException()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
@@ -231,10 +231,10 @@ public class NetworkHistoryLockTests
         var tasks = Enumerable.Range(0, 50).Select(i => Task.Run(() =>
         {
             try { svc.RecordConnection($"Net{i % 10}", i % 2 == 0); }
-            catch (Exception ex) { exceptions.Add(ex); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { exceptions.Add(ex); }
         })).ToArray();
 
-        Task.WaitAll(tasks);
+        await Task.WhenAll(tasks);
 
         // 例外なし・データ破損なし
         exceptions.Should().BeEmpty("concurrent writes must not throw exceptions");
@@ -382,7 +382,7 @@ public class BuildConfigurationTests
             var content = System.IO.File.ReadAllText(proj);
             // net8.0 が TargetFramework として残っていないこと(コメント除く)
             var lines = content.Split('\n')
-                .Where(l => l.Contains("TargetFramework") && !l.TrimStart().StartsWith("<!--"));
+                .Where(l => l.Contains("TargetFramework") && !l.TrimStart().StartsWith("<!--", StringComparison.Ordinal));
             foreach (var line in lines)
             {
                 line.Should().NotContain("net8.0",

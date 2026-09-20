@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using FsCheck;
+using FsCheck.Fluent;
 using FsCheck.Xunit;
 using FluentAssertions;
 using MWC.Core.Models;
@@ -19,11 +20,11 @@ public class WifiUriPropertyTests
     [Property(MaxTest = 200)]
     public Property WifiUri_RoundTrip_PreservesNonEmptySsid()
     {
-        var gen = Arb.Default.String().Generator
+        var gen = ArbMap.Default.ArbFor<string>().Generator
             .Where(s => !string.IsNullOrEmpty(s) && s.Length <= 32
                         && s.All(c => c >= ' ' && c <= '~'));
 
-        return Prop.ForAll(gen, ssid =>
+        return Prop.ForAll(Arb.From(gen), ssid =>
         {
             var spec   = new WifiProfileSpec { Ssid = ssid, Auth = AuthMethod.WPA2PSK, Passphrase = "pass12345" };
             var uri    = WifiUri.Build(spec);
@@ -35,11 +36,11 @@ public class WifiUriPropertyTests
     [Property(MaxTest = 200)]
     public Property ProfileXmlBuilder_WPA2_AlwaysHasKeyMaterial()
     {
-        var gen = Arb.Default.String().Generator
+        var gen = ArbMap.Default.ArbFor<string>().Generator
             .Where(s => s != null && s.Length >= 8 && s.Length <= 63
                         && s.All(c => c >= ' ' && c <= '~') && !string.IsNullOrWhiteSpace(s));
 
-        return Prop.ForAll(gen, pass =>
+        return Prop.ForAll(Arb.From(gen), pass =>
         {
             var spec = new WifiProfileSpec { Ssid = "TestNet", Auth = AuthMethod.WPA2PSK, Passphrase = pass };
             var xml  = ProfileXmlBuilder.Build(spec);
@@ -73,7 +74,7 @@ public class WifiUriPropertyTests
             };
             var uri    = WifiUri.Build(spec);
             var parsed = WifiUri.TryParse(uri);
-            bool startsOk  = uri.StartsWith("WIFI:");
+            bool startsOk  = uri.StartsWith("WIFI:", StringComparison.Ordinal);
             bool parsedOk  = parsed?.Ssid == "Net";
             bool authMatch = parsed?.Auth == auth;
             return startsOk && parsedOk && authMatch;
@@ -97,7 +98,7 @@ public class AccessibilityPropertyTests
             // Property: EvaluateContrast の Ratio は CalcContrast と一致
             bool validRange  = ratio >= 1.0 && ratio <= 22.0;
             bool consistent  = Math.Abs(result.Ratio - ratio) < 0.001;
-            bool labelOk     = result.RatioLabel.Contains(":");
+            bool labelOk     = result.RatioLabel.Contains(':');
             return validRange && consistent && labelOk;
         });
     }

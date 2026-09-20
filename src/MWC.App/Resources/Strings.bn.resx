@@ -149,7 +149,6 @@
   <data name="Captive_Loading"><value>লোড হচ্ছে...</value></data>
   <data name="Captive_InternetOk"><value>✓ ইন্টারনেট সংযোগ যাচাই করা হয়েছে</value></data>
   <data name="Captive_PageLoaded"><value>পৃষ্ঠা লোড হয়েছে</value></data>
-  <data name="Captive_NavigationFailed"><value>নেভিগেশন ব্যর্থ হয়েছে — ব্রাউজারে খোলার চেষ্টা করুন</value></data>
   <data name="Confirm_DeleteTitle"><value>মুছে ফেলা নিশ্চিত করুন</value></data>
   <data name="About_Version"><value>সংস্করণ {0}</value></data>
   <data name="QR_Copied"><value>কপি করা হয়েছে — Wi-Fi QR কোড</value></data>

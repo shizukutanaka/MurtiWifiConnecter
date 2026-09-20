@@ -62,7 +62,7 @@ public sealed class ErrorHandlerService
         {
             return TryResult<T>.Cancelled;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             var msg = Handle(ex, operation, context);
             return TryResult<T>.Fail(msg);
@@ -116,7 +116,9 @@ public enum ErrorCategory
 /// <summary>例外を投げない結果型</summary>
 public readonly record struct TryResult<T>(bool Success, T? Value, string? ErrorMessage, bool IsCancelled)
 {
+#pragma warning disable CA1000 // Result パターンのファクトリは慣用的例外 (CLAUDE.md 必須)
     public static TryResult<T> Ok(T value)              => new(true, value, null, false);
     public static TryResult<T> Fail(string msg)         => new(false, default, msg, false);
     public static TryResult<T> Cancelled                => new(false, default, null, true);
+#pragma warning restore CA1000
 }

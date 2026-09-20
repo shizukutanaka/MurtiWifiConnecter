@@ -48,7 +48,7 @@ public class SafeFireAndForgetTests
     public async Task RunWithFallback_OnException_ReturnsFallback()
     {
         var result = await SafeFireAndForget.RunWithFallback<string>(
-            () => throw new Exception("fail"),
+            () => throw new InvalidOperationException("fail"),
             "fallback");
         result.Should().Be("fallback");
     }

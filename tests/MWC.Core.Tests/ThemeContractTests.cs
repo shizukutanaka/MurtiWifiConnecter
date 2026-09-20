@@ -97,7 +97,7 @@ public class ThemeContractTests
         var referenced = new HashSet<string>();
         foreach (var xaml in Directory.GetFiles(AppDir(), "*.xaml", SearchOption.AllDirectories))
         {
-            if (Path.GetDirectoryName(xaml)!.EndsWith("Themes")) continue;
+            if (Path.GetDirectoryName(xaml)!.EndsWith("Themes", StringComparison.Ordinal)) continue;
             foreach (System.Text.RegularExpressions.Match m in
                      System.Text.RegularExpressions.Regex.Matches(
                          File.ReadAllText(xaml), @"DynamicResource\s+(\w+Brush)\b"))
@@ -111,7 +111,7 @@ public class ThemeContractTests
             because: "every brush a view references must be in the theme contract every dictionary defines");
     }
 
-    private static IReadOnlyCollection<string> BrushKeysIn(string path)
+    private static List<string> BrushKeysIn(string path)
         => XDocument.Load(path)
             .Descendants(Xaml + "SolidColorBrush")
             .Select(e => (string?)e.Attribute(X + "Key"))

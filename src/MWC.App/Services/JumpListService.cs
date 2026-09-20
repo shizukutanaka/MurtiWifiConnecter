@@ -71,9 +71,9 @@ public sealed class JumpListService
 
             JumpList.SetJumpList(System.Windows.Application.Current, jl);
             jl.Apply();
-            _log.LogDebug("JumpList updated: {count} items", jl.JumpItems.Count);
+            _log.LogDebug("JumpList updated: {Count} items", jl.JumpItems.Count);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogWarning(ex, "JumpList update failed");
         }

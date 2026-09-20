@@ -1,54 +1,27 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# tools/typecheck-platform.sh — MWC.Platform.Windows のうち、**循環せずに検査できる分**。
+# tools/typecheck-platform.sh — MWC.Platform.Windows の全ファイルを検査する。
 #
-# なぜ 6 ファイル中 4 件だけなのか (2026-09 の実測。範囲を広げる前に読むこと):
+# 構成 (2026-09 実測):
+#   HttpConnectivityChecker … BCL のみ (HttpClient)。スタブ不要。
+#   DpapiSecretProtector    … ProtectedData のみ。公開された安定 BCL API で、
+#                             署名を検査対象から逆算していないため循環しない。
+#   WlanBssIeProvider       … 自前 P/Invoke (wlanapi.dll DllImport + 手書き構造体)。
+#                             外部依存ゼロ。
+#   WindowsWifiService      … ManagedNativeWifi 3.0.2 → 実ソース (github.com/
+#                             emoacht/ManagedNativeWifi。csproj で Version 一致
+#                             確認済み)から直接書き写した
+#                             tools/stubs/ManagedNativeWifi.Stub.cs で検査。
+#                             「検査対象から逆算」ではなく実ソースの引き写しなので
+#                             循環しない。旧 ConnectionWaiter /
+#                             NetworkStateChangedEventHandlerBridge は削除済み —
+#                             実在しない `NativeWifi.NetworkStateChanged` static
+#                             イベントへの依存が原因で検査できなかったため、
+#                             実 API (ConnectNetworkAsync / NativeWifiPlayer) で
+#                             再実装した。
 #
-#   ★ 以前は「ManagedNativeWifi を要するもの 4 件」とひとまとめにしていたが、
-#     それは**個別に確認せず隣接ファイルから類推しただけ**だった。実際に 1 ファイルずつ
-#     `using` を見たところ、`WlanBssIeProvider.cs` には `using ManagedNativeWifi` が
-#     **無い** — 自前の P/Invoke (`wlanapi.dll` の DllImport + 手書きネイティブ構造体) のみで、
-#     スタブすら要らずに単独でコンパイルできた(`-warnaserror` 込みで green、実測済み)。
-#     この「未検証のまま隣と同じ扱いにする」は、本セッションが繰り返し戒めてきた誤りそのもの。
-#
-#   ★ 2026-09 追記: `WindowsWifiService.cs` は ManagedNativeWifi 3.0.2 の実ソース
-#     (github.com/emoacht/ManagedNativeWifi。.csproj で Version 一致を確認済み)から
-#     直接書き写した `tools/stubs/ManagedNativeWifi.Stub.cs` を使えば検査できる。
-#     「検査対象のコードから逆算」ではなく実ソースの引き写しなので循環しない。
-#     この検査導入で実際に 4 種の欠陥が見つかり修正済み(スタブのヘッダ参照)。
-#     ConnectionWaiter / NetworkStateChangedEventHandlerBridge への依存
-#     (ConnectionWaiter 型・NetworkStateChangedEventArgs 型など)は
-#     `tools/stubs/PlatformWindowsLocalTypes.Stub.cs`(実ファイルからの複製、
-#     同一プロジェクトの自製型なので循環しない)で隔離する — この 2 ファイル自体は
-#     下記の理由で今も検査対象外のまま。
-#
-#   ManagedNativeWifi のイベント購読部分がまだ検査できない … 2 件
-#     ConnectionWaiter / NetworkStateChangedEventHandlerBridge
-#     → 実ソース確認済み: `NativeWifi.NetworkStateChanged` という static イベントは
-#       存在しない(NativeWifi は 0 個の public event しか持たない static クラス)。
-#       実際の通知は `NativeWifiPlayer`(instantiable, IDisposable)が公開する
-#       7 種類の instance イベント。呼び出し元が期待する「1 イベント・static 購読」
-#       という設計を「7 イベント・instance ライフサイクル」にどう対応させるかは
-#       実機 Windows で検証できるセッションが決めるべき設計判断であり、ここで
-#       スタブ側に都合よく定義してしまうと「直った」という誤った検査結果になる。
-#       詳細: docs/COMPLETION-CHECKLIST.md §5。
-#
-#   検査できる 4 件:
-#     HttpConnectivityChecker … BCL のみ (HttpClient)。スタブ不要。
-#     DpapiSecretProtector    … ProtectedData のみ。これは**公開された安定した BCL API** で、
-#                               署名を検査対象から逆算していないため循環しない
-#                               (tools/stubs/ProtectedData.Stub.cs のヘッダ参照)。
-#     WlanBssIeProvider       … 自前 P/Invoke のみ。スタブ不要、外部依存ゼロ。
-#                               ⚠ ただしネイティブ構造体マーシャリングの**正しさ**
-#                               (レイアウト一致・オフセット計算)自体は実機 Windows でしか
-#                               確認できない。ここで確認できるのは「コンパイルが通る」まで。
-#     WindowsWifiService      … 上記の 2 スタブを使って検査(2026-09 追加)。
-#
-#   この線引きは「スタブが検査対象のコードから逆算されているか否か」で引いている。
-#   逆算なら検査は空になる。実ソースの引き写しなら意味がある。
-#
-# ★ 検査しないこと: WLAN API の実挙動、DPAPI のユーザーバウンド性、Windows 固有の動作、
-#   ネイティブ構造体マーシャリングの正しさ、`NativeWifiPlayer` のイベント購読設計。
+# ★ 検査しないこと: WLAN API の実挙動、DPAPI のユーザーバウンド性、ネイティブ
+#   構造体マーシャリングの正しさ (レイアウト一致・オフセット計算)。
 #   いずれも Windows 実機でしか確かめられない。
 #
 # 使い方: bash tools/typecheck-platform.sh
@@ -75,11 +48,12 @@ dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable
 if [ "${1:-}" = "--selftest" ]; then
   STUBFILE="tools/stubs/ManagedNativeWifi.Stub.cs"
   cp "$STUBFILE" "$OUT/mnw-backup.cs"
-  sed -i 's/RSNA_PSK,/RSNA_PSK_INJECTED_BREAK,/' "$STUBFILE"
+  # macOS の sed -i はバックアップ拡張子を必須とするため portable に .bak 経由で行う。
+  sed -i.bak 's/RSNA_PSK,/RSNA_PSK_INJECTED_BREAK,/' "$STUBFILE" && rm -f "$STUBFILE.bak"
   # shellcheck disable=SC2086
   dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable -warnaserror -nowarn:CS1591 \
     -out:"$OUT/selftest.dll" $REFS -r:"$OUT/MWC.Core.dll" \
-    tools/stubs/ImplicitUsings.Stub.cs "$STUBFILE" tools/stubs/PlatformWindowsLocalTypes.Stub.cs \
+    tools/stubs/ImplicitUsings.Stub.cs "$STUBFILE" \
     src/MWC.Platform.Windows/WindowsWifiService.cs > "$OUT/selftest.log" 2>&1
   selftest_status=$?
   cp "$OUT/mnw-backup.cs" "$STUBFILE"
@@ -91,35 +65,20 @@ if [ "${1:-}" = "--selftest" ]; then
   echo "selftest OK: injected defect was caught (exit $selftest_status), stub restored."
 fi
 
-FILES=""
-for f in HttpConnectivityChecker.cs DpapiSecretProtector.cs WlanBssIeProvider.cs; do
-  [ -f "src/MWC.Platform.Windows/$f" ] && FILES="$FILES src/MWC.Platform.Windows/$f"
-done
-total=$(find src/MWC.Platform.Windows -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' | wc -l)
+FILES=$(find src/MWC.Platform.Windows -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*')
+total=$(echo "$FILES" | wc -l | tr -d ' ')
 
 # shellcheck disable=SC2086
 output=$(dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
   -warnaserror -nowarn:CS1591 \
   -out:"$OUT/plat.dll" $REFS -r:"$OUT/MWC.Core.dll" \
-  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/ProtectedData.Stub.cs $FILES 2>&1)
+  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/ProtectedData.Stub.cs \
+  tools/stubs/ManagedNativeWifi.Stub.cs $FILES 2>&1)
 status=$?
 [ -n "$output" ] && echo "$output"
 
-# WindowsWifiService.cs は ManagedNativeWifi + 自プロジェクトのローカル型に依存するため
-# 別コンパイル単位で検査する(上の $FILES と混ぜると two スタブが無関係なファイルにも
-# 効いてしまい紛らわしいため)。
-# shellcheck disable=SC2086
-wws_output=$(dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
-  -warnaserror -nowarn:CS1591 \
-  -out:"$OUT/wws.dll" $REFS -r:"$OUT/MWC.Core.dll" \
-  tools/stubs/ImplicitUsings.Stub.cs tools/stubs/ManagedNativeWifi.Stub.cs tools/stubs/PlatformWindowsLocalTypes.Stub.cs \
-  src/MWC.Platform.Windows/WindowsWifiService.cs 2>&1)
-wws_status=$?
-[ -n "$wws_output" ] && echo "$wws_output"
-
-if [ $status -eq 0 ] && [ $wws_status -eq 0 ]; then
-  n=$(($(echo "$FILES" | wc -w) + 1))
-  printf '\033[32m%s of %s MWC.Platform.Windows files type-check clean\033[0m (ConnectionWaiter / NetworkStateChangedEventHandlerBridge の 2 件は既知の理由で検査対象外)\n' "$n" "$total"
+if [ $status -eq 0 ]; then
+  printf '\033[32m%s of %s MWC.Platform.Windows files type-check clean\033[0m\n' "$total" "$total"
   exit 0
 else
   printf '\033[31mMWC.Platform.Windows failed to type-check.\033[0m\n'

@@ -148,7 +148,7 @@ public class HighDensityAdapterPrefsTests
         svc.SetLabel(id, "Office Dongle");
         svc.Get(id).CustomLabel.Should().Be("Office Dongle");
         svc.Get(id).CustomLabel.Should().NotBe("ホーム用ドングル");
-        svc.Get(id).CustomLabel.Length.Should().Be("Office Dongle".Length);
+        svc.Get(id).CustomLabel!.Length.Should().Be("Office Dongle".Length);
     }
 }
 
@@ -391,7 +391,7 @@ public class CatImportTests
         var profiles = svc.ParseEapConfig(SampleEapConfig);
 
         profiles.Should().NotBeEmpty();
-        var p = profiles.First();
+        var p = profiles[0];
         p.Ssid.Should().Be("eduroam");
         p.EapType.Should().Be(EapType.PEAP_MSCHAPv2);  // Type 25
         p.ServerNames.Should().Contain("radius.example.ac.jp");
@@ -411,7 +411,7 @@ public class CatImportTests
     {
         var svc = new CatImportService();
         var profiles = svc.ParseEapConfig(SampleEapConfig);
-        var spec = svc.BuildEduroamSpec(profiles.First());
+        var spec = svc.BuildEduroamSpec(profiles[0]);
 
         spec.Ssid.Should().Be("eduroam");
         spec.Auth.Should().Be(AuthMethod.WPA2Enterprise);
@@ -742,7 +742,7 @@ public class Hotspot20ServiceBasicTests
     [Fact]
     public void BuildCarrierProfile_SetsSSID()
     {
-        var preset = Hotspot20Service.KnownCarriers.First();
+        var preset = Hotspot20Service.KnownCarriers[0];
         var spec   = _svc.BuildCarrierProfile(preset);
         spec.Ssid.Should().Be(preset.Ssid);
         spec.EapType.Should().Be(preset.EapType);

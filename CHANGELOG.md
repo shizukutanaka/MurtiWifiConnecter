@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-09-19 — 全 Windows プロジェクト初の実コンパイル達成)
+
+- **NETSDK1135 の真因は csproj の TFM 設定ミスだった**: `net9.0-windows` +
+  `SupportedOSPlatformVersion` だけでは TargetPlatformVersion が 7.0 に既定化し、
+  本物の Windows 上でも同じエラーでビルド不能だった。`MWC.App`/`MWC.Cli`/
+  `MWC.Platform.Windows`/テストの TFM を `net9.0-windows10.0.19041.0` に修正し、
+  `-p:EnableWindowsTargeting=true` で macOS 上からの**実パッケージ込み全量
+  コンパイル**に成功。`MWC.ci-win.slnf` 全体が 0 エラー。
+- **`ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs` を削除
+  (約214行)**: 3 層の架空イベントスタック(`NativeWifi.NetworkStateChanged` 等の
+  実在しない API)を解体し、`ConnectAsync` を実
+  `NativeWifi.ConnectNetworkAsync(Guid,string,BssType,TimeSpan,ct)` に置換 —
+  内部で ACM の `connection_complete`/`connection_attempt_fail` を待機し
+  `wlanReasonCode` を検査するため、CLAUDE.md 必須の「connection_complete 受信 +
+  疎通確認の 2 段」をこの呼出 + `HttpConnectivityChecker` で実現。イベント購読は
+  `NativeWifiPlayer`(IDisposable)の `ConnectionChanged` に置換。
+- **初の実コンパイルで発掘された実エラー群を全量修正**: WPF 側(CS0747 添付
+  プロパティのオブジェクト初期化、存在しない `Thickness(2引数)`/`NavigationFailed`/
+  `AccessibilityView`、CS1674 using 対象、CS4014、CS8602/CS8604 等)、CLI 側
+  (~28 件の catch フィルタ、CA1861)、ViewModel/Service の
+  `_field`→生成プロパティ参照誤り、DI コンストラクタ不整合、FsCheck 3.x API
+  移行(`FsCheck.Fluent`/`ArbMap`/`Arb.From`)、xUnit アナライザー(xUnit1026/
+  xUnit1031)、テスト内 `Exception` 直投げ(CA2201)など。
+- `tools/typecheck-platform.sh` を実 API スタブ全量+4 ファイル一括コンパイルに
+  強化、`tools/lib/dotnet-env.sh` の analyzer 検出を roslyn4.x レイアウトに対応。
+- 補完スクリプトとの整合回復(メソッドローカルのエイリアス配列に戻し)、
+  `Captive_NavigationFailed` dead key を全 15 resx から削除(516 キー/7,740
+  エントリに整合)。
+
+
 ### Security
 - **`ConnectionWaiter` — the class CLAUDE.md names as the mechanism for real
   connection-completion detection — has never compiled against the actual ManagedNativeWifi

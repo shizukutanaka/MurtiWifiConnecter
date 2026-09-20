@@ -87,7 +87,7 @@ public partial class AllAdaptersOverviewView : Window
             {
                 // ユーザーが ConnectionProgressDialog をキャンセル。エラー扱いしない。
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
             {
                 // 以前は finally のみで catch が無く、_executor.ConnectAsync 以外の例外
                 // (ダイアログ構築失敗等) が無音で握りつぶされていた

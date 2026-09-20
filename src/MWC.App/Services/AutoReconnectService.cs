@@ -167,7 +167,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                     if (verdict.Risk == EvilTwinRisk.HighRisk)
                     {
                         _log.LogWarning(
-                            "AutoReconnect: refusing {ssid} — evil twin suspected ({reasons})",
+                            "AutoReconnect: refusing {Ssid} — evil twin suspected ({Reasons})",
                             PiiMask.Ssid(candidate.Ssid), string.Join("; ", verdict.Reasons));
                         _notify.NotifyFailed(candidate.Ssid, MWC.Core.Models.ConnectionFailure.ProfileRejected);
                         continue;
@@ -185,7 +185,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                     if (failures >= _retry.MaxAttempts)
                     {
                         _log.LogInformation(
-                            "AutoReconnect: giving up on {ssid} after {n} consecutive failures",
+                            "AutoReconnect: giving up on {Ssid} after {N} consecutive failures",
                             PiiMask.Ssid(candidate.Ssid), failures);
                         continue;
                     }
@@ -198,7 +198,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                         await Task.Delay(delay, ct).ConfigureAwait(false);
                     }
 
-                    _log.LogInformation("AutoReconnect: trying {ssid}", PiiMask.Ssid(candidate.Ssid));
+                    _log.LogInformation("AutoReconnect: trying {Ssid}", PiiMask.Ssid(candidate.Ssid));
                     var res = await _executor.ConnectAsync(
                         ev.AdapterId, candidate.Ssid, candidate.Auth,
                         "", TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
@@ -210,7 +210,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
                         // 成功した接続を「信頼できる基準」として学習させる。
                         // これにより次回以降、BSSID/ベンダー/セキュリティ方式の
                         // 差異を検出できるようになる (学習しなければ検査 2〜4 は永久に無効)。
-                        var bssid = candidate.BssEntries.FirstOrDefault()?.Bssid;
+                        var bssid = candidate.BssEntries.Count > 0 ? candidate.BssEntries[0].Bssid : null;
                         if (!string.IsNullOrEmpty(bssid))
                         {
                             _evilTwin.RecordTrusted(candidate.Ssid, bssid, candidate.Auth);
@@ -233,21 +233,21 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
 
                         if (!RetryPolicy.IsRetriable(failure))
                             _log.LogInformation(
-                                "AutoReconnect: {ssid} failed with non-retriable {failure} — will not retry",
+                                "AutoReconnect: {Ssid} failed with non-retriable {Failure} — will not retry",
                                 PiiMask.Ssid(candidate.Ssid), failure);
 
                         _notify.NotifyFailed(candidate.Ssid, failure);
                     }
                 }
                 catch (OperationCanceledException) { return; }
-                catch (Exception ex) { _log.LogWarning(ex, "AutoReconnect error"); }
+                catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "AutoReconnect error"); }
             }
         }
         catch (OperationCanceledException)
         {
             // シャットダウン時の正常終了 (DisposeAsync が _cts.Cancel() する経路)
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // await foreach の列挙自体が失敗した場合 (SubscribeEventsAsync 側の異常)。
             // ここに来ると監視ループ全体が終了する — 個々のイベント処理失敗は
@@ -273,7 +273,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
             if (data is { Count: > 0 })
             {
                 _evilTwin.ImportBaseline(data);
-                _log.LogDebug("Evil-twin baseline restored: {n} networks", data.Count);
+                _log.LogDebug("Evil-twin baseline restored: {N} networks", data.Count);
             }
         }
         catch (System.Text.Json.JsonException ex)
@@ -334,7 +334,7 @@ public sealed class AutoReconnectService : IAsyncDisposable, IDisposable
         if (_watchLoop is not null)
         {
             try { await _watchLoop.ConfigureAwait(false); }
-            catch (Exception ex) { _log.LogDebug(ex, "AutoReconnect watch loop ended during dispose"); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogDebug(ex, "AutoReconnect watch loop ended during dispose"); }
         }
         _cts.Dispose();
     }

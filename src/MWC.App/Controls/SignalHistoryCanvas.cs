@@ -63,7 +63,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
 
     protected override int VisualChildrenCount => _visuals.Count;
     protected override Visual GetVisualChild(int index) => _visuals[index];
-    protected override void OnRenderSizeChanged(SizeChangedInfo info) => Rebuild();
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) => Rebuild();
 
     private void Rebuild()
     {

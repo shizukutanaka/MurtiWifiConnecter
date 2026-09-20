@@ -96,7 +96,8 @@ public static partial class Program
                 Console.WriteLine();
                 Console.WriteLine($"{found.Count} of {nets.Count} networks advertise Passpoint support.");
             }
-            catch (Exception ex) { Err($"passpoint failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"passpoint failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, adapterOpt, jsonOpt, carriersOpt);
 
         return cmd;

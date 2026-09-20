@@ -59,7 +59,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
 
     protected override int VisualChildrenCount => _visuals.Count;
     protected override Visual GetVisualChild(int index) => _visuals[index];
-    protected override void OnRenderSizeChanged(SizeChangedInfo info) => Rebuild();
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) => Rebuild();
 
     private void Rebuild()
     {
@@ -103,7 +103,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
             dc.DrawLine(gp, new Point(x, 0), new Point(x, baseY));
             if ((ch - chMin) % (step * 3) == 0)
             {
-                var ft = Fmt(ch.ToString(), 8, lbr, tf);
+                var ft = Fmt(ch.ToString(System.Globalization.CultureInfo.InvariantCulture), 8, lbr, tf);
                 dc.DrawText(ft, new Point(x - ft.Width / 2, baseY + 2));
             }
         }
@@ -123,7 +123,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
         double peak  = n.SignalQuality / 100.0 * (baseY - 4);
         double xc    = ChX(n.Channel, w, chMin, chMax);
         double wide  = n.ChannelWidth switch { 40 => 4, 80 => 8, 160 => 16, 320 => 32, _ => 2 };
-        double sigma = Math.Max(ChX(n.Channel + wide / 2, w, chMin, chMax) - xc, 12);
+        double sigma = Math.Max(ChX((int)Math.Round(n.Channel + wide / 2), w, chMin, chMax) - xc, 12);
 
         // ガウス曲線
         const int pts = 50;

@@ -95,7 +95,8 @@ internal static class MultiAdapterCommand
                 Console.WriteLine($"{success} / {results.Length} adapters connected");
                 if (success < results.Length) Environment.Exit(ExitCode.GeneralError);
             }
-            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, pairs, pwOpt);
 
         return cmd;
@@ -130,7 +131,8 @@ internal static class MultiAdapterCommand
         {
             return (adName, ssid, false, "timed out");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException)
         {
             return (adName, ssid, false, ex.Message);
         }
@@ -149,7 +151,8 @@ internal static class MultiAdapterCommand
                 await Task.WhenAll(ads.Select(a => svc.DisconnectAsync(a.Id)));
                 Console.WriteLine($"{ads.Count} adapter(s) disconnected");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return cmd;
     }
@@ -172,7 +175,7 @@ internal static class MultiAdapterCommand
                         var nets = await svc.ScanAsync(a.Id);
                         return (adapter: a, conn: nets.FirstOrDefault(n => n.IsConnected));
                     }
-                    catch { return (adapter: a, conn: (MWC.Core.Models.WifiNetwork?)null); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { return (adapter: a, conn: (MWC.Core.Models.WifiNetwork?)null); }
                 }));
 
                 Console.WriteLine($"{"Adapter",-18}  {"Connected SSID",-26}  {"Signal",6}  PHY");
@@ -187,7 +190,8 @@ internal static class MultiAdapterCommand
                 Console.WriteLine();
                 Console.WriteLine($"{results.Count(r => r.conn != null)} / {results.Length} connected");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return cmd;
     }

@@ -80,7 +80,7 @@ public class RssiDistanceEstimatorTests
     [Fact]
     public void InvalidExponent_Throws()
     {
-        Action act = () => new RssiDistanceEstimator(pathLossExponent: 0);
+        Action act = () => _ = new RssiDistanceEstimator(pathLossExponent: 0);
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 

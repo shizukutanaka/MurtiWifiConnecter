@@ -158,16 +158,107 @@ namespace ManagedNativeWifi
         public CipherAlgorithm CipherAlgorithm { get; }
     }
 
+    public enum ScanMode
+    {
+        All,
+        OneByOne,
+        OnlySpecified,
+        OnlySpecifiedMultipleBss,
+    }
+
+    /// <summary>ConnectionChangedEventArgs / ConnectionChangedState / ConnectionNotificationData
+    /// (Source/ManagedNativeWifi/ConnectionChangedEventArgs.cs から転記)</summary>
+    public class ConnectionChangedEventArgs : EventArgs
+    {
+        public Guid InterfaceId { get; }
+        public ConnectionChangedState ChangedState { get; }
+        public ConnectionNotificationData Data { get; } = null!;
+    }
+
+    public enum ConnectionChangedState
+    {
+        Unknown = 0,
+        Started,
+        Completed,
+        Failed,
+        Disconnecting,
+        Disconnected
+    }
+
+    public class ConnectionNotificationData
+    {
+        public ConnectionMode ConnectionMode { get; }
+        public string ProfileName { get; } = null!;
+        public NetworkIdentifier Ssid { get; } = null!;
+        public BssType BssType { get; }
+        public bool IsSecurityEnabled { get; }
+    }
+
+    /// <summary>NativeWifiPlayer (Source/ManagedNativeWifi/NativeWifiPlayer.cs から転記)。
+    /// ACM+MSM 通知を instance イベントとして提供する IDisposable。</summary>
+#pragma warning disable CS0067 // スタブ内で invoke しないため。実パッケージも外部購読のみ。
+    public class NativeWifiPlayer : IDisposable
+    {
+        public event EventHandler? NetworkRefreshed;
+        public event EventHandler<AvailabilityChangedEventArgs>? AvailabilityChanged;
+        public event EventHandler<InterfaceChangedEventArgs>? InterfaceChanged;
+        public event EventHandler<ConnectionChangedEventArgs>? ConnectionChanged;
+        public event EventHandler<ProfileChangedEventArgs>? ProfileChanged;
+        public event EventHandler<RadioStateChangedEventArgs>? RadioStateChanged;
+        public event EventHandler<SignalQualityChangedEventArgs>? SignalQualityChanged;
+        public void Dispose() => throw new NotSupportedException();
+    }
+#pragma warning restore CS0067
+
+    public class AvailabilityChangedEventArgs : EventArgs
+    {
+        public Guid InterfaceId { get; }
+        public bool IsAvailable { get; }
+    }
+
+    public class InterfaceChangedEventArgs : EventArgs
+    {
+        public Guid InterfaceId { get; }
+        public InterfaceChangedState ChangedState { get; }
+    }
+
+    public enum InterfaceChangedState { Unknown = 0, Added, Removed, Connected, Disconnected }
+
+    public class ProfileChangedEventArgs : EventArgs
+    {
+        public Guid InterfaceId { get; }
+        public ProfileChangedState ChangedState { get; }
+    }
+
+    public enum ProfileChangedState { Unknown = 0, Added, Changed, Removed, NameChanged, Unblocked, Blocked }
+
+    public class RadioStateChangedEventArgs : EventArgs
+    {
+        public bool IsHardwareOn { get; }
+        public bool IsSoftwareOn { get; }
+    }
+
+    public class SignalQualityChangedEventArgs : EventArgs
+    {
+        public Guid InterfaceId { get; }
+        public int SignalQuality { get; }
+    }
+
     public static class NativeWifi
     {
         public static IEnumerable<InterfaceInfo> EnumerateInterfaces() => throw new NotSupportedException();
         public static Task<IEnumerable<Guid>> ScanNetworksAsync(TimeSpan timeout, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public static Task<IEnumerable<Guid>> ScanNetworksAsync(Guid interfaceId, TimeSpan timeout, CancellationToken cancellationToken) => throw new NotSupportedException();
+        // 実シグネチャ: (ScanMode, IEnumerable<Guid>, TimeSpan, CancellationToken)。
+        // (interfaceId, timeout, ct) という3引数オーバーロードは実在しない。
+        public static Task<IEnumerable<Guid>> ScanNetworksAsync(ScanMode scanMode, IEnumerable<Guid> interfaceIds, TimeSpan timeout, CancellationToken cancellationToken) => throw new NotSupportedException();
         public static IEnumerable<AvailableNetworkPack> EnumerateAvailableNetworks() => throw new NotSupportedException();
         public static IEnumerable<BssNetworkPack> EnumerateBssNetworks() => throw new NotSupportedException();
         public static (ActionResult result, CurrentConnectionInfo value) GetCurrentConnection(Guid interfaceId) => throw new NotSupportedException();
         public static bool SetProfile(Guid interfaceId, ProfileType profileType, string profileXml, string profileSecurity, bool overwrite) => throw new NotSupportedException();
         public static bool ConnectNetwork(Guid interfaceId, string profileName, BssType bssType) => throw new NotSupportedException();
+        // 実シグネチャ: (Guid, string, BssType, TimeSpan, CancellationToken) → Task<bool>。
+        // ACM connection_complete/attempt_fail 通知を内部で待機し wlanReasonCode を検査。
+        public static Task<bool> ConnectNetworkAsync(Guid interfaceId, string profileName, BssType bssType, TimeSpan timeout, CancellationToken cancellationToken) => throw new NotSupportedException();
         public static bool DisconnectNetwork(Guid interfaceId) => throw new NotSupportedException();
         public static bool DeleteProfile(Guid interfaceId, string profileName) => throw new NotSupportedException();
         public static IEnumerable<ProfilePack> EnumerateProfiles() => throw new NotSupportedException();

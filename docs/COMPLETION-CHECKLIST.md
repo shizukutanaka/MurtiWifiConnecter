@@ -12,8 +12,8 @@
 
 ## 全体像
 
-残る作業は **5 件**。うち 2 件は権限操作(数分)、3 件は Windows 実機での実装。
-**項目 5 は最も深刻** — 接続完了検知という CLAUDE.md 必須事項の中核が現状コンパイルできない。
+残る作業は **4 件**。うち 2 件は権限操作(数分)、2 件は Windows 実機での実装。
+~~項目 5~~ は 2026-09-19 に **解決済み**(下記 §5) — 全 Windows プロジェクトが本物の ManagedNativeWifi に対してコンパイル成功。
 
 | # | 項目 | 種別 | 所要 | 依存 |
 |---|---|---|---|---|
@@ -21,7 +21,7 @@
 | 2 | GitHub Release を作る | 権限 | 数分 | 1 が済んでいると望ましい |
 | 3 | MLO のリンク詳細(RSSI のみ実機。band/channel は RNR に既出) | 実装 | 半日〜 | Windows 実機は RSSI 部分のみ |
 | 4 | 現在の MAC を自動取得して `--mac` の既定にする | 実装 | 数時間 | Windows 実機(判定ロジックは Core 化済み) |
-| 5 | 🔴 `ConnectionWaiter` の接続完了検知が実 API と不一致 | 設計+実装 | 半日〜1日 | Windows 実機(検証必須)。**実装側の最優先** |
+| 5 | ~~`ConnectionWaiter` の接続完了検知が実 API と不一致~~ **✅ 解決済み(2026-09-19、§5)** | — | — | 実 API で書換+コンパイル済み。残は実機での動作確認のみ |
 
 **1 が最優先**である理由: このリポジトリのコードは **GitHub Actions で一度も検証されたことがない**。
 2026-07 セッションの全変更(約 3,900 行の追加を含む)も静的チェックのみで、
@@ -352,7 +352,11 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 
 ---
 
-## 5. 🔴 `ConnectionWaiter` の接続完了検知が実 API と一致しない
+## 5. ✅ `ConnectionWaiter` の接続完了検知が実 API と一致しない — **解決済み(2026-09-19)**
+
+> **2026-09-19 解決**: `MWC.ci-win.slnf` を `-p:EnableWindowsTargeting=true` 付きで macOS 上に実ビルドさせた結果、Windows プロジェクトに存在した NETSDK1135 は環境由来ではなく **csproj の TFM 設定ミス**(`net9.0-windows` + `SupportedOSPlatformVersion` のみでは TargetPlatformVersion が既定 7.0 になるため、本物の Windows でも失敗していた)と判明し、TFM を `net9.0-windows10.0.19041.0` に修正して解消。これにより `MWC.Platform.Windows`/`MWC.App`/`MWC.Cli`/テストが**実パッケージに対して初めて全量実コンパイル**され、残る架空 API 層を実 API で置き換えた: `ConnectionWaiter.cs`/`NetworkStateChangedEventHandlerBridge.cs` は**削除**(約214行)、`ConnectAsync` は実 `NativeWifi.ConnectNetworkAsync(Guid,string,BssType,TimeSpan,ct)`(内部で ACM `connection_complete`/`connection_attempt_fail` を待機 — CLAUDE.md の「connection_complete 受信」要件そのもの)に全面置換、イベント購読は実 `NativeWifiPlayer`(IDisposable)の `ConnectionChanged` イベントに置換。`MWC.ci-win.slnf` 全体(Platform.Windows/App/Cli/SDK/ベンチマーク/テスト)が **0 エラー**でコンパイルされることを実測済み。下記は当時の調査記録として残す。
+
+### 過去の記録(調査当時のまま)
 
 ### 何が起きているか(2026-09 に GitHub 実ソースを取得して実測。推測ではない)
 
@@ -427,21 +431,30 @@ grep -n 'GetCurrentConnection' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.
   + `IDisposable` ライフサイクル」にどう対応させるかという設計判断が要るため。
   実機で検証できないままの推測実装は、この欠陥そのものより有害になりうる。
 
-### あなたが(または Windows 実機を使えるセッションが)やること
+### 実際の解決内容(2026-09-19 実施・コンパイル検証済み)
 
-1. `NativeWifiPlayer` を構築し、`ConnectionWaiter`/`WindowsWifiService.SubscribeEventsAsync`
-   のライフサイクル(いつ構築し、いつ `Dispose` するか)に組み込む設計を決める。
-2. `ConnectionWaiter` が実際に必要としている情報 —
-   「指定アダプターが `connected`/`disconnecting`/認証失敗 のどれに遷移したか、
-   理由コードは何か」— を、7 種の実イベントのどれ(おそらく `ConnectionChanged` が主、
-   `RadioStateChanged`/`ProfileChanged` も要検討)から再構成するかを設計する。
-3. 各イベントの実引数型(`ConnectionChangedEventArgs` 等、いずれも
-   `Source/ManagedNativeWifi/*EventArgs.cs` に実在)を確認し、
-   現在の `NetworkStateChangedEventArgs.State`/`Reason` 相当の情報が
-   実際に得られるかを確かめる。得られない情報があれば、`ConnectionWaiter` の
-   判定ロジック自体の見直しが要る。
-4. 実機 Windows で実際に接続・切断・認証失敗を発生させ、想定どおりに
-   `ConnectionOutcome` が解決されることを確認する。
+上記の設計作業は実施済み。結論として **3 層の架空イベントスタックは全削除**し、
+実 API が既に要件を満たす形に置き換えた:
+
+- `ConnectionWaiter.cs` / `NetworkStateChangedEventHandlerBridge.cs` —
+  **削除**(約 214 行)。`NativeWifi.ConnectNetworkAsync` が内部で ACM の
+  `connection_complete`/`connection_attempt_fail` を待ち
+  `wlanReasonCode==SUCCESS` を検査するため、CLAUDE.md の「`connection_complete`
+  受信 + 疎通確認の 2 段」は `ConnectNetworkAsync`(前段) +
+  `HttpConnectivityChecker`(後段)の 2 呼出で素直に実現できる。
+- `WindowsWifiService.ConnectAsync` — 実 `ConnectNetworkAsync` 呼出に置換。
+  ライブラリタイムアウト +5 秒の猶予を持たせて自前の `Task.Delay` と競合させる
+  ことで、ライブラリ内側のタイムアウト(false 返し)とこちら側の Timeout 判定を
+  区別する従来の意味論を維持。接続前に `ListProfilesAsync` でプロファイル存在を
+  確認し `ProfileRejected` を返す分岐も維持。
+- `SubscribeEventsAsync` — `NativeWifiPlayer` を iterator の `using var` で保持し
+  `ConnectionChanged` のみ購読(`Started`→Connecting / `Completed`→Connected /
+  `Failed`→Failed / `Disconnecting`/`Disconnected`→Disconnected にマップ)。
+  SSID は `e.Data?.Ssid?.ToString()` から取得。
+- **残る唯一の未検証**: 実機 Windows での接続動作確認(コンパイルは済)。
+  項目 1 の CI 設置後に Windows ランナーで `dotnet test` が走れば
+  `IWifiService` 差替えテストまで含めて検証される。
+
 
 ---
 
@@ -457,4 +470,4 @@ grep -n 'GetCurrentConnection' /tmp/mnw-src/Source/ManagedNativeWifi/NativeWifi.
 | 型検査 | `tools/typecheck-{core,cli,app-services,platform,tests}.sh` — Core・Cli 全体、App 19/46 ファイル、Platform.Windows 4/6 ファイル、テスト 75/79 ファイルが**本物の MWC.Core.dll に対して**コンパイルされる(スタブは `--selftest` で検出力を自己検証)。この過程でコンパイルを落とす欠陥・実行時に落ちる欠陥・テストデータ自体の誤りが複数見つかり修正済み(個々の内容は `CHANGELOG.md` `[Unreleased]`、傾向は `docs/FEATURE-AUDIT.md` §6c の 22 件に集約) |
 | 実行検証 | `tools/run-tests.sh` — xunit 無しで実際にテストを実行。**1250 件合格 / 0 件失敗 / 0 件 skip**。`tools/mutation-check.sh` が検出力を実測(意図的な欠陥注入 5 件すべて kill、コメントのみの対照は生存) |
 
-**まだ未検証なのは 4 点だけ**: (1) `dotnet build`/`dotnet test` そのもの — 上記は `csc` 直叩き + 手製ランナーによる**近似**であり、`api.nuget.org` へのアクセスと CI 設置のいずれかが要る。(2) App の WPF 依存 27 ファイル(参照パック未入手)。(3) Platform.Windows(ManagedNativeWifi と Windows API が要る)。(4) MLO のリンク詳細(RSSI は実機測定値)。項目 1〜4 の解消がこれらを埋める。
+**まだ未検証なのは実質 2 点**: (1) `dotnet test` の実走 — テストは `net9.0-windows10.0.19041.0` + WPF のため macOS ではコンパイルのみで実行不可、CI(項目 1)または Windows 実機が要る。(2) MLO のリンク詳細(RSSI は実機測定値)。~~(2) App の WPF 依存 27 ファイル~~と~~(3) Platform.Windows~~は 2026-09-19 に `EnableWindowsTargeting=true` により macOS 上で**実パッケージ込みの実コンパイル済み**(MWC.ci-win.slnf 全体 0 エラー)。`dotnet build` そのものも同時に実走済み。

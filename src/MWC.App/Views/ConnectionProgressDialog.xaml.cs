@@ -8,8 +8,10 @@ using MWC.Core.Models;
 
 namespace MWC.App.Views;
 
-public partial class ConnectionProgressDialog : Window
+public partial class ConnectionProgressDialog : Window, IDisposable
 {
+    public void Dispose() { _cts.Dispose(); GC.SuppressFinalize(this); }
+
     private readonly CancellationTokenSource _cts = new();
 
     public CancellationToken CancellationToken => _cts.Token;

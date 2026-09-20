@@ -160,7 +160,7 @@ public static class AdapterConnectExtension
             return res;
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             progress.SetStep(0, StepState.Error, MWC.App.Resources.L.Format("Progress_Error", ex.Message));
             return ConnectionResult.Fail(ConnectionFailure.OsError);

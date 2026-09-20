@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
@@ -46,14 +47,16 @@ public sealed class WlanBssIeProvider : IBeaconIeProvider
 
             ParseBssList(bssListPtr, result);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException
+                                   or AccessViolationException or ArgumentException
+                                   or System.Runtime.InteropServices.SEHException)
         {
             _log.LogDebug(ex, "WlanGetNetworkBssList failed");
         }
         finally
         {
             if (bssListPtr != IntPtr.Zero) WlanFreeMemory(bssListPtr);
-            if (clientHandle != IntPtr.Zero) WlanCloseHandle(clientHandle, IntPtr.Zero);
+            if (clientHandle != IntPtr.Zero) _ = WlanCloseHandle(clientHandle, IntPtr.Zero);
         }
         return result;
     }

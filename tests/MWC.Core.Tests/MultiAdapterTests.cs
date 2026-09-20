@@ -62,7 +62,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task DuplicateConnectionDetection_Logic()
+    public void DuplicateConnectionDetection_Logic()
     {
         // 別アダプターで同SSIDに接続中を検出する想定ロジック
         var connectedMap = new[]
@@ -79,7 +79,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task NoConflict_WhenSameAdapter()
+    public void NoConflict_WhenSameAdapter()
     {
         var connectedMap = new[] { (Adapter: "Wi-Fi 1", Ssid: "SharedNet") };
         // Wi-Fi 1 で SharedNet に再接続(自分自身は競合ではない)

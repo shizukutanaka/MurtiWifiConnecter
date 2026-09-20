@@ -149,7 +149,6 @@
   <data name="Captive_Loading"><value>ஏற்றுகிறது...</value></data>
   <data name="Captive_InternetOk"><value>✓ இணைய இணைப்பு சரிபார்க்கப்பட்டது</value></data>
   <data name="Captive_PageLoaded"><value>பக்கம் ஏற்றப்பட்டது</value></data>
-  <data name="Captive_NavigationFailed"><value>வழிசெலுத்தல் தோல்வியடைந்தது — உலாவியில் திறக்க முயற்சிக்கவும்</value></data>
   <data name="Confirm_DeleteTitle"><value>நீக்குதலை உறுதிப்படுத்தவும்</value></data>
   <data name="About_Version"><value>பதிப்பு {0}</value></data>
   <data name="QR_Copied"><value>நகலெடுக்கப்பட்டது — Wi-Fi QR குறியீடு</value></data>

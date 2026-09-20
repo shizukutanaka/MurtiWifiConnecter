@@ -38,12 +38,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool              _isBusy;
     [ObservableProperty] private bool              _isScanning;
 
-    partial void OnSelectedAdapterChanged(AdapterViewModel? v)
+    partial void OnSelectedAdapterChanged(AdapterViewModel? value)
     {
-        Filter.SetAdapter(v?.Id);
+        Filter.SetAdapter(value?.Id);
         // fire-and-forget だが SafeRunAsync で例外を捕捉・ログ化し、未観測例外でのクラッシュを防ぐ
-        if (v is not null)
-            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => v.RefreshAsync());
+        if (value is not null)
+            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => value.RefreshAsync());
     }
 
     public NetworkFilterViewModel Filter { get; }
@@ -95,7 +95,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _timer.Start();
             StatusMessage = MWC.App.Resources.L.StatusAdapterCount(ads.Count);
         }
-        catch (Exception ex) { _log.LogError(ex, "Load"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogError(ex, "Load"); }
         finally { IsBusy = false; }
     }
 
@@ -116,7 +116,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             int connected = Adapters.Count(a => a.ConnectedSsid is not null);
             StatusMessage = MWC.App.Resources.L.StatusAdaptersConnected(connected, Adapters.Count);
         }
-        catch (Exception ex) { _log.LogWarning(ex, "RefreshAll"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "RefreshAll"); }
         finally { IsScanning = false; }
     }
 
@@ -159,7 +159,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
             StatusMessage = MWC.App.Resources.L.StatusExported(Path.GetFileName(dlg.FileName));
         }
-        catch (Exception ex) { _log.LogError(ex, "Export"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogError(ex, "Export"); }
     }
 
     /// <summary>
@@ -180,7 +180,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (SelectedAdapter is not null)
                 Filter.SetSource(SelectedAdapter.Networks.ToList());
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // 個々のアダプター失敗は SafeRefreshOne が捕捉するが、Filter.SetSource 等
             // それ以外の箇所での例外は無防備だった。RefreshCommand (手動更新ボタン) 経由の
@@ -196,7 +196,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private async Task SafeRefreshOne(AdapterViewModel a)
     {
         try { await a.RefreshAsync(); }
-        catch (Exception ex) { _log.LogWarning(ex, "refresh adapter {name}", a.Name); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "refresh adapter {Name}", a.Name); }
     }
 
     /// <summary>設定変更をランタイムに即適用(スキャン間隔等)</summary>

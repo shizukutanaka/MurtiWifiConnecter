@@ -9,7 +9,7 @@ namespace MWC.App.Views;
 public partial class FirstRunWizard : Window
 {
     private readonly SettingsService _settings;
-    private int _page = 0;
+    private int _page;
 
     private static (string Icon, string Title, string Body, string Hint)[] BuildPages() => new[]
     {
@@ -52,12 +52,12 @@ public partial class FirstRunWizard : Window
             VerticalAlignment = VerticalAlignment.Top
         };
 
-        panel.Children.Add(new TextBlock
+        var iconBlock = new TextBlock
         {
             Text = icon, FontSize = 52, HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 20),
-            AutomationProperties.AccessibilityView = AccessibilityView.Raw  // decorative
-        });
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+        panel.Children.Add(iconBlock);
         panel.Children.Add(new TextBlock
         {
             Text = title, FontSize = 22, FontWeight = FontWeights.Bold,
@@ -78,7 +78,7 @@ public partial class FirstRunWizard : Window
         var hintBorder = new Border
         {
             Background = Res("SurfaceBrush"),
-            CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10)
+            CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10, 14, 10)
         };
         hintBorder.Child = new TextBlock
         {

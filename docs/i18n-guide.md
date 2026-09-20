@@ -3,7 +3,7 @@
 ## 目標
 - 既定: 日本語(`Strings.ja.resx`)
 - 完全対応: ja, en, zh-Hans, zh-Hant, ko, es, fr, de, pt-BR, ru, ar, hi, bn, ta
-  (14言語 + 中立ベース `Strings.resx`。517 キー全言語一致を `tools/verify.sh` が保証)
+  (14言語 + 中立ベース `Strings.resx`。516 キー全言語一致を `tools/verify.sh` が保証)
   ——**2026-09 訂正**: 以前の版は vi/th/id/it/tr/pl/nl/sv を含む「上位20言語」を
   謳っていたが、これらの resx は実在しない。逆に bn(ベンガル語)/ta(タミル語)は
   実在するのに以前の版のリストに含まれていなかった。実ファイル一覧

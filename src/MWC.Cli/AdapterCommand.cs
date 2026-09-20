@@ -55,7 +55,8 @@ internal static class AdapterCommand
                         $"{p.CustomLabel ?? "-"}");
                 }
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return c;
     }
@@ -75,7 +76,8 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().SetLabel(id, label);
                 Console.WriteLine($"✓ Renamed: {label}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, l);
         return c;
     }
@@ -108,7 +110,8 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().SetBandFilter(id, pref);
                 Console.WriteLine($"✓ Band: {pref}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, b);
         return c;
     }
@@ -128,7 +131,8 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().PinSsid(id, ssid);
                 Console.WriteLine($"★ Pinned: {ssid}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, s);
         return c;
     }
@@ -148,7 +152,8 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().UnpinSsid(id, ssid);
                 Console.WriteLine($"☆ Unpinned: {ssid}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n, s);
         return c;
     }
@@ -172,7 +177,8 @@ internal static class AdapterCommand
                 sp.GetRequiredService<AdapterPreferencesService>().SetEnabled(id, on);
                 Console.WriteLine($"✓ {(on ? "Enabled" : "Disabled")}: {name}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, n);
         return c;
     }

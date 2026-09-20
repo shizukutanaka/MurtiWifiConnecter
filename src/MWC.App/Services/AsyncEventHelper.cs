@@ -38,10 +38,10 @@ public static class AsyncEventHelper
         {
             // キャンセルは通常運転、無視
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            log?.LogError(ex, "Event handler {op} failed", operationName);
-            try { onError?.Invoke(ex); } catch { /* onError 自身もクラッシュしない */ }
+            log?.LogError(ex, "Event handler {Op} failed", operationName);
+            try { onError?.Invoke(ex); } catch (Exception ie) when (ie is not OutOfMemoryException and not StackOverflowException) { /* onError 自身もクラッシュしない */ }
         }
     }
 
@@ -56,9 +56,9 @@ public static class AsyncEventHelper
     {
         try { return await action().ConfigureAwait(true); }
         catch (OperationCanceledException) { return fallback; }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            log?.LogError(ex, "Event handler {op} failed", operationName);
+            log?.LogError(ex, "Event handler {Op} failed", operationName);
             return fallback;
         }
     }

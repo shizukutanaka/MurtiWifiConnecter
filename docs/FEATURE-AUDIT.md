@@ -41,7 +41,7 @@
 > `tools/typecheck-platform.sh`(4/6 ファイル、`--selftest` 込み)に組み込んで
 > 継続検査できるようにした。残る 2 件は
 > **CLAUDE.md 必須事項「接続成功は WlanNotification の 2 段判定」の前段そのもの**
-> (`ConnectionWaiter`)に関わり、設計判断が要るため実機セッションに委ねている。
+> (`ConnectionWaiter`)に関わっていたが、**2026-09-19 に解決済み** — 架空 API 層を削除し実 `ConnectNetworkAsync`/`NativeWifiPlayer` に置換、全量コンパイル確認済み(詳細: `docs/COMPLETION-CHECKLIST.md` §5)。
 > 詳細と再現手順は `docs/COMPLETION-CHECKLIST.md` §5。
 > 各スクリプトのヘッダに「何を検査し、何を検査していないか」を明記してある。
 >
@@ -52,7 +52,7 @@
 > |---|---|
 > | `MWC.Core` | **0 エラー**(当初 ~130 件のアナライザー違反を全解消) |
 > | `MWC.ci-linux.slnf` (Core + Platform.Linux + PSModule + SDK) | **0 エラー** |
-> | `MWC.ci-win.slnf` + `EnableWindowsTargeting` (macOS 上) | コードは全てクリーン。残るは Windows 限定プロジェクトの NETSDK1135 のみ(クロスコンパイル由来・実害なし) |
+> | `MWC.ci-win.slnf` + `EnableWindowsTargeting` (macOS 上) | **2026-09-19: 0 エラーで全量コンパイル成功**。NETSDK1135 は環境由来でなく csproj の TFM 設定ミス(`net9.0-windows` のまま TargetPlatformVersion が 7.0 既定化)と判明し、`net9.0-windows10.0.19041.0` に修正して解消。Platform.Windows/App/Cli/テストが実パッケージに対して初めて実コンパイルされ、潜んでいた実コンパイルエラー群(CS0104/CS8826/CS1061/CS1503/CS8602/CS8604/CS4014/CS1998 等)とアナライザー違反を全量修正済み |
 > | `dotnet test` | 実行不可 — テストプロジェクトが net9.0-windows + WPF のため Windows 必須(CI 側で実走する想定) |
 >
 > 実ビルドで初めて見えた実欠陥: `NmcliWifiService` が**一度もコンパイルされたことがなかった**

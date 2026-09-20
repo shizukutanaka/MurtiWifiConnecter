@@ -47,7 +47,7 @@ public static class SensitiveClipboard
             Clipboard.SetDataObject(data, copy: true);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // クリップボードは他プロセスとの競合で COMException/ExternalException を投げうる。
             // 機密内容自体はログに出さず、失敗の事実のみ記録する。

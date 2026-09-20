@@ -15,6 +15,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting"   Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging"   Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
 
     <!-- net9.0 (plain) では Microsoft.Win32.Registry が in-box でないため明示参照 -->
@@ -26,6 +27,7 @@
 
     <!-- Platform -->
     <PackageVersion Include="ManagedNativeWifi"              Version="3.0.2" />
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
 
     <!-- QR コード -->
     <PackageVersion Include="QRCoder"                        Version="1.6.0" />

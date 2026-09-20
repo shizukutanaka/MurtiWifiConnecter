@@ -44,7 +44,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
                 Profiles.Add(new ProfileItem(n));
             StatusMessage = MWC.App.Resources.L.StatusProfileCount(Profiles.Count);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // このクラスは元々 ILogger を持たず、例外は無音で握りつぶされていた
             // (2026-07 品質パスで是正。AdapterViewModel.RefreshAsync と同じ問題)。
@@ -74,7 +74,7 @@ public sealed partial class ProfileManagerViewModel : ObservableObject
                 StatusMessage = MWC.App.Resources.L.StatusDeleteFailed(ssid);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogError(ex, "ProfileManagerViewModel.DeleteAsync failed for adapter {AdapterId}", _adapterId);
             StatusMessage = MWC.App.Resources.L.ErrorUnexpected(ex.Message);

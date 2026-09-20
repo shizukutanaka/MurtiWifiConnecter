@@ -256,8 +256,8 @@ public class ConnectionExecutorConcurrencyTests
         sw.Stop();
 
         // 異なるアダプターはロックを共有しないため並列実行可能
-        t1.Result.Should().NotBeNull();
-        t2.Result.Should().NotBeNull();
+        (await t1).Should().NotBeNull();
+        (await t2).Should().NotBeNull();
         wifi.ConnectCount.Should().BeGreaterOrEqualTo(2);
     }
 

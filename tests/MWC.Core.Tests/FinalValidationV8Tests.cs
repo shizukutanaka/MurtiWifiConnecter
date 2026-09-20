@@ -58,7 +58,7 @@ public class AsyncEventHelperTests
     {
         await AsyncEventHelper.SafeRunAsync(null, "test",
             () => Task.FromException(new InvalidOperationException()),
-            onError: _ => throw new Exception("nested"));
+            onError: _ => throw new InvalidOperationException("nested"));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class AsyncEventHelperTests
     {
         var result = await AsyncEventHelper.SafeRunAsync<int>(
             null, "test",
-            () => throw new Exception(),
+            () => throw new InvalidOperationException(),
             fallback: -1);
         result.Should().Be(-1);
     }

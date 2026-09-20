@@ -25,7 +25,6 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
 {
     private readonly IWifiService               _wifi;
     private readonly AdapterPreferencesService  _prefs;
-    private readonly NetworkHistoryService      _history;
     private readonly ConnectionExecutor         _executor;
     private readonly OuiLookupService           _oui;
     private readonly ILogger                    _log;
@@ -37,12 +36,11 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
     public AllAdaptersOverviewViewModel(
         IWifiService wifi,
         AdapterPreferencesService prefs,
-        NetworkHistoryService history,
         ConnectionExecutor executor,
         OuiLookupService oui,
         ILogger<AllAdaptersOverviewViewModel> log)
     {
-        _wifi = wifi; _prefs = prefs; _history = history; _executor = executor;
+        _wifi = wifi; _prefs = prefs; _executor = executor;
         _oui = oui; _log = log;
     }
 
@@ -60,7 +58,7 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
             await Task.WhenAll(Panels.Select(p => p.RefreshAsync()));
             UpdateSummary();
         }
-        catch (Exception ex) { _log.LogError(ex, "OverviewLoad"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogError(ex, "OverviewLoad"); }
     }
 
     [RelayCommand]
@@ -78,7 +76,7 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
         async Task SafePanelOp(AdapterPanelViewModel p)
         {
             try { await p.ConnectPreferredAsync(); }
-            catch (Exception ex) { _log.LogWarning(ex, "ConnectAllPreferred: {n}", p.Name); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "ConnectAllPreferred: {N}", p.Name); }
         }
     }
 
@@ -92,7 +90,7 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
         async Task SafePanelOp(AdapterPanelViewModel p)
         {
             try { await p.DisconnectAsync(); }
-            catch (Exception ex) { _log.LogWarning(ex, "DisconnectAll: {n}", p.Name); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "DisconnectAll: {N}", p.Name); }
         }
     }
 
@@ -179,7 +177,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
                 ? MWC.App.Resources.L.StatusNetworksFound(nets.Count)
                 : MWC.App.Resources.L.Format("Status_ConnectedTo", ConnectedSsid, ConnectedSignal);
         }
-        catch (Exception ex) { _log.LogWarning(ex, "Panel refresh: {n}", _adapter.Name); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { _log.LogWarning(ex, "Panel refresh: {N}", _adapter.Name); }
         finally { IsScanning = false; }
     }
 
@@ -212,7 +210,7 @@ public sealed partial class AdapterPanelViewModel : ObservableObject
                     { Owner = Application.Current?.MainWindow }
                     .ShowDialog();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // AsyncRelayCommand 経由の呼び出しは例外を ExecutionTask に格納するだけで
             // UI に伝播しないため、握りつぶさずログ記録 + ユーザー向け表示を行う

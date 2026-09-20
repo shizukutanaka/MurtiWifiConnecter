@@ -66,7 +66,7 @@ public sealed class AppUpdateService
                 CheckedAt:     DateTimeOffset.UtcNow);
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogWarning(ex, "Update check failed");
             return UpdateCheckResult.Failed;

@@ -1,21 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>MWC.App</RootNamespace>
     <AssemblyName>MWC</AssemblyName>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- WFO0003 (WinForms 分析器) は「DPI 設定は ApplicationHighDpiMode で」と要求するが、
+         本アプリは WPF 主体 — WPF は app.manifest の dpiAware 要素が正規の設定経路であり
+         manifest からは除去しない。UseWindowsForms によって誤って有効化されたルール。 -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <Product>MWC</Product>
     <AssemblyTitle>MWC - Multi WiFi Connector</AssemblyTitle>
   </PropertyGroup>
+  <!-- WinForms は SystemTrayService (NotifyIcon) のみが使う。UseWindowsForms=true が
+       付与する既定の暗黙 using (System.Windows.Forms / System.Drawing) は全ファイルで
+       Brush/Control/Application 等を WPF 型と衝突させるため明示的に除去する。 -->
+  <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MWC.Core\MWC.Core.csproj" />
     <ProjectReference Include="..\MWC.Platform.Windows\MWC.Platform.Windows.csproj" />

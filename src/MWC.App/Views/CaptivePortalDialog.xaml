@@ -56,8 +56,7 @@
         <!-- WebBrowser -->
         <WebBrowser Grid.Row="1" x:Name="Browser"
                     Navigating="OnNavigating"
-                    LoadCompleted="OnLoaded"
-                    NavigationFailed="OnNavigationFailed"/>
+                    LoadCompleted="OnLoaded"/>
 
         <!-- フッタ -->
         <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"

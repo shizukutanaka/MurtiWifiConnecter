@@ -121,7 +121,7 @@ public class ExportServiceTests : IDisposable
     private readonly string _tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServiceTests() => Directory.CreateDirectory(_tmpDir);
-    public void Dispose() { try { Directory.Delete(_tmpDir, true); } catch { } }
+    public void Dispose() { try { Directory.Delete(_tmpDir, true); } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { } GC.SuppressFinalize(this); }
 
     private static IReadOnlyList<WifiNetwork> SampleNetworks() =>
     [

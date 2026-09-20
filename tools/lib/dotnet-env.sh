@@ -52,7 +52,9 @@ done
 # 実装無しとみなされ CS8795 が大量に出る(実際の欠陥ではない)。
 GEN=""
 for _name in Microsoft.Extensions.Logging.Generators.dll System.Text.RegularExpressions.Generator.dll; do
-  _g=$(find "$DOTNET_ROOT_DIR/packs" -path '*/analyzers/dotnet/cs/*' -name "$_name" 2>/dev/null | sort -V | tail -1)
+  # 配置はパックによって異なる: analyzers/dotnet/cs/ 直下 (NETCore.App.Ref) と
+  # analyzers/dotnet/roslyn4.x/cs/ (AspNetCore.App.Ref / NuGet パッケージ) の両方が在る。
+  _g=$(find "$DOTNET_ROOT_DIR/packs" -path '*/analyzers/*/cs/*' -name "$_name" 2>/dev/null | sort -V | tail -1)
   [ -n "$_g" ] && GEN="$GEN -analyzer:$_g"
 done
 unset _f _d _g _name

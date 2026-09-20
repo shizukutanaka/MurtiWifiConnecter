@@ -41,11 +41,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     // RadioButton 相互排他
-    partial void OnIsSimpleModeChanged(bool v)  { if (v) _isExpertMode = false; OnPropertyChanged(nameof(IsExpertMode)); }
-    partial void OnIsExpertModeChanged(bool v)  { if (v) _isSimpleMode = false; OnPropertyChanged(nameof(IsSimpleMode)); }
+    partial void OnIsSimpleModeChanged(bool value)  { if (value) IsExpertMode = false; }
+    partial void OnIsExpertModeChanged(bool value)  { if (value) IsSimpleMode = false; }
 
     // 公開プロパティ (SettingsService 向け変換)
-    public AppTheme    Theme       => _themeIndex switch
+    public AppTheme    Theme       => ThemeIndex switch
     {
         1 => AppTheme.Light,
         2 => AppTheme.System,
@@ -55,7 +55,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         6 => AppTheme.Catppuccin,
         _ => AppTheme.Dark
     };
-    public DisplayMode DisplayMode => _isExpertMode ? DisplayMode.Expert : DisplayMode.Simple;
+    public DisplayMode DisplayMode => IsExpertMode ? DisplayMode.Expert : DisplayMode.Simple;
 
     public IReadOnlyList<(string Code, string Label)> Languages { get; } = new[]
     {
@@ -85,9 +85,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void Load()
     {
         var s = _svc.Current;
-        _isSimpleMode     = s.DisplayMode == DisplayMode.Simple;
-        _isExpertMode     = s.DisplayMode == DisplayMode.Expert;
-        _themeIndex       = s.Theme switch
+        IsSimpleMode = s.DisplayMode == DisplayMode.Simple;
+        IsExpertMode = s.DisplayMode == DisplayMode.Expert;
+        ThemeIndex = s.Theme switch
         {
             AppTheme.Light      => 1,
             AppTheme.System     => 2,
@@ -97,10 +97,10 @@ public sealed partial class SettingsViewModel : ObservableObject
             AppTheme.Catppuccin => 6,
             _                   => 0
         };
-        _language         = s.Language;
-        _autoScanInterval = s.AutoScanIntervalSeconds;
-        _scanOnStartup    = s.ScanOnStartup;
-        _showNotifications = s.ShowConnectionNotifications;
+        Language = s.Language;
+        AutoScanInterval = s.AutoScanIntervalSeconds;
+        ScanOnStartup = s.ScanOnStartup;
+        ShowNotifications = s.ShowConnectionNotifications;
         OnPropertyChanged(nameof(IsSimpleMode));
         OnPropertyChanged(nameof(IsExpertMode));
         OnPropertyChanged(nameof(ThemeIndex));

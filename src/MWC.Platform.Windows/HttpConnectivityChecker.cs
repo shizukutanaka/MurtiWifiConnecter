@@ -68,7 +68,16 @@ public sealed class HttpConnectivityChecker : IConnectivityChecker
             bool ok = body.Trim() == Expected;
             return new ConnectivityStatus(ok, !ok, (int)sw.ElapsedMilliseconds);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // 呼び出し側のキャンセルは伝播。プローブ自身のタイムアウト
+            // (内部 cts による TaskCanceledException) は下の catch が拾い
+            // 「疎通なし」として返す。
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException
+                                   or IOException or SocketException
+                                   or InvalidOperationException)
         {
             _log.LogDebug(ex, "Connectivity probe failed");
             return new ConnectivityStatus(false, false, null);

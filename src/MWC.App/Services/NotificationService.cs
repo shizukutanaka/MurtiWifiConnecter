@@ -88,7 +88,7 @@ public sealed class NotificationService
         // タイトル/本文には SSID が埋め込まれているため(例: "Connected to MyWifi")、
         // 永続ログには内容を出さず重要度のみ記録する。SSID の平文ログ化を防ぐ
         // (DiagnosticBundle / 各接続ログと同じ PII 方針)。
-        _log.LogInformation("Notification shown (severity={icon})", icon);
+        _log.LogInformation("Notification shown (severity={Icon})", icon);
         try
         {
             _tray?.ShowBalloonTip(3000,
@@ -96,7 +96,7 @@ public sealed class NotificationService
                 string.IsNullOrEmpty(text) ? title : text,
                 icon);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogWarning(ex, "BalloonTip failed");
         }

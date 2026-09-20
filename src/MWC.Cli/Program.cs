@@ -23,6 +23,8 @@ namespace MWC.Cli;
 /// </summary>
 public static partial class Program
 {
+    // CA1861: 繰り返し呼ばれる Option のエイリアス配列は静的共有する
+
     public static async Task<int> Main(string[] args)
     {
         // グローバル例外ハンドラ
@@ -149,7 +151,8 @@ public static partial class Program
                         Console.WriteLine($"{a.Id}  {a.State,-14}  {a.Name}");
                 }
             }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, json, status);
         return cmd;
     }
@@ -290,7 +293,8 @@ public static partial class Program
                 }
             }
           }
-          catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+          catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter, json, advise, recommend, evilTwin, interference, mesh);
         return cmd;
     }
@@ -299,7 +303,8 @@ public static partial class Program
     private static Command BuildConnect(ServiceProvider sp)
     {
         var ssid    = new Argument<string>("ssid");
-        var pw      = new Option<string?>(new[]{"-p","--password"},
+        var s_passwordAliasesLocal = new[] { "-p", "--password" };
+        var pw      = new Option<string?>(s_passwordAliasesLocal,
             "Passphrase (PSK/WEP) or EAP password (Enterprise). " +
             "Omit to read from the MWC_PASSWORD environment variable instead " +
             "(avoids exposing the secret in the process command line / ps output).");
@@ -402,7 +407,8 @@ public static partial class Program
                 // ここで早期エラーを返す。ValidateEnterprise が EAP type 必須・PEAP/TTLS の
                 // username+password 必須のエラー文言を提供する。
                 try { ProfileXmlBuilder.Build(spec); }
-                catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
+                catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
                 // executor 経由で接続 (セマフォ・OTel・履歴記録を一元管理)
                 ConnectionResult res;
@@ -430,7 +436,8 @@ public static partial class Program
                     Environment.Exit(ExitCode.ConnectionFailed);
                 }
             }
-            catch (Exception ex) { Err($"connect failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"connect failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
         return cmd;
     }
@@ -450,7 +457,8 @@ public static partial class Program
                 if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
                 Console.WriteLine(await svc.DisconnectAsync(ad.Id) ? "disconnected" : "no-op");
             }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter);
         return cmd;
     }
@@ -472,7 +480,8 @@ public static partial class Program
                 if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
                 foreach (var p in await svc.ListProfilesAsync(ad.Id)) Console.WriteLine(p);
             }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapter);
 
         var delArg  = new Argument<string>("name");
@@ -487,7 +496,8 @@ public static partial class Program
                 if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
                 Console.WriteLine(await svc.DeleteProfileAsync(ad.Id, n) ? "deleted" : "not found");
             }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, delArg, adapter);
 
         profile.AddCommand(listCmd); profile.AddCommand(delCmd);
@@ -498,7 +508,8 @@ public static partial class Program
     private static Command BuildQr()
     {
         var ssid = new Argument<string>("ssid");
-        var pw   = new Option<string?>(new[]{"-p","--password"});
+        var s_passwordAliasesLocal = new[] { "-p", "--password" };
+        var pw   = new Option<string?>(s_passwordAliasesLocal);
         var auth = new Option<AuthMethod>("--auth", () => AuthMethod.WPA2PSK);
         var hid  = new Option<bool>("--hidden");
         var cmd  = new Command("qr", "Generate WIFI: URI for QR code");
@@ -506,7 +517,8 @@ public static partial class Program
         cmd.SetHandler((string s, string? p, AuthMethod a, bool h) =>
         {
             try { Console.WriteLine(WifiUri.Build(new(){ Ssid=s, Auth=a, Passphrase=p, NonBroadcast=h })); }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.InvalidInput); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.InvalidInput); }
         }, ssid, pw, auth, hid);
         return cmd;
     }
@@ -571,7 +583,8 @@ public static partial class Program
                 }
                 Console.WriteLine(path);
             }
-            catch (Exception ex) { Err($"export failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"export failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, adapter, format, output);
         return cmd;
     }

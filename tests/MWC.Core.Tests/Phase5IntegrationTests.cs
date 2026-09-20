@@ -51,7 +51,7 @@ public class ExportServicePhase5Tests : IDisposable
         System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServicePhase5Tests() => System.IO.Directory.CreateDirectory(_tmp);
-    public void Dispose() { try { System.IO.Directory.Delete(_tmp, true); } catch { } }
+    public void Dispose() { try { System.IO.Directory.Delete(_tmp, true); } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { } GC.SuppressFinalize(this); }
 
     private static readonly IReadOnlyList<WifiNetwork> Networks = new[]
     {
@@ -208,7 +208,7 @@ public class FakeWifiServiceCliFlowTests
     }
 
     [Fact]
-    public async Task ProfileXml_AllAuthMethods_BuildWithoutException()
+    public void ProfileXml_AllAuthMethods_BuildWithoutException()
     {
         var methods = new[]
         {

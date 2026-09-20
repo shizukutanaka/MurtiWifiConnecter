@@ -49,7 +49,7 @@ public partial class CertificatePickerDialog : Window
 
         SubjectLabel.Text     = vm.Cert.Subject;
         IssuerLabel.Text      = vm.Cert.Issuer;
-        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd"), vm.Cert.DaysUntilExpiry);
+        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), vm.Cert.DaysUntilExpiry);
     }
 
     private void OnOk(object sender, RoutedEventArgs e)
@@ -68,7 +68,7 @@ public partial class CertificatePickerDialog : Window
     {
         // certmgr.msc を起動
         try { Process.Start(new ProcessStartInfo("certmgr.msc") { UseShellExecute = true }); }
-        catch (Exception ex) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
     }
 
     // ── ViewModel ───────────────────────────────────────────────────

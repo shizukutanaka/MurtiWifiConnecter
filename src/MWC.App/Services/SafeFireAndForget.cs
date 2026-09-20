@@ -29,7 +29,7 @@ public static class SafeFireAndForget
             if (t.IsFaulted && t.Exception is not null)
             {
                 log?.LogError(t.Exception,
-                    "fire-and-forget failure in {caller} (operation={op})",
+                    "fire-and-forget failure in {Caller} (operation={Op})",
                     callerName, operation ?? "-");
             }
         }, TaskContinuationOptions.OnlyOnFaulted);
@@ -54,9 +54,9 @@ public static class SafeFireAndForget
         => Task.Run(async () =>
         {
             try { return await action().ConfigureAwait(false); }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
             {
-                log?.LogError(ex, "fire-and-forget failure (operation={op})", operation ?? "-");
+                log?.LogError(ex, "fire-and-forget failure (operation={Op})", operation ?? "-");
                 return fallback;
             }
         });

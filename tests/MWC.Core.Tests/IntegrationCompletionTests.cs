@@ -16,7 +16,7 @@ public class ExportServiceCompletionTests : IDisposable
     private readonly string _tmp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServiceCompletionTests() => Directory.CreateDirectory(_tmp);
-    public void Dispose() { try { Directory.Delete(_tmp, true); } catch { } }
+    public void Dispose() { try { Directory.Delete(_tmp, true); } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { } GC.SuppressFinalize(this); }
 
     private static System.Collections.Generic.List<WifiNetwork> SampleNets() =>
     [

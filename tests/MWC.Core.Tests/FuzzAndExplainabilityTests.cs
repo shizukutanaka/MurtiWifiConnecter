@@ -1,3 +1,4 @@
+#pragma warning disable CA5394 // ファズ入力生成は再現性のため決定的 Random を使用 (セキュリティ用途でない)
 using System;
 using System.Linq;
 using FluentAssertions;
@@ -192,7 +193,7 @@ public class RecommendationExplainabilityTests
         explanation.ProfileReason.Should().Contain("security");
         explanation.Contributions.Should().HaveCount(4);
         // Secure プロファイルではセキュリティの重みが最大
-        explanation.Contributions.First().Dimension.Should().Be("Security");
+        explanation.Contributions[0].Dimension.Should().Be("Security");
     }
 
     [Fact]
@@ -218,7 +219,7 @@ public class RecommendationExplainabilityTests
             explanation.Contributions[i].WeightedContribution
                 .Should().BeLessOrEqualTo(explanation.Contributions[i - 1].WeightedContribution);
 
-        explanation.TopFactor.Should().Be(explanation.Contributions.First().Dimension);
+        explanation.TopFactor.Should().Be(explanation.Contributions[0].Dimension);
     }
 
     [Fact]
@@ -228,7 +229,7 @@ public class RecommendationExplainabilityTests
         var score = _engine.Score(net);
         var explanation = _engine.Explain(score);
 
-        explanation.Summary.Should().Contain(score.Total.ToString("F0"));
+        explanation.Summary.Should().Contain(score.Total.ToString("F0", System.Globalization.CultureInfo.InvariantCulture));
         explanation.Summary.Should().Contain("100");
     }
 }

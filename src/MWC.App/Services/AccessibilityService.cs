@@ -49,7 +49,7 @@ public static class AccessibilityService
                     ?? System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(w);
             peer?.RaiseNotificationEvent(kind, processing, message, "MWC.Status");
         }
-        catch { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
     }
 
     /// <summary>

@@ -36,6 +36,7 @@ public partial class App : Application
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File(Path.Combine(logsDir, "mwc-.log"),
+                formatProvider: System.Globalization.CultureInfo.InvariantCulture,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
                 outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
@@ -114,7 +115,6 @@ public partial class App : Application
                     new AllAdaptersOverviewViewModel(
                         sp.GetRequiredService<IWifiService>(),
                         sp.GetRequiredService<AdapterPreferencesService>(),
-                        sp.GetRequiredService<NetworkHistoryService>(),
                         sp.GetRequiredService<ConnectionExecutor>(),
                         sp.GetRequiredService<OuiLookupService>(),
                         sp.GetRequiredService<ILogger<AllAdaptersOverviewViewModel>>()));
@@ -204,7 +204,7 @@ public partial class App : Application
                     typeof(FrameworkElement),
                     new FrameworkPropertyMetadata(FlowDirection.RightToLeft));
             }
-            catch (Exception ex) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
         }
     }
 

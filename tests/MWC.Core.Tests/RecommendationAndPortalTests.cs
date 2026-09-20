@@ -114,7 +114,7 @@ public class NetworkRecommendationEngineTests
             PmfStatus.Required, ft: signal >= 75);
         var score = _engine.Score(net);
         // グレードは Total に従う
-        ((int)score.Grade).Should().BeGreaterOrEqualTo(0);
+        ((int)score.Grade).Should().BeGreaterOrEqualTo((int)expectedMin);
     }
 
     [Fact]

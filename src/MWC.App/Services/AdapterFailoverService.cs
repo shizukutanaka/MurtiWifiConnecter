@@ -148,7 +148,7 @@ public sealed class AdapterFailoverService : IDisposable
             }
         }
         catch (OperationCanceledException) { /* shutting down */ }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogWarning(ex, "AdapterFailoverService.CheckAsync failed");
         }
@@ -179,8 +179,8 @@ public sealed class AdapterFailoverService : IDisposable
 
         // Get the best SSID for the failover adapter from its preferences
         var failoverPrefs = _prefs.Get(failoverId);
-        var targetSsid    = failoverPrefs.AutoConnectPriority.FirstOrDefault()
-                         ?? failoverPrefs.PinnedSsids.FirstOrDefault();
+        var targetSsid    = (failoverPrefs.AutoConnectPriority.Count > 0 ? failoverPrefs.AutoConnectPriority[0] : null)
+                         ?? (failoverPrefs.PinnedSsids.Count > 0 ? failoverPrefs.PinnedSsids[0] : null);
 
         if (targetSsid is null)
         {
@@ -229,7 +229,7 @@ public sealed class AdapterFailoverService : IDisposable
                 return false;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             _log.LogWarning(ex, "Exception during failover connection attempt");
             return false;

@@ -18,7 +18,7 @@ public class SettingsServiceTests : IDisposable
         // テスト分離: 実際のLocalAppDataには書かない
     }
 
-    public void Dispose() { }
+    public void Dispose() { GC.SuppressFinalize(this); }
 
     [Fact]
     public void DefaultSettings_AreReasonable()

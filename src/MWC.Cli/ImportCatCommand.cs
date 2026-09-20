@@ -35,7 +35,8 @@ public static partial class Program
         var fileArg  = new Argument<string>("file", "Path to a CAT eap-config XML file");
         var userOpt  = new Option<string?>("--username",
             "Your account at the institution (required for PEAP / EAP-TTLS)");
-        var pwOpt    = new Option<string?>(new[] { "-p", "--password" },
+        var s_passwordAliasesLocal = new[] { "-p", "--password" };
+        var pwOpt    = new Option<string?>(s_passwordAliasesLocal,
             "Your password. Omit to read from the MWC_PASSWORD environment variable.");
         var adapterOpt = new Option<string?>("--adapter", "Adapter GUID or name (default: first)");
         var timeoutOpt = new Option<int>("--timeout", () => 30, "Connection timeout in seconds");
@@ -76,7 +77,8 @@ public static partial class Program
                 var cat = new CatImportService();
                 System.Collections.Generic.IReadOnlyList<CatProfile> profiles;
                 try { profiles = cat.ParseEapConfig(xml); }
-                catch (Exception ex) { Err($"not a valid CAT eap-config file: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
+                catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"not a valid CAT eap-config file: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
                 var profile = profiles.FirstOrDefault(p => p.IsValid);
                 if (profile is null)
@@ -122,7 +124,8 @@ public static partial class Program
                 // spec が実際にプロファイル XML になることを接続前に確認する
                 // (失敗を OsError に埋もれさせない — BuildConnect と同じ方針)。
                 try { ProfileXmlBuilder.Build(spec); }
-                catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
+                catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
                 var svc      = sp.GetRequiredService<IWifiService>();
                 var executor = sp.GetRequiredService<ConnectionExecutor>();
@@ -155,7 +158,8 @@ public static partial class Program
                     Environment.Exit(ExitCode.ConnectionFailed);
                 }
             }
-            catch (Exception ex) { Err($"import-cat failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err($"import-cat failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         });
 
         return cmd;

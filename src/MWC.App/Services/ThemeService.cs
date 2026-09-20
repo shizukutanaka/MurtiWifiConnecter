@@ -21,7 +21,6 @@ public sealed class ThemeService : IDisposable
     private const string RegPath  =
         @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
-    private readonly SettingsService       _settings;
     private readonly ILogger<ThemeService> _log;
     private          AppTheme              _current;
 
@@ -29,7 +28,6 @@ public sealed class ThemeService : IDisposable
 
     public ThemeService(SettingsService settings, ILogger<ThemeService> log)
     {
-        _settings = settings;
         _log      = log;
         _current  = settings.Current.Theme;
     }
@@ -68,7 +66,7 @@ public sealed class ThemeService : IDisposable
         }
         catch (Exception ex) when (uri != DarkUri)
         {
-            _log.LogWarning(ex, "Theme {theme} failed to load; falling back to Dark", _current);
+            _log.LogWarning(ex, "Theme {Theme} failed to load; falling back to Dark", _current);
             newDict = new ResourceDictionary { Source = new Uri(DarkUri, UriKind.Relative) };
         }
 
@@ -81,7 +79,7 @@ public sealed class ThemeService : IDisposable
         merged.Add(newDict);
 
         ThemeChanged?.Invoke(_current);
-        _log.LogDebug("Theme: {theme} dark={dark}", theme, dark);
+        _log.LogDebug("Theme: {Theme} dark={Dark}", theme, dark);
     }
 
     /// <summary>Windows テーマ変更イベント購読開始</summary>
@@ -111,6 +109,6 @@ public sealed class ThemeService : IDisposable
             using var key = Registry.CurrentUser.OpenSubKey(RegPath);
             return key?.GetValue("AppsUseLightTheme") is int v && v == 0;
         }
-        catch { return true; }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) { return true; }
     }
 }

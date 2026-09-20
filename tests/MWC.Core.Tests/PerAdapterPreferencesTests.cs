@@ -11,8 +11,6 @@ namespace MWC.Core.Tests;
 /// </summary>
 public class PerAdapterPreferencesServiceTests
 {
-    private static readonly Guid Adapter1 = Guid.Parse("aaaaaaaa-1111-1111-1111-111111111111");
-    private static readonly Guid Adapter2 = Guid.Parse("bbbbbbbb-2222-2222-2222-222222222222");
 
     [Fact]
     public void NewService_NoPreferences_ReturnsEmpty()

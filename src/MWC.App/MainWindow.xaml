@@ -599,8 +599,7 @@
                                                     </TextBlock.Style>
                                                 </TextBlock>
                                                 <TextBlock FontSize="11" Foreground="{DynamicResource FgMutedBrush}"
-                                                           Text="{Binding PhyLabel,
-                                                           StringFormat=  {0}}">
+                                                           Text="{Binding PhyLabel}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Visibility" Value="Collapsed"/>

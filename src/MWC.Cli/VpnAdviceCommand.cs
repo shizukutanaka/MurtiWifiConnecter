@@ -73,7 +73,8 @@ public static partial class Program
                         $"{Trunc(r.Network.Ssid,32),-32} {(r.Known ? "yes" : "no"),6} " +
                         $"{r.Advice.Recommendation,-20} {Trunc(r.Advice.Reason, 60)}");
             }
-            catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                    and not StackOverflowException) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
         }, adapterOpt, jsonOpt);
 
         return cmd;

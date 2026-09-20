@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -293,7 +294,7 @@ public class ConfigureAwaitCoverageTests
             {
                 var line = lines[i];
                 // awaitがあるがConfigureAwaitなし、かつTask.Delayか外部呼出
-                if (line.TrimStart().StartsWith("await ") &&
+                if (line.TrimStart().StartsWith("await ", StringComparison.Ordinal) &&
                     !line.Contains("ConfigureAwait") &&
                     !line.Contains("//") &&
                     !line.Contains("foreach"))
