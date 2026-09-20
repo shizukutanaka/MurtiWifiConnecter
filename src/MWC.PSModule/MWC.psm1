@@ -11,9 +11,11 @@ function Initialize-MwcCli {
     if ($script:MwcCli) { return }
     $candidates = @(
         (Join-Path $PSScriptRoot '..' 'mwc.exe'),
-        (Get-Command 'mwc' -ErrorAction SilentlyContinue)?.Source,
-        (Join-Path $env:ProgramFiles 'MWC' 'mwc.exe')
+        (Get-Command 'mwc' -ErrorAction SilentlyContinue)?.Source
     )
+    if ($env:ProgramFiles) {
+        $candidates += Join-Path $env:ProgramFiles 'MWC' 'mwc.exe'
+    }
     foreach ($c in $candidates) {
         if ($c -and (Test-Path $c)) { $script:MwcCli = $c; return }
     }
@@ -30,15 +32,23 @@ function Invoke-Mwc {
     )
     Initialize-MwcCli
     if ($Json) { $CmdArgs += '--json' }
-    $out = & $script:MwcCli @CmdArgs 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "mwc エラー: $out" }
+    # CLI は進行表示を stderr に出す。2>&1 でマージすると JSON 解析が壊れるため別途捕捉する。
+    $errFile = [IO.Path]::GetTempFileName()
+    try {
+        $out = & $script:MwcCli @CmdArgs 2> $errFile
+        if ($LASTEXITCODE -ne 0) {
+            $err = (Get-Content $errFile -Raw -ErrorAction SilentlyContinue).Trim()
+            throw "mwc エラー (exit $LASTEXITCODE): $err"
+        }
+    }
+    finally { Remove-Item $errFile -ErrorAction SilentlyContinue }
     if ($Json) { return $out | ConvertFrom-Json }
     return $out
 }
 
 # 位置引数の adapter は省略不可 — 未指定時は先頭アダプターを解決する。
 function Resolve-MwcAdapter {
-    param([Guid] $AdapterId)
+    param([Guid] $AdapterId = [Guid]::Empty)
     if ($AdapterId -ne [Guid]::Empty) { return $AdapterId.ToString() }
     $ads = @(Invoke-Mwc 'adapter' 'list' -Json)
     if ($ads.Count -eq 0) { throw "Wi-Fi アダプターが見つかりません。" }
@@ -77,7 +87,7 @@ function Get-WifiAdapterPreference {
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
     param(
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     $ads = @(Invoke-Mwc 'adapter' 'list' -Json)
     if ($AdapterId -ne [Guid]::Empty) {
@@ -100,7 +110,7 @@ function Set-WifiAdapterLabel {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $Label,
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     if ($PSCmdlet.ShouldProcess($Label, 'ラベル設定')) {
         Invoke-Mwc 'adapter' 'rename' (Resolve-MwcAdapter $AdapterId) $Label | Out-Null
@@ -124,7 +134,7 @@ function Set-WifiAdapterBand {
         [Parameter(Mandatory)]
         [ValidateSet('Any', '2.4GHz', '5GHz', '6GHz')]
         [string] $Band,
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     # CLI は 'any | 2.4 | 5 | 6' を受け付ける
     $cliBand = @{ Any = 'any'; '2.4GHz' = '2.4'; '5GHz' = '5'; '6GHz' = '6' }[$Band]
@@ -154,15 +164,15 @@ function Get-WifiNetwork {
     param(
         [ValidateSet('Any', '2.4GHz', '5GHz', '6GHz')]
         [string] $Band = 'Any',
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     $cmd = @('scan')
     if ($AdapterId -ne [Guid]::Empty) { $cmd += '--adapter', $AdapterId.ToString() }
     $nets = @(Invoke-Mwc @cmd -Json)
     if ($Band -eq 'Any') { return $nets }
     # scan には --band オプションがないためクライアント側でフィルター
-    $prefix = @{ '2.4GHz' = '2.4'; '5GHz' = '5'; '6GHz' = '6' }[$Band]
-    return $nets | Where-Object { "$($_.Band)".StartsWith($prefix) }
+    # (JSON の Band は WifiBand enum 名: Band24GHz / Band5GHz / Band6GHz)
+    return $nets | Where-Object { "$($_.Band)".Contains($Band) }
 }
 
 <#
@@ -180,7 +190,7 @@ function Connect-WifiNetwork {
         [ValidateSet('WPA3SAE', 'WPA2PSK', 'WPA2Enterprise', 'Open')]
         [string] $Auth,
         [string] $Username,
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     if ($PSCmdlet.ShouldProcess($Ssid, '接続')) {
         # connect は ssid が位置引数。成功時は JSON ({ssid,internet,captive}) を出力する
@@ -210,7 +220,7 @@ New-Alias -Name cwifi -Value Connect-WifiNetwork -Force
 #>
 function Disconnect-WifiNetwork {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Guid] $AdapterId)
+    param([Guid] $AdapterId = [Guid]::Empty)
     if ($PSCmdlet.ShouldProcess('Wi-Fi', '切断')) {
         $cmd = @('disconnect')
         if ($AdapterId -ne [Guid]::Empty) { $cmd += '--adapter', $AdapterId.ToString() }
@@ -268,7 +278,7 @@ function Export-WifiScan {
     param(
         [Parameter(Mandatory)] [string] $Path,
         [ValidateSet('Csv', 'Json')] [string] $Format = 'Csv',
-        [Guid] $AdapterId
+        [Guid] $AdapterId = [Guid]::Empty
     )
     if ($PSCmdlet.ShouldProcess($Path, 'エクスポート')) {
         $cmd = @('export', '--output', $Path, '--format', $Format.ToLower())
@@ -320,7 +330,7 @@ function New-WifiQrCode {
 #>
 function Add-WifiPin {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $Ssid, [Guid] $AdapterId)
+    param([Parameter(Mandatory)] [string] $Ssid, [Guid] $AdapterId = [Guid]::Empty)
     if ($PSCmdlet.ShouldProcess($Ssid, 'ピン留め')) {
         Invoke-Mwc 'adapter' 'pin' (Resolve-MwcAdapter $AdapterId) $Ssid | Out-Null
         Write-Host "ピン留め: $Ssid" -ForegroundColor Green
@@ -335,7 +345,7 @@ function Add-WifiPin {
 #>
 function Remove-WifiPin {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $Ssid, [Guid] $AdapterId)
+    param([Parameter(Mandatory)] [string] $Ssid, [Guid] $AdapterId = [Guid]::Empty)
     if ($PSCmdlet.ShouldProcess($Ssid, 'ピン解除')) {
         Invoke-Mwc 'adapter' 'unpin' (Resolve-MwcAdapter $AdapterId) $Ssid | Out-Null
         Write-Host "ピン解除: $Ssid" -ForegroundColor Yellow

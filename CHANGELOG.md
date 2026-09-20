@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `New-WifiQrCode` は PNG 生成ではなく WIFI: URI を返す仕様に修正(CLI 実態)。
 - `Invoke-Mwc` の引数シグネチャを `ValueFromRemainingArguments` 化し
   空の配列引数が消える問題も解消。
+- pwsh 実検証で発見した追加バグを修正: `[Guid]` パラメータの未指定値は
+  `Empty` ではなく `$null`(全関数で `-ne [Guid]::Empty` が常に真になっていた)、
+  `2>&1` が CLI の stderr 進行表示を JSON に混入させ ConvertFrom-Json を
+  破壊(stderr は一時ファイルへ分離)、非 Windows で `$env:ProgramFiles` が
+  null となり Test-Path が例外。バンドフィルターは JSON の enum 名
+  (Band5GHz 等)に合わせて修正。pwsh 7.5.2 + nmcli スタブで
+  Get-WifiAdapter/Get-WifiAdapterPreference/Get-WifiNetwork(フィルター含む)/
+  Get-WifiHistory/New-WifiQrCode/Set-WifiAdapterLabel/Export-WifiScan/
+  Get-WifiQuality の実動作を確認済み。
 
 ### Added / Changed (2026-09-19 第八ラウンド — CLI の Linux 対応 + Core 移動)
 
