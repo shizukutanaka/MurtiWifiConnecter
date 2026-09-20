@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -47,6 +48,7 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
+            var macById = EnumeratePhysicalAddresses();
             var list = NativeWifi.EnumerateInterfaces()
                 .Select(i => new WifiAdapter
                 {
@@ -57,7 +59,8 @@ public sealed class WindowsWifiService : IWifiService
                     // ConnectedSsid must be set here; AdapterFailoverService reads it
                     // to detect link-loss transitions. Without this, currentSsid is
                     // always null and the failover trigger never fires.
-                    ConnectedSsid = GetConnectedSsid(i.Id)
+                    ConnectedSsid = GetConnectedSsid(i.Id),
+                    PhysicalAddress = macById.TryGetValue(i.Id, out var mac) ? mac : null
                 })
                 .ToList();
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(list);
@@ -68,6 +71,24 @@ public sealed class WindowsWifiService : IWifiService
             _log.LogError(ex, "EnumerateInterfaces failed");
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(Array.Empty<WifiAdapter>());
         }
+    }
+
+    // ManagedNativeWifi の InterfaceInfo.Id は WLAN インターフェース GUID
+    // (wlan_intf_guid)。BCL の NetworkInterface.Id は Windows 上で同じ
+    // インターフェース GUID を "{...}" 形式で返すため、GUID 照合で結合できる。
+    // WMI / netsh は CLAUDE.md で禁止のため BCL 経由で MAC を取得する。
+    private static Dictionary<Guid, string> EnumeratePhysicalAddresses()
+    {
+        var map = new Dictionary<Guid, string>();
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.NetworkInterfaceType != NetworkInterfaceType.Wireless80211) continue;
+            var bytes = ni.GetPhysicalAddress().GetAddressBytes();
+            if (bytes.Length != 6) continue;
+            if (Guid.TryParse(ni.Id.Trim('{', '}'), out var id))
+                map[id] = string.Join(':', bytes.Select(b => b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+        return map;
     }
 
     // ── Scan ─────────────────────────────────────────────────────────

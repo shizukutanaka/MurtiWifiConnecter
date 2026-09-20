@@ -187,7 +187,7 @@ public sealed record WifiAdapter
     ///
     /// <see cref="MWC.Core.Services.MacAddressModeInference"/> の判定入力として使う。null のままなら
     /// `mwc privacy` は従来どおり `--mac`/`--mac-mode` をユーザーに求める
-    /// (docs/COMPLETION-CHECKLIST.md §4 参照 — Windows での実供給はまだ書かれていない)。
+    /// (docs/COMPLETION-CHECKLIST.md §4 — Windows では `NetworkInterface` との GUID 照合で供給済み)。
     /// </summary>
     public string? PhysicalAddress { get; init; }
 }

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`mwc privacy` の MAC 自動取得を完結**(COMPLETION-CHECKLIST §4 解決):
+  `WindowsWifiService.GetAdaptersAsync` が `NetworkInterface`(BCL)を走査し、
+  WLAN インターフェース GUID で `InterfaceInfo.Id` と照合して
+  `WifiAdapter.PhysicalAddress` を実供給。netsh/WMI は不使用(CLAUDE.md 遵守)。
+  CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
+  これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
+
 ### Fixed (2026-09-19 第二ラウンド — 実 `dotnet test` 初実走)
 
 - **`MWC.Core.Tests.Standalone` を新設**(net9.0・WPF 非依存): 本体テストは

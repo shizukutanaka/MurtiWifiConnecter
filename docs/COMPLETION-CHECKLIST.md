@@ -12,7 +12,7 @@
 
 ## 全体像
 
-残る作業は **4 件**。うち 2 件は権限操作(数分)、2 件は Windows 実機での実装。
+残る作業は **3 件**。うち 2 件は権限操作(数分)、1 件は Windows 実機での実装(MLO リンク詳細の RSSI のみ)。
 ~~項目 5~~ は 2026-09-19 に **解決済み**(下記 §5) — 全 Windows プロジェクトが本物の ManagedNativeWifi に対してコンパイル成功。
 
 | # | 項目 | 種別 | 所要 | 依存 |
@@ -20,7 +20,7 @@
 | 1 | CI を稼働させる | 権限 | 数分 | なし。**最優先(権限側)** |
 | 2 | GitHub Release を作る | 権限 | 数分 | 1 が済んでいると望ましい |
 | 3 | MLO のリンク詳細(RSSI のみ実機。band/channel は RNR に既出) | 実装 | 半日〜 | Windows 実機は RSSI 部分のみ |
-| 4 | 現在の MAC を自動取得して `--mac` の既定にする | 実装 | 数時間 | Windows 実機(判定ロジックは Core 化済み) |
+| 4 | ~~現在の MAC を自動取得して `--mac` の既定にする~~ **✅ 解決済み(2026-09-19)** | — | — | `NetworkInterface` BCL で GUID 照合して供給(netsh/WMI 不使用) |
 | 5 | ~~`ConnectionWaiter` の接続完了検知が実 API と不一致~~ **✅ 解決済み(2026-09-19、§5)** | — | — | 実 API で書換+コンパイル済み。残は実機での動作確認のみ |
 
 **1 が最優先**である理由: このリポジトリのコードは **GitHub Actions で一度も検証されたことがない**。
@@ -335,8 +335,10 @@ mwc privacy --mac AA:BB:CC:DD:EE:FF    # アドレスから判定して勧告を
 `PrivacyCliContractTests` でテスト済み(Core だけで検証可能なため実行もされている —
 `tools/run-tests.sh`)。
 
-**残るのは 1 箇所だけ**: `WindowsWifiService.GetAdaptersAsync` が
-`WifiAdapter.PhysicalAddress` を実際に埋めること。
+**✅ 2026-09-19 実装済み**: `WindowsWifiService.GetAdaptersAsync` が
+`System.Net.NetworkInformation.NetworkInterface` を走査し、WLAN インターフェース
+GUID(`InterfaceInfo.Id` = `NetworkInterface.Id`)で照合して `PhysicalAddress` を供給する。
+netsh/WMI は不使用(CLAUDE.md 遵守)。残るのは実機での動作確認のみ。
 
 - **必要なのは Windows 固有 API ではない見込み。**
   `System.Net.NetworkInformation.NetworkInterface.GetPhysicalAddress()` は BCL であり、

@@ -62,9 +62,8 @@ public static partial class Program
                 // 供給する実アドレス (ad.PhysicalAddress) にフォールバックする。どちらも
                 // 「実測」であって自己申告 (--mac-mode) より確からしいため、これが得られた
                 // 場合は --mac-mode より優先する。
-                // (2026-08 時点: PhysicalAddress を実際に埋めるのは Windows 側の配線が
-                // 必要でまだ未実装 — docs/COMPLETION-CHECKLIST.md §4。ここでは
-                // 供給されればそれを使うだけで、供給元の有無には依存しない。)
+                // (2026-09-19: WindowsWifiService が NetworkInterface 経由で
+                // PhysicalAddress を実際に供給するようになった — §4 解決。)
                 bool macWasAutoSupplied = macStr is null && ad.PhysicalAddress is not null;
                 var effectiveMac = macStr ?? ad.PhysicalAddress;
 
