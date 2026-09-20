@@ -36,7 +36,7 @@ public sealed class RssiDistanceEstimator
         double pathLossExponent = IndoorLineOfSight,
         double txPowerDbm = DefaultTxPowerDbm)
     {
-        if (pathLossExponent <= 0) throw new ArgumentOutOfRangeException(nameof(pathLossExponent));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pathLossExponent);
         _pathLossExponent = pathLossExponent;
         _txPowerDbm = txPowerDbm;
     }

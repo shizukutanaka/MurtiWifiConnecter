@@ -8,7 +8,7 @@
   ├─ Views (XAML)            ├─ AdapterCommand
   ├─ Services                └─ MultiAdapterCmd
   ├─ Controls / Converters
-  ├─ Resources (L.cs + 12 resx)
+  ├─ Resources (L.cs + 15 resx: 中立ベース + 14言語)
   └─ Themes (Dark/Light)
   ─────────────────────────────────────────────
   MWC.Platform.Windows                             プラットフォーム層
@@ -40,11 +40,11 @@ App層から _wifi.ConnectAsync/DisconnectAsync/RegisterProfileAsync の直接�
 4. _history.RecordConnection() で履歴記録
 5. 構造化ログ出力
 
-## DI (29サービス)
+## DI (31サービス)
 
 App.xaml.cs で全サービスをコンストラクタ注入で解決。重複登録ゼロ。
 
-## i18n (171キー x 12言語 = 2,052エントリ)
+## i18n (517キー x 14言語 + 中立ベース = 7,755エントリ)
 
 L.cs が型安全アクセサ。L.Get("key") / L.Format("key", args) / L.ActionRefresh 等。
 App層コードのハードコード日本語: 0箇所。

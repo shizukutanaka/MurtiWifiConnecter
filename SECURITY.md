@@ -48,14 +48,38 @@
 - User-Agent 最小化、Cookie/Proxy 不使用
 
 ### 依存パッケージ
-- Dependabot で週次自動更新
-- リリース毎に CycloneDX SBOM 生成
-- `dotnet list package --vulnerable` を CI で実行
+- Dependabot で週次更新(`.github/dependabot.yml`。NuGet と GitHub Actions の両方を対象)
+- 以下は `docs/ci/` に実装済みだが **`.github/workflows/` が空のため未稼働**:
+  - `dotnet list package --vulnerable` の CI 実行(`ci.yml`)
+  - リリース毎の CycloneDX SBOM 生成(`release.yml`)
 
 ### 配布物保護
-- MSI / zip は **Sigstore keyless signing**(cosign)で署名
-- **SLSA build provenance** 添付(GitHub OIDC ベース)
-- ハッシュは GitHub Releases に記載
+
+> ⚠️ **現時点で署名済みの配布物は存在しない。** リリースが 1 度も作られておらず、
+> リリースワークフローも未設置のため、下記はすべて **設置後に有効になる設計** であり、
+> 現在の事実ではない。**「MWC の配布物」を名乗るファイルを受け取った場合、
+> それは本プロジェクトが公開したものではない。**
+
+`docs/ci/release.yml` を `.github/workflows/` に設置し、タグを push すると:
+
+- zip は **Sigstore keyless signing**(cosign)で署名される
+- **SLSA build provenance** が添付される(GitHub OIDC ベース、`actions/attest-build-provenance`)
+- SHA256 ハッシュが `SHA256SUMS.txt` として Release に添付される
+- CycloneDX SBOM が添付される
+
+検証方法(リリース公開後):
+
+```bash
+cosign verify-blob \
+  --certificate <file>.pem \
+  --signature   <file>.sig \
+  --certificate-identity-regexp 'https://github.com/shizukutanaka/MurtiWifiConnecter/' \
+  --certificate-oidc-issuer     'https://token.actions.githubusercontent.com' \
+  <file>
+```
+
+MSI は `installer/wix/Product.wxs` が存在するが、ファイル harvest が未整備のため
+パイプラインではまだビルドしていない(zip のみ)。
 
 ## 既知の制限
 

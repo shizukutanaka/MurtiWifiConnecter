@@ -6,9 +6,9 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $commands = @(
-        'list', 'scan', 'connect', 'disconnect',
+        'list', 'scan', 'connect', 'disconnect', 'import-cat', 'passpoint', 'privacy',
         'profile', 'qr', 'qr-parse', 'export',
-        'quality', 'history', 'plan-channels',
+        'quality', 'history', 'eap-stats', 'plan-channels', 'vpn-advice',
         'multi', 'adapter', 'help'
     )
 
@@ -50,10 +50,15 @@ Register-ArgumentCompleter -Native -CommandName mwc -ScriptBlock {
 
     # サブコマンド・オプション補完
     $suggestions = switch ($command) {
-        'list'          { @('--json', '--status', '--adapter') }
+        'list'          { @('--json', '--status') }
         'scan'          { @('--adapter', '--json', '--advise', '--recommend', '--evil-twin', '--interference', '--mesh') }
-        'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden') }
+        'connect'       { @('--adapter', '--password', '-p', '--auth', '--timeout', '--hidden', '--eap-type', '--username', '--domain', '--server-name', '--trusted-root-ca') }
+        'passpoint'     { @('--adapter', '--json', '--carriers') }
+        'privacy'       { @('--mac', '--mac-mode', '--adapter', '--ssid', '--json') }
+        'import-cat'    { @('--username', '--password', '-p', '--adapter', '--timeout', '--dry-run', '--json') }
         'disconnect'    { @('--adapter') }
+        'eap-stats'     { @('--json', '--clear') }
+        'vpn-advice'    { @('--adapter', '--json') }
         'profile'       {
             if ($depth -eq 2) { @('list', 'delete') }
             else              { @('--adapter') }

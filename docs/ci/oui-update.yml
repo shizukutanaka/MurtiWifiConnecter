@@ -1,0 +1,65 @@
+name: OUI database update
+
+# IEEE OUI ベンダー DB を月 1 回更新し、差分があれば PR を出す。
+#
+# なぜ要るか:
+#   tools/oui-update.ps1 は「GitHub Actions の schedule で月1回自動実行可能」と
+#   自称していたが、スケジュールは一度も設定されていなかった。README も
+#   「月次自動更新」と書いていた。スクリプトが在るだけでは自動更新ではない。
+#   このワークフローがその主張を初めて真にする。
+#
+# 設置方法: このファイルを .github/workflows/ にコピーする (docs/COMPLETION-CHECKLIST.md §1)。
+#
+# 第三者 Action を使わない理由:
+#   PR 作成は組込の GITHUB_TOKEN + gh CLI で数行で書ける。既存の ci.yml も
+#   actions/checkout・setup-dotnet・upload-artifact の第一者のみで構成されており、
+#   月次で自動実行されるワークフローに外部 Action を持ち込むと、
+#   そのぶんサプライチェーンの攻撃面が増える (CLAUDE.md の依存方針も同旨)。
+
+on:
+  schedule:
+    # 毎月 1 日 03:00 UTC。IEEE の公開リストは頻繁には変わらないため月次で足りる。
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Refresh OuiLookupService database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run the update script
+        shell: pwsh
+        run: ./tools/oui-update.ps1
+
+      - name: Open a pull request when the database changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src/MWC.Core/Services/OuiLookupService.cs; then
+            echo "OUI database unchanged; nothing to do."
+            exit 0
+          fi
+
+          branch="chore/oui-update-$(date -u +%Y%m)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add src/MWC.Core/Services/OuiLookupService.cs
+          git commit -m "chore: refresh IEEE OUI vendor database"
+          git push -u origin "$branch"
+
+          # 同月の PR が既にある場合は作り直さない (再実行しても増殖させない)
+          if [ -z "$(gh pr list --head "$branch" --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --title "chore: refresh IEEE OUI vendor database" \
+              --body  "Automated monthly refresh from https://standards-oui.ieee.org/oui/oui.txt via \`tools/oui-update.ps1\`. Review the diff before merging." \
+              --head  "$branch"
+          fi

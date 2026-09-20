@@ -66,16 +66,34 @@ public sealed partial class AllAdaptersOverviewViewModel : ObservableObject
     [RelayCommand]
     public async Task ConnectAllPreferredAsync()
     {
-        // 各子機を優先順位最上位ネットワークに接続
-        await Task.WhenAll(Panels.Select(p => p.ConnectPreferredAsync()));
+        // 各子機を優先順位最上位ネットワークに接続。
+        // 1 台の失敗が他を巻き込まないよう個別に隔離する — 本製品の中核価値
+        // 「各アダプターを独立管理」は一括操作でも成立していなければならない。
+        // 隔離しないと Task.WhenAll が最初の例外で中断し、UpdateSummary() に到達せず
+        // 成功した子機の結果まで UI に反映されなくなる
+        // (MainViewModel.SafeRefreshOne と同じ確立パターン。2026-07 品質パス)。
+        await Task.WhenAll(Panels.Select(SafePanelOp));
         UpdateSummary();
+
+        async Task SafePanelOp(AdapterPanelViewModel p)
+        {
+            try { await p.ConnectPreferredAsync(); }
+            catch (Exception ex) { _log.LogWarning(ex, "ConnectAllPreferred: {n}", p.Name); }
+        }
     }
 
     [RelayCommand]
     public async Task DisconnectAllAsync()
     {
-        await Task.WhenAll(Panels.Select(p => p.DisconnectAsync()));
+        // ConnectAllPreferredAsync と同じ隔離方針(上記コメント参照)。
+        await Task.WhenAll(Panels.Select(SafePanelOp));
         UpdateSummary();
+
+        async Task SafePanelOp(AdapterPanelViewModel p)
+        {
+            try { await p.DisconnectAsync(); }
+            catch (Exception ex) { _log.LogWarning(ex, "DisconnectAll: {n}", p.Name); }
+        }
     }
 
     public void UpdateSummary()

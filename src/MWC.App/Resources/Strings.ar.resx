@@ -11,38 +11,20 @@
   <data name="Action_Disconnect"><value>قطع الاتصال</value></data>
   <data name="Action_Cancel"><value>إلغاء</value></data>
   <data name="Label_Passphrase"><value>كلمة المرور</value></data>
-  <data name="Label_Show"><value>إظهار</value></data>
   <data name="Label_Connected"><value>متصل: {0}</value></data>
   <data name="Label_NotConnected"><value>غير متصل</value></data>
-  <data name="Label_AvailableNetworks"><value>الشبكات المتاحة</value></data>
   <data name="Status_AdapterCount"><value>{0} محول</value></data>
   <data name="Status_Scanning"><value>يجري المسح…</value></data>
-  <data name="Error_PassphraseTooShort"><value>يجب أن تكون كلمة المرور 8 أحرف على الأقل</value></data>
   <data name="Error_ConnectionFailed"><value>فشل الاتصال: {0}</value></data>
-  <data name="Auth_Open"><value>مفتوح</value></data>
-  <data name="Auth_OWE"><value>مفتوح محسّن (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (قديم)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 شخصي</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 شخصي</value></data>
-  <data name="Auth_Enterprise"><value>مؤسسي</value></data>
   <data name="Failure_BadCredentials"><value>كلمة المرور خاطئة</value></data>
   <data name="Failure_Timeout"><value>انتهت المهلة</value></data>
   <data name="Failure_NotInRange"><value>الشبكة خارج النطاق</value></data>
   <data name="Failure_AdapterDisabled"><value>المحول اللاسلكي معطل</value></data>
   <data name="Failure_InsufficientPrivilege"><value>مطلوب صلاحيات المسؤول</value></data>
-  <data name="Captive_Detected"><value>يلزم تسجيل الدخول</value></data>
   <data name="Tab_Detail"><value>التفاصيل</value></data>
   <data name="Tab_Signal"><value>الإشارة</value></data>
   <data name="Tab_Channel"><value>القناة</value></data>
-  <data name="Label_Band"><value>النطاق</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>القناة</value></data>
-  <data name="Label_Freq"><value>التردد</value></data>
-  <data name="Label_Speed"><value>السرعة القصوى</value></data>
-  <data name="Label_Signal"><value>الإشارة</value></data>
-  <data name="Label_Status"><value>الحالة</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>الشركة المصنعة</value></data>
   <data name="Action_Export_Csv"><value>تصدير CSV</value></data>
   <data name="Action_Export_Json"><value>تصدير JSON</value></data>
   <data name="Action_Export_Txt"><value>تصدير نص</value></data>
@@ -129,6 +111,8 @@
   <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
   <data name="Shortcut_Settings_T"><value>Settings</value></data>
   <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>كل المحوّلات</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>فتح نظرة عامة على كل المحوّلات</value></data>
   <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
   <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
   <data name="Shortcut_Hide_T"><value>Hide window</value></data>
@@ -634,6 +618,7 @@
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>يدعم Wi-Fi 7 (MLO) — تفاصيل كل رابط غير متاحة</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
   <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
@@ -678,4 +663,10 @@
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>طريقة EAP</value></data>
+  <data name="Label_EapUsername"><value>اسم المستخدم</value></data>
+  <data name="Label_EapIdentity"><value>هوية مجهولة (اختياري)</value></data>
+  <data name="Label_EapServerName"><value>اسم خادم RADIUS (اختياري)</value></data>
+  <data name="EapHint_Identity"><value>تُرسل بنص واضح قبل النفق. استخدم anonymous@realm لإخفاء اسم المستخدم.</value></data>
+  <data name="Error_EapUsernameRequired"><value>يتطلب PEAP و EAP-TTLS اسم مستخدم وكلمة مرور.</value></data>
 </root>

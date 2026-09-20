@@ -16,7 +16,7 @@ namespace MWC.Core.Services;
 /// 候補集合 (実運用のベストプラクティスに沿う):
 ///   - 2.4GHz : 非重複の 1 / 6 / 11 のみ
 ///   - 5GHz   : 既定で非 DFS (UNII-1/UNII-3)。DFS はレーダー検出で突然停止しうるため除外。
-///              <paramref name="includeDfs"/>=true で DFS も候補に含める。
+///              <c>includeDfs=true</c> で DFS も候補に含める。
 ///   - 6GHz   : PSC (Preferred Scanning Channel) — 6E/7 クライアントが優先聴取する 15 ch。
 ///
 /// スコアリング (決定論的):

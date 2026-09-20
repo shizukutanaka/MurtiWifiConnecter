@@ -6,38 +6,20 @@
   <data name="Action_Disconnect"><value>डिस्कनेक्ट करें</value></data>
   <data name="Action_Cancel"><value>रद्द करें</value></data>
   <data name="Label_Passphrase"><value>पासफ़्रेज़</value></data>
-  <data name="Label_Show"><value>दिखाएं</value></data>
   <data name="Label_Connected"><value>कनेक्टेड: {0}</value></data>
   <data name="Label_NotConnected"><value>कनेक्ट नहीं है</value></data>
-  <data name="Label_AvailableNetworks"><value>उपलब्ध नेटवर्क</value></data>
   <data name="Status_AdapterCount"><value>{0} एडाप्टर</value></data>
   <data name="Status_Scanning"><value>स्कैन हो रहा है...</value></data>
-  <data name="Error_PassphraseTooShort"><value>पासफ़्रेज़ कम से कम 8 अक्षर का होना चाहिए</value></data>
   <data name="Error_ConnectionFailed"><value>कनेक्शन विफल: {0}</value></data>
-  <data name="Auth_Open"><value>खुला</value></data>
-  <data name="Auth_OWE"><value>एन्हांस्ड ओपन (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (अप्रचलित)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 पर्सनल</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 पर्सनल</value></data>
-  <data name="Auth_Enterprise"><value>एंटरप्राइज़</value></data>
   <data name="Failure_BadCredentials"><value>गलत पासफ़्रेज़</value></data>
   <data name="Failure_Timeout"><value>कनेक्शन का समय समाप्त</value></data>
   <data name="Failure_NotInRange"><value>नेटवर्क सीमा से बाहर</value></data>
   <data name="Failure_AdapterDisabled"><value>वायरलेस एडाप्टर अक्षम है</value></data>
   <data name="Failure_InsufficientPrivilege"><value>प्रशासक अधिकार आवश्यक</value></data>
-  <data name="Captive_Detected"><value>साइन-इन आवश्यक</value></data>
   <data name="Tab_Detail"><value>विवरण</value></data>
   <data name="Tab_Signal"><value>सिग्नल</value></data>
   <data name="Tab_Channel"><value>चैनल</value></data>
-  <data name="Label_Band"><value>बैंड</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>चैनल</value></data>
-  <data name="Label_Freq"><value>आवृत्ति</value></data>
-  <data name="Label_Speed"><value>अधिकतम गति</value></data>
-  <data name="Label_Signal"><value>सिग्नल</value></data>
-  <data name="Label_Status"><value>स्थिति</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>विक्रेता</value></data>
   <data name="Action_Export_Csv"><value>CSV निर्यात करें</value></data>
   <data name="Action_Export_Json"><value>JSON निर्यात करें</value></data>
   <data name="Action_Export_Txt"><value>टेक्स्ट निर्यात करें</value></data>
@@ -124,6 +106,8 @@
   <data name="Shortcut_Quality_D"><value>नेटवर्क गुणवत्ता मापें</value></data>
   <data name="Shortcut_Settings_T"><value>सेटिंग्स</value></data>
   <data name="Shortcut_Settings_D"><value>ऐप सेटिंग्स खोलें</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>सभी अडैप्टर</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>सभी अडैप्टर का अवलोकन खोलें</value></data>
   <data name="Shortcut_ToggleMode_T"><value>मोड टॉगल करें</value></data>
   <data name="Shortcut_ToggleMode_D"><value>सिंपल/एक्सपर्ट दृश्य बदलें</value></data>
   <data name="Shortcut_Hide_T"><value>विंडो छुपाएं</value></data>
@@ -629,6 +613,7 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} नमूने)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps प्रभावी, 2-स्ट्रीम अनुमान)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} लिंक  ({1})  {2} Mbps एकत्रित  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) समर्थित — प्रति-लिंक विवरण अनुपलब्ध</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>एकल लिंक</value></data>
   <data name="Mlo_Reliability_DualLink"><value>दोहरा लिंक</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>तिहरा लिंक</value></data>
@@ -673,4 +658,10 @@ WPA3, Enterprise, QR कोड और CLI सपोर्ट।</value></data>
   <data name="Failure_OsError"><value>सिस्टम त्रुटि</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>पिन किए गए नेटवर्क की सूची</value></data>
+  <data name="Label_EapType"><value>EAP विधि</value></data>
+  <data name="Label_EapUsername"><value>उपयोगकर्ता नाम</value></data>
+  <data name="Label_EapIdentity"><value>गुमनाम पहचान (वैकल्पिक)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS सर्वर नाम (वैकल्पिक)</value></data>
+  <data name="EapHint_Identity"><value>टनल से पहले सादे रूप में भेजा जाता है। उपयोगकर्ता नाम छिपाने हेतु anonymous@realm दें।</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP और EAP-TTLS के लिए उपयोगकर्ता नाम और पासवर्ड आवश्यक है।</value></data>
 </root>

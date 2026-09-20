@@ -131,6 +131,25 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
+    public void Analyze_MloAdvertisedButNoLinkDetail_StillReportsMlo()
+    {
+        // ビーコンから MLO を検出できた AP (BeaconIeApplier が IsMlo を立てる) だが、
+        // リンク詳細を供給するプラットフォーム層がまだ無い状態。
+        // 「MLO ではない」と答えるのは**事実に反する** — AP は MLO を広告している。
+        var net = new WifiNetwork
+        {
+            Ssid = "Wi-Fi7-AP", Band = WifiBand.Band6GHz, SignalQuality = 75, IsMlo = true
+        };
+
+        var analysis = _svc.Analyze(net);
+
+        analysis.IsMlo.Should().BeTrue("the AP advertises Multi-Link in its beacon");
+        analysis.LinkCount.Should().Be(0, "no per-link data was supplied");
+        analysis.AggregatedMbps.Should().Be(0, "throughput must not be invented from nothing");
+        analysis.Bands.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Analyze_DualBandMlo_DetectsCrossBand()
     {
         var net = MloNet(

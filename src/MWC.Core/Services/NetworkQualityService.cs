@@ -49,7 +49,12 @@ public sealed class NetworkQualityService
                     lost++;
             }
             catch (OperationCanceledException) { throw; }
-            catch { lost++; }
+            // 送信失敗・到達不可・非対応環境は「パケットロス」として数える
+            catch (Exception e) when (e is PingException
+                                      or System.Net.Sockets.SocketException
+                                      or InvalidOperationException
+                                      or ObjectDisposedException
+                                      or NotSupportedException) { lost++; }
             if (i < samples - 1) await Task.Delay(200, ct).ConfigureAwait(false);
         }
 
@@ -118,7 +123,12 @@ public sealed class NetworkQualityService
         finally
         {
             loadCts.Cancel();
-            try { await loadTask.ConfigureAwait(false); } catch { /* 負荷タスクのキャンセル/失敗は無視 */ }
+            // 負荷生成タスクは呼び出し側が供給するため失敗種別を限定できない。
+            // キャンセルによる終了と負荷側の失敗はどちらも計測結果に影響しないので
+            // 致命的な例外以外はここで止める。
+            try { await loadTask.ConfigureAwait(false); }
+            catch (Exception e) when (e is not OutOfMemoryException
+                                      and not StackOverflowException) { }
         }
 
         return new ResponsivenessResult(

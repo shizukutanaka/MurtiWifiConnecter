@@ -14,18 +14,107 @@ public partial class ConnectDialog : Window
 {
     public string? Passphrase { get; private set; }
     private readonly AuthMethod _auth;
+    private readonly string _ssid;
+
+    /// <summary>この認証方式が 802.1X Enterprise か。</summary>
+    private bool IsEnterprise => _auth is AuthMethod.WPA2Enterprise
+        or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192;
 
     public ConnectDialog(string ssid, AuthMethod auth)
     {
         InitializeComponent();
         _auth = auth;
+        _ssid = ssid;
         SsidLabel.Text = ssid;
         var badge = SecurityBadgeService.GetBadge(auth);
         AuthLabel.Text = L.SecurityLevelLabel(badge.Level) + $"  ({badge.TechLabel})";
 
         bool needsPassword = auth is not (AuthMethod.Open or AuthMethod.OWE);
         PasswordPanel.Visibility = needsPassword ? Visibility.Visible : Visibility.Collapsed;
-        if (needsPassword) PasswordBox.Focus();
+
+        if (IsEnterprise)
+        {
+            // CLI (`mwc connect --eap-type`) と同じ 3 方式のみ提供する。
+            // EAP-AKA は SIM ハードウェアを要し ProfileXmlBuilder が明示的に拒否するため出さない。
+            EapTypeCombo.ItemsSource = new[]
+            {
+                EapType.PEAP_MSCHAPv2, EapType.EAP_TLS, EapType.EAP_TTLS
+            };
+            EapTypeCombo.SelectedIndex = 0;
+            EnterprisePanel.Visibility = Visibility.Visible;
+            UsernameBox.Focus();
+        }
+        else if (needsPassword)
+        {
+            PasswordBox.Focus();
+        }
+    }
+
+    /// <summary>
+    /// 選択中の EAP 種別。Enterprise 以外では null。
+    /// </summary>
+    private EapType? SelectedEapType =>
+        IsEnterprise && EapTypeCombo.SelectedItem is EapType t ? t : null;
+
+    // EAP-TLS はクライアント証明書で認証するためユーザー名/パスワードを取らない。
+    // 該当欄を隠すことで「入れなければならない」という誤解を防ぐ
+    // (ProfileXmlBuilder の検証も EAP-TLS では資格情報を要求しない)。
+    private void OnEapTypeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsEnterprise) return;
+        bool needsCredentials = SelectedEapType is not EapType.EAP_TLS;
+
+        var vis = needsCredentials ? Visibility.Visible : Visibility.Collapsed;
+        UsernameLabel.Visibility = vis;
+        UsernameBox.Visibility   = vis;
+        PasswordPanel.Visibility = vis;
+    }
+
+    /// <summary>
+    /// 接続用の <see cref="WifiProfileSpec"/>。<see cref="OnConnect"/> が「接続」確定時に
+    /// 組み立てて保持する。呼び出し側は <c>ShowDialog() == true</c> の後に読む。
+    ///
+    /// 入力コントロールをここで直接読まないのは意図的:
+    /// 呼び出し側が参照するのはダイアログを閉じた後であり、閉じたウィンドウの
+    /// コントロールに依存するのは脆い。<see cref="Passphrase"/> が確立している
+    /// 「確定時に値を捕捉してプロパティに保持する」パターンに合わせる。
+    /// </summary>
+    public WifiProfileSpec? Spec { get; private set; }
+
+    /// <summary>
+    /// 現在の入力内容から spec を組み立てる。
+    /// Enterprise ではパスワード欄を EAP パスワードとして扱う
+    /// (CLI の `-p` が PSK/EAP 兼用なのと同じ設計)。
+    /// </summary>
+    private WifiProfileSpec CaptureSpec()
+    {
+        var password = ShowPwCheck.IsChecked == true
+            ? PasswordVisible.Text : PasswordBox.Password;
+
+        if (!IsEnterprise)
+            return new WifiProfileSpec { Ssid = _ssid, Auth = _auth, Passphrase = password };
+
+        var servers = string.IsNullOrWhiteSpace(ServerNameBox.Text)
+            ? Array.Empty<string>()
+            : ServerNameBox.Text.Split(';', StringSplitOptions.RemoveEmptyEntries
+                                          | StringSplitOptions.TrimEntries);
+
+        // EAP-TLS はクライアント証明書で認証する。方式を切り替える前に入力された
+        // パスワードが残っていても spec には載せない — 使われない資格情報を
+        // 運ぶ理由がない。
+        bool usesCredentials = SelectedEapType is not EapType.EAP_TLS;
+
+        return new WifiProfileSpec
+        {
+            Ssid        = _ssid,
+            Auth        = _auth,
+            EapType     = SelectedEapType,
+            Username    = usesCredentials && !string.IsNullOrWhiteSpace(UsernameBox.Text)
+                              ? UsernameBox.Text : null,
+            Password    = usesCredentials && !string.IsNullOrEmpty(password) ? password : null,
+            Domain      = string.IsNullOrWhiteSpace(IdentityBox.Text) ? null : IdentityBox.Text,
+            ServerNames = servers,
+        };
     }
 
     // パスフレーズ入力 → リアルタイム強度インジケーター
@@ -104,7 +193,20 @@ public partial class ConnectDialog : Window
         Passphrase = ShowPwCheck.IsChecked == true
             ? PasswordVisible.Text : PasswordBox.Password;
 
-        if (_auth is not (AuthMethod.Open or AuthMethod.OWE))
+        if (IsEnterprise)
+        {
+            // Enterprise では PSK の長さ規則(8〜63 文字等)は適用されない。
+            // PEAP / EAP-TTLS はユーザー名+パスワードが必須、EAP-TLS は証明書認証のため不要 —
+            // この分岐は ProfileXmlBuilder の ValidateEnterprise と同じ規則。
+            if (SelectedEapType is not EapType.EAP_TLS
+                && (string.IsNullOrWhiteSpace(UsernameBox.Text) || string.IsNullOrEmpty(Passphrase)))
+            {
+                ErrorLabel.Text = MWC.App.Resources.L.Get("Error_EapUsernameRequired");
+                ErrorLabel.Visibility = Visibility.Visible;
+                return;
+            }
+        }
+        else if (_auth is not (AuthMethod.Open or AuthMethod.OWE))
         {
             if (!IsPassphraseValid(Passphrase, _auth))
             {
@@ -113,6 +215,9 @@ public partial class ConnectDialog : Window
                 return;
             }
         }
+        // 値の捕捉は必ずここで行う。呼び出し側が読むのは閉じた後なので、
+        // コントロールへの依存をこの時点で断ち切る。
+        Spec = CaptureSpec();
         DialogResult = true;
         Close();
     }

@@ -8,7 +8,12 @@ MIT ライセンスのオープンソースソフトウェア。無料で利用�
 
 ### どのプラットフォームで動作しますか
 
-Windows 10 (2004 以降) / Windows 11 でフル機能が利用できる。Linux (NetworkManager) / macOS (CoreWLAN) でも CLI とコア機能が動作する。Android / iOS はモバイルアプリ版として提供される。
+Windows 10 (2004 以降) / Windows 11 でフル機能が利用できる。Linux (NetworkManager
+経由) はスキャン・接続・プロファイル管理まで完全実装。macOS (CoreWLAN) はスキャン・
+接続は動くが、パスフレーズが必要なネットワークへのプロファイル登録は未実装
+(`docs/FEATURE-AUDIT.md` 参照)。**Android / iOS 版は存在しない**——それぞれ
+`MWC.Platform.Android`/`MWC.Platform.iOS` として着手されたが、全メソッドが空配列/
+false/失敗を返す完全スタブで一度も動作せず、2026-07 に削除された。
 
 ### 管理者権限は必要ですか
 
@@ -32,7 +37,16 @@ Wi-Fi プロファイルの登録・接続には管理者権限が必要な場�
 
 ### パスワードはどこに保存されますか
 
-Windows では DPAPI (Data Protection API) で暗号化して OS の資格情報ストアに保存する。平文での保存は一切行わない。
+パスフレーズは Windows の WLAN プロファイル(`WlanSetProfile` 経由)として OS 管理下に
+保存される——MWC が独自にファイルへ保存することはない。**ただし訂正**: 以前この項目は
+「MWC が DPAPI で暗号化して保存する」と説明していたが、実際には MWC 自身の
+`DpapiSecretProtector`(`Protect`/`Unprotect`)は DI 登録のみでコード内のどこからも
+呼び出されていない(`docs/FEATURE-AUDIT.md` §1b/§2b 参照)。加えて同じ調査で、
+パスフレーズは `WifiProfileSpec.Passphrase`(string)から `ConnectDialog` の
+`PasswordBox.Password` まで一貫して**平文の string** として扱われており、CLAUDE.md が
+必須とする `SecureString` は使われていない——これはリポジトリ所有者の判断待ちの
+既知の乖離としてすでに記録済みで、この FAQ 更新はその状態を正確に伝えるためのもの
+(根本対応は行っていない)。
 
 ### MWC は通信内容を収集しますか
 
@@ -46,7 +60,13 @@ WPA3-OWE は、パスワードのないオープンネットワークでも通�
 
 ### Intune で配布・管理できますか
 
-はい。Group Policy または Intune の OMA-URI で、接続可能 SSID の制限、設定変更の禁止、最低セキュリティレベルの強制などが可能。
+**いいえ、現時点ではできない。** かつて `GroupPolicyProvider` という Group
+Policy/Intune OMA-URI 経由のポリシー読み取り機能があったが、どのコードからも
+呼ばれておらず——つまり管理者がポリシーを設定しても実際には何も起きない状態
+だったため、存在しない管理性を主張していたとして削除済み(`CHANGELOG.md`
+`[Unreleased]` / `docs/FEATURE-AUDIT.md` 参照)。SSID 制限・設定変更禁止・
+最低セキュリティレベル強制などの Intune/GP 連携は、実装されて実機検証を
+経るまでは利用できない。
 
 ### eduroam に接続するには
 
@@ -56,7 +76,7 @@ WPA3-OWE は、パスワードのないオープンネットワークでも通�
 
 ### アプリが起動しない
 
-.NET 9 ランタイムがインストールされているか確認する。winget/Scoop 経由のインストールでは自動的に依存関係が解決される。
+.NET 9 ランタイムがインストールされているか確認する。winget/Scoop 経由のインストールでは自動的に依存関係が解決される(ただしリリース未公開のためこれらのインストール経路自体がまだ使えない。`docs/user-guide.md` 参照)。
 
 ### 設定をリセットしたい
 

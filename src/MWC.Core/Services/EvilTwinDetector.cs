@@ -144,6 +144,74 @@ public sealed class EvilTwinDetector
             ? set.ToList()
             : Array.Empty<string>();
 
+    /// <summary>
+    /// 学習済みの信頼ベースラインを書き出す(永続化用)。
+    ///
+    /// なぜ必要か: 検査 2〜4 (BSSID 不一致・ダウングレード・ベンダー相違) は
+    /// すべて過去の学習を前提とする。学習がプロセスメモリ限りだと、アプリ再起動の
+    /// たびにベースラインが消え、直後は検査 1 しか発火しない = 理由が 1 件までしか
+    /// 積まれず HighRisk (2 件以上) に到達できない。つまり再起動直後は
+    /// 自動再接続の Evil Twin 防御が事実上無効化される。
+    /// 不正 AP 検出は「信頼済み SSID/BSSID のベースラインを事前に確立しておく」
+    /// ことが前提の技術であり、その永続化はセキュリティ上の必須要件。
+    ///
+    /// I/O はここでは行わない — 本クラスをファイルシステム非依存に保ち
+    /// (テスト容易性)、保存先や書式は呼び出し側の責務とする。
+    ///
+    /// **BSSID は意図的に書き出さない**(セッション中はメモリに保持し続ける)。
+    /// BSSID は AP の MAC アドレスであり、Apple/Google の Wi-Fi 測位システムに
+    /// 問い合わせると位置に変換できる。実際、任意の MAC を問い合わせれば位置が返る
+    /// 設計上の弱点が報告され、研究では 1 年で 20 億件規模の BSSID が地理特定されている。
+    /// したがって BSSID をディスクに残すと、そのファイルは事実上
+    /// **「ユーザーが接続してきた場所の履歴」**になる。
+    /// 本製品は <see cref="PrivacyAdvisoryService"/> で MAC 追跡リスクを警告する立場であり、
+    /// 自ら位置追跡可能な識別子を平文で永続化するのは方針矛盾。
+    /// 「保存しなくてよいものは保存しない」を採り、ハッシュ化等の暗号設計を持ち込むより
+    /// 保存対象自体を削る方を選ぶ。
+    ///
+    /// 検出能力への影響: 再起動後も検査 3(ダウングレード, Auth 由来)と
+    /// 検査 4(ベンダー相違, ベンダー名由来)は機能するため、両者が揃えば理由 2 件 =
+    /// HighRisk に到達し自動再接続は中止される。失われるのは検査 2(未知 BSSID)のみで、
+    /// これはセッション中に再学習される。詳細と残る限界は docs/FEATURE-AUDIT.md §3 参照。
+    /// </summary>
+    public IReadOnlyList<TrustedApBaseline> ExportBaseline()
+        => _knownAuth.Select(kv => new TrustedApBaseline(
+                Ssid:    kv.Key,
+                Auth:    kv.Value,
+                Vendors: _knownVendors.TryGetValue(kv.Key, out var v) ? v.ToList() : new List<string>()))
+            .ToList();
+
+    /// <summary>
+    /// <see cref="ExportBaseline"/> で書き出したベースラインを復元する。
+    /// 既存の学習内容には加算的にマージする(復元後に RecordTrusted しても消えない)。
+    /// 不正な項目 (SSID 空) は黙って読み飛ばす — 破損データでフィルタ全体を
+    /// 失うより、読める分だけでも防御を復旧させる方が安全側。
+    /// </summary>
+    public void ImportBaseline(IEnumerable<TrustedApBaseline> baseline)
+    {
+        foreach (var entry in baseline)
+        {
+            if (string.IsNullOrEmpty(entry.Ssid)) continue;
+
+            _knownAuth[entry.Ssid] = entry.Auth;
+
+            // BSSID は復元しない — ExportBaseline が書き出さないため
+            // (位置追跡可能な識別子を永続化しない方針。同メソッドの XML doc 参照)。
+            // セッション中の RecordTrusted による BSSID 学習は従来どおり働く。
+
+            if (entry.Vendors is { Count: > 0 })
+            {
+                if (!_knownVendors.TryGetValue(entry.Ssid, out var vendors))
+                {
+                    vendors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    _knownVendors[entry.Ssid] = vendors;
+                }
+                foreach (var v in entry.Vendors)
+                    if (!string.IsNullOrEmpty(v)) vendors.Add(v);
+            }
+        }
+    }
+
     // ── Private ─────────────────────────────────────────────────
 
     private static bool IsSecurityDowngrade(AuthMethod trusted, AuthMethod current)
@@ -169,6 +237,22 @@ public sealed class EvilTwinDetector
 }
 
 // ── データ型 ─────────────────────────────────────────────────────
+
+/// <summary>
+/// 1 SSID 分の信頼ベースライン(永続化の単位)。
+/// <see cref="EvilTwinDetector.ExportBaseline"/> /
+/// <see cref="EvilTwinDetector.ImportBaseline"/> で用いる。
+/// JSON シリアライズ可能であること (System.Text.Json の既定コンストラクタ解決)。
+///
+/// **BSSID は意図的に含めない**。BSSID は Wi-Fi 測位システム経由で位置に変換でき、
+/// 永続化するとファイルが「訪問した場所の履歴」になるため
+/// (理由の詳細は <see cref="EvilTwinDetector.ExportBaseline"/> の XML doc)。
+/// ここに BSSID を足し戻さないこと。
+/// </summary>
+public sealed record TrustedApBaseline(
+    string       Ssid,
+    AuthMethod   Auth,
+    List<string> Vendors);
 
 /// <summary>Evil Twin 診断結果</summary>
 public sealed record EvilTwinVerdict(

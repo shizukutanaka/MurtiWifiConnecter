@@ -30,7 +30,13 @@ public class HighDensityWifiUriRoundTripTests
         var parsed = WifiUri.TryParse(uri);
         parsed.Should().NotBeNull();
         parsed!.Ssid.Should().Be(ssid);
-        parsed.Auth.Should().Be(auth);
+        // WIFI: URI スキームは WPA と WPA2 を区別できない (どちらも "T:WPA")。
+        // したがって WPAPSK は往復で WPA2PSK になる — これは仕様上避けられず、
+        // 「完全に往復する」という元の期待は達成不可能だった (CI 未実行のため露見せず)。
+        // 実際の契約は「WPA 系は WPA2PSK に正規化される」こと。
+        var expected = auth == AuthMethod.WPAPSK ? AuthMethod.WPA2PSK : auth;
+        parsed.Auth.Should().Be(expected,
+            "the WIFI: URI scheme cannot distinguish WPA from WPA2, so WPAPSK normalises to WPA2PSK");
         if (passphrase is not null)
             parsed.Passphrase.Should().Be(passphrase);
     }
@@ -457,50 +463,6 @@ public class NetworkHistoryStatsTests
     }
 }
 
-public class GroupPolicyProviderTests
-{
-    [Fact]
-    public void IsSsidAllowed_EmptyAllowList_AllowsAll()
-    {
-        var gp = GroupPolicyProvider.Instance;
-        // GP キーが未設定 = 全許可
-        if (!gp.IsManagedDevice)
-        {
-            gp.IsSsidAllowed("AnySSID").Should().BeTrue();
-            gp.IsSsidAllowed("AnotherNet").Should().BeTrue();
-        }
-        else
-        {
-            // 管理デバイスでも例外なく返すこと
-            var act = () => gp.IsSsidAllowed("Test");
-            act.Should().NotThrow();
-        }
-    }
-
-    [Fact]
-    public void GetAllPolicies_ReturnsListWithoutException()
-    {
-        var gp = GroupPolicyProvider.Instance;
-        var policies = gp.GetAllPolicies();
-        policies.Should().NotBeNull();
-        // 未管理環境では空リストが返る
-        policies.Should().AllSatisfy(p =>
-        {
-            p.Name.Should().NotBeNullOrEmpty();
-            p.Value.Should().NotBeNull();
-        });
-    }
-
-    [Fact]
-    public void PolicyEntries_HaveValidStructure()
-    {
-        var entry = new PolicyEntry("TestKey", "TestValue", "DWORD");
-        entry.Name.Should().Be("TestKey");
-        entry.Value.Should().Be("TestValue");
-        entry.Type.Should().Be("DWORD");
-    }
-}
-
 public class AccessibilityAuditTests
 {
     private readonly AccessibilityAuditService _svc = new();
@@ -595,40 +557,6 @@ public class AccessibilityAuditTests
     }
 }
 
-public class WifiDirectModelTests
-{
-    [Fact]
-    public void WifiDirectDevice_RecordEqualityAndInit()
-    {
-        var d1 = new WifiDirectDevice("id-1", "Phone A", WifiDirectDeviceType.Phone, -60);
-        var d2 = d1 with { State = WifiDirectDeviceState.Connected };
-
-        d1.DeviceId.Should().Be("id-1");
-        d1.State.Should().Be(WifiDirectDeviceState.Available);
-        d2.State.Should().Be(WifiDirectDeviceState.Connected);
-        d1.Should().NotBe(d2);
-        d1.DeviceName.Should().Be(d2.DeviceName);
-    }
-
-    [Fact]
-    public void WifiDirectDiscoveryOptions_Default_Is30s()
-    {
-        var opts = WifiDirectDiscoveryOptions.Default;
-        opts.Timeout.TotalSeconds.Should().Be(30);
-        opts.ScanAll.Should().BeFalse();
-    }
-
-    [Fact]
-    public void WifiDirectGroupOwnerResult_PropertiesOk()
-    {
-        var r = new WifiDirectGroupOwnerResult(true, "DIRECT-AB", "pass1234", "192.168.1.1");
-        r.Success.Should().BeTrue();
-        r.Ssid.Should().StartWith("DIRECT-");
-        r.Passphrase.Should().Be("pass1234");
-        r.LocalIp.Should().Contain(".");
-    }
-}
-
 public class SlnRegistrationTests
 {
     [Fact]
@@ -671,9 +599,21 @@ public class SlnRegistrationTests
             .Select(m => m.Value.ToUpperInvariant())
             .ToList();
 
-        var projectGuids = guids.GroupBy(g => g).Where(g => g.Count() > 2).ToList();
-        // プロジェクトGUIDは NestedProjects等で2回出るが3回以上は重複
-        projectGuids.Should().BeEmpty("No GUID should appear 3+ times in sln");
+        // 「3 回以上出たら重複」は **.sln の形式に対して誤り**だった。プロジェクト GUID は
+        // Project(...) 宣言で 1 回、GlobalSection の構成 4 行 (Debug/Release × ActiveCfg/Build.0)
+        // で 4 回、合計 5 回以上必ず現れる。プロジェクト型 GUID も全プロジェクトで共有される。
+        // よってこの不変条件はどんな正当な .sln でも必ず破れ、テストは常に落ちる
+        // (CI が一度も走っていなかったため気づかれていなかった)。
+        //
+        // 実際の危険は「**別々のプロジェクトが同じ GUID を宣言している**」こと。それを検査する。
+        var declared = System.Text.RegularExpressions.Regex.Matches(
+                System.IO.File.ReadAllText(slnPath),
+                @"Project\(""\{[0-9A-Fa-f-]+\}""\)\s*=\s*""[^""]+"",\s*""[^""]+"",\s*""(\{[0-9A-Fa-f-]+\})""")
+            .Select(m => m.Groups[1].Value.ToUpperInvariant())
+            .ToList();
+
+        declared.GroupBy(g => g).Where(g => g.Count() > 1).Should()
+            .BeEmpty("two projects must never declare the same GUID");
     }
 }
 
@@ -682,7 +622,7 @@ public class BssInfoModelTests
     [Fact]
     public void BssInfo_HasInterworkingElement_DefaultFalse()
     {
-        var bss = new BssInfo();
+        var bss = new BssInfo { Bssid = "" };   // Bssid は required
         bss.HasInterworkingElement.Should().BeFalse();
         bss.Bssid.Should().BeNullOrEmpty();
     }
@@ -695,7 +635,7 @@ public class BssInfoModelTests
             Ssid   = "Open",
             Auth   = AuthMethod.Open,
             Band   = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = false } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = false } }
         };
         openNet.IsPasspoint.Should().BeFalse("Open AP は Passpoint 非対応");
 
@@ -704,7 +644,7 @@ public class BssInfoModelTests
             Ssid   = "Corp",
             Auth   = AuthMethod.WPA2Enterprise,
             Band   = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = true } }
         };
         passpointNet.IsPasspoint.Should().BeTrue();
         passpointNet.Auth.Should().Be(AuthMethod.WPA2Enterprise);
@@ -722,7 +662,7 @@ public class BssInfoModelTests
             Ssid       = "CorpNet",
             Auth       = auth,
             Band       = WifiBand.Band5GHz,
-            BssEntries = new[] { new BssInfo { HasInterworkingElement = true } }
+            BssEntries = new[] { new BssInfo { Bssid = "", HasInterworkingElement = true } }
         };
         net.IsPasspoint.Should().BeTrue(
             because: $"{auth} is an enterprise auth method and must be recognized as Passpoint-capable");
@@ -823,7 +763,7 @@ public class Hotspot20ServiceBasicTests
         var nets = new[]
         {
             new WifiNetwork { Ssid = "Corp", Auth = AuthMethod.WPA2Enterprise, Band = WifiBand.Band5GHz, SignalQuality = 75,
-                BssEntries = new[]{ new BssInfo { HasInterworkingElement = true } } },
+                BssEntries = new[]{ new BssInfo { Bssid = "", HasInterworkingElement = true } } },
             new WifiNetwork { Ssid = "Home", Auth = AuthMethod.WPA2PSK, Band = WifiBand.Band5GHz, SignalQuality = 90 },
         };
         var passpoint = _svc.FilterPasspointNetworks(nets);

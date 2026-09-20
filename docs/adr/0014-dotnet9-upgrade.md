@@ -50,3 +50,25 @@ MWC は当初 .NET 8 (LTS) をターゲットとしていた。
 - `RegulatoryDomainService` の25ヶ国テーブルが初回アクセス後フリーズ
 - CI/CD は .NET 9 SDK (`actions/setup-dotnet@v4` with `9.0.x`) が必要
 - netstandard2.0 (Mobile/Unity 互換) は引き続きサポート (`MWC.Core` のマルチターゲット)
+
+## 2026-09 追記 — 上記 Consequences の 2 件は実際には適用されなかった
+
+- **netstandard2.0 マルチターゲットは維持されなかった。** `MWC.Core` は 2026-06-23 に
+  `net9.0` 単一ターゲットへ変更された(`docs/build-blockers-2026.md` #4、
+  `docs/adr/0009-cross-platform-iwifi-abstraction.md` の同種の追記も参照)。
+  現行の `src/MWC.Core/MWC.Core.csproj` は `<TargetFramework>net9.0</TargetFramework>` のみ。
+- **`NetworkHistoryService` は `System.Threading.Lock` を使っていない。** 現行実装は
+  `private readonly object _saveLock = new();` と従来の `lock (_saveLock)` で、ソース内の
+  コメントが理由を明記している:「`System.Threading.Lock` は net9.0 専用のため
+  netstandard2.0 でビルド不能」——つまり当時はまだ ns2.0 マルチターゲットが有効で、
+  `Lock` 型を使うとそちらが壊れるため見送られた。ns2.0 ターゲット自体が上記の通り
+  後に撤廃されたため、この制約は現在は存在しない。`Lock` 型への切替は妥当な今後の
+  改善候補だが、この節はあくまで**現状の記録**であり、以前の並行実行バグ
+  (`NetworkHistoryService_ConcurrentWrites_ThreadSafe`、共有 static パス起因。
+  `docs/COMPLETION-CHECKLIST.md` 参照)の教訓から、変更するなら実測検証とセットで
+  行うこと。
+- 加えて `MWC.Core.csproj` は `<LangVersion>12.0</LangVersion>` を明示指定しており、
+  上表が主張する「12.0 → 13.0」は Core については適用されていない
+  (`tools/typecheck-core.sh` も `-langversion:12` で実ビルド設定に合わせている —
+  意図的な整合であり型検査側の誤りではない)。他プロジェクトは
+  `Directory.Build.props` の `<LangVersion>latest</LangVersion>` を継承する。

@@ -12,7 +12,7 @@ public sealed record WifiProfileSpec
     public required AuthMethod Auth { get; init; }
     public CipherType? CipherOverride { get; init; }
     public bool AutoConnect { get; init; } = true;
-    public bool NonBroadcast { get; init; } = false;
+    public bool NonBroadcast { get; init; }
 
     // PSK系
     public string? Passphrase { get; init; }

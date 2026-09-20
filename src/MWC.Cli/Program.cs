@@ -1,5 +1,6 @@
 using System;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,6 +54,9 @@ public static partial class Program
         root.AddCommand(BuildEapStats(sp));
         root.AddCommand(BuildPlanChannels(sp));
         root.AddCommand(BuildVpnAdvice(sp));
+        root.AddCommand(BuildPrivacy(sp));
+        root.AddCommand(BuildImportCat(sp));
+        root.AddCommand(BuildPasspoint(sp));
         root.AddCommand(AdapterCommand.Build(sp));
 
         return await root.InvokeAsync(args);
@@ -268,7 +272,7 @@ public static partial class Program
 
             if (msh)
             {
-                var detector = new MeshNetworkDetector(oui);
+                var detector = new MeshNetworkDetector();
                 var groups = detector.Detect(enriched);
                 Console.WriteLine();
                 if (groups.Count == 0)
@@ -295,30 +299,108 @@ public static partial class Program
     private static Command BuildConnect(ServiceProvider sp)
     {
         var ssid    = new Argument<string>("ssid");
-        var pw      = new Option<string?>(new[]{"-p","--password"});
+        var pw      = new Option<string?>(new[]{"-p","--password"},
+            "Passphrase (PSK/WEP) or EAP password (Enterprise). " +
+            "Omit to read from the MWC_PASSWORD environment variable instead " +
+            "(avoids exposing the secret in the process command line / ps output).");
         var auth    = new Option<AuthMethod>("--auth", () => AuthMethod.WPA2PSK);
         var adapter = new Option<string?>("--adapter");
         var timeout = new Option<int>("--timeout", () => 30);
         var hidden  = new Option<bool>("--hidden");
-        var cmd     = new Command("connect", "Connect to a network");
+        // ── 802.1X Enterprise (PEAP/EAP-TLS/EAP-TTLS) ──
+        var eapType  = new Option<EapType?>("--eap-type",
+            "EAP method for Enterprise auth: PEAP_MSCHAPv2 | EAP_TLS | EAP_TTLS");
+        eapType.AddCompletions("PEAP_MSCHAPv2", "EAP_TLS", "EAP_TTLS");
+        var username = new Option<string?>("--username", "EAP username (PEAP/EAP-TTLS)");
+        var domain   = new Option<string?>("--domain", "Authentication domain (optional)");
+        var serverName = new Option<string[]>("--server-name",
+            "RADIUS server FQDN to validate the server certificate against (repeatable)")
+        { AllowMultipleArgumentsPerToken = true };
+        var trustedCa = new Option<string[]>("--trusted-root-ca",
+            "Trusted root CA certificate thumbprint (SHA-1 hex) to pin for RADIUS server " +
+            "validation; prevents accepting a rogue server signed by a different CA (repeatable)")
+        { AllowMultipleArgumentsPerToken = true };
+
+        var cmd     = new Command("connect",
+            "Connect to a network. For Enterprise: --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 " +
+            "--username u@univ.ac.jp -p PASS --server-name radius.univ.ac.jp");
         cmd.AddArgument(ssid); cmd.AddOption(pw); cmd.AddOption(auth);
         cmd.AddOption(adapter); cmd.AddOption(timeout); cmd.AddOption(hidden);
+        cmd.AddOption(eapType); cmd.AddOption(username); cmd.AddOption(domain);
+        cmd.AddOption(serverName); cmd.AddOption(trustedCa);
 
-        cmd.SetHandler(async (string s, string? p, AuthMethod a, string? af, int to, bool h) =>
+        // オプション数が System.CommandLine の SetHandler ジェネリック上限 (8) を超えるため、
+        // InvocationContext から個別に値を取得する束縛方式を使う。
+        cmd.SetHandler(async (InvocationContext ctx) =>
         {
+            var s  = ctx.ParseResult.GetValueForArgument(ssid);
+            // -p を省略した場合は MWC_PASSWORD 環境変数から取得する。argv に平文パスワードを
+            // 置くと ps / /proc から他ユーザーに見えるため、秘密情報の露出を避ける経路を用意する
+            // (MultiAdapterCommand の $env:PW と同じ思想。CLAUDE.md のセキュリティ重視に沿う)。
+            var p  = ctx.ParseResult.GetValueForOption(pw)
+                     ?? Environment.GetEnvironmentVariable("MWC_PASSWORD");
+            var a  = ctx.ParseResult.GetValueForOption(auth);
+            var af = ctx.ParseResult.GetValueForOption(adapter);
+            var to = ctx.ParseResult.GetValueForOption(timeout);
+            var h  = ctx.ParseResult.GetValueForOption(hidden);
+            var eap         = ctx.ParseResult.GetValueForOption(eapType);
+            var user        = ctx.ParseResult.GetValueForOption(username);
+            var dom         = ctx.ParseResult.GetValueForOption(domain);
+            var serverNames = ctx.ParseResult.GetValueForOption(serverName) ?? Array.Empty<string>();
+            var trustedCas  = ctx.ParseResult.GetValueForOption(trustedCa) ?? Array.Empty<string>();
+
             try
             {
                 if (to <= 0) { Err("--timeout must be a positive number of seconds"); Environment.Exit(ExitCode.InvalidInput); return; }
+
+                // SSID を非 null に確定させてから spec を組む。GetValueForArgument は
+                // T? を返すため、そのまま required な WifiProfileSpec.Ssid へ代入すると
+                // CS8601 になり、TreatWarningsAsErrors=true の本ビルドでは**エラー**になる。
+                // 空 SSID は ProfileXmlBuilder でも弾かれるが、ここで弾いた方が
+                // メッセージが分かりやすい。
+                if (string.IsNullOrEmpty(s))
+                {
+                    Err("SSID is required");
+                    Environment.Exit(ExitCode.InvalidInput);
+                    return;
+                }
 
                 var svc      = sp.GetRequiredService<IWifiService>();
                 var executor = sp.GetRequiredService<ConnectionExecutor>();
                 var ad       = await Resolve(svc, af);
                 if (ad is null) { Err("adapter not found"); Environment.Exit(ExitCode.InvalidInput); return; }
 
+                // 認証方式で spec を分岐。Enterprise では -p を EAP パスワードとして流用する。
+                bool isEnterprise = a is AuthMethod.WPA2Enterprise
+                    or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192;
+
+                // 落とし穴防止: Enterprise 専用オプションを指定したのに --auth が Enterprise でない場合、
+                // 黙って PSK 接続に流れ (EAP パスワードを PSK パスフレーズとして使い、username/eap-type を
+                // 無視して) 「パスフレーズ誤り」の紛らわしい失敗になる。接続前に明示エラーで弾く。
+                bool hasEnterpriseOpts = eap is not null || !string.IsNullOrEmpty(user)
+                    || !string.IsNullOrEmpty(dom) || serverNames.Length > 0 || trustedCas.Length > 0;
+                if (hasEnterpriseOpts && !isEnterprise)
+                {
+                    Err($"--eap-type/--username/--domain/--server-name/--trusted-root-ca require an " +
+                        $"Enterprise --auth (WPA2Enterprise/WPA3Enterprise/WPA3Enterprise192); got --auth {a}");
+                    Environment.Exit(ExitCode.InvalidInput);
+                    return;
+                }
+
+                var spec = isEnterprise
+                    ? new WifiProfileSpec
+                    {
+                        Ssid = s, Auth = a, NonBroadcast = h,
+                        EapType = eap, Username = user, Password = p,
+                        Domain = dom, ServerNames = serverNames,
+                        TrustedRootCaThumbprints = trustedCas,
+                    }
+                    : new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+
                 // spec を先に検証: 不正な場合は接続前に分かりやすいエラーを出す。
                 // executor 内でも同じ Build を呼ぶが、エラーが ConnectionResult.OsError に吸収されるため
-                // ここで早期エラーを返す。
-                var spec = new WifiProfileSpec { Ssid = s, Auth = a, Passphrase = p, NonBroadcast = h };
+                // ここで早期エラーを返す。ValidateEnterprise が EAP type 必須・PEAP/TTLS の
+                // username+password 必須のエラー文言を提供する。
                 try { ProfileXmlBuilder.Build(spec); }
                 catch (Exception ex) { Err($"profile: {ex.Message}"); Environment.Exit(ExitCode.InvalidInput); return; }
 
@@ -349,7 +431,7 @@ public static partial class Program
                 }
             }
             catch (Exception ex) { Err($"connect failed: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
-        }, ssid, pw, auth, adapter, timeout, hidden);
+        });
         return cmd;
     }
 

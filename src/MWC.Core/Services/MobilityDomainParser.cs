@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace MWC.Core.Services;
 
@@ -62,5 +63,5 @@ public sealed record MobilityDomainInfo(
     /// MDID を 4 桁 16 進数で返す (例: "1A2B")。
     /// 同じ MDID を持つ AP 間で高速ローミングが可能。
     /// </summary>
-    public string MdidHex => Mdid.ToString("X4");
+    public string MdidHex => Mdid.ToString("X4", CultureInfo.InvariantCulture);
 }

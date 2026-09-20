@@ -22,7 +22,9 @@ namespace MWC.Core.Services;
 ///     複数チャネルの同時観測とクラスタリングを組み合わせることで、ランダム MAC 環境下でも
 ///     プローブ要求の再識別精度が向上しうるという追加の知見(2026-07 追補)
 ///
-/// プラットフォーム層が実際の MAC ランダム化状態 (<see cref="MacAddressMode"/>) を供給する。
+/// MAC ランダム化状態 (<see cref="MacAddressMode"/>) は、アダプターの MAC アドレスから
+/// <see cref="MacAddressModeInference"/> が推定する(OS 設定の読み取りは不要)。
+/// 供給されなかった場合は <see cref="MacAddressMode.Unknown"/> のまま助言を控える。
 /// 本サービスは攻撃を実行せず、防御側の情報提供のみを行う。
 /// </summary>
 public sealed class PrivacyAdvisoryService
@@ -85,7 +87,7 @@ public sealed class PrivacyAdvisoryService
         }
 
         // 5. ランダム化していても限界がある旨の教育的情報(ランダム系モード時)
-        if (mode is MacAddressMode.RandomPerNetwork or MacAddressMode.RandomDaily)
+        if (mode is MacAddressMode.Randomized or MacAddressMode.RandomPerNetwork or MacAddressMode.RandomDaily)
         {
             advisories.Add(new PrivacyAdvisory(
                 Severity:  AdvisorySeverity.Info,
@@ -103,13 +105,19 @@ public sealed class PrivacyAdvisoryService
 
 // ── データ型 ─────────────────────────────────────────────────────────
 
-/// <summary>端末の MAC アドレス使用モード(プラットフォーム層が供給)。</summary>
+/// <summary>端末の MAC アドレス使用モード。</summary>
 public enum MacAddressMode
 {
     /// <summary>不明 (判定できない)</summary>
     Unknown,
     /// <summary>固定 — 端末のハードウェア MAC をそのまま使用</summary>
     Hardware,
+    /// <summary>
+    /// ランダム化されているが、種類(ネットワーク別か日次か)までは決まっていない。
+    /// アドレスの LAA ビットだけで判定した場合はここに落ちる
+    /// (<see cref="MacAddressModeInference.FromAddress"/>)。
+    /// </summary>
+    Randomized,
     /// <summary>ネットワーク別ランダム(値は固定的)</summary>
     RandomPerNetwork,
     /// <summary>ランダム MAC を日次でローテーション</summary>

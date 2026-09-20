@@ -5,6 +5,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using MWC.Core.Abstractions;   // IWifiService — Resolve() の引数型。using は**ファイル単位**なので、
+using MWC.Core.Models;         // WifiAdapter  — 同じ partial class の別ファイルにあっても効かない。
 using MWC.Core.Services;
 
 namespace MWC.Cli;

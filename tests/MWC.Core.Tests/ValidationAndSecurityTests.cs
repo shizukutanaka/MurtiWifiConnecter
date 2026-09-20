@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using MWC.Core.Models;
 using MWC.Core.Profile;
+using MWC.Core.Services;   // NetworkHistoryService / ConnectionExecutor
 using Xunit;
 
 namespace MWC.Core.Tests;

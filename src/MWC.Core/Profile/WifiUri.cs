@@ -45,7 +45,9 @@ public static class WifiUri
     {
         if (uri is null) return null;
         try { return Parse(uri); }
-        catch { return null; }
+        catch (Exception e) when (e is FormatException or ArgumentException
+                                  or IndexOutOfRangeException or OverflowException)
+        { return null; }
     }
 
     /// <summary>WIFI: URI スキームを解析して WifiProfileSpec を返す。不正な形式なら null。</summary>

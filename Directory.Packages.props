@@ -5,6 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ビルド専用 (Directory.Build.props が全プロジェクトへ注入) -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub"     Version="8.0.0" />
+
     <!-- Core -->
     <PackageVersion Include="CommunityToolkit.Mvvm"          Version="8.4.0" />
 
@@ -35,7 +38,6 @@
     <PackageVersion Include="xunit"                          Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio"      Version="2.8.2" />
     <PackageVersion Include="FluentAssertions"               Version="7.0.0" />
-    <PackageVersion Include="NSubstitute"                    Version="5.3.0" />
     <PackageVersion Include="coverlet.collector"             Version="6.0.2" />
       <PackageVersion Include="FsCheck.Xunit" Version="3.1.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />

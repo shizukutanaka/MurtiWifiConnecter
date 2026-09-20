@@ -28,7 +28,12 @@
 3. [P1] **wpa_supplicant control interface のイベント駆動パターン参照** — 接続フローの状態通知を堅牢化。(gh: 上流 w1.fi/wpa_supplicant)
 4. [P1] **ManagedNativeWifi の最新 API 追従** — 6GHz / Wi-Fi 7 列挙・MLO プロパティの網羅確認。(gh: emoacht/ManagedNativeWifi ← MWC が依存)
 5. [P2] **受信専用フレーム/IE パーサ** — `vanhoefm/libwifi` を教育的参考に IE 解析(WPS/BSS Load/RNR 等)。(gh: vanhoefm/libwifi)
-6. [P1] **Wi-Fi Direct/P2P の WPS enrolment 強化** — `WifiDirectService` を hostp2pd 設計参考に。(gh: Ircama/hostp2pd)
+6. ~~[P1] **Wi-Fi Direct/P2P の WPS enrolment 強化** — `WifiDirectService` を hostp2pd 設計参考に。(gh: Ircama/hostp2pd)~~
+   **2026-09: `WifiDirectService` は削除済み。** 動作する `IWifiDirectAdapter` 実装が
+   一度も存在せず起動不能だった上、Wi-Fi Direct は端末間 P2P であり CLAUDE.md が定める
+   本プロダクトの目的(各無線アダプターの SSID 一覧/接続管理)とは別の能力だった
+   (CHANGELOG `[Unreleased]` の削除エントリ参照)。復活させる場合は
+   本来の目的に立ち返って要否から検討すること。
 7. [P1] **DPP(Easy Connect)制御の足場** — README-DPP を参考に段階導入。(gh: 上流 hostapd README-DPP)
 8. [P2] **nl80211 vendor command 抽象化** — ベンダー固有拡張能力の取り扱い方針。
 9. [P1] **接続状態機械の形式化** — connecting→assoc→4way→connected をテスト可能に(C7 形式検証と連携)。
@@ -110,9 +115,18 @@
 7. [P2] **EAP-TLS 証明書チェーン検証の UI**(既存 `CertificateStoreService`)。
 8. [P2] **他ツールからのプロファイル移行インポート**。
 9. [P1] **プロファイル削除・棚卸し UX**(既存 `ProfileManager`)。
-10. [P2] **グループポリシー配布の検証**(既存 `GroupPolicyProvider`)。
+10. ~~[P2] **グループポリシー配布の検証**(既存 `GroupPolicyProvider`)。~~
+    **2026-09: `GroupPolicyProvider` は削除済み。** どのコードからも呼ばれておらず、
+    管理者がポリシーを設定しても何も起きない状態で存在していなかった管理性を
+    主張していた(`docs/FEATURE-AUDIT.md` §1b 参照)。
 
 ## C8. クロスプラットフォーム実装 (Linux/macOS/Android/iOS)
+
+> **2026-09 追記**: `MWC.Platform.Android`/`MWC.Platform.iOS` は 2026-07 に削除済み
+> (全メソッドが空配列/false/失敗を返す完全スタブで製品からの参照ゼロだった。
+> `docs/FEATURE-AUDIT.md` §1c、`docs/adr/0009-cross-platform-iwifi-abstraction.md` 追記参照)。
+> 現存するのは Windows/Linux/macOS の 3 プラットフォームのみ。下記 #7・#8 は
+> 該当サービスが無い状態での参考記録であり、優先度評価の対象外とする。
 
 1. [P1] **macOS CoreWLAN の能力照会拡充**。(gh: chbrown/macos-wifi)
 2. [P1] **CoreWLAN Wireless Manager の機能網羅を参照**。(gh: andyvand/CoreWLANWirelessManager)
@@ -120,8 +134,10 @@
 4. [P2] **クロスプラットフォーム scan の正規化**。(gh: BaseMax/wifi-scanner)
 5. [P2] **CoreLocation/netsh/nmcli の差異吸収**。(gh: scivision/scan-wifi-python)
 6. [P1] **nmcli GUI の UX を参考にした Linux 版**。(gh: sweelinq/WifiManager)
-7. [P1] **Android WifiManager Suggestion API 対応確認**(既存 `AndroidWifiService`)。
-8. [P1] **iOS NEHotspotConfiguration の制約の明文化**(既存 `IosWifiService`)。
+7. ~~[P1] **Android WifiManager Suggestion API 対応確認**(既存 `AndroidWifiService`)。~~
+   `AndroidWifiService`/`MWC.Platform.Android` は削除済み(上記追記参照)。
+8. ~~[P1] **iOS NEHotspotConfiguration の制約の明文化**(既存 `IosWifiService`)。~~
+   `IosWifiService`/`MWC.Platform.iOS` は削除済み(上記追記参照)。
 9. [P2] **共通 Core(netstandard2.0)の契約テスト**。
 10. [P2] **プラットフォーム能力マトリクスの文書化**。
 

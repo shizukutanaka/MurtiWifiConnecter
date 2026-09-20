@@ -6,38 +6,20 @@
   <data name="Action_Disconnect"><value>সংযোগ বিচ্ছিন্ন করুন</value></data>
   <data name="Action_Cancel"><value>বাতিল করুন</value></data>
   <data name="Label_Passphrase"><value>পাসফ্রেজ</value></data>
-  <data name="Label_Show"><value>দেখান</value></data>
   <data name="Label_Connected"><value>সংযুক্ত: {0}</value></data>
   <data name="Label_NotConnected"><value>সংযুক্ত নয়</value></data>
-  <data name="Label_AvailableNetworks"><value>উপলব্ধ নেটওয়ার্ক</value></data>
   <data name="Status_AdapterCount"><value>{0}টি অ্যাডাপ্টার</value></data>
   <data name="Status_Scanning"><value>স্ক্যান হচ্ছে...</value></data>
-  <data name="Error_PassphraseTooShort"><value>পাসফ্রেজ কমপক্ষে ৮ অক্ষরের হতে হবে</value></data>
   <data name="Error_ConnectionFailed"><value>সংযোগ ব্যর্থ হয়েছে: {0}</value></data>
-  <data name="Auth_Open"><value>ওপেন</value></data>
-  <data name="Auth_OWE"><value>এনহ্যান্সড ওপেন (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (অপ্রচলিত)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 পার্সোনাল</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 পার্সোনাল</value></data>
-  <data name="Auth_Enterprise"><value>এন্টারপ্রাইজ</value></data>
   <data name="Failure_BadCredentials"><value>ভুল পাসফ্রেজ</value></data>
   <data name="Failure_Timeout"><value>সংযোগের সময় শেষ হয়েছে</value></data>
   <data name="Failure_NotInRange"><value>নেটওয়ার্ক সীমার বাইরে</value></data>
   <data name="Failure_AdapterDisabled"><value>ওয়্যারলেস অ্যাডাপ্টার নিষ্ক্রিয়</value></data>
   <data name="Failure_InsufficientPrivilege"><value>প্রশাসকের অনুমতি প্রয়োজন</value></data>
-  <data name="Captive_Detected"><value>সাইন-ইন প্রয়োজন</value></data>
   <data name="Tab_Detail"><value>বিস্তারিত</value></data>
   <data name="Tab_Signal"><value>সংকেত</value></data>
   <data name="Tab_Channel"><value>চ্যানেল</value></data>
-  <data name="Label_Band"><value>ব্যান্ড</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>চ্যানেল</value></data>
-  <data name="Label_Freq"><value>ফ্রিকোয়েন্সি</value></data>
-  <data name="Label_Speed"><value>সর্বোচ্চ গতি</value></data>
-  <data name="Label_Signal"><value>সংকেত</value></data>
-  <data name="Label_Status"><value>অবস্থা</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>বিক্রেতা</value></data>
   <data name="Action_Export_Csv"><value>CSV এক্সপোর্ট করুন</value></data>
   <data name="Action_Export_Json"><value>JSON এক্সপোর্ট করুন</value></data>
   <data name="Action_Export_Txt"><value>টেক্সট এক্সপোর্ট করুন</value></data>
@@ -124,6 +106,8 @@
   <data name="Shortcut_Quality_D"><value>নেটওয়ার্কের গুণমান পরিমাপ করুন</value></data>
   <data name="Shortcut_Settings_T"><value>সেটিংস</value></data>
   <data name="Shortcut_Settings_D"><value>অ্যাপ সেটিংস খুলুন</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>সব অ্যাডাপ্টার</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>সব অ্যাডাপ্টারের সারসংক্ষেপ খুলুন</value></data>
   <data name="Shortcut_ToggleMode_T"><value>মোড পরিবর্তন করুন</value></data>
   <data name="Shortcut_ToggleMode_D"><value>সিম্পল/এক্সপার্ট ভিউ পরিবর্তন করুন</value></data>
   <data name="Shortcut_Hide_T"><value>উইন্ডো লুকান</value></data>
@@ -629,6 +613,7 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1}টি নমুনা)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps কার্যকর, ২-স্ট্রিম আনুমানিক)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0}টি লিংক  ({1})  {2} Mbps একত্রিত  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) সমর্থিত — লিঙ্কভিত্তিক বিবরণ অনুপলব্ধ</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>একক লিংক</value></data>
   <data name="Mlo_Reliability_DualLink"><value>দ্বৈত লিংক</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>ত্রিগুণ লিংক</value></data>
@@ -673,4 +658,10 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Failure_OsError"><value>সিস্টেম ত্রুটি</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>পিন করা নেটওয়ার্ক তালিকা</value></data>
+  <data name="Label_EapType"><value>EAP পদ্ধতি</value></data>
+  <data name="Label_EapUsername"><value>ব্যবহারকারীর নাম</value></data>
+  <data name="Label_EapIdentity"><value>বেনামী পরিচয় (ঐচ্ছিক)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS সার্ভারের নাম (ঐচ্ছিক)</value></data>
+  <data name="EapHint_Identity"><value>টানেলের আগে সাধারণ টেক্সটে পাঠানো হয়। ব্যবহারকারীর নাম লুকাতে anonymous@realm দিন।</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP এবং EAP-TTLS-এর জন্য ব্যবহারকারীর নাম ও পাসওয়ার্ড প্রয়োজন।</value></data>
 </root>

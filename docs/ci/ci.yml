@@ -39,6 +39,19 @@ jobs:
           /p:CoverletOutputFormat=cobertura
           /p:CoverletOutput=TestResults/coverage.xml
 
+      # SECURITY.md が「dotnet list package --vulnerable を CI で実行」と
+      # 述べている根拠。既知の脆弱性を持つ依存が入ったらビルドを落とす。
+      # --include-transitive が無いと直接参照しか見ないため必ず付ける。
+      - name: Check for vulnerable dependencies
+        shell: pwsh
+        run: |
+          $out = dotnet list MWC.ci-win.slnf package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($out -match 'has the following vulnerable packages') {
+            Write-Error 'Vulnerable NuGet packages found (see the listing above).'
+            exit 1
+          }
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()

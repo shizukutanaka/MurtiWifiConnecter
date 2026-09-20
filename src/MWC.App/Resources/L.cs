@@ -85,6 +85,14 @@ public static class L
     public static string ActionCancel       => Get("Action_Cancel");
     public static string ActionClose        => Get("Action_Close");
     public static string LabelPassphrase    => Get("Label_Passphrase");
+
+    // ── 802.1X Enterprise (ConnectDialog の Enterprise パネル) ──
+    public static string LabelEapType       => Get("Label_EapType");
+    public static string LabelEapUsername   => Get("Label_EapUsername");
+    public static string LabelEapIdentity   => Get("Label_EapIdentity");
+    public static string LabelEapServerName => Get("Label_EapServerName");
+    public static string EapHintIdentity    => Get("EapHint_Identity");
+
     public static string LabelNotConnected  => Get("Label_NotConnected");
     public static string StatusScanning     => Get("Status_Scanning");
     public static string StatusNoData       => Get("Status_NoData");

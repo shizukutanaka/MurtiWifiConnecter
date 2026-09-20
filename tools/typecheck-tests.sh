@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# tools/typecheck-tests.sh — テストプロジェクトを **NuGet 無しで**型検査する。
+#
+# なぜ必要か:
+#   テストは Core の API を最も広く使う消費者であり、約 900 のテストメソッドが
+#   API 名・引数・enum メンバ・レコード構築を「実際に呼んで」いる。ところが
+#   xunit / FluentAssertions / NSubstitute は NuGet 経由でしか入らず
+#   (`api.nuget.org` はエグレス拒否)、テストプロジェクトはこの環境で
+#   **一度もコンパイルされたことがなかった**。
+#
+#   型検査専用スタブ (tools/stubs/TestFrameworks.Stub.cs) で xunit の属性と
+#   FluentAssertions の連鎖を「型が合う程度に」解決させ、本物の MWC.Core.dll に
+#   対してテスト本体を束縛させる。2026-08 に初めて走らせたところ、
+#   **実在の欠陥 5 件**が出た(いずれも CI の最初の 1 回で赤くなるもの):
+#     1. ServicesCoverageTests — 生文字列リテラルの閉じ `"""` が本文と同じ行 (CS9000)
+#     2. AdapterPreferencesTests — 外側ラムダの仮引数が `_` のため、内側の `_ = ...` が
+#        破棄でなく **int への代入**に束縛された (CS0029)。C# の有名な罠。
+#     3. ApplePhase3Tests — `UpdateCheckResult` (MWC.App.Services) の using 欠落
+#     4. ValidationAndSecurityTests — `MWC.Core.Services` の using 欠落
+#     5. HighDensityScenarioTests — `required` な `BssInfo.Bssid` を 5 箇所で未設定 (CS9035)
+#     (+ ServicesTests の `Lookup(null!)` は string/ReadOnlySpan<byte> 間で曖昧になり得るため明示)
+#
+# ★ 何を検査できて、何を検査していないか(ここを誤解すると危険)
+#   検査できる : テスト本体が呼ぶ Core の API 名・引数・型・enum メンバ・レコード構築。
+#                アサーションの**外側**。存在しないメンバ名は確実に落ちる (--selftest で担保)。
+#   検査しない : **アサーションの意味**。スタブの `Be(object?)` は何でも受けるため、
+#                `x.Should().Be("文字列")` のような型の食い違いは通る。
+#                「通った = テストが正しい」ではない。「型が合っている」だけ。
+#   実行しない : テストは 1 つも走らない。結果は CI (dotnet test) の担当。
+#   対象外     : `MWC.App` を参照するテスト (WPF 依存) と FsCheck を使う PropertyBasedTests。
+#                件数は実行時に表示する。
+#
+#   **対象を広げようとして止めた記録** (2026-08。同じ探索を繰り返さないために残す):
+#     App 依存テスト 14 件のうち数件は、WPF 非依存の App サービス層 (typecheck-app-services.sh
+#     が扱う 6 ファイル) しか使っていない。そこでそれらを本検査に取り込もうとしたが:
+#       - 候補を足すと **テストヘルパーのクラス名が衝突**し、エラーが *基礎側* の
+#         ファイルに報告される。これを「基礎側が壊れた」と解釈して除外する素朴な
+#         反復アルゴリズムは、健全な Core 専用テストまで落としてしまい**収束が不安定**だった。
+#       - 得られる増分は 751 → 約 774 メソッド (+2.5%) にすぎない。
+#     **不安定な検査は、小さくても安定した検査より悪い** (本サイクルで繰り返し確認した原則)。
+#     よって対象は「MWC.App を参照しない」という単純で決定的な規則のまま据え置く。
+#     ここを広げたいなら、まず本物の WPF 参照パックか NuGet を用意するのが筋。
+#
+# 使い方: bash tools/typecheck-tests.sh [--selftest]
+# 終了コード: 0 = 成功 / 1 = 型エラー / 2 = SDK 等が無くスキップ
+# ─────────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+SELFTEST=0
+[ "${1:-}" = "--selftest" ] && SELFTEST=1
+
+. "$(dirname "$0")/lib/dotnet-env.sh"
+
+OUT=$(mktemp -d); trap 'rm -rf "$OUT"' EXIT
+
+# shellcheck disable=SC2086
+dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable -nowarn:CS1591 \
+  -out:"$OUT/MWC.Core.dll" $REFS $GEN \
+  $(find src/MWC.Core -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*') > "$OUT/core.log" 2>&1 \
+  || { echo "MWC.Core does not compile; run tools/typecheck-core.sh first"; head -5 "$OUT/core.log"; exit 1; }
+
+# 対象の選定。除外は **実測に基づく** — 全ファイルでコンパイルして失敗したものだけを外した。
+# (以前「テストヘルパーのクラス名衝突」と書いたが**それは誤り**だった。実際の失敗理由は
+#  すべて System.Windows.Input / MWC.App.ViewModels への依存で、衝突は 1 件も無い。
+#  同じ誤診を繰り返さないよう、除外理由をファイル名とともに明記する。)
+#
+# ★ 以前この節は NetworkDetailViewModelVpnEapWiringTests / ProfileManagerViewModelErrorHandlingTests /
+#   SignalIconWiringTests / QualityImprovementTests / BugFixRegressionTests / RefactoringTests /
+#   QualityScanV8Tests も除外中と書いていたが、**それは誤り**だった — 下の WPF_DEPENDENT には
+#   含まれておらず、実際には全てコンパイル対象。Mvvm.Stub.cs / MvvmGenerate.py /
+#   WpfMinimal.Stub.cs によるスタブ面の拡大に合わせて自然に取り込まれていたが、
+#   この説明コメントだけが同期されず古いまま残っていた。除外リストを変更したら、
+#   この一覧も同じコミットで直すこと(tools/run-tests.sh の同名コメントも合わせて更新)。
+#
+#   現在も除外が要るのは以下の 4 者だけ:
+#   OweWiringTests / FinalValidationV8Tests / OnboardingTests … AllAdaptersOverviewViewModel か
+#     Dialog クラス (ConnectionProgressDialog 等) を要求し、いずれも XAML コンパイラでしか
+#     生成できない InitializeComponent partial が必要 (tools/stubs/WpfMinimal.Stub.cs のヘッダ参照)。
+#   PropertyBasedTests … FsCheck (NuGet 専用パッケージ、スタブ化していない)。
+#
+#   ("MissingManifestResourceException になる" という旧来の懸念は型検査には無関係でもある —
+#    ここはコンパイルのみで実行しないため、埋め込みリソースの有無は型検査の結果を左右しない。)
+WPF_DEPENDENT="OweWiringTests.cs FinalValidationV8Tests.cs OnboardingTests.cs PropertyBasedTests.cs"
+
+APP_SOURCES=""
+for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do
+  # Serilog は tools/stubs/Serilog.Stub.cs が最小限を供給するので除外しない。
+  grep -qE 'using System\.Windows|using CommunityToolkit|ObservableProperty|RelayCommand|System\.Windows\.' "$f" \
+    || APP_SOURCES="$APP_SOURCES $f"
+done
+
+# WPF のごく一部で足りるサービス 3 件。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
+             Services/KeyboardShortcutService.cs \
+             Services/ThemeService.cs Services/JumpListService.cs; do
+  [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
+done
+
+# ViewModel 群 + CommunityToolkit.Mvvm 生成メンバの再現。
+# これが入ることで ViewModel 配線テストが実行できるようになる。
+# AllAdaptersOverviewViewModel だけは MWC.App.Views (XAML) を要するため外す。
+GENSRC=""
+VMSRC=""
+for f in $(grep -rlE 'ObservableProperty|RelayCommand|ObservableObject' src/MWC.App --include=*.cs \
+           | grep -v '\.xaml\.cs' | grep -v AllAdaptersOverviewViewModel); do
+  VMSRC="$VMSRC $f"
+done
+if [ -n "$VMSRC" ] && command -v python3 > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if python3 tools/stubs/MvvmGenerate.py "$OUT/mvvm.g.cs" $VMSRC > /dev/null 2>&1; then
+    GENSRC="$OUT/mvvm.g.cs"; APP_SOURCES="$APP_SOURCES $VMSRC"
+  fi
+fi
+
+STUBS="tools/stubs/ImplicitUsings.Stub.cs tools/stubs/TestFrameworks.Stub.cs \
+tools/stubs/MwcAppNotification.Stub.cs tools/stubs/MwcAppVersion.Stub.cs \
+tools/stubs/Serilog.Stub.cs \
+tools/stubs/WpfMinimal.Stub.cs tools/stubs/Mvvm.Stub.cs"
+
+FILES=""; SKIPPED=0
+for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); do
+  case " $WPF_DEPENDENT " in *" $(basename "$f") "*) SKIPPED=$((SKIPPED+1)) ;; *) FILES="$FILES $f" ;; esac
+done
+
+compile_tests() {
+  # nullable 警告 (CS86xx) はスタブの annotation を反映するだけなので抑制する。
+  # 本物の FluentAssertions では出ない/出るが異なるため、ここで判定材料にはできない。
+  # shellcheck disable=SC2086
+  dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable \
+    -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
+    -out:"$1" $REFS -r:"$OUT/MWC.Core.dll" \
+    $STUBS $GENSRC $APP_SOURCES $FILES 2>&1
+}
+
+if [ "$SELFTEST" -eq 1 ]; then
+  probe="tests/MWC.Core.Tests/MacAddressModeInferenceTests.cs"
+  cp "$probe" "$OUT/probe.bak"
+  sed -i 's/MacModeEvidence\.LocallyAdministeredBitSet/MacModeEvidence.LocallyAdministeredBitSetZZZ/' "$probe"
+  hit=$(compile_tests "$OUT/selftest.dll" | grep -c 'LocallyAdministeredBitSetZZZ')
+  cp "$OUT/probe.bak" "$probe"
+  if [ "$hit" -eq 0 ]; then
+    printf '\033[31mSELFTEST FAILED\033[0m: a deliberately wrong enum member inside a test was not reported.\n'
+    exit 1
+  fi
+  printf '\033[32mselftest ok\033[0m (test bodies are bound against the real Core)\n'
+fi
+
+output=$(compile_tests "$OUT/tests.dll"); status=$?
+[ -n "$output" ] && echo "$output" | grep -E 'error' | head -20
+
+n=$(echo "$FILES" | wc -w)
+if [ $status -eq 0 ]; then
+  printf '\033[32m%s test files type-check against the real Core\033[0m (%s skipped: MWC.App-dependent or FsCheck; assertions are NOT semantically checked)\n' "$n" "$SKIPPED"
+else
+  printf '\033[31mtest project failed to type-check.\033[0m\n'
+fi
+exit $status

@@ -25,9 +25,11 @@ public static class ProfileXmlBuilder
     private static readonly XNamespace OneXNs   = "http://www.microsoft.com/networking/OneX/v1";
     private static readonly XNamespace EhcNs    = "http://www.microsoft.com/provisioning/EapHostConfig";
     private static readonly XNamespace EcNs     = "http://www.microsoft.com/provisioning/EapCommon";
-    private static readonly XNamespace BeNs     = "http://www.microsoft.com/provisioning/BaseEapMethodConfig";
     private static readonly XNamespace BepNs    = "http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1";
     private static readonly XNamespace MsPeapNs = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
+    // PeapExtensions の中身 (PerformServerValidation / AcceptServerName / IdentityPrivacy) は
+    // Windows 7 で追加された V2 スキーマ。EAP-TLS 側で EtV2Ns を使っているのと同じ構造。
+    private static readonly XNamespace MsPeapV2Ns = "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2";
     private static readonly XNamespace McNs     = "http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1";
     private static readonly XNamespace EtNs     = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
     private static readonly XNamespace EtV2Ns   = "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
@@ -218,10 +220,34 @@ public static class ProfileXmlBuilder
         return eapHost;
     }
 
+    /// <summary>
+    /// サーバ証明書の検証プロンプトを抑止するか ("true" = 抑止 = 厳格)。
+    ///
+    /// これは 802.1X で最も悪用される設定である。Microsoft のスキーマ定義では
+    /// true ならユーザー入力なしで検証し、失敗すれば認証を失敗させる。
+    /// false だとユーザーに「この証明書を信頼しますか」を尋ね、承認されれば接続してしまう。
+    /// 攻撃者が偽 AP + 偽 RADIUS (hostapd-wpe 等) を立てて自己署名証明書を提示した場合、
+    /// ユーザーが 1 度「はい」を押すだけで PEAP トンネルが成立し、
+    /// MSCHAPv2 のチャレンジ/レスポンスが攻撃者に渡ってオフライン解析される
+    /// — PEAP-MSCHAPv2 の資格情報窃取として広く知られた攻撃経路。
+    ///
+    /// 方針: ユーザーが ServerNames か TrustedRootCaThumbprints を指定した場合、
+    /// それは「この特定のサーバだけを信頼する」という明示的な意図である。
+    /// そこでプロンプトを許すと 1 クリックでそのピン留めが無効化されるため厳格化する。
+    /// 逆に何も指定が無ければ照合対象が存在しないため、
+    /// 従来どおりプロンプトを許す (初回設定や CAT 未導入の環境を壊さないため)。
+    /// </summary>
+    private static string SuppressServerValidationPrompt(WifiProfileSpec spec)
+        => spec.ServerNames is { Length: > 0 }
+           || spec.TrustedRootCaThumbprints is { Length: > 0 }
+            ? "true"
+            : "false";
+
     private static XElement BuildPeapConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(MsPeapNs + "ServerValidation",
-            new XElement(MsPeapNs + "DisableUserPromptForServerValidation", "false"),
+            new XElement(MsPeapNs + "DisableUserPromptForServerValidation",
+                SuppressServerValidationPrompt(spec)),
             new XElement(MsPeapNs + "ServerNames",
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
@@ -239,7 +265,53 @@ public static class ProfileXmlBuilder
                         new XElement(McNs + "UseWinLogonCredentials", "false"))),
                 new XElement(MsPeapNs + "EnableQuarantineChecks", "false"),
                 new XElement(MsPeapNs + "RequireCryptoBinding", "false"),
-                new XElement(MsPeapNs + "PeapExtensions")));
+                BuildPeapExtensions(spec)));
+    }
+
+    /// <summary>
+    /// PEAP の PeapExtensions (V2 スキーマ) を構築する。
+    ///
+    /// 従来ここは空要素だった。一方 EAP-TLS 側は V2 の PerformServerValidation /
+    /// AcceptServerName を明示している。最も広く使われる PEAP だけが緩いと、
+    /// そこが攻撃者にとっての最弱リンクになるため揃える。
+    ///
+    /// PeapExtensionsType は xs:sequence であり要素順序が規定されている:
+    ///   PerformServerValidation → AcceptServerName → IdentityPrivacy → PeapExtensionsV2
+    /// 順序を誤ると Windows がプロファイル全体を取り込み時に拒否するため、この順を厳守する。
+    /// 各要素は optional なので、条件を満たさないものは出力しない。
+    /// </summary>
+    private static XElement BuildPeapExtensions(WifiProfileSpec spec)
+    {
+        var ext = new XElement(MsPeapNs + "PeapExtensions");
+
+        bool hasPinning = spec.ServerNames is { Length: > 0 }
+                          || spec.TrustedRootCaThumbprints is { Length: > 0 };
+
+        // 1. サーバ検証を行うか。ピン留めがある = 検証対象が定まっている場合に明示する。
+        if (hasPinning)
+            ext.Add(new XElement(MsPeapV2Ns + "PerformServerValidation", "true"));
+
+        // 2. サーバ名を ServerNames と照合するか。
+        //    照合先が空だと検証が成立しないため、ServerNames がある場合に限る
+        //    (TrustedRootCA だけの指定でこれを true にしてはならない)。
+        if (spec.ServerNames is { Length: > 0 })
+            ext.Add(new XElement(MsPeapV2Ns + "AcceptServerName", "true"));
+
+        // 3. アイデンティティ秘匿 (Phase 1 の外部アイデンティティ)。
+        //    PEAP の外部アイデンティティは TLS トンネル確立前に平文で送られるため、
+        //    実ユーザー名を晒さない方が望ましい。
+        //
+        //    ただし既定で有効化はしない: eduroam をはじめ多くの RADIUS 配備は
+        //    外部アイデンティティの realm 部分で経路制御しており、
+        //    realm を欠いた "anonymous" を送ると認証経路が壊れる。
+        //    そこでユーザーが --domain を明示した場合 (= 使うべき外部アイデンティティを
+        //    自分で指定した場合) のみ有効化する。EAP-TTLS 側と違い既定値は用いない。
+        if (!string.IsNullOrEmpty(spec.Domain))
+            ext.Add(new XElement(MsPeapV2Ns + "IdentityPrivacy",
+                new XElement(MsPeapV2Ns + "EnableIdentityPrivacy", "true"),
+                new XElement(MsPeapV2Ns + "AnonymousUserName", spec.Domain)));
+
+        return ext;
     }
 
     // Windows WLAN profile XML does not expose a way to pin a client cert by thumbprint.
@@ -249,7 +321,8 @@ public static class ProfileXmlBuilder
     private static XElement BuildEapTlsConfig(WifiProfileSpec spec)
     {
         var serverValidation = new XElement(EtNs + "ServerValidation",
-            new XElement(EtNs + "DisableUserPromptForServerValidation", "false"),
+            new XElement(EtNs + "DisableUserPromptForServerValidation",
+                SuppressServerValidationPrompt(spec)),
             new XElement(EtNs + "ServerNames",
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
@@ -279,7 +352,10 @@ public static class ProfileXmlBuilder
                 spec.ServerNames is { Length: > 0 } ? string.Join(";", spec.ServerNames) : ""));
         foreach (var thumb in spec.TrustedRootCaThumbprints)
             serverValidation.Add(new XElement(EttNs + "TrustedRootCAHash", thumb));
-        serverValidation.Add(new XElement(EttNs + "DisablePrompt", "false"));
+        // TTLS の DisablePrompt も PEAP/TLS の DisableUserPromptForServerValidation と
+        // 同義 (true = プロンプト抑止 = 厳格)。同じ方針を適用する。
+        serverValidation.Add(new XElement(EttNs + "DisablePrompt",
+            SuppressServerValidationPrompt(spec)));
 
         return new XElement(EttNs + "EapTtls",
             serverValidation,

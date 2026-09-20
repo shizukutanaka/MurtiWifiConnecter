@@ -106,7 +106,7 @@ public sealed class AccessibilityAuditService
                 "MainWindow, AdapterPreferencesDialog",
                 WcagCriterion.C2_4_3),
             new("SR09", "All features operable by keyboard alone",
-                "KeyboardShortcutService 16 shortcuts",
+                "KeyboardShortcutService (see tools/verify.sh: help list == OnKeyDown)",
                 WcagCriterion.C2_1_1),
             new("SR10", "Focus is visible (focus ring always shown)",
                 "All controls: focus-visible: outline 2px",

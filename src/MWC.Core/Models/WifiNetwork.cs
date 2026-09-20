@@ -25,7 +25,6 @@ public sealed record WifiNetwork
     public int? FrequencyMhz { get; init; }
 
     // ── Wi-Fi 7 MLO ──────────────────────────────────
-    /// <summary>MLO 使用中かどうか</summary>
     // ── 省電力 (arXiv 2402.15900, 2411.17424: TWT / rTWT) ──
     /// <summary>802.11ax Target Wake Time 対応 — IoT/バッテリー機器の省電力</summary>
     public bool TargetWakeTime { get; init; }
@@ -56,13 +55,11 @@ public sealed record WifiNetwork
     public bool IsMlo { get; init; }
     /// <summary>MLO リンク一覧(Wi-Fi 7 のみ有効)</summary>
     public IReadOnlyList<MloLink> MloLinks { get; init; } = Array.Empty<MloLink>();
-    /// <summary>MLO 集約速度上限 (Mbps) — IsMlo=true 時のみ有効</summary>
     // ── Hotspot 2.0 / Passpoint ──────────────────────────────────────
-    /// <summary>Passpoint/Hotspot2.0 AP かどうか</summary>
     /// <summary>
     /// セキュリティ堅牢性スコア。
     /// arXiv 研究知見:
-    ///   - WPA3 transition mode は Dragonblood ダウングレード攻撃に脆弱 (Vanhoef & Ronen 2020)
+    ///   - WPA3 transition mode は Dragonblood ダウングレード攻撃に脆弱 (Vanhoef &amp; Ronen 2020)
     ///   - MFP Inactive は deauth/disassoc 攻撃に脆弱 (WiSec 2022)
     /// </summary>
     public SecurityHardening Hardening
@@ -183,6 +180,16 @@ public sealed record WifiAdapter
     public required string Description { get; init; }
     public AdapterState State { get; init; }
     public string? ConnectedSsid { get; init; }
+
+    /// <summary>
+    /// このアダプターの現在の MAC アドレス(コロン区切り 6 オクテット、例: "AA:BB:CC:DD:EE:FF")。
+    /// 取得できない/未実装のプラットフォームでは null。
+    ///
+    /// <see cref="MWC.Core.Services.MacAddressModeInference"/> の判定入力として使う。null のままなら
+    /// `mwc privacy` は従来どおり `--mac`/`--mac-mode` をユーザーに求める
+    /// (docs/COMPLETION-CHECKLIST.md §4 参照 — Windows での実供給はまだ書かれていない)。
+    /// </summary>
+    public string? PhysicalAddress { get; init; }
 }
 
 public enum AdapterState

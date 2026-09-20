@@ -64,7 +64,10 @@ MWC は構造化ログ (JSON) を出力する。問題報告時にはログを�
 ~/Library/Application Support/MWC/logs/  (macOS)
 ```
 
-ログには PII (個人識別情報) は含まれない。SSID やパスフレーズはログに記録されない。
+ログにパスフレーズが記録されることはない。SSID は生の値では記録されず、`PiiMask`
+(先頭 2 文字のみ残して伏字化、例: "MyWiFi" → "My****")または `MwcLog.HashSsid`
+(FNV-1a ハッシュ化)のいずれかを経由するため、ログから元の SSID を復元することはできない
+(`src/MWC.Core/Services/PiiMask.cs` 参照)。
 
 ## 6 GHz / Wi-Fi 7 関連
 

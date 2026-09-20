@@ -21,8 +21,6 @@ namespace MWC.Core.Services;
 /// </summary>
 public sealed class CatImportService
 {
-    private static readonly XNamespace Ns = "urn:ietf:params:xml:ns:yang:ietf-eap-metadata";
-
     // ── Public API ───────────────────────────────────────────────────
 
     /// <summary>
@@ -62,9 +60,17 @@ public sealed class CatImportService
 
         var profiles = new List<CatProfile>();
 
-        // EAPIdentityProvider 要素を巡回
-        var providers = root.Descendants(ns + "EAPIdentityProvider")
-            .Concat(root.Descendants("EAPIdentityProvider"));  // 名前空間なしの古い形式
+        // EAPIdentityProvider 要素を巡回。
+        //
+        // **名前空間が無い文書で二重に数える不具合があった**: `ns` が空のとき
+        // `ns + "EAPIdentityProvider"` は `"EAPIdentityProvider"` と同一になるため、
+        // 下の 2 つの Descendants が**同じ要素を返し**、Concat で全プロファイルが
+        // 倍になっていた (名前空間なしの CAT ファイルを取り込むと、各ネットワークが
+        // 2 回現れる)。名前空間付きで拾えたときはそれを使い、空のときだけ
+        // 名前空間なしの古い形式にフォールバックする。
+        var providers = root.Descendants(ns + "EAPIdentityProvider").ToList();
+        if (providers.Count == 0 && ns != XNamespace.None)
+            providers = root.Descendants("EAPIdentityProvider").ToList();
 
         foreach (var provider in providers)
         {
@@ -79,19 +85,41 @@ public sealed class CatImportService
     }
 
     /// <summary>
-    /// eduroam の標準 SSID ("eduroam") を対象にしたデフォルトプロファイルを生成。
+    /// CAT プロファイルから接続 spec の「組織側で決まる部分」を組み立てる。
+    ///
+    /// **利用者の資格情報 (<see cref="WifiProfileSpec.Username"/> /
+    /// <see cref="WifiProfileSpec.Password"/>) は入らない。** eduroam CAT の XML は
+    /// 設計上それらを含まない — 各利用者が自分の学内アカウントを後から入力する方式だからである。
+    /// したがって PEAP / EAP-TTLS では、この spec 単体は
+    /// <see cref="WifiProfileSpec.Validate"/> を通らない(username+password 必須)。
+    /// 呼び出し側が `with { Username = ..., Password = ... }` で補うこと。
+    /// CLI の `mwc import-cat` がその参照実装。
+    ///
+    /// マッピングの注意: CAT の AnonymousIdentity は **外部 (Phase 1) アイデンティティ**であり、
+    /// 本 spec では <see cref="WifiProfileSpec.Domain"/> に入る
+    /// (<see cref="Profile.ProfileXmlBuilder"/> がここを PEAP の AnonymousUserName /
+    ///  EAP-TTLS の匿名 ID として平文送出する)。`Username` は逆にトンネル内で使う実 ID なので
+    /// 匿名 ID を入れてはならない — 2026-07 までここが取り違えられていた
+    /// (未配線だったため露見していなかった)。
+    /// CAT が AnonymousIdentity を明示しない場合は realm から `anonymous@realm` を組み立てる。
+    /// realm も無ければ null のままにする(ProfileXmlBuilder 側が既定を決める)。
     /// </summary>
     public WifiProfileSpec BuildEduroamSpec(CatProfile profile)
     {
+        var outerIdentity = !string.IsNullOrWhiteSpace(profile.AnonymousIdentity)
+            ? profile.AnonymousIdentity
+            : !string.IsNullOrWhiteSpace(profile.Domain)
+                ? $"anonymous@{profile.Domain}"
+                : null;
+
         return new WifiProfileSpec
         {
             Ssid                    = profile.Ssid,
             Auth                    = AuthMethod.WPA2Enterprise,
             EapType                 = profile.EapType,
-            Username                = profile.AnonymousIdentity,   // 匿名ユーザー名
             ServerNames             = profile.ServerNames.ToArray(),
             TrustedRootCaThumbprints = profile.CaThumbprints.ToArray(),
-            Domain                  = profile.Domain
+            Domain                  = outerIdentity,
         };
     }
 
@@ -159,11 +187,15 @@ public sealed class CatImportService
         try
         {
             var bytes = Convert.FromBase64String(base64Der);
-            using var sha1 = System.Security.Cryptography.SHA1.Create();
-            var hash = sha1.ComputeHash(bytes);
-            return BitConverter.ToString(hash).Replace("-", "");
+            // Windows WLAN プロファイル XML の <TrustedRootCA> は CA 証明書の
+            // SHA-1 サムプリントを要求する (Microsoft のスキーマ定義上の制約)。
+            // 証明書の同一性照合に使う識別子であり、署名検証の暗号強度とは無関係。
+#pragma warning disable CA5350
+            var hash = System.Security.Cryptography.SHA1.HashData(bytes);
+#pragma warning restore CA5350
+            return Convert.ToHexString(hash);
         }
-        catch { return null; }
+        catch (FormatException) { return null; }
     }
 }
 

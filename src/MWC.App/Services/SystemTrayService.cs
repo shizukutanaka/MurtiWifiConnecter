@@ -153,15 +153,6 @@ public sealed class SystemTrayService : IDisposable
         oldMenu?.Dispose();
     }
 
-    /// <summary>(後方互換) 単一アダプター用の旧 API</summary>
-    public void UpdateNetworkMenu(
-        IReadOnlyList<WifiNetwork> networks,
-        Func<string, Task> connectCallback)
-    {
-        // 廃止予定。UpdateAdapterMenusを使う。
-        _log.LogDebug("UpdateNetworkMenu called - prefer UpdateAdapterMenus");
-    }
-
     public void UpdateStatus(string? ssid, int signalQuality)
     {
         var text = ssid is null

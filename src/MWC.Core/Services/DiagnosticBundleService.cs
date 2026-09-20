@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -29,9 +30,9 @@ public sealed partial class DiagnosticBundleService
         var sb = new StringBuilder();
         sb.AppendLine("# MWC Diagnostic Bundle");
         sb.AppendLine();
-        sb.AppendLine($"- Generated: {ctx.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
-        sb.AppendLine($"- App version: {Redact(ctx.AppVersion)}");
-        sb.AppendLine($"- OS: {Redact(ctx.OsDescription)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- Generated: {ctx.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- App version: {Redact(ctx.AppVersion)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- OS: {Redact(ctx.OsDescription)}");
         sb.AppendLine();
 
         // ── アダプター ──
@@ -47,9 +48,9 @@ public sealed partial class DiagnosticBundleService
         // ── ヘルス ──
         if (ctx.Health is { } h)
         {
-            sb.AppendLine($"## Health: {h.Status}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"## Health: {h.Status}");
             foreach (var c in h.Checks)
-                sb.AppendLine($"- [{(c.Passed ? "x" : " ")}] {c.Name}: {Redact(c.Detail)}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"- [{(c.Passed ? "x" : " ")}] {c.Name}: {Redact(c.Detail)}");
             sb.AppendLine();
         }
 
@@ -57,9 +58,9 @@ public sealed partial class DiagnosticBundleService
         if (ctx.Quality is { } q)
         {
             sb.AppendLine("## Quality Measurement");
-            sb.AppendLine($"- Latency: {q.LatencyAvgMs} ms (min {q.LatencyMinMs} / max {q.LatencyMaxMs})");
-            sb.AppendLine($"- Packet loss: {q.PacketLossPct:F0}%");
-            sb.AppendLine($"- Grade: {q.Grade}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Latency: {q.LatencyAvgMs} ms (min {q.LatencyMinMs} / max {q.LatencyMaxMs})");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Packet loss: {q.PacketLossPct:F0}%");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Grade: {q.Grade}");
             sb.AppendLine();
         }
 
@@ -67,7 +68,7 @@ public sealed partial class DiagnosticBundleService
         if (ctx.LastFailure is { } f)
         {
             sb.AppendLine("## Last Connection Failure");
-            sb.AppendLine($"- Type: {f}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Type: {f}");
             sb.AppendLine();
         }
 

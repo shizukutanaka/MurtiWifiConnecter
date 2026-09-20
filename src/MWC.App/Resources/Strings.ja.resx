@@ -11,38 +11,20 @@
   <data name="Action_Disconnect"><value>切断</value></data>
   <data name="Action_Cancel"><value>キャンセル</value></data>
   <data name="Label_Passphrase"><value>パスフレーズ</value></data>
-  <data name="Label_Show"><value>表示</value></data>
   <data name="Label_Connected"><value>接続中: {0}</value></data>
   <data name="Label_NotConnected"><value>未接続</value></data>
-  <data name="Label_AvailableNetworks"><value>利用可能なネットワーク</value></data>
   <data name="Status_AdapterCount"><value>{0} 個のアダプター</value></data>
   <data name="Status_Scanning"><value>スキャン中…</value></data>
-  <data name="Error_PassphraseTooShort"><value>パスフレーズは8文字以上で入力してください</value></data>
   <data name="Error_ConnectionFailed"><value>接続失敗: {0}</value></data>
-  <data name="Auth_Open"><value>オープン</value></data>
-  <data name="Auth_OWE"><value>オープン強化(OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP(非推奨)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 個人</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 個人</value></data>
-  <data name="Auth_Enterprise"><value>企業向け</value></data>
   <data name="Failure_BadCredentials"><value>パスフレーズが違います</value></data>
   <data name="Failure_Timeout"><value>接続タイムアウト</value></data>
   <data name="Failure_NotInRange"><value>ネットワークが圏外</value></data>
   <data name="Failure_AdapterDisabled"><value>無線アダプターが無効</value></data>
   <data name="Failure_InsufficientPrivilege"><value>管理者権限が必要</value></data>
-  <data name="Captive_Detected"><value>サインインが必要</value></data>
   <data name="Tab_Detail"><value>詳細</value></data>
   <data name="Tab_Signal"><value>信号履歴</value></data>
   <data name="Tab_Channel"><value>チャンネル</value></data>
-  <data name="Label_Band"><value>バンド</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>チャンネル</value></data>
-  <data name="Label_Freq"><value>周波数</value></data>
-  <data name="Label_Speed"><value>最大速度</value></data>
-  <data name="Label_Signal"><value>信号</value></data>
-  <data name="Label_Status"><value>状態</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>ベンダー</value></data>
   <data name="Action_Export_Csv"><value>CSVエクスポート</value></data>
   <data name="Action_Export_Json"><value>JSONエクスポート</value></data>
   <data name="Action_Export_Txt"><value>テキストエクスポート</value></data>
@@ -129,6 +111,8 @@
   <data name="Shortcut_Quality_D"><value>ネットワーク品質を計測</value></data>
   <data name="Shortcut_Settings_T"><value>設定</value></data>
   <data name="Shortcut_Settings_D"><value>アプリ設定を開く</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>すべてのアダプター</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>すべてのアダプターの一覧を開く</value></data>
   <data name="Shortcut_ToggleMode_T"><value>詳細モード切替</value></data>
   <data name="Shortcut_ToggleMode_D"><value>シンプル/詳細表示を切替</value></data>
   <data name="Shortcut_Hide_T"><value>ウィンドウを隠す</value></data>
@@ -634,6 +618,7 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} サンプル)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps 実効、2ストリーム推定)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} リンク  ({1})  {2} Mbps 合算  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) 対応 — リンク別詳細は取得不可</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>シングルリンク</value></data>
   <data name="Mlo_Reliability_DualLink"><value>デュアルリンク</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>トリプルリンク</value></data>
@@ -678,4 +663,10 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Failure_OsError"><value>システムエラー</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>ピン留めネットワーク一覧</value></data>
+  <data name="Label_EapType"><value>EAP 方式</value></data>
+  <data name="Label_EapUsername"><value>ユーザー名</value></data>
+  <data name="Label_EapIdentity"><value>匿名 ID(任意)</value></data>
+  <data name="Label_EapServerName"><value>RADIUS サーバー名(任意)</value></data>
+  <data name="EapHint_Identity"><value>トンネル確立前に平文で送られます。ユーザー名を隠すには anonymous@realm を指定します。</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP と EAP-TTLS にはユーザー名とパスワードが必要です。</value></data>
 </root>

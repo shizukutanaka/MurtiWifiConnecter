@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;          // IReadOnlyList<byte>.Contains (Enumerable.Contains) に必要。
+                            // 無いと MemoryExtensions.Contains(ReadOnlySpan<byte>,byte) しか
+                            // 見えず CS1929 でビルドが落ちる。
 using MWC.Core.Models;
 
 namespace MWC.Core.Services;
@@ -32,6 +35,7 @@ public static class BeaconIeParser
         CountryInfo? country = null;
         TpcReport? tpc = null;
         var presentIds = new List<byte>();
+        var presentExtIds = new List<byte>();
         bool bssTransitionMgmt = false;
 
         int i = 0;
@@ -44,6 +48,11 @@ public static class BeaconIeParser
 
             var body = data.Slice(bodyStart, len);
             presentIds.Add(id);
+
+            // 拡張要素 (Element ID 255) は Body 先頭 1 バイトが Element ID Extension。
+            // 本文が空の壊れた要素で範囲外参照しないよう長さを確認する。
+            if (id == ExtendedElementId && len >= 1)
+                presentExtIds.Add(body[0]);
 
             switch (id)
             {
@@ -100,13 +109,17 @@ public static class BeaconIeParser
             Country:            country,
             Tpc:                tpc,
             BssTransitionMgmt:  bssTransitionMgmt,
-            PresentElementIds:  presentIds);
+            PresentElementIds:  presentIds,
+            PresentExtensionIds: presentExtIds);
     }
 
     // ── 個別要素デコーダ (本体スライスのみを受け取る) ─────────────────
     private const byte ExtendedCapabilitiesId = 127;
+    /// <summary>拡張要素のコンテナ ID。実体は Body 先頭 1 バイトの Element ID Extension で決まる。</summary>
+    private const byte ExtendedElementId = 255;
     private const byte VendorSpecificId = 221;
-    private static ReadOnlySpan<byte> WmmOui => [0x00, 0x50, 0xF2];
+    // WMM の OUI/Type/Subtype 定数は WmmParser が持つ。ここに複製を残すと
+    // 「どちらが正か」が再び分からなくなるため置かない。
     private static readonly IReadOnlyList<NeighborApInfo> EmptyNeighbors = Array.Empty<NeighborApInfo>();
     private static readonly IReadOnlyList<RnrNeighborAp>  EmptyRnr       = Array.Empty<RnrNeighborAp>();
 
@@ -136,38 +149,17 @@ public static class BeaconIeParser
             ChannelUtilization:         b[2],
             AvailableAdmissionCapacity: (ushort)(b[3] | (b[4] << 8)));
 
+    // WMM の復号は WmmParser に一本化してある。以前はこのメソッドが AC パラメータの
+    // 展開を丸ごと自前で持っており、WmmParser.ParseAcParams と 1 バイト単位で同一の
+    // コードが 2 箇所に存在した。WmmParserTests が検証していたのは WmmParser 側で、
+    // 製品が実行していたのはこちら側 — テストが「動いていない方の実装」を保証していた。
+    // 本体レベルの入口 (ParseParameterBody / ParseQosInfoBody) に委譲することで、
+    // 1 パス走査を保ったまま実装を 1 つにする。
     private static void DecodeVendorSpecific(
         ReadOnlySpan<byte> b, ref WmmParameters? wmm, ref byte? wmmQosInfo)
     {
-        // WMM: OUI 00:50:F2, Type 02
-        if (b.Length < 7) return;
-        if (b[0] != WmmOui[0] || b[1] != WmmOui[1] || b[2] != WmmOui[2]) return;
-        if (b[3] != 0x02 || b[5] != 0x01) return;   // Type=WMM, Version=1
-
-        byte subtype = b[4];
-        if (subtype == 0x00 || subtype == 0x01)
-            wmmQosInfo ??= b[6];
-
-        // WMM Parameter (subtype 1): 4 AC params follow Reserved byte
-        if (subtype == 0x01 && b.Length >= 24 && wmm is null)
-        {
-            var ac = new WmmAcParam[4];
-            for (int k = 0; k < 4; k++)
-            {
-                int off = 8 + k * 4;
-                byte aciAifsn = b[off];
-                byte ecw      = b[off + 1];
-                ushort txop   = (ushort)(b[off + 2] | (b[off + 3] << 8));
-                ac[k] = new WmmAcParam(
-                    Category:  (WmmAccessCategory)((aciAifsn >> 5) & 0x03),
-                    Aifsn:     (byte)(aciAifsn & 0x0F),
-                    AdmissionControlMandatory: (aciAifsn & 0x10) != 0,
-                    EcwMin:    (byte)(ecw & 0x0F),
-                    EcwMax:    (byte)((ecw >> 4) & 0x0F),
-                    TxopLimit: txop);
-            }
-            wmm = new WmmParameters(b[6], ac);
-        }
+        wmmQosInfo ??= WmmParser.ParseQosInfoBody(b);
+        wmm        ??= WmmParser.ParseParameterBody(b);
     }
 
     private static string FormatBssid(ReadOnlySpan<byte> b)
@@ -185,10 +177,51 @@ public sealed record BeaconIeSummary(
     CountryInfo?                  Country,
     TpcReport?                    Tpc,
     bool                          BssTransitionMgmt,
-    IReadOnlyList<byte>           PresentElementIds)
+    IReadOnlyList<byte>           PresentElementIds,
+    // 既定値を持たせて後方互換にする。既存の呼び出し側 (テストを含む) は
+    // 拡張要素を扱わないため、追加のたびに全構築箇所を書き換える必要はない。
+    IReadOnlyList<byte>?          PresentExtensionIds = null)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>
     public bool SupportsFastTransition => MobilityDomain is not null;
+
+    /// <summary>
+    /// 802.11u Interworking 要素 (Element ID 107) を含む = Passpoint / Hotspot 2.0 の候補。
+    ///
+    /// Interworking 要素の存在は「この AP がネットワーク選択のための情報提供に対応している」
+    /// ことを示し、Passpoint 対応 AP は必ずこれを広告する。Hotspot 2.0 の完全な判定には
+    /// さらに Vendor Specific 要素 (WFA OUI) の確認が要るが、Interworking の有無は
+    /// 第一段のふるい分けとして有効で、`Hotspot20Service` が必要とするのはこの信号である。
+    ///
+    /// 専用フィールドを増やさず <see cref="PresentElementIds"/> から導出しているのは、
+    /// パーサーが既に全要素 ID を記録しており、本要素については「あるか無いか」しか
+    /// 使わないため — 使わない本文を保持する理由がない。
+    /// </summary>
+    public bool HasInterworking => PresentElementIds.Contains(InterworkingElementId);
+
+    /// <summary>802.11u Interworking 要素の Element ID。</summary>
+    public const byte InterworkingElementId = 107;
+
+    /// <summary>
+    /// 802.11be Multi-Link 要素 (拡張要素、Element ID Extension 107) を広告しているか
+    /// = この AP は Wi-Fi 7 の MLO (Multi-Link Operation) に対応している。
+    ///
+    /// これは AP が**広告する能力**であり、実際に張られたリンクの本数や
+    /// リンクごとの RSSI とは別物である。後者は接続中のランタイム API
+    /// (`ManagedNativeWifi.GetRealtimeConnectionQuality`) からしか得られず、
+    /// `WifiNetwork.MloLinks` を埋めるにはそちらが要る (docs/FEATURE-AUDIT.md §1d)。
+    /// ビーコンから分かるのは「対応しているか否か」までで、
+    /// スキャン一覧で Wi-Fi 7 AP を見分けるにはそれで足りる。
+    ///
+    /// Interworking (ID 107) と数値が同じだが**名前空間が異なる** —
+    /// あちらは通常の Element ID、こちらは拡張要素の Element ID Extension。
+    /// 混同しないよう別プロパティ・別リストで扱う。
+    /// </summary>
+    public bool HasMultiLink =>
+        PresentExtensionIds is not null && PresentExtensionIds.Contains(MultiLinkExtensionId);
+
+    /// <summary>802.11be Multi-Link 要素の Element ID Extension。</summary>
+    public const byte MultiLinkExtensionId = 107;
 
     /// <summary>802.11k Neighbor Report 情報を含む。</summary>
     public bool HasNeighborReport => Neighbors.Count > 0;

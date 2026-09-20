@@ -249,7 +249,9 @@ public class AdapterPreferencesExtendedTests
                 svc.PinSsid(id, $"SSID{i % 5}");
         }, cts.Token));
 
-        var readers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+        // 仮引数を `_` にしない: 内側の `_ = svc.All();` が破棄ではなく
+        // この int への代入として束縛され、CS0029 でビルドが落ちる。
+        var readers = Enumerable.Range(0, 4).Select(reader => Task.Run(() =>
         {
             for (int i = 0; i < 80 && !cts.IsCancellationRequested; i++)
             {

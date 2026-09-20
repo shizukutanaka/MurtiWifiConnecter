@@ -41,7 +41,7 @@ dotnet run -c Release
 
 | メソッド | 目標 | 備考 |
 |---|---|---|
-| Record1000 | < 5 ms | System.Threading.Lock 込み |
+| Record1000 | < 5 ms | 実装は `object` ロック(`_lock`/`_saveLock` の 2 本、`System.Threading.Lock` ではない。`docs/adr/0010-thread-safe-history.md` の 2026-09 追記参照)込み |
 | Stats30Days | < 500 µs |
 
 ### RegulatoryDomain (FrozenDictionary)
@@ -63,7 +63,9 @@ dotnet run -c Release
 
 ## リグレッション基準
 
-CI のパフォーマンステストで以下を検出する:
+以下は CI で自動検出する**目標**であり、現時点でこれを検査する仕組みは存在しない
+(`.github/workflows/` 自体が未設置。`docs/COMPLETION-CHECKLIST.md` 参照)。
+`docs/ci/ci.yml`(未設置のドラフト)にもベンチマーク実行ステップは無い。
 
 - 各ベンチマークがベースライン比 +20% 以上の劣化 → 警告
 - p99 レイテンシ 500ms 超 → ブロック

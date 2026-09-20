@@ -34,8 +34,10 @@ public class ProfileManagerViewModelErrorHandlingTests
             => throw new InvalidOperationException("scan failed");
         public Task<bool> RegisterProfileAsync(Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
             => throw new InvalidOperationException("register failed");
+        // IWifiService.ConnectAsync は timeout を取る。この偽実装は追加前の署名の
+        // ままで、インターフェースを満たしていなかった (CS0535)。
         public Task<ConnectionResult> ConnectAsync(Guid adapterId, string profileName, string ssid,
-            CancellationToken ct = default)
+            TimeSpan timeout, CancellationToken ct = default)
             => throw new InvalidOperationException("connect failed");
         public Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
             => throw new InvalidOperationException("disconnect failed");

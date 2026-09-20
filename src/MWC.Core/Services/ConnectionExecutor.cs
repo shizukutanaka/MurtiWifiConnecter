@@ -133,9 +133,14 @@ public sealed class ConnectionExecutor
             _history.RecordConnection(spec.Ssid, false);
             throw;
         }
-        catch (Exception ex)
+        // プラットフォーム層の失敗は種類を問わず ConnectionResult へ畳む
+        // (呼び出し側は Result パターンを期待し、例外を処理しない)。
+        // 致命的なものだけは飲み込まず再送出する。
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException
+                                   and not ThreadAbortException)
         {
-            _log.LogError(ex, "ConnectAsync exception: {ssid}", PiiMask.Ssid(spec.Ssid));
+            _log.LogError(ex, "ConnectAsync exception: {Ssid}", PiiMask.Ssid(spec.Ssid));
             _history.RecordConnection(spec.Ssid, false);
             return ConnectionResult.Fail(ConnectionFailure.OsError);
         }
@@ -167,7 +172,9 @@ public sealed class ConnectionExecutor
         {
             return await _wifi.DisconnectAsync(adapterId, ct).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException
+                                   and not StackOverflowException
+                                   and not ThreadAbortException)
         {
             _log.LogWarning(ex, "Disconnect failed");
             return false;

@@ -11,38 +11,20 @@
   <data name="Action_Disconnect"><value>Desconectar</value></data>
   <data name="Action_Cancel"><value>Cancelar</value></data>
   <data name="Label_Passphrase"><value>Contraseña</value></data>
-  <data name="Label_Show"><value>Mostrar</value></data>
   <data name="Label_Connected"><value>Conectado: {0}</value></data>
   <data name="Label_NotConnected"><value>No conectado</value></data>
-  <data name="Label_AvailableNetworks"><value>Redes disponibles</value></data>
   <data name="Status_AdapterCount"><value>{0} adaptador(es)</value></data>
   <data name="Status_Scanning"><value>Escaneando…</value></data>
-  <data name="Error_PassphraseTooShort"><value>La contraseña debe tener al menos 8 caracteres</value></data>
   <data name="Error_ConnectionFailed"><value>Error de conexión: {0}</value></data>
-  <data name="Auth_Open"><value>Abierta</value></data>
-  <data name="Auth_OWE"><value>Abierta mejorada (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (obsoleta)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 Personal</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 Personal</value></data>
-  <data name="Auth_Enterprise"><value>Empresarial</value></data>
   <data name="Failure_BadCredentials"><value>Contraseña incorrecta</value></data>
   <data name="Failure_Timeout"><value>Tiempo agotado</value></data>
   <data name="Failure_NotInRange"><value>Red fuera de alcance</value></data>
   <data name="Failure_AdapterDisabled"><value>Adaptador inalámbrico desactivado</value></data>
   <data name="Failure_InsufficientPrivilege"><value>Se requieren derechos de administrador</value></data>
-  <data name="Captive_Detected"><value>Inicio de sesión requerido</value></data>
   <data name="Tab_Detail"><value>Detalles</value></data>
   <data name="Tab_Signal"><value>Señal</value></data>
   <data name="Tab_Channel"><value>Canal</value></data>
-  <data name="Label_Band"><value>Banda</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>Canal</value></data>
-  <data name="Label_Freq"><value>Frecuencia</value></data>
-  <data name="Label_Speed"><value>Velocidad máx.</value></data>
-  <data name="Label_Signal"><value>Señal</value></data>
-  <data name="Label_Status"><value>Estado</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>Fabricante</value></data>
   <data name="Action_Export_Csv"><value>Exportar CSV</value></data>
   <data name="Action_Export_Json"><value>Exportar JSON</value></data>
   <data name="Action_Export_Txt"><value>Exportar texto</value></data>
@@ -129,6 +111,8 @@
   <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
   <data name="Shortcut_Settings_T"><value>Settings</value></data>
   <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>Todos los adaptadores</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>Abrir el resumen de todos los adaptadores</value></data>
   <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
   <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
   <data name="Shortcut_Hide_T"><value>Hide window</value></data>
@@ -634,6 +618,7 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) compatible: sin detalle por enlace</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
   <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
@@ -678,4 +663,10 @@ Compatible con WPA3, Enterprise, código QR y CLI.</value></data>
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>Método EAP</value></data>
+  <data name="Label_EapUsername"><value>Usuario</value></data>
+  <data name="Label_EapIdentity"><value>Identidad anónima (opcional)</value></data>
+  <data name="Label_EapServerName"><value>Nombre del servidor RADIUS (opcional)</value></data>
+  <data name="EapHint_Identity"><value>Se envía sin cifrar antes del túnel. Use anonymous@realm para ocultar su usuario.</value></data>
+  <data name="Error_EapUsernameRequired"><value>PEAP y EAP-TTLS requieren usuario y contraseña.</value></data>
 </root>

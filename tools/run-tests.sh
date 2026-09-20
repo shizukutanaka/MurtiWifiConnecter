@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# tools/run-tests.sh — テストを **NuGet 無しで実際に実行する**。
+#
+# なぜ在るか:
+#   `api.nuget.org` がエグレス拒否のため xunit のランナーが入らず、このリポジトリの
+#   テストは**一度も実行されたことがなかった**。しかし
+#     - アサーションは tools/stubs/TestFrameworks.Stub.cs が実際に検証し、
+#     - [Fact]/[Theory] の反射呼び出しは tools/stubs/MiniRunner.cs が行う
+#   ので、xunit 無しでも走らせて合否が出せる。
+#
+#   2026-08 の初回実行で **1037 件合格 / 実在の欠陥 4 件**が判明した:
+#     1. CatImportService — 名前空間なしの CAT ファイルで全プロファイルが**二重**になる
+#        (`ns + "X"` と `"X"` が同一クエリになり Concat で倍増)。**製品の不具合**。
+#     2. SlnRegistrationTests — 「GUID が 3 回以上出たら重複」は .sln の形式に対して
+#        常に偽。プロジェクト GUID は宣言 1 + 構成 4 = 最低 5 回出る。
+#     3. EvilTwinDetectorTests — 製品が出さない語 "impersonation" を期待していた。
+#     4. HighDensityWifiUriRoundTripTests — WIFI: URI は WPA と WPA2 を区別できないので
+#        WPAPSK の完全往復は原理的に不可能だった。
+#   いずれも CI の初回で赤くなるもので、型検査では捕まらない **実行時**の欠陥。
+#
+# 本物の `dotnet test` との差 (必ず承知して使うこと):
+#   - 対象は typecheck-tests.sh と同じ範囲 (MWC.App 依存と FsCheck を除く)。
+#   - アサーション意味論は近似。BeEquivalentTo は反射による構造比較で、
+#     本物の FluentAssertions とは差異があり得る。
+#   - 並列実行なし。xunit の collection/fixture は未対応。
+#   - **合格は「この近似の下で通った」という意味**であり、`dotnet test` の代わりにならない。
+#
+# ただし「近似だから無意味」ではない。**検出力は実測してある**:
+#   `tools/mutation-check.sh` が製品コードに意図的な欠陥を注入し、失敗が増えるかを見る。
+#   2026-08 の測定では実質的な変異 5 件をすべて殺し、コメントだけを変えた対照は生存した。
+#   つまりこのスイートは通るだけの張りぼてではなく、実際に意味論を検証している。
+#   **主張する前に測ること** — 本サイクルで最も高くついた教訓。
+#
+# 5 件目の欠陥 (2026-08 に修正済み。上の 4 件と同じくテスト実行で初めて判明した):
+#   NetworkHistoryService は保存先を `static readonly` の固定パスで持っていたため、
+#   **同一プロセス内の全インスタンスが 1 つのファイルを共有**していた。
+#   テストは互いの書き込みを読み、`NetworkHistoryService_ConcurrentWrites_ThreadSafe` が
+#   他テストの SSID を拾って落ちていた。xunit はテストクラスを既定で並列実行するので、
+#   これは CI で**不定期に落ちる**種類の製品欠陥である (テストの都合ではない)。
+#   コンストラクタに `historyPath` を足して注入可能にした。引数を省略した既存の
+#   呼び出しは従来どおり動く。
+#
+# 使い方: bash tools/run-tests.sh [--verbose]
+# 終了コード: 0 = 全合格 / 1 = 失敗あり / 2 = SDK 等が無くスキップ
+# ─────────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+. "$(dirname "$0")/lib/dotnet-env.sh"
+
+# 出力先の深さが重要: RepositoryIntegrityTests / SlnRegistrationTests は
+# アセンブリ位置から 5 階層上をリポジトリルートとみなす (通常のビルド出力と同じ深さ)。
+# 浅い場所に置くとルートを見つけられず、それらのテストが偽陽性で落ちる。
+RUNDIR="artifacts/bin/MiniRunner/Release/net10.0"
+mkdir -p "$RUNDIR"
+
+# shellcheck disable=SC2086
+dotnet "$CSC" -nologo -nostdlib -target:library -langversion:12 -nullable:enable -nowarn:CS1591 \
+  -out:"$RUNDIR/MWC.Core.dll" $REFS $GEN \
+  $(find src/MWC.Core -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*') > /dev/null 2>&1 \
+  || { echo "MWC.Core does not compile; run tools/typecheck-core.sh"; exit 1; }
+
+# 対象の選定。除外は **実測に基づく** — 全ファイルでコンパイルして失敗したものだけを外した。
+# (以前「テストヘルパーのクラス名衝突」と書いたが**それは誤り**だった。実際の失敗理由は
+#  すべて System.Windows.Input / MWC.App.ViewModels への依存で、衝突は 1 件も無い。
+#  同じ誤診を繰り返さないよう、除外理由をファイル名とともに明記する。)
+#
+# ★ 以前この節は NetworkDetailViewModelVpnEapWiringTests / ProfileManagerViewModelErrorHandlingTests /
+#   SignalIconWiringTests / QualityImprovementTests / BugFixRegressionTests も「ViewModel / Dialog /
+#   System.Windows.Input 依存」として除外中と書いていたが、**それは誤り**だった —
+#   下の WPF_DEPENDENT には含まれておらず、実際には 4 者ともコンパイル・実行されている。
+#   Mvvm.Stub.cs / tools/stubs/MvvmGenerate.py / WpfMinimal.Stub.cs によるスタブ面の拡大に
+#   合わせて自然に取り込まれていたが、この説明コメントだけが同期されず古いまま残っていた —
+#   本節が戒めている「同じ誤診を繰り返さない」を、この節自身が破っていたことになる。
+#   除外リストを変更したら、この一覧も同じコミットで直すこと。
+#
+#   現在も除外が要るのは以下の 4 者だけ:
+#   OweWiringTests / FinalValidationV8Tests / OnboardingTests … AllAdaptersOverviewViewModel か
+#     Dialog クラス (ConnectionProgressDialog 等) を要求し、いずれも XAML コンパイラでしか
+#     生成できない InitializeComponent partial が必要 (tools/stubs/WpfMinimal.Stub.cs のヘッダ参照)。
+#   PropertyBasedTests … FsCheck (NuGet 専用パッケージ、スタブ化していない)。
+#
+#   (RefactoringTests は 2026-08 に**取り込んだ**: L.cs が要求する .resources を
+#    tools/stubs/ResxToResources.cs で .resx から生成し -resource で埋め込むようにしたため、
+#    MissingManifestResourceException は解消した。i18n アクセサ層が初めて実行検証される。)
+WPF_DEPENDENT="OweWiringTests.cs FinalValidationV8Tests.cs OnboardingTests.cs PropertyBasedTests.cs"
+
+APP_SOURCES=""
+for f in $(find src/MWC.App -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -name '*.xaml.cs'); do
+  # Serilog は tools/stubs/Serilog.Stub.cs が最小限を供給するので除外しない。
+  grep -qE 'using System\.Windows|using CommunityToolkit|ObservableProperty|RelayCommand|System\.Windows\.' "$f" \
+    || APP_SOURCES="$APP_SOURCES $f"
+done
+
+# WPF のごく一部で足りるサービス 3 件。
+for extra in Services/SensitiveClipboard.cs Services/AsyncEventHelper.cs Services/AccessibilityService.cs \
+             Services/KeyboardShortcutService.cs \
+             Services/ThemeService.cs Services/JumpListService.cs; do
+  [ -f "src/MWC.App/$extra" ] && APP_SOURCES="$APP_SOURCES src/MWC.App/$extra"
+done
+
+# ViewModel 群 + CommunityToolkit.Mvvm 生成メンバの再現。
+# これが入ることで ViewModel 配線テストが実行できるようになる。
+# AllAdaptersOverviewViewModel だけは MWC.App.Views (XAML) を要するため外す。
+GENSRC=""
+VMSRC=""
+for f in $(grep -rlE 'ObservableProperty|RelayCommand|ObservableObject' src/MWC.App --include=*.cs \
+           | grep -v '\.xaml\.cs' | grep -v AllAdaptersOverviewViewModel); do
+  VMSRC="$VMSRC $f"
+done
+if [ -n "$VMSRC" ] && command -v python3 > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if python3 tools/stubs/MvvmGenerate.py "$RUNDIR/mvvm.g.cs" $VMSRC > /dev/null 2>&1; then
+    GENSRC="$RUNDIR/mvvm.g.cs"; APP_SOURCES="$APP_SOURCES $VMSRC"
+  fi
+fi
+
+STUBS="tools/stubs/ImplicitUsings.Stub.cs tools/stubs/TestFrameworks.Stub.cs \
+tools/stubs/MwcAppNotification.Stub.cs tools/stubs/MwcAppVersion.Stub.cs \
+tools/stubs/Serilog.Stub.cs \
+tools/stubs/WpfMinimal.Stub.cs tools/stubs/Mvvm.Stub.cs"
+
+FILES=""; SKIPPED=0
+for f in $(find tests -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*'); do
+  case " $WPF_DEPENDENT " in *" $(basename "$f") "*) SKIPPED=$((SKIPPED+1)) ;; *) FILES="$FILES $f" ;; esac
+done
+
+# shellcheck disable=SC2086
+# L.cs は ResourceManager 経由で MWC.App.Resources.Strings.resources を読む。
+# 製品ビルドでは MSBuild が .resx をコンパイルして埋め込むが、csc 直叩きには
+# resgen 相当が無い。tools/stubs/ResxToResources.cs で生成して -resource で埋め込む。
+# これが無いと LocalizationTests が MissingManifestResourceException で落ちる
+# (製品の不具合ではなくハーネスの不足)。
+RESARG=""
+if [ -f src/MWC.App/Resources/Strings.resx ]; then
+  # shellcheck disable=SC2086
+  dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 \
+    -out:"$RUNDIR/resx2res.dll" $REFS tools/stubs/ResxToResources.cs > /dev/null 2>&1
+  printf '{"runtimeOptions":{"tfm":"net10.0","framework":{"name":"Microsoft.NETCore.App","version":"10.0.0"}}}' \
+    > "$RUNDIR/resx2res.runtimeconfig.json"
+  if dotnet "$RUNDIR/resx2res.dll" src/MWC.App/Resources/Strings.resx \
+       "$RUNDIR/Strings.resources" > /dev/null 2>&1; then
+    RESARG="-resource:$RUNDIR/Strings.resources,MWC.App.Resources.Strings.resources"
+  fi
+fi
+
+dotnet "$CSC" -nologo -nostdlib -target:exe -langversion:12 -nullable:enable -main:MwcMiniRunner.Program $RESARG \
+  -nowarn:CS1591,CS8600,CS8601,CS8602,CS8603,CS8604,CS8620,CS8625 \
+  -out:"$RUNDIR/run.dll" $REFS -r:"$RUNDIR/MWC.Core.dll" \
+  $STUBS $GENSRC tools/stubs/MiniRunner.cs $APP_SOURCES $FILES
+[ $? -eq 0 ] || { echo "tests do not compile; run tools/typecheck-tests.sh"; exit 1; }
+
+cat > "$RUNDIR/run.runtimeconfig.json" <<EOF
+{ "runtimeOptions": { "tfm": "net10.0",
+  "framework": { "name": "Microsoft.NETCore.App", "version": "${RUNTIME_VER:-10.0.0}" } } }
+EOF
+[ -n "$SHARED" ] && cp "$SHARED"Microsoft.Extensions.Logging.Abstractions.dll "$RUNDIR/" 2>/dev/null
+
+# 永続化された前回の状態を消す。消さないと EapAuthStatsService 等の件数が積み上がり、
+# 製品の不具合と紛らわしい失敗になる (実際に踏んだ)。
+rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/MWC"
+
+echo "running $(echo "$FILES" | wc -w) test files ($SKIPPED skipped: MWC.App-dependent or FsCheck)"
+dotnet "$RUNDIR/run.dll" "$@"

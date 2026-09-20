@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Automation.Peers;   // AutomationNotificationKind / ...Processing。
+                                         // 下の UIElementAutomationPeer は完全修飾しているが、
+                                         // この 2 つの列挙は未修飾で使っており using が要る。
 
 namespace MWC.App.Services;
 

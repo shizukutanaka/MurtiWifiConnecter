@@ -1,12 +1,19 @@
 # MWC — Multi WiFi Connector
 
-[![CI](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/tests-1013%20passing-22C55E)](#)
-[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20526%20keys-00C4CC)](#)
+[![Tests](https://img.shields.io/badge/tests-910%20methods-22C55E)](#)
+[![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20517%20keys-00C4CC)](#)
+
+<!-- CI / CodeQL バッジは意図的に外してある。
+     .github/workflows/ が存在せず GitHub Actions が一度も実行されていないため
+     (docs/FEATURE-AUDIT.md §0)、バッジは常に "no status" を表示し、
+     実施されていない検証を実施しているかのように見せてしまう。
+     CI を設置したら以下を戻すこと:
+     [![CI](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml)
+     [![CodeQL](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml)
+     テストバッジも、実際に dotnet test を走らせた実測値で "N passing" に戻せる。 -->
 
 **MWC**は複数の無線アダプターをひとつの画面で管理する Windows 用 Wi-Fi ツール。
 
@@ -32,10 +39,10 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 | Wi-Fi 7 (802.11be) 対応 | △ | ❌ | ✅ | ✅ | **✅** |
 | 6 GHz バンド対応 | △ | ❌ | ✅ | ✅ | **✅** |
 | Light/Dark/System テーマ | △ | ❌ | ❌ | ❌ | **✅** |
-| Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **✅** |
+| Sigstore 署名 + SBOM | ❌ | ❌ | ❌ | ❌ | **◯**※ |
 | ARM64 ネイティブ | ❌ | ❌ | ❌ | ❌ | **✅** |
 | 14言語 UI | △ | ✅ | ❌ | ❌ | **✅** |
-| WCAG AAA アクセシビリティ | ❌ | ❌ | ❌ | ❌ | **✅** |
+| WCAG アクセシビリティ検証 | ❌ | ❌ | ❌ | ❌ | **✅**(本文 AAA / アクセント AA) |
 | 無料 + MIT | ✅ | ✅ | ❌ | ❌ | **✅** |
 
 ---
@@ -53,7 +60,7 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 ### スキャン分析
 - **信号履歴グラフ** — 60分 RSSI 時系列 (WPF DrawingVisual)
 - **チャンネル帯域グラフ** — 2.4G/5G/6G ガウス曲線可視化
-- **MAC ベンダー解決** — IEEE OUI 内蔵 DB、月次自動更新
+- **MAC ベンダー解決** — IEEE OUI 内蔵 DB(更新スクリプト `tools/oui-update.ps1` 同梱)
 - **ネットワーク品質計測** — Ping レイテンシ + パケットロス + 評価グレード
 
 ### Apple HIG 準拠 UX
@@ -74,20 +81,33 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 ```powershell
 mwc list                          # アダプター一覧
 mwc scan --json                   # JSON スキャン
-mwc connect "MyWiFi" -p $env:PW   # 接続
+mwc connect "MyWiFi" -p $env:PW   # 接続 (-p 省略時は $env:MWC_PASSWORD を使用)
+# 802.1X Enterprise (eduroam / 社内 Wi-Fi 等)
+mwc connect eduroam --auth WPA2Enterprise --eap-type PEAP_MSCHAPv2 `
+    --username you@univ.ac.jp -p $env:MWC_PASSWORD `
+    --server-name radius.univ.ac.jp --trusted-root-ca <CA拇印>
+# eduroam CAT ファイルからインポートして接続(組織の設定は XML、資格情報は自分で入力)
+mwc import-cat eduroam.eap-config --username you@univ.ac.jp -p $env:MWC_PASSWORD
 mwc qr "MyWiFi" -p secret         # WIFI: URI 出力
 mwc export --format csv           # CSV エクスポート
 mwc quality 8.8.8.8 -s 10         # 品質計測 (Ping × 10)
 mwc history                       # 接続履歴
 mwc eap-stats                     # 802.1X (Enterprise) 認証成功率(SSID×EAPタイプ別)
+mwc passpoint                     # 周囲の Passpoint (Hotspot 2.0) 対応 AP
 mwc vpn-advice                    # VPN 使用推奨(助言のみ、実際の切替は行わない)
+mwc privacy --mac AA:BB:CC:DD:EE:FF  # MAC 追跡の勧告。ランダム化はアドレスから判定
 mwc profile delete "OldNet"       # プロファイル削除
 ```
 
-### アクセシビリティ (WCAG 2.1 AAA)
-- すべての主要カラーペアでコントラスト比 7:1 以上
+### アクセシビリティ (WCAG 2.1)
+- **本文テキストは AAA (7:1 以上)** — Dark / Light / Nord / Catppuccin テーマ。
+  Solarized は著名パレットをそのまま保つため **AA (約 5.6:1)**、
+  Fluent は OS のシステムカラーに従うため静的検証の対象外。
+- **アクセントボタンの文字色は AA (4.5:1 以上)** — 彩度の高いアクセント色で
+  7:1 を満たすと配色が破綻するため、全テーマで意図的に AA。
+- 上記はいずれも `ThemeAccessibilityAuditTests` が実際の XAML 色値を読んで自動検証する。
 - スクリーンリーダー (Narrator/NVDA) Live Region 通知
-- キーボードのみで完全操作可能 (Ctrl+R / Ctrl+F / Tab / Enter)
+- キーボードのみで完全操作可能 (Ctrl+R / Ctrl+F / Ctrl+Tab / F1 / Tab / Enter)
 
 ### 国際化
 **対応14言語** (UI 100% 翻訳済み): ja / en / zh-Hans / zh-Hant / ko / es / fr / de / ru / ar (RTL) / pt-BR / hi / bn / ta
@@ -96,15 +116,29 @@ mwc profile delete "OldNet"       # プロファイル削除
 
 ## インストール
 
-### winget (推奨)
+> ⚠️ **リリースはまだ公開されていない。** 現時点で入手方法は「ソースからのビルド」のみ。
+> 下の winget / MSI / dotnet tool は、リリースパイプライン(`docs/ci/release.yml`)を
+> 設置して最初のリリースを切った時点で有効になる(手順: [`docs/COMPLETION-CHECKLIST.md`](docs/COMPLETION-CHECKLIST.md))。
+> 配布物の署名についても同じ — 詳細は [`SECURITY.md`](SECURITY.md)。
+
+### ソースからビルド(現在これだけが有効)
+下記「ビルド」節を参照。
+
+### winget(リリース公開後)
 ```powershell
 winget install ShizukuTanaka.MWC
 ```
 
-### MSI
-[最新リリース](https://github.com/shizukutanaka/MurtiWifiConnecter/releases/latest) から `MWC-x.x.x-win-x64.msi` または `-win-arm64.msi`。
+### zip(リリース公開後)
+[リリース](https://github.com/shizukutanaka/MurtiWifiConnecter/releases) から
+`MWC-x.x.x-win-x64.zip` または `-win-arm64.zip`。SBOM・署名・SHA256SUMS が同梱される。
 
-### dotnet tool (CLI のみ)
+MSI は `installer/wix/Product.wxs` が用意されているが、そのファイル harvest 構文が
+WiX v5 以降の機能で、この構成が前提とする WiX v4 には存在しないため
+(`docs/adr/0005-multi-channel-distribution.md` の追記参照)、リリースパイプラインでは
+まだビルドしていない。
+
+### dotnet tool / CLI のみ(リリース公開後)
 ```powershell
 dotnet tool install -g mwc-cli
 ```
@@ -120,7 +154,7 @@ git clone https://github.com/shizukutanaka/MurtiWifiConnecter.git
 cd MurtiWifiConnecter
 dotnet restore MWC.sln
 dotnet build   MWC.sln -c Release
-dotnet test    MWC.sln                    # 525 tests
+dotnet test    MWC.sln                    # 910 test methods
 ```
 
 ---
@@ -158,7 +192,10 @@ dotnet test    MWC.sln                    # 525 tests
 - パスワードは **DPAPI** (CurrentUser scope + アプリエントロピー) で保護
 - `netsh.exe` / WMI を一切使わず WlanAPI 直叩き (コマンドインジェクション面ゼロ)
 - `SecureString` + 使用直後ゼロクリア
-- MSI / zip は **Sigstore keyless signing** + **SLSA L3 provenance** 付き
+- ※ **Sigstore keyless signing** + **SLSA provenance** + CycloneDX SBOM は
+  `docs/ci/release.yml` に実装済みだが、**まだ一度も実行されていない**
+  (`.github/workflows/` が空のため)。設置して最初のリリースを切るまで、
+  署名済みの配布物は存在しない
 - 詳細: [`SECURITY.md`](SECURITY.md)
 
 ---
@@ -167,7 +204,8 @@ dotnet test    MWC.sln                    # 525 tests
 
 新言語サポート: [`docs/i18n-guide.md`](docs/i18n-guide.md) を参照して PR をどうぞ。
 
-すべて Strings.resx ベース。1ファイル508キー × 14言語 = 7112エントリ完備。
+すべて Strings.resx ベース。1ファイル 517 キー × 14 ロケール(+ 中立ベース) = 7,755 エントリ完備。
+キーの過不足は `LocaleKeyConsistencyTests` が検出する。追加時は `bash tools/verify.sh` で全ロケールの一致を確認できる。
 
 ---
 
@@ -180,6 +218,7 @@ dotnet test    MWC.sln                    # 525 tests
 - [アーキテクチャ](docs/architecture.md) — 設計概要
 - [ベンチマーク](docs/benchmarks.md) — 性能ベースライン
 - [ADR](docs/adr/) — アーキテクチャ決定記録 (25件)
+- [完成チェックリスト](docs/COMPLETION-CHECKLIST.md) — 残作業と実行手順(メンテナ向け)
 
 ## ライセンス
 

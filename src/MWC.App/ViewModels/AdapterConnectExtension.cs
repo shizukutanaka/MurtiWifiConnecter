@@ -21,7 +21,13 @@ namespace MWC.App.ViewModels;
 /// </summary>
 public static class AdapterConnectExtension
 {
-    public static async Task ConnectWithAppleFlowAsync(
+    /// <summary>
+    /// PSK/Open/WEP 用の簡易オーバーロード。SSID・パスフレーズ・認証方式から
+    /// <see cref="WifiProfileSpec"/> を組み立て、spec 版へ委譲する。
+    /// Enterprise (802.1X) は EAP 種別・ユーザー名等を運べないためこの経路では扱えない —
+    /// その場合は spec 版を直接呼ぶこと。
+    /// </summary>
+    public static Task ConnectWithAppleFlowAsync(
         AdapterViewModel vm,
         ConnectionExecutor executor,
         string ssid,
@@ -29,7 +35,26 @@ public static class AdapterConnectExtension
         AuthMethod auth,
         NotificationService notify,
         Window? owner = null)
+        => ConnectWithAppleFlowAsync(
+            vm, executor,
+            new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase },
+            notify, owner);
+
+    /// <summary>
+    /// 完全な <see cref="WifiProfileSpec"/> を受ける接続フロー。
+    /// Enterprise (802.1X) の EAP 種別・ユーザー名・匿名外部アイデンティティ・
+    /// サーバ名・信頼ルート CA を運べるのはこちらのみ。
+    /// CLI 側の参照実装は `src/MWC.Cli/Program.cs` の `BuildConnect`。
+    /// </summary>
+    public static async Task ConnectWithAppleFlowAsync(
+        AdapterViewModel vm,
+        ConnectionExecutor executor,
+        WifiProfileSpec spec,
+        NotificationService notify,
+        Window? owner = null)
     {
+        var ssid = spec.Ssid;
+        var auth = spec.Auth;
         // 一時的失敗 (電波・タイムアウト等) はユーザーにダイアログを見せる前に
         // ジッター付きバックオフで静かに自動再試行する。決定的失敗 (認証・権限・
         // プロファイル・キャンセル) の分類は RetryPolicy.IsRetriable が担う。
@@ -43,7 +68,7 @@ public static class AdapterConnectExtension
             using var progress = new ConnectionProgressDialog(ssid) { Owner = owner };
             var cts = progress.CancellationToken;
 
-            var connectTask = RunConnectionAsync(executor, vm.Id, ssid, passphrase, auth, progress, cts);
+            var connectTask = RunConnectionAsync(executor, vm.Id, spec, progress, cts);
             progress.Show();
 
             ConnectionResult result;
@@ -103,7 +128,7 @@ public static class AdapterConnectExtension
 
     private static async Task<ConnectionResult> RunConnectionAsync(
         ConnectionExecutor executor, Guid adapterId,
-        string ssid, string passphrase, AuthMethod auth,
+        WifiProfileSpec spec,
         ConnectionProgressDialog progress, CancellationToken ct)
     {
         try
@@ -112,7 +137,7 @@ public static class AdapterConnectExtension
             // 旧実装の「登録」「認証」2ステップは executor の単一呼び出しに統合される。
             progress.SetStep(0, StepState.Active, MWC.App.Resources.L.Get("Progress_Connecting"));
             var res = await executor.ConnectAsync(
-                adapterId, ssid, auth, passphrase, TimeSpan.FromSeconds(25), ct);
+                adapterId, spec, TimeSpan.FromSeconds(25), ct);
             if (!res.Success)
             {
                 progress.SetStep(0, StepState.Done);

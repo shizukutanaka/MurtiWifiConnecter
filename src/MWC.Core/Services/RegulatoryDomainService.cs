@@ -37,11 +37,11 @@ public sealed class RegulatoryDomainService
     {
         // 米国: 全 6GHz 帯 (5.925–7.125 GHz) + 6E 対応
         ["US"] = new("US", "United States", Band6GHzMode.FullBand,
-            lowPowerIndoor: true, veryLowPower: true, standardPower: true),
+            LowPowerIndoor: true, VeryLowPower: true, StandardPower: true),
 
         // EU 全体 (一例として DE/FR/GB も同値)
         ["EU"] = new("EU", "European Union", Band6GHzMode.LowerHalf,
-            lowPowerIndoor: true, veryLowPower: true, standardPower: false),
+            LowPowerIndoor: true, VeryLowPower: true, StandardPower: false),
         ["DE"] = new("DE", "Germany",        Band6GHzMode.LowerHalf, true,  true,  false),
         ["FR"] = new("FR", "France",         Band6GHzMode.LowerHalf, true,  true,  false),
         ["GB"] = new("GB", "United Kingdom", Band6GHzMode.LowerHalf, true,  true,  false),

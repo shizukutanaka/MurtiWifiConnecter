@@ -1,7 +1,7 @@
 namespace MWC.Core.Models;
 
 /// <summary>
-/// 接続/操作結果。例外を投げず Result<T,E> で返す。
+/// 接続/操作結果。例外を投げず Result{T,E} で返す。
 /// FluentResults依存回避のため自前最小実装。
 /// </summary>
 public readonly record struct ConnectionResult

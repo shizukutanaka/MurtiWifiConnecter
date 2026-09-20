@@ -183,10 +183,13 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
 
         var mlo = _mloAnalyzer.Analyze(n);
         HasMlo = mlo.IsMlo;
-        MloLabel = mlo.IsMlo
-            ? L.Format("Detail_Mlo_Format", mlo.LinkCount, FormatBands(mlo.Bands),
-                       $"{mlo.AggregatedMbps:F0}", L.MloReliabilityLabel(mlo.ReliabilityTier))
-            : "-";
+        // LinkCount == 0 は「MLO は広告されているがリンク詳細が無い」状態。
+        // ここで通常の書式を使うと "0 リンク / 0Mbps" と、測っていない値を
+        // 測ったかのように表示してしまう。
+        MloLabel = !mlo.IsMlo             ? "-"
+                 : mlo.LinkCount == 0     ? L.Get("Detail_Mlo_NoLinkDetail")
+                 : L.Format("Detail_Mlo_Format", mlo.LinkCount, FormatBands(mlo.Bands),
+                            $"{mlo.AggregatedMbps:F0}", L.MloReliabilityLabel(mlo.ReliabilityTier));
 
         var dist = _distEstimator.Estimate(n);
         DistanceLabel = dist.Confidence != DistanceConfidence.Unknown

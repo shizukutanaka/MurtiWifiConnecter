@@ -11,38 +11,20 @@
   <data name="Action_Disconnect"><value>Отключить</value></data>
   <data name="Action_Cancel"><value>Отмена</value></data>
   <data name="Label_Passphrase"><value>Пароль</value></data>
-  <data name="Label_Show"><value>Показать</value></data>
   <data name="Label_Connected"><value>Подключено: {0}</value></data>
   <data name="Label_NotConnected"><value>Нет подключения</value></data>
-  <data name="Label_AvailableNetworks"><value>Доступные сети</value></data>
   <data name="Status_AdapterCount"><value>{0} адаптер(ов)</value></data>
   <data name="Status_Scanning"><value>Сканирование…</value></data>
-  <data name="Error_PassphraseTooShort"><value>Пароль не менее 8 символов</value></data>
   <data name="Error_ConnectionFailed"><value>Ошибка подключения: {0}</value></data>
-  <data name="Auth_Open"><value>Открытая</value></data>
-  <data name="Auth_OWE"><value>Расширенная открытая (OWE)</value></data>
-  <data name="Auth_WEP"><value>WEP (устаревшая)</value></data>
-  <data name="Auth_WPA2PSK"><value>WPA2 Personal</value></data>
-  <data name="Auth_WPA3SAE"><value>WPA3 Personal</value></data>
-  <data name="Auth_Enterprise"><value>Корпоративная</value></data>
   <data name="Failure_BadCredentials"><value>Неверный пароль</value></data>
   <data name="Failure_Timeout"><value>Тайм-аут</value></data>
   <data name="Failure_NotInRange"><value>Сеть вне зоны</value></data>
   <data name="Failure_AdapterDisabled"><value>Беспроводной адаптер отключён</value></data>
   <data name="Failure_InsufficientPrivilege"><value>Требуются права администратора</value></data>
-  <data name="Captive_Detected"><value>Требуется вход</value></data>
   <data name="Tab_Detail"><value>Подробности</value></data>
   <data name="Tab_Signal"><value>Сигнал</value></data>
   <data name="Tab_Channel"><value>Канал</value></data>
-  <data name="Label_Band"><value>Диапазон</value></data>
-  <data name="Label_Phy"><value>PHY</value></data>
-  <data name="Label_Channel"><value>Канал</value></data>
-  <data name="Label_Freq"><value>Частота</value></data>
-  <data name="Label_Speed"><value>Макс. скорость</value></data>
-  <data name="Label_Signal"><value>Сигнал</value></data>
-  <data name="Label_Status"><value>Состояние</value></data>
   <data name="Label_Bssid"><value>BSSID</value></data>
-  <data name="Label_Vendor"><value>Производитель</value></data>
   <data name="Action_Export_Csv"><value>Экспорт CSV</value></data>
   <data name="Action_Export_Json"><value>Экспорт JSON</value></data>
   <data name="Action_Export_Txt"><value>Экспорт текст</value></data>
@@ -129,6 +111,8 @@
   <data name="Shortcut_Quality_D"><value>Measure network quality</value></data>
   <data name="Shortcut_Settings_T"><value>Settings</value></data>
   <data name="Shortcut_Settings_D"><value>Open app settings</value></data>
+  <data name="Shortcut_AllAdapters_T"><value>Все адаптеры</value></data>
+  <data name="Shortcut_AllAdapters_D"><value>Открыть обзор всех адаптеров</value></data>
   <data name="Shortcut_ToggleMode_T"><value>Toggle mode</value></data>
   <data name="Shortcut_ToggleMode_D"><value>Switch Simple/Expert view</value></data>
   <data name="Shortcut_Hide_T"><value>Hide window</value></data>
@@ -634,6 +618,7 @@
   <data name="Detail_PredictedSignal"><value>~{0} dBm ({1} samples)</value></data>
   <data name="Detail_LinkEstimate_Format"><value>MCS {0}  {1} Mbps PHY  (~{2} Mbps effective, 2-stream est.)  SNR {3} dB</value></data>
   <data name="Detail_Mlo_Format"><value>{0} links  ({1})  {2} Mbps aggregate  ({3})</value></data>
+  <data name="Detail_Mlo_NoLinkDetail"><value>Wi-Fi 7 (MLO) поддерживается — сведения по каналам недоступны</value></data>
   <data name="Mlo_Reliability_SingleLink"><value>Single Link</value></data>
   <data name="Mlo_Reliability_DualLink"><value>Dual Link</value></data>
   <data name="Mlo_Reliability_TripleLink"><value>Triple Link</value></data>
@@ -678,4 +663,10 @@
   <data name="Failure_OsError"><value>System error</value></data>
 
   <data name="Adapter_Pinned_ListAutomation"><value>Pinned networks list</value></data>
+  <data name="Label_EapType"><value>Метод EAP</value></data>
+  <data name="Label_EapUsername"><value>Имя пользователя</value></data>
+  <data name="Label_EapIdentity"><value>Анонимная личность (необязательно)</value></data>
+  <data name="Label_EapServerName"><value>Имя сервера RADIUS (необязательно)</value></data>
+  <data name="EapHint_Identity"><value>Передаётся открыто до туннеля. Укажите anonymous@realm, чтобы скрыть имя пользователя.</value></data>
+  <data name="Error_EapUsernameRequired"><value>Для PEAP и EAP-TTLS нужны имя пользователя и пароль.</value></data>
 </root>

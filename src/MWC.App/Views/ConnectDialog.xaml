@@ -78,6 +78,47 @@
                       Click="OnTogglePassword"/>
         </StackPanel>
 
+        <!-- 802.1X Enterprise 入力(Enterprise 認証時のみ表示)-->
+        <StackPanel Grid.Row="4" x:Name="EnterprisePanel" Visibility="Collapsed" Margin="0,14,0,0">
+            <TextBlock Text="{x:Static r:L.LabelEapType}" FontSize="12"
+                       Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,6"/>
+            <ComboBox x:Name="EapTypeCombo"
+                      Padding="8,7" Margin="0,0,0,12"
+                      Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
+                      BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
+                      SelectionChanged="OnEapTypeChanged"
+                      AutomationProperties.Name="{x:Static r:L.LabelEapType}"/>
+
+            <TextBlock x:Name="UsernameLabel" Text="{x:Static r:L.LabelEapUsername}" FontSize="12"
+                       Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,6"/>
+            <TextBox x:Name="UsernameBox"
+                     Padding="10,9" Margin="0,0,0,12"
+                     Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
+                     BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
+                     KeyDown="OnPasswordKeyDown"
+                     AutomationProperties.Name="{x:Static r:L.LabelEapUsername}"/>
+
+            <TextBlock Text="{x:Static r:L.LabelEapIdentity}" FontSize="12"
+                       Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,6"/>
+            <TextBox x:Name="IdentityBox"
+                     Padding="10,9"
+                     Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
+                     BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
+                     KeyDown="OnPasswordKeyDown"
+                     AutomationProperties.Name="{x:Static r:L.LabelEapIdentity}"/>
+            <TextBlock Text="{x:Static r:L.EapHintIdentity}" FontSize="10" TextWrapping="Wrap"
+                       Foreground="{DynamicResource FgVeryMutedBrush}" Margin="0,4,0,12"/>
+
+            <TextBlock Text="{x:Static r:L.LabelEapServerName}" FontSize="12"
+                       Foreground="{DynamicResource FgMutedBrush}" Margin="0,0,0,6"/>
+            <TextBox x:Name="ServerNameBox"
+                     Padding="10,9"
+                     Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource FgBrush}"
+                     BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"
+                     KeyDown="OnPasswordKeyDown"
+                     AutomationProperties.Name="{x:Static r:L.LabelEapServerName}"/>
+        </StackPanel>
+
         <!-- エラーメッセージ -->
         <Border Grid.Row="3" Background="{DynamicResource DangerBrush}" CornerRadius="6"
                 Padding="10,8" Margin="0,10,0,0">
