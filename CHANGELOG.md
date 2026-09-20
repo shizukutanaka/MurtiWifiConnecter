@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Fixed (2026-09-19 第九ラウンド — PowerShell モジュール)
+
+- **`MWC.psm1` が mwc CLI の実引数面と全面的に不一致だったバグを修正**:
+  全呼出しが存在しない `--output json` を付与していた(正は `--json`、かつ
+  JSON 対応は adapter list/scan/quality/history のみ)、`adapter pref` は
+  未存在、rename/band/pin/unpin は位置引数なのに `--label`/`--band`/`--ssid`
+  で呼んでいた、`history --last`→実は `--limit`、`export --path`→実は
+  `--output`、`qr --ssid --path`→実は位置引数 + URI は stdout 出力、
+  `quality` に `--adapter` はない。`Invoke-Mwc` に `-Json` スイッチを導入し
+  JSON 対応コマンドのみ `--json` を付与、`adapter list` に `--json` を
+  新設(id/name/description/state/band/enabled/pinned/label を出力)。
+  `New-WifiQrCode` は PNG 生成ではなく WIFI: URI を返す仕様に修正(CLI 実態)。
+- `Invoke-Mwc` の引数シグネチャを `ValueFromRemainingArguments` 化し
+  空の配列引数が消える問題も解消。
+
 ### Added / Changed (2026-09-19 第八ラウンド — CLI の Linux 対応 + Core 移動)
 
 - **`MWC.Cli` をマルチ TFM 化**(`net9.0-windows10.0.19041.0;net9.0`): 非 Windows では

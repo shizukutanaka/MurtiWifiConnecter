@@ -36,14 +36,38 @@ internal static class AdapterCommand
 
     private static Command BuildList(ServiceProvider sp)
     {
+        var json = new Option<bool>("--json", "Output JSON");
         var c = new Command("list", "List all adapters with their preferences");
-        c.SetHandler(async () =>
+        c.AddOption(json);
+        c.SetHandler(async (System.CommandLine.Invocation.InvocationContext ctx) =>
         {
             try
             {
+                var j     = ctx.ParseResult.GetValueForOption(json);
                 var wifi  = sp.GetRequiredService<IWifiService>();
                 var prefs = sp.GetRequiredService<AdapterPreferencesService>();
                 var ads   = await wifi.GetAdaptersAsync();
+                if (j)
+                {
+                    // PowerShell モジュール (Invoke-Mwc --json) のデータ源。
+                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+                        ads.Select(a =>
+                        {
+                            var p = prefs.Get(a.Id);
+                            return new
+                            {
+                                id          = a.Id,
+                                name        = a.Name,
+                                description = a.Description,
+                                state       = a.State.ToString(),
+                                band        = p.PreferredBand.ToString(),
+                                enabled     = p.IsEnabled,
+                                pinned      = p.PinnedSsids,
+                                label       = p.CustomLabel,
+                            };
+                        })));
+                    return;
+                }
                 Console.WriteLine($"{"NAME",-30} {"BAND",-12} {"ENABLED",-9} {"PINNED",-7} LABEL");
                 Console.WriteLine(new string('─', 78));
                 foreach (var a in ads)
