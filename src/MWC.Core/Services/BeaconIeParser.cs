@@ -229,12 +229,9 @@ public sealed record BeaconIeSummary(
     // 既定値を持たせて後方互換にする。既存の呼び出し側 (テストを含む) は
     // 拡張要素を扱わないため、追加のたびに全構築箇所を書き換える必要はない。
     IReadOnlyList<byte>?          PresentExtensionIds = null,
-    /// <summary>
-    /// 発信 AP 自身の AP MLD ID (Basic Multi-Link 要素の Common Info 由来)。
-    /// RNR エントリの <see cref="RnrNeighborAp.MldId"/> と照合して、
-    /// 報告された近隣 AP がこの AP MLD のリンクかどうかを判定する。
-    /// 要素が無い/MLD ID を広告していない場合は null。
-    /// </summary>
+    // 発信 AP 自身の AP MLD ID (Basic Multi-Link 要素の Common Info 由来)。
+    // RNR エントリの MldId と照合して、報告された近隣 AP がこの AP MLD の
+    // リンクかどうかを判定する。要素が無い/MLD ID を広告していない場合は null。
     byte?                         OwnApMldId = null)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>

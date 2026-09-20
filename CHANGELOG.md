@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added (2026-09-19 第四ラウンド — 疎通プローブ設定化)
+
+- `HttpConnectivityChecker` のプローブ先を `MWC_CONNECTIVITY_URL` /
+  `MWC_CONNECTIVITY_EXPECT` 環境変数で上書き可能に
+  (FEATURE-AUDIT §2d の指摘: msftconnecttest.com が到達不能な環境で常に
+  「疎通なし」と誤判定し続ける問題の解消)。EXPECT 未指定の URL 上書きは
+  generate_204 式の「2xx + 空本文」判定に切替え — ポータルを誤認しない。
+  不正 URL は既定プローブへフォールバック。
+
 ### Added / Fixed (2026-09-19 第三ラウンド — MLO リンク詳細 + RNR パーサ実仕様適合)
 
 - **`RnrParser` のレイアウトが IEEE 802.11-2020 実仕様とずれていた実バグを修正**:

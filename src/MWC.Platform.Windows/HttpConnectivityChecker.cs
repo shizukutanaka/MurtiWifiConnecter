@@ -30,8 +30,26 @@ namespace MWC.Platform.Windows;
 /// </summary>
 public sealed class HttpConnectivityChecker : IConnectivityChecker
 {
-    private const string ProbeUrl = "http://www.msftconnecttest.com/connecttest.txt";
-    private const string Expected = "Microsoft Connect Test";
+    private const string DefaultProbeUrl = "http://www.msftconnecttest.com/connecttest.txt";
+    private const string DefaultExpected = "Microsoft Connect Test";
+
+    // プローブ先は環境変数で上書き可能 (MWC_CONNECTIVITY_URL / MWC_CONNECTIVITY_EXPECT)。
+    // msftconnecttest.com が到達不能な国・企業 FW では従来は常に「疎通なし」と誤判定
+    // され続けた。NetworkManager の connectivity.uri 相当の逃がし。
+    // 注: URL だけ上書きされ EXPECT 未指定の場合、本文照合はできないため
+    // 「2xx かつ空本文」(generate_204 と同じ判定)のみを疎通ありとする —
+    // ポータルは 200 + 独自 HTML を返すため、本文を見ない判定は誤認する。
+    private static readonly string  ProbeUrl    = ResolveProbeUrl();
+    private static readonly string? ExpectedBody =
+        Environment.GetEnvironmentVariable("MWC_CONNECTIVITY_EXPECT") is { Length: > 0 } e
+            ? e : null;
+    private static readonly bool CustomProbe = ProbeUrl != DefaultProbeUrl;
+
+    private static string ResolveProbeUrl()
+        => Environment.GetEnvironmentVariable("MWC_CONNECTIVITY_URL") is { Length: > 0 } u
+            && Uri.TryCreate(u, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? u : DefaultProbeUrl;
 
     // プローブ毎にバインドすべきローカル IP を ConnectCallback へ受け渡すためのキー。
     private static readonly HttpRequestOptionsKey<IPAddress?> LocalBindKey =
@@ -65,7 +83,11 @@ public sealed class HttpConnectivityChecker : IConnectivityChecker
                 return new ConnectivityStatus(false, true, (int)sw.ElapsedMilliseconds);
 
             string body = await resp.Content.ReadAsStringAsync(cts.Token);
-            bool ok = body.Trim() == Expected;
+            // 既定プローブ/EXPECT 指定時は本文完全一致。カスタム URL で EXPECT 無しは
+            // 空本文のみを疎通ありと判定 (本文を見ないと 200+独自 HTML のポータルを誤認する)。
+            bool ok = CustomProbe && ExpectedBody is null
+                ? string.IsNullOrWhiteSpace(body)
+                : body.Trim() == (ExpectedBody ?? DefaultExpected);
             return new ConnectivityStatus(ok, !ok, (int)sw.ElapsedMilliseconds);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

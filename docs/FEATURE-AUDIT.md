@@ -413,7 +413,7 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
 - **802.1X「自動テスト」**: `EapAuthStatsService` は既存接続の成否を記録するのみで、
   テスト接続を自発しない。これも意図的(勝手な接続試行はユーザーの意図に反する)。
 
-- **疎通確認プローブ先が固定・代替なし**(2026-07 第4パスで発見。**要 Windows/dotnet セッション**)
+- ~~**疎通確認プローブ先が固定・代替なし**~~(2026-07 第4パスで発見 → **2026-09-19 解決済み**)
 
   `HttpConnectivityChecker`(`src/MWC.Platform.Windows/`)の
   `ProbeUrl = "http://www.msftconnecttest.com/connecttest.txt"` は `const` で、
@@ -435,16 +435,15 @@ Microsoft 自身が .NET Core+ で非推奨としている点に注意)、(c) �
   なお **接続成否は左右しない**(`WindowsWifiService` は `ConnectionResult.Ok(...)` を返し、
   疎通結果は情報として渡すのみ)。影響は表示・通知の誤りに留まる。
 
-  **推奨する対応**(実装は Windows/dotnet で検証できるセッションで行うこと):
-  環境変数での上書きを追加する(既に `MWC_PASSWORD` で確立済みの流儀)。
-  例: `MWC_CONNECTIVITY_URL` / `MWC_CONNECTIVITY_EXPECT`。
-  ただし **URL だけ上書きされ期待本文が未指定の場合に本文検査を省いてはならない** —
-  ポータルは 200 + 独自 HTML を返すため、本文を見ないと「疎通あり」と誤認する。
-  その場合は Android の `generate_204` と同じく「2xx かつ本文が空」のみ疎通ありとするのが安全。
-
-  **この環境で実装しなかった理由**: `tests/` には `MWC.Core.Tests` しか無く、
-  Platform.Windows のコードは検証できない(`AI-SESSION-HANDBOOK.md` §4 の方針)。
-  検証不能な変更を疎通判定という中核経路に入れる方が、限界を文書化するより有害と判断した。
+  **対応済み(2026-09-19)**: `MWC_CONNECTIVITY_URL` / `MWC_CONNECTIVITY_EXPECT`
+  環境変数でプローブ先・期待本文を上書き可能にした(`MWC_PASSWORD` と同じ流儀)。
+  URL だけ上書きし EXPECT 未指定の場合は、本文照合が不能なので Android の
+  `generate_204` と同じく「2xx かつ空本文」のみを疎通ありとする —
+  ポータルの 200+独自 HTML を疎通と誤認しない。
+  URL が http/https でない不正値の場合は既定プローブへフォールバックする。
+  実装当時は「Platform.Windows のコードはこの環境で検証不能」と記載されていたが、
+  `-p:EnableWindowsTargeting=true` による実コンパイルと stub 型検査で全量検証済み。
+  残る限界: 実挙動の E2E は Windows 実機のみ(macOS では実行できない)。
 
 ---
 
