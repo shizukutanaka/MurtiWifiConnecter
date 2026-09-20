@@ -49,7 +49,8 @@ public sealed class CoreWlanWifiService : IWifiService
                 Id          = GuidFromString(device),
                 Name        = device,
                 Description = "macOS Wi-Fi (" + device + ")",
-                IsEnabled   = true,
+                // listallhardwareports は接続状態を示さない — 有効だが未接続として報告
+                State       = AdapterState.Disconnected,
             });
         }
 
@@ -59,7 +60,7 @@ public sealed class CoreWlanWifiService : IWifiService
                 Id          = GuidFromString("en0"),
                 Name        = "en0",
                 Description = "macOS Wi-Fi (en0)",
-                IsEnabled   = true,
+                State       = AdapterState.Disconnected,
             });
 
         return adapters;
@@ -73,26 +74,28 @@ public sealed class CoreWlanWifiService : IWifiService
         return ParseAirportScan(output);
     }
 
+    // SSID+アダプター → PSK のキャッシュ。ConnectAsync のシグネチャはパスフレーズを
+    // 取らないため (NmcliWifiService と同じ分解)、RegisterProfileAsync が
+    // profileXml から SSID/keyMaterial を抽出してここへ置き、ConnectAsync が参照する。
+    // NOTE: パスフレーズは networksetup のプロセス引数になるため `ps` から見える。
+    // 本番品質では CoreWLAN P/Invoke (CWInterface.associate) での引数回避が望ましい。
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, string), string> _pskCache = new();
+
     public Task<bool> RegisterProfileAsync(
         Guid adapterId, string profileXml, bool overwrite, CancellationToken ct = default)
     {
-        // macOS では /Library/Preferences/SystemConfiguration/com.apple.wifi.plist
-        // または networksetup -addpreferredwirelessnetworkatindex で管理
-        // 未実装スタブ — 登録は行われないため false。
-        //
-        // ⚠ 実装時の注意 (他メソッドと違いここは「見た目は動くが実は罠」になりやすい):
-        // ConnectionExecutor.ConnectAsync はパスフレーズが必要な認証方式の場合、
-        // まず RegisterProfileAsync(profileXml) を呼び、false が返ると即座に
-        // ConnectionFailure.OsError で失敗させ、下の ConnectAsync(adapterId, ssid,
-        // profileName, ...) 自体を一切呼ばない。しかもこの ConnectAsync のシグネチャは
-        // パスフレーズを引数に取らないため、ここでスタブを解除する場合は
-        // RegisterProfileAsync 側で profileXml から SSID/keyMaterial を抽出し
-        // (NmcliWifiService.RegisterProfileAsync と同じパターン)、インスタンスの
-        // 辞書等にキャッシュしておき、ConnectAsync がそのキャッシュを参照して
-        // "networksetup -setairportnetwork <iface> <ssid> <password>" を呼ぶ必要がある。
-        // RegisterProfileAsync を安易に true 固定へ変えるだけでは、
-        // パスフレーズ無しで networksetup が呼ばれ全接続が失敗する。
-        return Task.FromResult(false);
+        // Windows WLAN XML から SSID/keyMaterial を抽出しキャッシュする
+        // (NmcliWifiService.RegisterProfileAsync と同じパターン。
+        //  XML 実体参照はデコード必須 — '&' 等は '&amp;' で格納されている)。
+        var ssidMatch = System.Text.RegularExpressions.Regex.Match(
+            profileXml, @"<name>([^<]+)</name>");
+        var keyMatch  = System.Text.RegularExpressions.Regex.Match(
+            profileXml, @"<keyMaterial>([^<]+)</keyMaterial>");
+        if (!ssidMatch.Success) return Task.FromResult(false);
+        var ssid = System.Net.WebUtility.HtmlDecode(ssidMatch.Groups[1].Value);
+        var pass = keyMatch.Success ? System.Net.WebUtility.HtmlDecode(keyMatch.Groups[1].Value) : "";
+        _pskCache[(adapterId, ssid)] = pass;
+        return Task.FromResult(true);
     }
 
     public async Task<ConnectionResult> ConnectAsync(
@@ -100,9 +103,13 @@ public sealed class CoreWlanWifiService : IWifiService
         TimeSpan timeout, CancellationToken ct = default)
     {
         // networksetup -setairportnetwork en0 <ssid> [password]
+        // PSK は RegisterProfileAsync が XML から抽出したキャッシュ参照
+        // (Open/OWE や未登録プロファイルでは引数なしで呼ぶ従来挙動)。
         var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
-        var (exit, _, stderr) = await RunFullAsync(
-            "networksetup", ["-setairportnetwork", iface, ssid], ct)
+        var args = _pskCache.TryGetValue((adapterId, ssid), out var pass) && pass.Length > 0
+            ? new[] { "-setairportnetwork", iface, ssid, pass }
+            : new[] { "-setairportnetwork", iface, ssid };
+        var (exit, _, stderr) = await RunFullAsync("networksetup", args, ct)
             .ConfigureAwait(false);
 
         if (exit == 0)
@@ -246,19 +253,34 @@ public sealed class CoreWlanWifiService : IWifiService
         }
     }
 
-    public Task<bool> DeleteProfileAsync(
+    // プロファイル削除時はキャッシュした PSK も捨てる (接続後の残存を残さない)。
+    public async Task<bool> DeleteProfileAsync(
         Guid adapterId, string profileName, CancellationToken ct = default)
     {
-        // macOS: networksetup -removepreferredwirelessnetwork <device> <ssid>
-        // Stubbed — full implementation requires entitlement validation
-        return Task.FromResult(false);
+        // 優先ネットワークから削除。profileName は本実装では SSID として使う
+        // (RegisterProfileAsync が SSID キーでキャッシュするため)。
+        _pskCache.TryRemove((adapterId, profileName), out _);
+        var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
+        var (exit, _, _) = await RunFullAsync(
+            "networksetup", ["-removepreferredwirelessnetwork", iface, profileName], ct)
+            .ConfigureAwait(false);
+        return exit == 0;
     }
 
-    public Task<IReadOnlyList<string>> ListProfilesAsync(
+    public async Task<IReadOnlyList<string>> ListProfilesAsync(
         Guid adapterId, CancellationToken ct = default)
     {
-        // macOS: networksetup -listpreferredwirelessnetworks <device>
-        return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        // networksetup -listpreferredwirelessnetworks <device>
+        // 出力: 先頭行 "Preferred networks on en0:" + 続行に SSID が1行ずつ。
+        var iface = await GetIfaceAsync(adapterId, ct).ConfigureAwait(false);
+        var (exit, stdout, _) = await RunFullAsync(
+            "networksetup", ["-listpreferredwirelessnetworks", iface], ct)
+            .ConfigureAwait(false);
+        if (exit != 0) return Array.Empty<string>();
+        return stdout.Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 0 && !l.StartsWith("Preferred networks", StringComparison.Ordinal))
+            .ToList();
     }
 
     public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(

@@ -204,10 +204,17 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 
 ### 1c. プラットフォームスタブ(ROADMAP は訂正済み、ここは一覧性のための集約)
 
-- `src/MWC.Platform.MacOS/CoreWlanWifiService.cs` — **半実装プロトタイプ**。スキャン/接続は動くが
-  `RegisterProfileAsync` が `false` 固定のため、パスフレーズ必須ネットワークへは
-  `ConnectionExecutor` が接続前に失敗させる。**注意**: 安易にスタブを `true` にしても直らない
-  (詳細な罠の解説がファイル内コメントに記載済み。`NmcliWifiService` の Linux 実装が正しい手本)。
+- `src/MWC.Platform.MacOS/CoreWlanWifiService.cs` — **2026-09-19 に実装完了**
+  (それまで「半実装プロトタイプ」: `RegisterProfileAsync` が `false` 固定で
+  `ConnectionExecutor` が PSK 必須ネットワークへの接続を事前に失敗させていた)。
+  XML→SSID/keyMaterial 抽出 → アダプター別 PSK キャッシュ → `ConnectAsync` が
+  `networksetup -setairportnetwork <iface> <ssid> <pass>` を呼ぶ、`NmcliWifiService` と
+  同じ分解。`DeleteProfileAsync`/`ListProfilesAsync` も実装
+  (-removepreferredwirelessnetwork/-listpreferredwirelessnetworks)。さらに同ファイルが
+  **一度もコンパイルされたことが無かった**ことも発覚 — 存在しない `WifiAdapter.IsEnabled`
+  への代入 2 箇所が残っており `State = AdapterState.Disconnected` に修正。
+  残る限界: `net9.0-macos` TFM が macOS workload を要求し CI/検証経路に未登録
+  (本番品質では PSK を argv に出さない CoreWLAN P/Invoke 化と workload の CI 導入)。
 - ~~`src/MWC.Platform.Android/`、`src/MWC.Platform.iOS/`~~ — **2026-07 に削除済み**。
   全メソッドが空配列/false/失敗を返す完全スタブで、製品(App/CLI)からの参照はゼロ、
   `MWC.sln` の登録以外に存在理由が無かった。CLAUDE.md の Why が

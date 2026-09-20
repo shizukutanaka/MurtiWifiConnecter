@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added / Fixed (2026-09-19 第七ラウンド — macOS プラットフォーム実装)
+
+- **`MWC.Platform.MacOS` のプロファイル経路を実装**(これまで `RegisterProfileAsync` が
+  `false` 固定の半スタブで、PSK 必須ネットワークへの接続が `ConnectionExecutor` の
+  事前検証で常に失敗していた): XML→SSID/keyMaterial 抽出→アダプター別 PSK キャッシュ→
+  `networksetup -setairportnetwork <iface> <ssid> <pass>` (NmcliWifiService と同じ分解)。
+  `DeleteProfileAsync`(キャッシュ退避 + removepreferredwirelessnetwork)と
+  `ListProfilesAsync`(listpreferredwirelessnetworks)も実装。残存スタブは
+  `SubscribeEventsAsync` のみ(ObjCRuntime 無しではイベント不可 — 意図的)。
+- **同ファイルが一度もコンパイルされていなかった**ことが判明: 存在しない
+  `WifiAdapter.IsEnabled` への代入 2 箇所を `State = AdapterState.Disconnected` に修正
+  (net9.0 横断コンパイルで検証。net9.0-macos TFM は workload 未導入のため未検証)。
+
 ### Added (2026-09-19 第六ラウンド — PrivacyAdvisory の GUI 配線)
 
 - **MAC ランダム化助言を GUI 詳細パネルへ配線** (FEATURE-AUDIT §2a 最後の残件):
