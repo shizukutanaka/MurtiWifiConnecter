@@ -189,7 +189,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         MloLabel = !mlo.IsMlo             ? "-"
                  : mlo.LinkCount == 0     ? L.Get("Detail_Mlo_NoLinkDetail")
                  : L.Format("Detail_Mlo_Format", mlo.LinkCount, FormatBands(mlo.Bands),
-                            $"{mlo.AggregatedMbps:F0}", L.MloReliabilityLabel(mlo.ReliabilityTier));
+                            mlo.AggregatedMbps is double mb ? $"{mb:F0}" : "?",
+                            L.MloReliabilityLabel(mlo.ReliabilityTier));
 
         var dist = _distEstimator.Estimate(n);
         DistanceLabel = dist.Confidence != DistanceConfidence.Unknown

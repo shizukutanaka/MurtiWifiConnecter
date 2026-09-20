@@ -11,22 +11,35 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class RnrParserTests
 {
-    // 最小 RNR 要素: 1 TBTT エントリ、BSSID なし (tbttInfoLen=3)
-    private static byte[] RnrElement(byte opClass, byte channel, byte[]? bssid6 = null)
+    // 最小 RNR 要素: 1 TBTT エントリ (802.11-2020 §9.4.2.170 / Wireshark 突合済み)
+    // Neighbor AP Info field = TBTT Header(2B) + Operating Class(1B) + Channel(1B)
+    //   + TBTT エントリ群。Length ∈ bits 8-15、Count-1 ∈ bits 4-7。
+    // TBTT エントリ = TBTT Offset(1B) + Length 依存サブフィールド。
+    //   Length=1: offset のみ / Length=7: offset+BSSID / Length>=16: +MLD Parameters
+    private static byte[] RnrElement(byte opClass, byte channel, byte[]? bssid6 = null,
+        byte? mldId = null, byte? linkId = null)
     {
         bool hasBssid  = bssid6 is { Length: 6 };
-        byte tbttLen   = (byte)(hasBssid ? 9 : 3);
-        // Neighbor AP Info: tbttCount-1=0 (1 entry), tbttInfoLen=tbttLen in bits 9-15
-        ushort info = (ushort)((tbttLen << 9) | 0);
+        bool hasMld    = mldId.HasValue || linkId.HasValue;
+        byte tbttLen   = (byte)(hasMld ? 16 : hasBssid ? 7 : 1);
+        ushort info    = (ushort)((tbttLen << 8) | (0 << 4));   // 1 entry
+        var entry = new List<byte> { 0x00 };                    // TBTT Offset
+        if (hasBssid)  entry.AddRange(bssid6!);
+        if (hasMld)
+        {
+            // Short-SSID(4B) + BSS Params(1B) + 20MHz PSD(1B) + MLD Params(3B)
+            entry.AddRange(new byte[] { 0, 0, 0, 0, 0, 0 });
+            int mld = (mldId ?? 0) | ((linkId ?? 0) << 8);
+            entry.AddRange(new byte[] { (byte)(mld & 0xFF), (byte)((mld >> 8) & 0xFF), (byte)((mld >> 16) & 0xFF) });
+        }
         var body = new List<byte>
         {
-            (byte)(info & 0xFF), (byte)(info >> 8),  // Neighbor AP Info
-            0x00,                                     // TBTT Offset
-            opClass, channel
+            (byte)(info & 0xFF), (byte)(info >> 8),  // TBTT Information Header
+            opClass, channel                         // Operating Class + Channel (フィールド単位で一度)
         };
-        if (hasBssid) body.AddRange(bssid6!);
+        body.AddRange(entry);
 
-        return new byte[] { 201, (byte)body.Count }.AppendRange(body);
+        return new byte[] { 201, (byte)body.Count }.Concat(body).ToArray();
     }
 
     [Fact]
@@ -95,16 +108,16 @@ public class RnrParserTests
         // Set 2: opClass=115 (5 GHz), channel=36.
         // Regression: ParseRnrBody must not exit (return) after the first set.
         //
-        // Neighbor AP Info (LE 16-bit): bits 0-3 = tbttCount-1, bits 9-15 = tbttInfoLen.
-        // tbttInfoLen=3, tbttCount=1 → info = 3<<9 = 0x0600 → bytes [0x00, 0x06].
-        // Same encoding as the RnrElement() helper above.
+        // Neighbor AP Info (LE 16-bit): bits 4-7 = tbttCount-1, bits 8-15 = tbttInfoLen.
+        // tbttInfoLen=1 (offset only), tbttCount=1 → info = 1<<8 = 0x0100 → [0x00, 0x01].
+        // フィールド構造: [Header 2B][OpClass][Channel][TBTT エントリ(offset のみ)]
         const byte InfoLo = 0x00;
-        const byte InfoHi = 0x06;
+        const byte InfoHi = 0x01;
 
         var body = new List<byte>
         {
-            InfoLo, InfoHi, 0x00, 131, 5,   // Set 1: TBTT Offset=0, OpClass=131, Channel=5
-            InfoLo, InfoHi, 0x00, 115, 36   // Set 2: TBTT Offset=0, OpClass=115, Channel=36
+            InfoLo, InfoHi, 131, 5,   0x00,   // Set 1: OpClass=131, Channel=5, entry=offsetのみ
+            InfoLo, InfoHi, 115, 36,  0x00    // Set 2: OpClass=115, Channel=36, entry=offsetのみ
         };
         var element = new byte[] { 201, (byte)body.Count }.AppendRange(body);
 
@@ -126,9 +139,9 @@ public class RnrParserTests
         // After fix: break on tbttInfoLen==0 → result is empty, no exception.
         var body = new byte[]
         {
-            0x00, 0x00,        // Neighbor AP Info: tbttInfoLen=0 (bits 9-15), tbttCount=1
-            0x00, 0x06,        // without fix: re-read as info=0x0600 → tbttInfoLen=3, tbttCount=1
-            0x00, 0x83, 0x07,  // without fix: TBTT entry → opClass=131 (6GHz!), channel=7
+            0x00, 0x00,        // TBTT Header: tbttInfoLen=0 (bits 8-15) → 不正
+            0x83, 0x07,        // 以降は読まれてはいけない (opClass=131, channel=7 に見える)
+            0x00, 0x06,
         };
         var element = new byte[] { 201, (byte)body.Length }
             .AppendRange(body);
@@ -137,6 +150,27 @@ public class RnrParserTests
 
         result.Should().BeEmpty(
             "tbttInfoLen=0 is invalid; subsequent bytes must not be mis-parsed as TBTT entries");
+    }
+
+    [Fact]
+    public void ParsesMldParameters_LinkIdAndMldId()
+    {
+        // Length>=16 のエントリは MLD Parameters を持つ (802.11be)。
+        var bssid = new byte[] { 0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33 };
+        var r = RnrParser.Parse(RnrElement(131, 7, bssid6: bssid, mldId: 0x42, linkId: 3));
+
+        r.Should().ContainSingle();
+        r[0].MldId.Should().Be(0x42);
+        r[0].MldLinkId.Should().Be(3);
+        r[0].IsMloAffiliated.Should().BeTrue();
+    }
+
+    [Fact]
+    public void NoMldParameters_NotAffiliated()
+    {
+        var r = RnrParser.Parse(RnrElement(131, 7));
+        r[0].IsMloAffiliated.Should().BeFalse();
+        r[0].MldId.Should().BeNull();
     }
 }
 

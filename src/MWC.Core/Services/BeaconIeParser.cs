@@ -36,6 +36,7 @@ public static class BeaconIeParser
         TpcReport? tpc = null;
         var presentIds = new List<byte>();
         var presentExtIds = new List<byte>();
+        byte? ownMldId = null;
         bool bssTransitionMgmt = false;
 
         int i = 0;
@@ -52,7 +53,11 @@ public static class BeaconIeParser
             // 拡張要素 (Element ID 255) は Body 先頭 1 バイトが Element ID Extension。
             // 本文が空の壊れた要素で範囲外参照しないよう長さを確認する。
             if (id == ExtendedElementId && len >= 1)
+            {
                 presentExtIds.Add(body[0]);
+                if (body[0] == BeaconIeSummary.MultiLinkExtensionId)
+                    ownMldId ??= DecodeMultiLinkOwnMldId(body);
+            }
 
             switch (id)
             {
@@ -110,7 +115,8 @@ public static class BeaconIeParser
             Tpc:                tpc,
             BssTransitionMgmt:  bssTransitionMgmt,
             PresentElementIds:  presentIds,
-            PresentExtensionIds: presentExtIds);
+            PresentExtensionIds: presentExtIds,
+            OwnApMldId:         ownMldId);
     }
 
     // ── 個別要素デコーダ (本体スライスのみを受け取る) ─────────────────
@@ -164,6 +170,48 @@ public static class BeaconIeParser
 
     private static string FormatBssid(ReadOnlySpan<byte> b)
         => $"{b[0]:x2}:{b[1]:x2}:{b[2]:x2}:{b[3]:x2}:{b[4]:x2}:{b[5]:x2}";
+
+    /// <summary>
+    /// Basic Multi-Link 要素 (拡張要素 ID Extension 107) の Common Info から
+    /// ビーコン発信 AP 自身の AP MLD ID を取り出す。
+    ///
+    /// 構造 (802.11be / Wireshark dissect_multi_link と突合済み):
+    ///   body[0]     : Element ID Extension (107)
+    ///   body[1..2]  : Multi-Link Control (u16 LE) — bits 0-2 = Type (0=Basic)、
+    ///                 bits 4-15 = Presence Bitmap
+    ///   body[3]     : Common Info Length
+    ///   Common Info : MLD MAC (6B) → Presence Bitmap 駆動の順次フィールド
+    ///                 bit0 LinkID(1B) / bit1 BSS Params Change Count(1B) /
+    ///                 bit2 Medium Sync(2B) / bit3 EML Capa(2B) /
+    ///                 bit4 MLD Capa(2B) / bit5 AP MLD ID(1B) / bit6 Ext MLD Capa(2B)
+    /// </summary>
+    private static byte? DecodeMultiLinkOwnMldId(ReadOnlySpan<byte> body)
+    {
+        if (body.Length < 4) return null;
+        int mlControl = body[1] | (body[2] << 8);
+        if ((mlControl & 0x0007) != 0) return null;   // Basic 以外は MLD ID の位置が違う
+        int present = mlControl >> 4;
+
+        int ciLen  = body[3];
+        int ci     = 4;
+        int ciEnd  = Math.Min(body.Length, ci + ciLen);
+        // MLD MAC (6B) は Basic で常に先頭。
+        if (ci + 6 > ciEnd) return null;
+        ci += 6;
+
+        // Presence Bitmap の順序どおりに読み飛ばして AP MLD ID 位置へ進む。
+        if ((present & 0x01) != 0) ci += 1;   // Link ID Info
+        if ((present & 0x02) != 0) ci += 1;   // BSS Parameters Change Count
+        if ((present & 0x04) != 0) ci += 2;   // Medium Synchronization Delay
+        if ((present & 0x08) != 0) ci += 2;   // EML Capabilities
+        if ((present & 0x10) != 0) ci += 2;   // MLD Capabilities
+        if ((present & 0x20) != 0)
+        {
+            if (ci + 1 > ciEnd) return null;
+            return body[ci];
+        }
+        return null;
+    }
 }
 
 /// <summary>ビーコン IE を 1 パス解析した集約結果。</summary>
@@ -180,7 +228,14 @@ public sealed record BeaconIeSummary(
     IReadOnlyList<byte>           PresentElementIds,
     // 既定値を持たせて後方互換にする。既存の呼び出し側 (テストを含む) は
     // 拡張要素を扱わないため、追加のたびに全構築箇所を書き換える必要はない。
-    IReadOnlyList<byte>?          PresentExtensionIds = null)
+    IReadOnlyList<byte>?          PresentExtensionIds = null,
+    /// <summary>
+    /// 発信 AP 自身の AP MLD ID (Basic Multi-Link 要素の Common Info 由来)。
+    /// RNR エントリの <see cref="RnrNeighborAp.MldId"/> と照合して、
+    /// 報告された近隣 AP がこの AP MLD のリンクかどうかを判定する。
+    /// 要素が無い/MLD ID を広告していない場合は null。
+    /// </summary>
+    byte?                         OwnApMldId = null)
 {
     /// <summary>802.11r Fast BSS Transition 対応 (Mobility Domain 要素あり)。</summary>
     public bool SupportsFastTransition => MobilityDomain is not null;

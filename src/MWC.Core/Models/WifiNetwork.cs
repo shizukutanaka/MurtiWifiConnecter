@@ -218,10 +218,14 @@ public sealed record MloLink
     /// <summary>周波数 (MHz)</summary>
     public int FrequencyMhz { get; init; }
 
-    /// <summary>このリンクの RSSI (dBm)</summary>
-    public int Rssi { get; init; }
+    /// <summary>
+    /// このリンクの RSSI (dBm)。未測定時は null — 広告情報だけで埋まる
+    /// リンクには実測 RSSI が存在しないため、0 埋めで「測ったかのように」
+    /// 見せない (BestLink/集約速度等の RSSI 依存結論を守るため)。
+    /// </summary>
+    public int? Rssi { get; init; }
 
-    /// <summary>チャネル幅 (MHz)</summary>
+    /// <summary>チャネル幅 (MHz)。不明時は 0。</summary>
     public int ChannelWidth { get; init; }
 }
 

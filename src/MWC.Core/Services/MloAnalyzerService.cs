@@ -54,8 +54,8 @@ public sealed class MloAnalyzerService
                 LinkCount:        0,
                 Bands:            Array.Empty<WifiBand>(),
                 IsCrossBand:      false,
-                AggregatedMbps:   0,
-                BestLinkRssi:     0,
+                AggregatedMbps:   null,
+                BestLinkRssi:     null,
                 ReliabilityTier:  MloReliability.SingleLink,
                 Summary:          "Wi-Fi 7 MLO advertised by this AP. Per-link detail is not " +
                                   "available on this platform, so link count and aggregate " +
@@ -65,11 +65,17 @@ public sealed class MloAnalyzerService
         var bands = links.Select(l => l.Band).Distinct().ToList();
         bool crossBand = bands.Count >= 2;
 
-        // 集約スループット (各リンクの推定実効レートを合算)
-        double aggregated = links.Sum(l =>
-            _rateEstimator.Estimate(l.Rssi, l.ChannelWidth, spatialStreams: 2).EffectiveMbps);
+        // 集約スループット (各リンクの推定実効レートを合算)。
+        // RSSI 未測定のリンクが 1 本でも混ざると合算値は実態を示さないため、
+        // 全リンク測定済みのときだけ値を出し、それ以外は null(未測定)。
+        double? aggregated = links.All(l => l.Rssi.HasValue)
+            ? links.Sum(l =>
+                _rateEstimator.Estimate(l.Rssi!.Value, l.ChannelWidth, spatialStreams: 2).EffectiveMbps)
+            : null;
 
-        int bestRssi = links.Max(l => l.Rssi);
+        int? bestRssi = links.Any(l => l.Rssi.HasValue)
+            ? links.Where(l => l.Rssi.HasValue).Max(l => l.Rssi!.Value)
+            : null;
 
         // 信頼性階層
         var reliability = links.Count switch
@@ -79,17 +85,20 @@ public sealed class MloAnalyzerService
             _    => MloReliability.SingleLink
         };
 
+        string aggregateText = aggregated is double est
+            ? $"Aggregated approx. {est:F0}Mbps. "
+            : "Aggregate throughput not estimated (per-link RSSI unmeasured). ";
         string summary = crossBand
             ? $"{links.Count}-link MLO ({string.Join("+", bands.Select(BandLabel))}). " +
-              $"Aggregated approx. {aggregated:F0}Mbps. Continues on other bands if one link degrades."
-            : $"{links.Count}-link MLO (same band). Aggregated approx. {aggregated:F0}Mbps.";
+              aggregateText + "Continues on other bands if one link degrades."
+            : $"{links.Count}-link MLO (same band). " + aggregateText.TrimEnd();
 
         return new MloAnalysis(
             IsMlo:           true,
             LinkCount:       links.Count,
             Bands:           bands,
             IsCrossBand:     crossBand,
-            AggregatedMbps:  Math.Round(aggregated, 1),
+            AggregatedMbps:  aggregated is double a ? Math.Round(a, 1) : null,
             BestLinkRssi:    bestRssi,
             ReliabilityTier: reliability,
             Summary:         summary);
@@ -117,9 +126,11 @@ public sealed class MloAnalyzerService
     /// 最も品質の良いリンクを返す (STR で優先送信されるリンク)。
     /// </summary>
     public MloLink? BestLink(WifiNetwork network)
-        => network.MloLinks.Count == 0
-            ? null
-            : network.MloLinks.OrderByDescending(l => l.Rssi).First();
+        => network.MloLinks
+            .Where(l => l.Rssi.HasValue)
+            .OrderByDescending(l => l.Rssi)
+            .Cast<MloLink?>()
+            .FirstOrDefault();
 
     // MLO が不利になりうる閾値
     private const int WeakRssiDbm    = -78;  // これ以下は弱リンク
@@ -138,8 +149,19 @@ public sealed class MloAnalyzerService
             return new MloAnomaly(MloAnomalyKind.None, null);
 
         var links = network.MloLinks;
-        int best  = links.Max(l => l.Rssi);   // RSSI は負値、best は 0 に近い
-        int worst = links.Min(l => l.Rssi);
+        var measured = links.Where(l => l.Rssi.HasValue).ToList();
+
+        // RSSI 未測定のリンクが混ざると gap/best は実態を示さない。
+        // 測定済みが 2 本未満なら RSSI 由来のアノマリーは出さず、
+        // バンド構成だけの SameBandRedundancy のみ判定する。
+        if (measured.Count < 2)
+            return links.Select(l => l.Band).Distinct().Count() < 2
+                ? new MloAnomaly(MloAnomalyKind.SameBandRedundancy,
+                    "Single-band MLO only. Redundancy on link failure is limited. A cross-band configuration is recommended.")
+                : new MloAnomaly(MloAnomalyKind.None, null);
+
+        int best  = measured.Max(l => l.Rssi!.Value);   // RSSI は負値、best は 0 に近い
+        int worst = measured.Min(l => l.Rssi!.Value);
         int gap   = best - worst;
 
         if (best <= WeakRssiDbm)
@@ -175,8 +197,8 @@ public sealed record MloAnalysis(
     int                   LinkCount,
     IReadOnlyList<WifiBand> Bands,
     bool                  IsCrossBand,
-    double                AggregatedMbps,
-    int                   BestLinkRssi,
+    double?               AggregatedMbps,
+    int?                  BestLinkRssi,
     MloReliability        ReliabilityTier,
     string                Summary);
 

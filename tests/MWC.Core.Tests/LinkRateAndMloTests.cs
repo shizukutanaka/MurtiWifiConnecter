@@ -145,7 +145,7 @@ public class MloAnalyzerServiceTests
 
         analysis.IsMlo.Should().BeTrue("the AP advertises Multi-Link in its beacon");
         analysis.LinkCount.Should().Be(0, "no per-link data was supplied");
-        analysis.AggregatedMbps.Should().Be(0, "throughput must not be invented from nothing");
+        analysis.AggregatedMbps.Should().BeNull("throughput must not be invented from nothing — null means unmeasured");
         analysis.Bands.Should().BeEmpty();
     }
 
@@ -241,5 +241,43 @@ public class MloAnalyzerServiceTests
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz, SignalQuality = 70 };
         _svc.BestLink(net).Should().BeNull();
+    }
+
+    [Fact]
+    public void Analyze_LinksWithoutRssi_NoInventedAggregate()
+    {
+        // RNR/広告由来で RSSI 未測定のリンク群: 集約速度・最良リンクを捏造しない
+        var net = new WifiNetwork
+        {
+            Ssid = "MLO-Net", Band = WifiBand.Band5GHz, SignalQuality = 80, IsMlo = true,
+            MloLinks = new List<MloLink>
+            {
+                new() { LinkId = 0, Band = WifiBand.Band5GHz, ChannelWidth = 160, Channel = 36 },
+                new() { LinkId = 1, Band = WifiBand.Band6GHz, ChannelWidth = 320, Channel = 37 },
+            }
+        };
+
+        var analysis = _svc.Analyze(net);
+        analysis.AggregatedMbps.Should().BeNull("RSSI unmeasured — aggregate would be invented");
+        analysis.BestLinkRssi.Should().BeNull();
+        _svc.BestLink(net).Should().BeNull("no measured RSSI to rank by");
+        // RSSI 非依存のバンド構成判定は継続する
+        _svc.DetectAnomaly(net).Kind.Should().Be(MloAnomalyKind.None);
+    }
+
+    [Fact]
+    public void DetectAnomaly_UnmeasuredSameBand_StillFlagsRedundancy()
+    {
+        // RSSI 不明でも「同一バンドのみの MLO」はバンド構成だけで確定できる
+        var net = new WifiNetwork
+        {
+            Ssid = "MLO-Net", Band = WifiBand.Band5GHz, SignalQuality = 80, IsMlo = true,
+            MloLinks = new List<MloLink>
+            {
+                new() { LinkId = 0, Band = WifiBand.Band5GHz, ChannelWidth = 160, Channel = 36 },
+                new() { LinkId = 1, Band = WifiBand.Band5GHz, ChannelWidth = 80,  Channel = 44 },
+            }
+        };
+        _svc.DetectAnomaly(net).Kind.Should().Be(MloAnomalyKind.SameBandRedundancy);
     }
 }

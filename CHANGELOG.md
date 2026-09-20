@@ -16,6 +16,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added / Fixed (2026-09-19 第三ラウンド — MLO リンク詳細 + RNR パーサ実仕様適合)
+
+- **`RnrParser` のレイアウトが IEEE 802.11-2020 実仕様とずれていた実バグを修正**:
+  TBTT Information Header の count を bits 0-3(正: bits 4-7)、length を
+  bits 9-15(正: bits 8-15)と読み、Operating Class/Channel を各 TBTT エントリ
+  内(正: フィールド単位で一度)と誤認していたため、実ビーコンの RNR は全て
+  誤読されていた。Wireshark dissector のマスク定義と突合して全レイアウトを
+  訂正(フィクスチャも同じ誤配置で書かれていたため従来テストは通っていた)。
+- **RNR の MLD Parameters(TBTT Length≥16)を実パース**(802.11be):
+  `RnrNeighborAp.MldId`/`MldLinkId`/`IsMloAffiliated` を追加。
+- **Basic Multi-Link 要素の Common Info から発信 AP 自身の AP MLD ID を抽出**
+  (`BeaconIeSummary.OwnApMldId`)、`BeaconIeApplier` が MLD ID 一致する RNR
+  エントリのみを `WifiNetwork.MloLinks` に流すよう配線(無関係な近隣 AP を
+  リンクと誤認しない)。LinkId/Band/Channel/Frequency/ChannelWidth は広告値。
+- **`MloLink.Rssi` を `int?` 化**(広告のみで埋まるリンクに「未測定=0」という
+  偽の実測値を混ぜないためのモデル罠修正): `MloAnalysis.AggregatedMbps`/
+  `BestLinkRssi` は未測定時 null、`BestLink`/`DetectAnomaly` は RSSI 未測定
+  では結論を出さない(同一バンド冗長のみバンド構成で判定)。GUI ラベルは
+  集約不可時 "?"。
+- COMPLETION-CHECKLIST §3 (MLO リンク詳細) の Core 側を完結 — 残るのは
+  実機での RSSI 実測配線のみ。
+
 ### Fixed (2026-09-19 第二ラウンド — 実 `dotnet test` 初実走)
 
 - **`MWC.Core.Tests.Standalone` を新設**(net9.0・WPF 非依存): 本体テストは
