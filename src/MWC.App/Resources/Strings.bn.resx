@@ -669,4 +669,5 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Menu_ImportCat"><value>CAT প্রোফাইল ইমপোর্ট করুন…</value></data>
   <data name="ImportCat_InvalidFile"><value>বৈধ CAT eap-config ফাইল নয়।</value></data>
   <data name="ImportCat_NoUsableProfile"><value>ফাইলে কোনো ব্যবহারযোগ্য প্রোফাইল নেই (SSID, RADIUS সার্ভার নাম ও সমর্থিত EAP ধরন প্রয়োজন)।</value></data>
+  <data name="Detail_Privacy"><value>গোপনীয়তা</value></data>
 </root>

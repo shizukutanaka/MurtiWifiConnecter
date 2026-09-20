@@ -1083,6 +1083,22 @@
                                                AutomationProperties.Name="{Binding SelectedAdapter.Detail.VpnAdviceLabel}"/>
                                 </Grid>
 
+                                <!-- MAC randomisation advisory — only shown when the adapter's MAC
+                                     is available and yields advice (PrivacyAdvisoryService,
+                                     previously CLI-only `mwc privacy`; 2026-09-19 wiring). -->
+                                <Grid Margin="0,4,0,4"
+                                      Visibility="{Binding SelectedAdapter.Detail.HasPrivacyAdvisory, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="82"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Static r:L.DetailPrivacy}" Foreground="{DynamicResource FgMutedBrush}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding SelectedAdapter.Detail.PrivacyLabel}"
+                                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               AutomationProperties.Name="{Binding SelectedAdapter.Detail.PrivacyLabel}"/>
+                                </Grid>
+
                                 <!-- 802.1X (Enterprise) auth success rate — only shown when a prior
                                      attempt was recorded (EapAuthStatsService, previously CLI-only
                                      `mwc eap-stats`; 2026-07 audit follow-up). -->

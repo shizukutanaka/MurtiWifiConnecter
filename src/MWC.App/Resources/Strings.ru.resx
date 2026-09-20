@@ -671,4 +671,5 @@
   <data name="Menu_ImportCat"><value>Импорт профиля CAT…</value></data>
   <data name="ImportCat_InvalidFile"><value>Недопустимый файл CAT eap-config.</value></data>
   <data name="ImportCat_NoUsableProfile"><value>В файле нет подходящего профиля (нужны SSID, имя RADIUS-сервера и поддерживаемый тип EAP).</value></data>
+  <data name="Detail_Privacy"><value>Конфиденциальность</value></data>
 </root>

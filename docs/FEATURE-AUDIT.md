@@ -331,7 +331,7 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 |---|---|---|
 | `VpnAdvisoryService` | CLI `mwc vpn-advice` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.VpnAdviceLabel` として表示 |
 | `EapAuthStatsService` | CLI `mwc eap-stats` **+ GUI 詳細パネル** | **✅ 配線済み(2026-07)**。`NetworkDetailViewModel.EapStatsLabel`(記録がある場合のみ表示) |
-| `PrivacyAdvisoryService` | CLI `mwc privacy` | **✅ 配線済み(2026-07 第4パス)**。GUI 側は未配線(下記参照) |
+| `PrivacyAdvisoryService` | CLI `mwc privacy` **+ GUI 詳細パネル** | **✅ 完全配線(2026-09-19)**。`NetworkDetailViewModel.PrivacyLabel` — MAC モードはアダプターの PhysicalAddress を `MacAddressModeInference`(LAA ビット判定、Core)に通して推定。アドレス未供給時は助言自体を出さない設計 |
 
 `VpnAdvisoryService`/`EapAuthStatsService` は `_secAdvisor` と同じパターン(static readonly
 フィールド + `Load()` 内で `Analyze`/`GetAll` 呼び出し → ラベルプロパティ)で
@@ -346,10 +346,14 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 `mwc import-cat` と同じ分解(**プラットフォームが供給できない値はユーザーが供給する**)を適用し、
 CLI `mwc privacy --mac-mode <hardware|random-per-network|random-daily>` として配線済み。
 
-**残る限界**: MAC モードの**自動検出**は依然として Windows 実装が必要
-(「ランダムハードウェアアドレス」設定の読み取り)。実装されれば `--mac-mode` の
-既定供給元になり、ユーザー入力は上書き用に残せる。**GUI 側も未配線**
-(`VpnAdvisoryService`/`EapAuthStatsService` と同じ詳細パネル方式で追加可能)。
+**2026-09-19 全解消**: MAC モードは OS 設定の読み取りではなく実 MAC の
+LAA ビットで推定する `MacAddressModeInference`(Core)が既にあった —
+「設定を読めない」は誤前提で「効果を読む」で解けていた。
+`WindowsWifiService` が `PhysicalAddress` を実際に供給するようになり
+(`NetworkInterface` 経由、§4 解決)、GUI 詳細パネルへ配線済み
+(Vpn/EapStats と同じ方式: `PrivacyLabel` + `HasPrivacyAdvisory`)。
+残るのは推定の分解能のみ(ランダム化の *種類* — 日次かネットワーク別か —
+は単一アドレスからは決まらず `MacAddressMode.Randomized` として助言される)。
 
 **`CatImportService` が配線できない理由(2026-07 調査で判明した、より根本的な欠落。CLI 側は
 2026-07 に解消済み)**:

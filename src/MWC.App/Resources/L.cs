@@ -280,6 +280,7 @@ public static class L
     public static string MenuImportCat             => Get("Menu_ImportCat");
     public static string ImportCatInvalidFile      => Get("ImportCat_InvalidFile");
     public static string ImportCatNoUsableProfile  => Get("ImportCat_NoUsableProfile");
+    public static string DetailPrivacy             => Get("Detail_Privacy");
     public static string MenuSettings              => Get("Menu_Settings");
     public static string MenuAbout                 => Get("Menu_About");
     public static string MenuScanAll               => Get("Menu_ScanAll");

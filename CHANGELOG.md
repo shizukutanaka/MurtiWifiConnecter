@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added (2026-09-19 第六ラウンド — PrivacyAdvisory の GUI 配線)
+
+- **MAC ランダム化助言を GUI 詳細パネルへ配線** (FEATURE-AUDIT §2a 最後の残件):
+  `AdapterViewModel` がアダプターの `PhysicalAddress` を
+  `MacAddressModeInference`(LAA ビット判定、Core 層)に通してモードを推定し、
+  `NetworkDetailViewModel` が `PrivacyAdvisoryService` の最高重大度勧告を
+  `PrivacyLabel` として表示。アドレス未供給時は助言自体を出さない(誤警告を防ぐ)。
+  CLI `mwc privacy` と同一ロジック。`Detail_Privacy` キーを全 15 ロケールに追加
+  (計 520 キー)。
+
 ### Added (2026-09-19 第五ラウンド — GUI CAT インポート + EAP-TLS 証明書選択)
 
 - **GUI からの eduroam CAT (eap-config) インポート**: 「⋯」メニュー

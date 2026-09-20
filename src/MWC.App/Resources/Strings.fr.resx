@@ -674,4 +674,5 @@ Supporte WPA3, Enterprise, QR code et CLI.</value></data>
   <data name="Menu_ImportCat"><value>Importer un profil CAT…</value></data>
   <data name="ImportCat_InvalidFile"><value>Fichier eap-config CAT non valide.</value></data>
   <data name="ImportCat_NoUsableProfile"><value>Aucun profil utilisable dans le fichier (SSID, nom de serveur RADIUS et type EAP pris en charge requis).</value></data>
+  <data name="Detail_Privacy"><value>Confidentialité</value></data>
 </root>

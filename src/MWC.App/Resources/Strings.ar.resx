@@ -674,4 +674,5 @@
   <data name="Menu_ImportCat"><value>استيراد ملف تعريف CAT…</value></data>
   <data name="ImportCat_InvalidFile"><value>الملف ليس ملف CAT eap-config صالحاً.</value></data>
   <data name="ImportCat_NoUsableProfile"><value>لا يوجد ملف تعريف قابل للاستخدام في الملف (يتطلب SSID واسم خادم RADIUS ونوع EAP مدعوم).</value></data>
+  <data name="Detail_Privacy"><value>الخصوصية</value></data>
 </root>

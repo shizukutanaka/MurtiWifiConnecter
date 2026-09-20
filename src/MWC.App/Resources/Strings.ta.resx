@@ -666,4 +666,5 @@ WPA3, Enterprise, QR குறியீடு மற்றும் CLI ஆத�
   <data name="Menu_ImportCat"><value>CAT சுயவிவரத்தை இறக்குமதி…</value></data>
   <data name="ImportCat_InvalidFile"><value>சரியான CAT eap-config கோப்பு அல்ல.</value></data>
   <data name="ImportCat_NoUsableProfile"><value>கோப்பில் பயன்படுத்தக்கூடிய சுயவிவரம் இல்லை (SSID, RADIUS சேவையக பெயர், ஆதரிக்கப்படும் EAP வகை தேவை).</value></data>
+  <data name="Detail_Privacy"><value>தனியுரிமை</value></data>
 </root>

@@ -78,10 +78,17 @@ public sealed partial class AdapterViewModel : ObservableObject
 
     partial void OnSelectedChanged(NetworkItemViewModel? value)
     {
-        Detail.Load(value?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(value?.Ssid));
+        Detail.Load(value?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(value?.Ssid), CurrentMacMode());
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
+
+    /// <summary>アダプターの実 MAC からランダム化状態を推定する (LAA ビット判定。
+    /// PhysicalAddress 未供給/パース失敗時は Unknown = 助言を出さない)。</summary>
+    private MacAddressMode CurrentMacMode()
+        => MacAddressModeInference.TryParse(_adapter.PhysicalAddress, out var mac)
+            ? MacAddressModeInference.FromAddress(mac, _oui).Mode
+            : MacAddressMode.Unknown;
 
     /// <summary>接続継続時間 (未接続なら null)。スティッキークライアント判定に使用。</summary>
     private TimeSpan? ConnectedDuration()
@@ -204,7 +211,7 @@ public sealed partial class AdapterViewModel : ObservableObject
             // 選択中の詳細・履歴を最新化
             if (Selected is not null && byKey.TryGetValue(Selected.Ssid, out var upd))
                 Selected.Update(upd);
-            Detail.Load(Selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(Selected?.Ssid));
+            Detail.Load(Selected?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(Selected?.Ssid), CurrentMacMode());
             OnPropertyChanged(nameof(SelectedHistory));
             OnPropertyChanged(nameof(SourceNetworks));
         }

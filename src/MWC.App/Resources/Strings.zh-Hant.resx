@@ -671,4 +671,5 @@
   <data name="Menu_ImportCat"><value>匯入 CAT 設定檔…</value></data>
   <data name="ImportCat_InvalidFile"><value>不是有效的 CAT eap-config 檔案。</value></data>
   <data name="ImportCat_NoUsableProfile"><value>檔案中沒有可用的設定檔（需要 SSID、RADIUS 伺服器名稱和支援的 EAP 類型）。</value></data>
+  <data name="Detail_Privacy"><value>隱私</value></data>
 </root>

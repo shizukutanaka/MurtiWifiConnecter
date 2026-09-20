@@ -34,6 +34,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     private static readonly MloAnalyzerService _mloAnalyzer = new();
     private static readonly VpnAdvisoryService _vpnAdvisor = new();
     private static readonly EapAuthStatsService _eapStats = new();
+    private static readonly PrivacyAdvisoryService _privacyAdvisor = new();
     private static readonly RegulatoryDomainService _regulatoryDomain = new();
     // NetworkHistoryService は ConnectionExecutor 等が DI シングルトンとして持つ別インスタンスとは
     // 独立している(このクラスの全 *Service フィールドと同じ既存パターン — 静的ローカル生成)。
@@ -67,6 +68,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
     [ObservableProperty] private string _vpnAdviceLabel = "";
     [ObservableProperty] private string _eapStatsLabel = "";
     [ObservableProperty] private bool _hasEapStats;
+    [ObservableProperty] private string _privacyLabel = "";
+    [ObservableProperty] private bool _hasPrivacyAdvisory;
     [ObservableProperty] private string _regulatoryLabel = "";
 
     // 大半のネットワークでは空になる行は、勧告パネル同様、値があるときだけ表示する
@@ -101,10 +104,14 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             _evilTwin.RecordTrusted(network.Ssid, bss.Bssid, network.Auth);
     }
 
+    /// <param name="macMode">選択アダプターの MAC ランダム化状態。
+    /// 呼び出し側 (AdapterViewModel) が <see cref="MacAddressModeInference"/> で
+    /// PhysicalAddress から推定して渡す。Unknown ではモード依存の助言は出ない。</param>
     public void Load(WifiNetwork? n,
                      IReadOnlyList<WifiNetwork>? allNetworks = null,
                      TimeSpan? connectedDuration = null,
-                     IReadOnlyList<int>? rssiHistory = null)
+                     IReadOnlyList<int>? rssiHistory = null,
+                     MacAddressMode macMode = MacAddressMode.Unknown)
     {
         if (n is null)
         {
@@ -113,8 +120,8 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
             ChannelLabel = FrequencyLabel = SpeedLabel = SignalLabel = StatusLabel = "";
             DistanceLabel = RoamingLabel = InterferenceLabel = MeshLabel = PowerSaveLabel = "";
             LinkEstimateLabel = MloLabel = PredictedSignalLabel = "";
-            VpnAdviceLabel = EapStatsLabel = RegulatoryLabel = "";
-            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = HasEapStats = HasRegulatoryInfo = false;
+            VpnAdviceLabel = EapStatsLabel = RegulatoryLabel = PrivacyLabel = "";
+            HasMlo = HasMesh = HasPredictedSignal = HasLinkEstimate = HasEapStats = HasRegulatoryInfo = HasPrivacyAdvisory = false;
             IsDfs = false;
             RecommendationScore = 0;
             RecommendationSummary = "";
@@ -225,6 +232,13 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         };
 
         // 802.1X (Enterprise) 認証成功率(記録がある場合のみ表示 — CLI mwc eap-stats と同じデータ源)。
+        // MAC ランダム化の助言 (CLI `mwc privacy` と同じ PrivacyAdvisoryService)。
+        // アドレス未供給 (macMode=Unknown) ではモード依存の助言自体が出ない設計。
+        var privTop = _privacyAdvisor.Analyze(macMode, n)
+            .OrderByDescending(a => (int)a.Severity).FirstOrDefault();
+        HasPrivacyAdvisory = privTop is not null;
+        PrivacyLabel = privTop is null ? "" : privTop.Title;
+
         var eapRecords = _eapStats.GetAll().Where(s => s.Ssid == n.Ssid).ToList();
         HasEapStats = eapRecords.Count > 0;
         EapStatsLabel = HasEapStats

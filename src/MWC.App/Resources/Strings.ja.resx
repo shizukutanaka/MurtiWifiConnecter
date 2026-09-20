@@ -674,4 +674,5 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Menu_ImportCat"><value>CAT プロファイルをインポート…</value></data>
   <data name="ImportCat_InvalidFile"><value>有効な CAT eap-config ファイルではありません。</value></data>
   <data name="ImportCat_NoUsableProfile"><value>ファイルに使用可能なプロファイルがありません (SSID・RADIUS サーバー名・対応 EAP 種別が必要)。</value></data>
+  <data name="Detail_Privacy"><value>プライバシー</value></data>
 </root>
