@@ -64,12 +64,12 @@ public class AutoReconnectServiceExceptionHandlingTests
     {
         var svc = new AutoReconnectService(
             new ThrowingSubscribeWifiService(),
-            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance),
+            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh()),
             new NotificationService(NullLogger<NotificationService>.Instance),
             new AdapterPreferencesService(),
             new ConnectionExecutor(
                 new ThrowingSubscribeWifiService(),
-                new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance),
+                new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh()),
                 NullLogger<ConnectionExecutor>.Instance),
             NullLogger<AutoReconnectService>.Instance);
 

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- MWC.Core のみに依存するテストを net9.0(非Windows TFM)で実行するためのプロジェクト。
+       MWC.App 参照込みの本体テストは WindowsDesktop.App ランタイムが必要で
+       macOS/Linux では実行できないため、MWC.App を参照しないテストファイル群を
+       glob で共有してここで実走する。WPF に依存しない Core ロジックが対象。 -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);CA1707;CA1861</NoWarn>
+    <!-- 本体プロジェクトと同じ .cs をコンパイルするため重複既定項を無効化 -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\MWC.Core.Tests\**\*.cs"
+             Exclude="..\MWC.Core.Tests\ApplePhase3Tests.cs;
+                      ..\MWC.Core.Tests\AutoReconnectServiceExceptionHandlingTests.cs;
+                      ..\MWC.Core.Tests\BrowserLauncherTests.cs;
+                      ..\MWC.Core.Tests\BugFixRegressionTests.cs;
+                      ..\MWC.Core.Tests\FinalValidationV8Tests.cs;
+                      ..\MWC.Core.Tests\NetworkDetailViewModelVpnEapWiringTests.cs;
+                      ..\MWC.Core.Tests\OnboardingTests.cs;
+                      ..\MWC.Core.Tests\OweWiringTests.cs;
+                      ..\MWC.Core.Tests\Phase5IntegrationTests.cs;
+                      ..\MWC.Core.Tests\ProfileManagerViewModelErrorHandlingTests.cs;
+                      ..\MWC.Core.Tests\QualityImprovementTests.cs;
+                      ..\MWC.Core.Tests\QualityScanV8Tests.cs;
+                      ..\MWC.Core.Tests\RefactoringTests.cs;
+                      ..\MWC.Core.Tests\SignalIconWiringTests.cs;
+                      ..\MWC.Core.Tests\obj\**;
+                      ..\MWC.Core.Tests\bin\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MWC.Core\MWC.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="FsCheck.Xunit" />
+  </ItemGroup>
+</Project>

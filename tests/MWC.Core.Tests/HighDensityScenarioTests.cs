@@ -157,7 +157,7 @@ public class HighDensityNetworkHistoryTests
     [Fact]
     public void RecordConnection_SuccessAndFailure_BothPersist()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         var beforeCount = hist.GetRecentSsids(100).Count;
 
         hist.RecordConnection("NetA", true);
@@ -425,7 +425,7 @@ public class NetworkHistoryStatsTests
     [Fact]
     public void GetStats_ReflectsRecentConnections()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         hist.RecordConnection("Alpha", true);
         hist.RecordConnection("Alpha", true);
         hist.RecordConnection("Beta",  false);
@@ -441,7 +441,7 @@ public class NetworkHistoryStatsTests
     [Fact]
     public void GetFrequentSsids_OrdersByCount()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         hist.RecordConnection("Rare",    true);
         hist.RecordConnection("Common",  true);
         hist.RecordConnection("Common",  true);
@@ -456,7 +456,7 @@ public class NetworkHistoryStatsTests
     [Fact]
     public void Count_ReflectsEntries()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         var before = hist.Count;
         hist.RecordConnection("NewNet", true);
         hist.Count.Should().BeGreaterThan(before - 1);

@@ -5,7 +5,8 @@
       "src\\MWC.Core\\MWC.Core.csproj",
       "src\\MWC.Platform.Linux\\MWC.Platform.Linux.csproj",
       "src\\MWC.PSModule\\MWC.PSModule.csproj",
-      "sdk\\MWC.SDK.csproj"
+      "sdk\\MWC.SDK.csproj",
+      "tests\\MWC.Core.Tests.Standalone\\MWC.Core.Tests.Standalone.csproj"
     ]
   }
 }

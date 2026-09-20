@@ -27,7 +27,7 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void RecordAttempt_Success_IncrementsSuccessCount()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.RecordAttempt("EapTest_Success1", EapType.PEAP_MSCHAPv2, true);
 
         var stat = svc.GetStat("EapTest_Success1", EapType.PEAP_MSCHAPv2);
@@ -39,7 +39,7 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void RecordAttempt_Failure_IncrementsFailCount()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.RecordAttempt("EapTest_Fail1", EapType.EAP_TLS, false);
 
         var stat = svc.GetStat("EapTest_Fail1", EapType.EAP_TLS);
@@ -50,7 +50,7 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void RecordAttempt_SameSsidDifferentEapType_TracksSeparately()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.RecordAttempt("EapTest_MultiType", EapType.PEAP_MSCHAPv2, true);
         svc.RecordAttempt("EapTest_MultiType", EapType.EAP_TLS, false);
 
@@ -61,7 +61,7 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void RecordAttempt_AccumulatesAcrossCalls()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.RecordAttempt("EapTest_Accum", EapType.EAP_TTLS, true);
         svc.RecordAttempt("EapTest_Accum", EapType.EAP_TTLS, true);
         svc.RecordAttempt("EapTest_Accum", EapType.EAP_TTLS, false);
@@ -75,7 +75,7 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void SuccessRate_ComputesCorrectly()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.RecordAttempt("EapTest_Rate", EapType.EAP_AKA, true);
         svc.RecordAttempt("EapTest_Rate", EapType.EAP_AKA, true);
         svc.RecordAttempt("EapTest_Rate", EapType.EAP_AKA, true);
@@ -95,14 +95,14 @@ public class EapAuthStatsServiceTests
     [Fact]
     public void GetStat_UnknownSsid_ReturnsNull()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         svc.GetStat(EapTestSsid.Unique("EapTest_DoesNotExist_"), EapType.PEAP_MSCHAPv2).Should().BeNull();
     }
 
     [Fact]
     public void GetAll_IncludesRecordedEntry()
     {
-        var svc = new EapAuthStatsService();
+        var svc = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         var uniqueSsid = EapTestSsid.Unique("EapTest_GetAll_");
         svc.RecordAttempt(uniqueSsid, EapType.EAP_TLS, true);
 
@@ -119,8 +119,8 @@ public class ConnectionExecutorEapStatsWiringTests
     public async Task ConnectAsync_EnterpriseSpecSuccess_RecordsEapStat()
     {
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };
-        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
-        var eapStats = new EapAuthStatsService();
+        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
+        var eapStats = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, NullLogger<ConnectionExecutor>.Instance, eapStats);
 
@@ -147,8 +147,8 @@ public class ConnectionExecutorEapStatsWiringTests
     public async Task ConnectAsync_EnterpriseSpecFailure_RecordsEapFailure()
     {
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Fail(ConnectionFailure.BadCredentials) };
-        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
-        var eapStats = new EapAuthStatsService();
+        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
+        var eapStats = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, NullLogger<ConnectionExecutor>.Instance, eapStats);
 
@@ -173,8 +173,8 @@ public class ConnectionExecutorEapStatsWiringTests
     {
         // WPA2PSK には EapType がないため、EAP 統計には一切記録されないはず。
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };
-        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
-        var eapStats = new EapAuthStatsService();
+        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
+        var eapStats = new EapAuthStatsService(statsPath: TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, NullLogger<ConnectionExecutor>.Instance, eapStats);
 
@@ -190,7 +190,7 @@ public class ConnectionExecutorEapStatsWiringTests
     {
         // 既存の 3 引数コンストラクタ(EapAuthStatsService 省略)との後方互換性確認。
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };
-        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
+        var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(wifi, hist, NullLogger<ConnectionExecutor>.Instance);
 
         var spec = new WifiProfileSpec

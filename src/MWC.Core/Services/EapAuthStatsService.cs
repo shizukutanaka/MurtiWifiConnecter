@@ -26,12 +26,17 @@ public sealed class EapAuthStatsService
 {
     private const int MaxEntries = 200; // SSID × EapType の組み合わせ上限
 
-    private static readonly string StatsPath = Path.Combine(
+    private static readonly string DefaultStatsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "eap-stats.json");
 
     private static readonly JsonSerializerOptions JsonWriteOptions = new() { WriteIndented = false };
 
+    /// <summary>
+    /// 実際の保存先。NetworkHistoryService と同じ理由でインスタンスごとに持つ:
+    /// static 固定パスだとテストが実マシン/互いのデータを汚染する。
+    /// </summary>
+    private readonly string StatsPath;
     private readonly List<EapAuthStat> _entries;
     private readonly ILogger<EapAuthStatsService> _log;
     // _entries 保護用。RecordAttempt は ConnectionExecutor から、GetAll/GetStat は
@@ -42,9 +47,10 @@ public sealed class EapAuthStatsService
 
     /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。
     /// logger 省略時は NullLogger を使う(テスト容易性のため)。</summary>
-    public EapAuthStatsService(ILogger<EapAuthStatsService>? log = null)
+    public EapAuthStatsService(ILogger<EapAuthStatsService>? log = null, string? statsPath = null)
     {
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<EapAuthStatsService>.Instance;
+        StatsPath = statsPath ?? DefaultStatsPath;
         _entries = Load();
     }
 

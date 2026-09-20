@@ -43,7 +43,7 @@ public class OweWiringTests
         var history = new SignalHistoryService();
         var oui     = new OuiLookupService();
         var prefs   = new AdapterPreferencesService();
-        var netHist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
+        var netHist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var executor = new ConnectionExecutor(wifi, netHist, NullLogger<ConnectionExecutor>.Instance);
 
         var vm = new AdapterViewModel(adapter, wifi, history, oui,
@@ -75,7 +75,7 @@ public class OweWiringTests
         var adapter = new WifiAdapter { Id = Guid.NewGuid(), Name = "TestNic2", Description = "Test" };
         var prefs   = new AdapterPreferencesService();
         var oui     = new OuiLookupService();
-        var netHist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
+        var netHist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var executor = new ConnectionExecutor(wifi, netHist, NullLogger<ConnectionExecutor>.Instance);
 
         var panel = new AdapterPanelViewModel(adapter, wifi, prefs, executor, oui, NullLogger.Instance);

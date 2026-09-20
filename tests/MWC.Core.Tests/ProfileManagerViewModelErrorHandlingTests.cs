@@ -57,7 +57,7 @@ public class ProfileManagerViewModelErrorHandlingTests
     {
         var vm = new ProfileManagerViewModel(
             new ThrowingWifiService(),
-            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance),
+            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh()),
             NullLogger<ProfileManagerViewModel>.Instance);
 
         await vm.LoadAsync(Guid.NewGuid());
@@ -73,7 +73,7 @@ public class ProfileManagerViewModelErrorHandlingTests
     {
         var vm = new ProfileManagerViewModel(
             new ThrowingWifiService(),
-            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance),
+            new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh()),
             NullLogger<ProfileManagerViewModel>.Instance);
         vm.Selected = new ProfileItem("SomeNetwork");
 

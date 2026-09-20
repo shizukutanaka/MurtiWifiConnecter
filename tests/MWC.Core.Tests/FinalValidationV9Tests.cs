@@ -69,7 +69,7 @@ public class ConnectionExecutorIntegrationV2Tests
     private (ConnectionExecutor, FakeWifi, NetworkHistoryService) Build()
     {
         var wifi = new FakeWifi();
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(wifi, hist, NullLogger<ConnectionExecutor>.Instance);
         return (exec, wifi, hist);
     }

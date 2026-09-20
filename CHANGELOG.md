@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-09-19 第二ラウンド — 実 `dotnet test` 初実走)
+
+- **`MWC.Core.Tests.Standalone` を新設**(net9.0・WPF 非依存): 本体テストは
+  `Microsoft.WindowsDesktop.App` ランタイム要求のため macOS/Linux で実行不可能だった。
+  `MWC.App` を参照しない 64 ファイルを glob 共有し net9.0 で実走 — **1052 テスト
+  全合格**(プロジェクト史上初の実 xunit 実行)。両 CI slnf と `MWC.sln` に登録。
+- **実テスト実走で発見した実バグ 2 件を修正**:
+  - `PropertyBasedTests`: XML エスケープされる `keyMaterial` を生文字列で
+    `Contains` 検証していたテスト不具合を修正 — パース後の値で往復整合を検証
+    (パスフレーズ中の `<`/`&`/`'` は必ずエスケープされるため、生一致は論理上
+    成立し得ない)
+  - `EapAuthStatsService`: `NetworkHistoryService` と同じく static 固定パスで
+    実マシンの `~/…/MWC/eap-stats.json` を共有汚染していた → 兄弟サービス同様の
+    `statsPath` 注入引数を追加。`NetworkHistoryService`/`EapAuthStatsService` を
+    既定パスで生成していたテスト 22 箇所を `TestHistoryPath.Fresh()` に修正
+    (クラス doc が規定する隔離要件の遵守)
+
 ### Fixed (2026-09-19 — 全 Windows プロジェクト初の実コンパイル達成)
 
 - **NETSDK1135 の真因は csproj の TFM 設定ミスだった**: `net9.0-windows` +

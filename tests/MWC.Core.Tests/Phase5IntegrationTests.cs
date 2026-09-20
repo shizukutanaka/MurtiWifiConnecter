@@ -180,7 +180,7 @@ public class FakeWifiServiceCliFlowTests
     {
         var fake    = new FakeWifiService();
         var oui     = new OuiLookupService();
-        var history = new NetworkHistoryService();
+        var history = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
 
         // Scan
         var nets = await fake.ScanAsync(FakeWifiService.AdapterId1);

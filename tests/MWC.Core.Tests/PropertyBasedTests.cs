@@ -44,7 +44,11 @@ public class WifiUriPropertyTests
         {
             var spec = new WifiProfileSpec { Ssid = "TestNet", Auth = AuthMethod.WPA2PSK, Passphrase = pass };
             var xml  = ProfileXmlBuilder.Build(spec);
-            return xml.Contains("<keyMaterial>") && xml.Contains(pass);
+            // パスフレーズ中の < & ' " 等は XML エスケープされるため、
+            // 生文字列ではなくパース後の値で往復整合を検証する。
+            var km = System.Xml.Linq.XElement.Parse(xml)
+                .Descendants().SingleOrDefault(e => e.Name.LocalName == "keyMaterial");
+            return km != null && km.Value == pass;
         });
     }
 

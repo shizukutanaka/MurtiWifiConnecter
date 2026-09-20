@@ -9,7 +9,8 @@
       "src\\MWC.PSModule\\MWC.PSModule.csproj",
       "sdk\\MWC.SDK.csproj",
       "benchmarks\\MWC.Benchmarks.csproj",
-      "tests\\MWC.Core.Tests\\MWC.Core.Tests.csproj"
+      "tests\\MWC.Core.Tests\\MWC.Core.Tests.csproj",
+      "tests\\MWC.Core.Tests.Standalone\\MWC.Core.Tests.Standalone.csproj"
     ]
   }
 }

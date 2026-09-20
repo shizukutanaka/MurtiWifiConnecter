@@ -77,7 +77,7 @@ public class NetworkHistoryPersistenceTests
     [Fact]
     public void RecordMultiple_GetRecent_CorrectOrder()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         svc.RecordConnection("Alpha",  true);
         svc.RecordConnection("Beta",   true);
         svc.RecordConnection("Gamma",  true);
@@ -91,7 +91,7 @@ public class NetworkHistoryPersistenceTests
     [Fact]
     public void RecordFailure_HasFailures_True()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         svc.RecordConnection("Fail", false);
         svc.GetEntry("Fail")!.HasFailures.Should().BeTrue();
     }
@@ -99,7 +99,7 @@ public class NetworkHistoryPersistenceTests
     [Fact]
     public void ClearAll_RemovesEverything()
     {
-        var svc = new NetworkHistoryService();
+        var svc = new NetworkHistoryService(historyPath: TestHistoryPath.Fresh());
         svc.RecordConnection("X", true);
         svc.RecordConnection("Y", true);
         svc.ClearAll();

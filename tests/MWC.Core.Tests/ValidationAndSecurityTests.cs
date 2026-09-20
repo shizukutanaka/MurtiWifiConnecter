@@ -216,7 +216,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_ConcurrentSameAdapter_IsSerializedNotParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -241,7 +241,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_DifferentAdapters_CanRunInParallel()
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
@@ -270,7 +270,7 @@ public class ConnectionExecutorConcurrencyTests
     public async Task ConnectAsync_EmptyPassphrase_SkipsProfileRegistration_AndSucceeds(AuthMethod auth)
     {
         var wifi = new SlowFakeWifi();
-        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
+        var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance, TestHistoryPath.Fresh());
         var exec = new ConnectionExecutor(
             wifi, hist, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionExecutor>.Instance);
 
