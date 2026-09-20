@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <!-- Windows では Windows 固有 TFM + 完全な Platform.Windows 実装。
+         非 Windows (net9.0) では Platform.Linux (nmcli) で動作可能にするため
+         マルチ TFM。macOS プロジェクトは net9.0-macos TFM で参照不能のため未配線。 -->
+    <TargetFrameworks>net9.0-windows10.0.19041.0;net9.0</TargetFrameworks>
     <RootNamespace>MWC.Cli</RootNamespace>
     <AssemblyName>mwc</AssemblyName>
-    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;osx-arm64</RuntimeIdentifiers>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -26,7 +29,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\MWC.Core\MWC.Core.csproj" />
-    <ProjectReference Include="..\MWC.Platform.Windows\MWC.Platform.Windows.csproj" />
+    <ProjectReference Include="..\MWC.Platform.Windows\MWC.Platform.Windows.csproj"
+                      Condition="'$(TargetFramework)' != 'net9.0'" />
+    <ProjectReference Include="..\MWC.Platform.Linux\MWC.Platform.Linux.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />

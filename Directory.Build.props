@@ -10,6 +10,9 @@
          (.editorconfig の severity=warning と同じ意図; TWaE で昇格するのを止める) -->
     <WarningsNotAsErrors>CS1591;CA1822</WarningsNotAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Windows 固有 TFM (net9.0-windows) を macOS/Linux でもクロスコンパイル可能にする。
+         Windows 上のビルドには影響なし (常時 true でよい公式プロパティ)。 -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>

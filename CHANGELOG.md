@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added / Changed (2026-09-19 第八ラウンド — CLI の Linux 対応 + Core 移動)
+
+- **`MWC.Cli` をマルチ TFM 化**(`net9.0-windows10.0.19041.0;net9.0`): 非 Windows では
+  `IWifiService` に `NmcliWifiService` を登録し、Linux で `mwc list/scan/connect/…` が
+  実際に動作する(macOS は Platform.MacOS が net9.0-macos TFM で参照不能のため未配線)。
+  `ISecretProtector`(DPAPI)は Windows 専用のため非 Windows では未登録(呼出元なし)。
+  RID に linux-x64/osx-arm64 追加。`MWC.ci-linux.slnf` に Cli を登録。
+- **`HttpConnectivityChecker` を `MWC.Core/Services` へ移動** — 実態は純 BCL
+  (Windows 依存ゼロ)のため、Core に置くことで全 TFM/全 OS から利用可能に。
+- `Directory.Build.props` に `EnableWindowsTargeting=true` — Windows 固有 TFM を
+  macOS/Linux でもフラグ無しでクロスコンパイル可能に(Windows 上の挙動不変)。
+
 ### Added / Fixed (2026-09-19 第七ラウンド — macOS プラットフォーム実装)
 
 - **`MWC.Platform.MacOS` のプロファイル経路を実装**(これまで `RegisterProfileAsync` が

@@ -10,7 +10,10 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Profile;
 using MWC.Core.Services;
+#if WINDOWS10_0_19041_0_OR_GREATER
 using MWC.Platform.Windows;
+#endif
+using MWC.Platform.Linux;
 
 namespace MWC.Cli;
 
@@ -72,8 +75,15 @@ public static partial class Program
             .AddSimpleConsole(o => { o.SingleLine = true; o.IncludeScopes = false; })
             .SetMinimumLevel(LogLevel.Warning));
         sc.AddSingleton<IConnectivityChecker, HttpConnectivityChecker>();
+#if WINDOWS10_0_19041_0_OR_GREATER
         sc.AddSingleton<ISecretProtector, DpapiSecretProtector>();
         sc.AddSingleton<IWifiService, WindowsWifiService>();
+#else
+        // Linux (nmcli)。macOS は MWC.Platform.MacOS が net9.0-macos TFM で
+        // 参照不能のため未配線。ISecretProtector (DPAPI) は Windows 専用 —
+        // 呼び出し元が無いため非 Windows では未登録。
+        sc.AddSingleton<IWifiService>(_ => new NmcliWifiService());
+#endif
         sc.AddSingleton<NetworkHistoryService>();
         sc.AddSingleton<NetworkQualityService>();
         sc.AddSingleton<OuiLookupService>();

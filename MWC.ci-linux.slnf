@@ -3,6 +3,7 @@
     "path": "MWC.sln",
     "projects": [
       "src\\MWC.Core\\MWC.Core.csproj",
+      "src\\MWC.Cli\\MWC.Cli.csproj",
       "src\\MWC.Platform.Linux\\MWC.Platform.Linux.csproj",
       "src\\MWC.PSModule\\MWC.PSModule.csproj",
       "sdk\\MWC.SDK.csproj",

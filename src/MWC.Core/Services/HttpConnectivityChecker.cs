@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
 
-namespace MWC.Platform.Windows;
+namespace MWC.Core.Services;
 
 /// <summary>
-/// Windows標準のNCSI(Network Connectivity Status Indicator)相当の検証。
+/// NCSI(Network Connectivity Status Indicator)相当の疎通検証 (純 BCL — 全 OS 共通)。
 /// 短いHTTPで疎通+キャプティブポータル判定。
 ///
 /// 仕様:

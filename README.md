@@ -78,6 +78,11 @@ WPA3・Enterprise 接続・スキャン分析・QR コード生成・CLI を **�
 - **Windows JumpList** — タスクバー右クリックに最近接続
 
 ### CLI
+
+`mwc` は Windows 以外でもビルド可能: Linux では nmcli バックエンドで動作する
+(`net9.0` TFM、macOS は未配線 — `MWC.Platform.MacOS` が net9.0-macos TFM で
+workload を要するため)。
+
 ```powershell
 mwc list                          # アダプター一覧
 mwc scan --json                   # JSON スキャン
