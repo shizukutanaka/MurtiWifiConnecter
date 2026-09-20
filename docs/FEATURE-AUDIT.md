@@ -223,28 +223,18 @@ grep -rl "\bRegulatoryDomainService\b" src/ | grep -v "/RegulatoryDomainService.
 孤立サービスとは異なる新パターン: サービス自体は正しく App に配線されているが、
 入力データを供給するプラットフォーム層のコードが存在しないため**常に無効な結果を返す**。
 
-- **MLO(Wi-Fi 7 マルチリンク)表示** — `MloAnalyzerService` は
-  `NetworkDetailViewModel.Load()` から正しく呼ばれ、GUI にも `MloLabel`/`HasMlo` として
-  配線済み(ROADMAP は「Wi-Fi 7 MLO サポート」を `[x]` 完了と申告)。しかし
-  `WifiNetwork.MloLinks` を実際に埋めるプラットフォームコードが Windows/Linux/macOS
-  いずれにも存在しない(検証: `grep -rn "MloLinks\s*=" src/MWC.Platform.*` → 0件)ため、
-  `MloAnalyzerService.Analyze()` は `network.MloLinks.Count == 0` で常に早期リターンし、
-  GUI の MLO 行は実機で一度も表示されたことがないと推測される。
-  **解決策は調査済み**(依存ライブラリ `ManagedNativeWifi` v3.0.1+ の
-  `NativeWifi.GetRealtimeConnectionQuality` で実測データ取得可能。詳細と実装しなかった
-  正確な理由 — 名前空間衝突・情報源間の型定義不一致・コンパイル検証不能な環境という
-  3点 — は `docs/arxiv-improvement-analysis.md` §2026-H2追補 を参照)。
-  **次のアクション**: dotnet/Windows 実機検証が可能なセッションで実装すること。
-  **2026-07 第4パス — 一部は分解できた**: 「MLO 対応か否か」は 802.11be Multi-Link 要素
-  (拡張要素、Element ID Extension 107)としてビーコンで**広告される**ため、
-  `BeaconIeParser.HasMultiLink` で検出し `WifiNetwork.IsMlo` に配線した
-  (実装時にパーサーが拡張要素の Ext ID を読んでいなかったことも判明し、併せて対応)。
-  スキャン一覧で Wi-Fi 7 AP を見分けるにはこれで足りる。
-  **残るのはリンク詳細 (`MloLinks`) のみ**:
-  `MloLink` は `Rssi`(リンクごとの実測受信強度)を要求する。これはビーコンの
-  Multi-Link 要素には含まれない**実測値**であり、接続中のランタイム API からしか得られない。
-  802.11u Interworking が Core に切り出せたのは、あれが「広告される静的な能力情報」
-  だったからで、MLO のリンク品質は本質的に実機依存である。
+- **MLO(Wi-Fi 7 マルチリンク)表示** — `MloAnalyzerService` → `MloLabel`/`HasMlo`
+  の GUI 配線は済み。リンク詳細 (`MloLinks`) の供給経路は **2026-09-19 に Core 側
+  完結**: RNR の MLD Parameters (TBTT Length≥16) を実パースするよう
+  `RnrParser` を仕様適合させ (Wireshark dissector との突合で従来レイアウトが
+  実ビーコンを全誤読していたことも修正)、Basic Multi-Link 要素の Common Info から
+  発信 AP の `OwnApMldId` を抽出し、`BeaconIeApplier` が MLD ID 一致の RNR エントリ
+  のみを `MloLinks` に流す (LinkId/Band/Channel/Frequency/ChannelWidth は広告値)。
+  `MloLink.Rssi` は `int?` 化され、未測定は `null` (`AggregatedMbps`/`BestLink`/
+  `DetectAnomaly` も未測定値で結論を出さない)。
+  **残る限界は RSSI 実測のみ**: リンク毎の受信強度はビーコンには含まれない実測値で、
+  `ManagedNativeWifi` の `GetRealtimeConnectionQuality` による実機配線が要る
+  (RSSI 無しでもリンク存在・帯域構成・冗長性の分析は動作する)。
 
 ### 1e. メンバ単位の重複(2026-08 に発見。ファイル単位の孤立検出では原理的に見えない)
 
