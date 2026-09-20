@@ -77,3 +77,8 @@ jobs:
 
       - name: Build
         run: dotnet build MWC.ci-linux.slnf -c Release --no-restore
+
+      # MWC.Core.Tests.Standalone は WPF 非依存の net9.0 テストプロジェクトで、
+      # Linux でも実走する (MWC.Core.Tests 本体は WindowsDesktop ランタイムが要る)。
+      - name: Test (standalone suite — 14 MWC.App-dependent files excluded)
+        run: dotnet test tests/MWC.Core.Tests.Standalone/MWC.Core.Tests.Standalone.csproj -c Release --no-build

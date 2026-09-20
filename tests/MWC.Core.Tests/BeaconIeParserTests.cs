@@ -188,16 +188,13 @@ public class BeaconIeParserTests
     [Fact]
     public void Rnr_TbttInfoLenZero_ProducesNoSpuriousNeighbors()
     {
-        // Before fix (DecodeRnr): tbttInfoLen=0 left pos unchanged in the inner for-loop.
-        // The outer while then re-read the next bytes as another Neighbor AP Info header,
-        // producing a spurious Is6GHz RnrNeighborAp (opClass=131, channel=7) from the
-        // crafted body below.
-        // After fix: break on tbttInfoLen==0 → RnrNeighbors empty, parsing continues.
+        // tbttInfoLen=0 は不正フィールド: 後続バイトを別フィールドと誤読して
+        // 架空の近隣 AP を生み出してはならない。break して残り IE のパースは継続。
         var rnrBody = new byte[]
         {
             0x00, 0x00,        // Neighbor AP Info: tbttInfoLen=0 (invalid)
-            0x00, 0x06,        // without fix: re-read as info=0x0600 → tbttInfoLen=3, tbttCount=1
-            0x00, 0x83, 0x07,  // without fix: TBTT entry → opClass=131 (6GHz!), channel=7
+            0x00, 0x06,        // tail bytes — must not be reinterpreted as a header
+            0x00, 0x83, 0x07,  // tail bytes — must not become a spurious neighbor
         };
         var stream = new List<byte> { 201, (byte)rnrBody.Length };
         stream.AddRange(rnrBody);
