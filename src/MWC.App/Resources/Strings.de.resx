@@ -668,4 +668,10 @@ Unterstützt WPA3, Enterprise, QR-Code und CLI.</value></data>
   <data name="Label_EapServerName"><value>RADIUS-Servername (optional)</value></data>
   <data name="EapHint_Identity"><value>Wird vor dem Tunnel im Klartext gesendet. anonymous@realm verbirgt Ihren Benutzernamen.</value></data>
   <data name="Error_EapUsernameRequired"><value>PEAP und EAP-TTLS erfordern Benutzername und Kennwort.</value></data>
+  <data name="Menu_ImportCat"><value>CAT-Profil importieren…</value></data>
+  <data name="ImportCat_InvalidFile"><value>Keine gültige CAT-EAP-Konfigurationsdatei.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>Keine verwendbares Profil in der Datei (SSID, RADIUS-Servername und unterstützter EAP-Typ erforderlich).</value></data>
+  <data name="Menu_ImportCat"><value>CAT-Profil importieren…</value></data>
+  <data name="ImportCat_InvalidFile"><value>Keine gültige CAT-EAP-Konfigurationsdatei.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>Keine verwendbares Profil in der Datei (SSID, RADIUS-Servername und unterstützter EAP-Typ erforderlich).</value></data>
 </root>

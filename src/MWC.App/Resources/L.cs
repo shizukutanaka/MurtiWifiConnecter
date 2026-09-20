@@ -277,6 +277,9 @@ public static class L
     public static string MenuExportJson            => Get("Menu_ExportJson");
     public static string MenuExportTxt             => Get("Menu_ExportTxt");
     public static string MenuShowQr                => Get("Menu_ShowQr");
+    public static string MenuImportCat             => Get("Menu_ImportCat");
+    public static string ImportCatInvalidFile      => Get("ImportCat_InvalidFile");
+    public static string ImportCatNoUsableProfile  => Get("ImportCat_NoUsableProfile");
     public static string MenuSettings              => Get("Menu_Settings");
     public static string MenuAbout                 => Get("Menu_About");
     public static string MenuScanAll               => Get("Menu_ScanAll");

@@ -231,6 +231,9 @@
                                 <MenuItem Header="{x:Static r:L.MenuExportTxt}"
                                           Command="{Binding ExportCommand}"
                                           CommandParameter="txt"/>
+                                <MenuItem Header="{x:Static r:L.MenuImportCat}"
+                                          Click="OnImportCatClick"
+                                          AutomationProperties.Name="{x:Static r:L.MenuImportCat}"/>
                                 <Separator/>
                                 <MenuItem Header="{x:Static r:L.MenuShowQr}"
                                           Click="OnShowQrClick"/>

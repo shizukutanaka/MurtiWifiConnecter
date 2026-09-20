@@ -668,4 +668,10 @@ WPA3, Enterprise, QR 코드 및 CLI 지원.</value></data>
   <data name="Label_EapServerName"><value>RADIUS 서버 이름(선택)</value></data>
   <data name="EapHint_Identity"><value>터널 설정 전에 평문으로 전송됩니다. anonymous@realm 을 쓰면 사용자 이름을 숨깁니다.</value></data>
   <data name="Error_EapUsernameRequired"><value>PEAP 와 EAP-TTLS 에는 사용자 이름과 암호가 필요합니다.</value></data>
+  <data name="Menu_ImportCat"><value>CAT 프로필 가져오기…</value></data>
+  <data name="ImportCat_InvalidFile"><value>올바른 CAT eap-config 파일이 아닙니다.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>파일에 사용 가능한 프로필이 없습니다 (SSID, RADIUS 서버 이름, 지원되는 EAP 유형 필요).</value></data>
+  <data name="Menu_ImportCat"><value>CAT 프로필 가져오기…</value></data>
+  <data name="ImportCat_InvalidFile"><value>올바른 CAT eap-config 파일이 아닙니다.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>파일에 사용 가능한 프로필이 없습니다 (SSID, RADIUS 서버 이름, 지원되는 EAP 유형 필요).</value></data>
 </root>

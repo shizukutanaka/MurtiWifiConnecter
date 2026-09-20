@@ -663,4 +663,10 @@ WPA3, Enterprise, QR কোড এবং CLI সমর্থন।</value></data
   <data name="Label_EapServerName"><value>RADIUS সার্ভারের নাম (ঐচ্ছিক)</value></data>
   <data name="EapHint_Identity"><value>টানেলের আগে সাধারণ টেক্সটে পাঠানো হয়। ব্যবহারকারীর নাম লুকাতে anonymous@realm দিন।</value></data>
   <data name="Error_EapUsernameRequired"><value>PEAP এবং EAP-TTLS-এর জন্য ব্যবহারকারীর নাম ও পাসওয়ার্ড প্রয়োজন।</value></data>
+  <data name="Menu_ImportCat"><value>CAT প্রোফাইল ইমপোর্ট করুন…</value></data>
+  <data name="ImportCat_InvalidFile"><value>বৈধ CAT eap-config ফাইল নয়।</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>ফাইলে কোনো ব্যবহারযোগ্য প্রোফাইল নেই (SSID, RADIUS সার্ভার নাম ও সমর্থিত EAP ধরন প্রয়োজন)।</value></data>
+  <data name="Menu_ImportCat"><value>CAT প্রোফাইল ইমপোর্ট করুন…</value></data>
+  <data name="ImportCat_InvalidFile"><value>বৈধ CAT eap-config ফাইল নয়।</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>ফাইলে কোনো ব্যবহারযোগ্য প্রোফাইল নেই (SSID, RADIUS সার্ভার নাম ও সমর্থিত EAP ধরন প্রয়োজন)।</value></data>
 </root>

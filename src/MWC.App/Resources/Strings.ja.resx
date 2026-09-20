@@ -668,4 +668,10 @@ WPA3・Enterprise・QR コード・CLI に対応。</value></data>
   <data name="Label_EapServerName"><value>RADIUS サーバー名(任意)</value></data>
   <data name="EapHint_Identity"><value>トンネル確立前に平文で送られます。ユーザー名を隠すには anonymous@realm を指定します。</value></data>
   <data name="Error_EapUsernameRequired"><value>PEAP と EAP-TTLS にはユーザー名とパスワードが必要です。</value></data>
+  <data name="Menu_ImportCat"><value>CAT プロファイルをインポート…</value></data>
+  <data name="ImportCat_InvalidFile"><value>有効な CAT eap-config ファイルではありません。</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>ファイルに使用可能なプロファイルがありません (SSID・RADIUS サーバー名・対応 EAP 種別が必要)。</value></data>
+  <data name="Menu_ImportCat"><value>CAT プロファイルをインポート…</value></data>
+  <data name="ImportCat_InvalidFile"><value>有効な CAT eap-config ファイルではありません。</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>ファイルに使用可能なプロファイルがありません (SSID・RADIUS サーバー名・対応 EAP 種別が必要)。</value></data>
 </root>

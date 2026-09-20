@@ -222,6 +222,15 @@ public partial class MainWindow : Window
         });
     }
 
+    internal async void OnImportCatClick(object sender, RoutedEventArgs e)
+    {
+        await AsyncEventHelper.SafeRunAsync(null, "OnImportCatClick", async () =>
+        {
+            if (DataContext is MainViewModel vm && _cmd is not null)
+                await _cmd.ImportCatAsync(vm, this);
+        });
+    }
+
     private void OnAboutClick(object sender, RoutedEventArgs e)
         => _cmd?.ShowAbout(this);
 

@@ -367,8 +367,16 @@ CLI `mwc privacy --mac-mode <hardware|random-per-network|random-daily>` とし�
 > Core 層(`WifiProfileSpec`/`ProfileXmlBuilder`/`ConnectionExecutor`)は元から完全対応済みで、
 > 欠けていたのは CLI のオプション表面だけだった。契約テスト:
 > `tests/MWC.Core.Tests/CliEnterpriseSpecContractTests.cs`。
-> **残るは GUI 側**(`ConnectDialog` への Enterprise 入力欄追加)と `CertificatePickerDialog` の
-> 接続フロー配線で、これらが揃えば `CatImportService` の配線が「小差分」になる。
+>
+> **✅ GUI 側も 2026-09-19 に全段配線完了**:
+> (1) `ConnectDialog` の Enterprise パネル(EAP 種別/ユーザー名/パスワード/外部 ID/サーバ名)は既存、
+> (2) `CertificatePickerDialog` を EAP-TLS 選択時の接続フローへ接続(証明書 0 枚状態を曖昧な
+> 接続失敗ではなく接続前に表面化; thumbprint は spec メタデータとして保持 — WLAN XML は
+> SimpleCertSelection のため Windows が接続時に自動選択する)、
+> (3) `CatImportService` の GUI 配線 = 「⋯」メニュー「Import CAT Profile…」→
+> `MainWindowCommands.ImportCatAsync` が XML を解析し `ConnectDialog` の新規 `prefill`
+> 引数で SSID/EAP種別/サーバー名/外部 ID を事前入力(CA thumbprint は spec 経由で引き継ぎ)、
+> 資格情報のみユーザー入力 → 通常接続フロー。全 15 ロケールにキー追加済み。
 
 eduroam の PEAP/EAP-TTLS は CAT XML に実際の認証情報を含まない(各利用者の学内アカウントは
 XML 配布後にユーザー自身が入力する設計が eduroam の仕様そのもの)ため、`CatImportService` を

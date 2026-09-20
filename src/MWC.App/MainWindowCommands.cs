@@ -81,8 +81,8 @@ public sealed class MainWindowCommands
         await AdapterConnectExtension.ConnectWithAppleFlowAsync(
             vm.SelectedAdapter, _executor, spec, _notify, owner: owner);
 
-        bool success = vm.SelectedAdapter.ConnectedSsid == net.Ssid;
-        if (success)
+        bool wasSuccess = vm.SelectedAdapter.ConnectedSsid == net.Ssid;
+        if (wasSuccess)
         {
             AnimationHelper.PulseSuccessAsync(owner).Forget();
             AccessibilityService.AnnounceConnectionStatus(L.AnnounceConnected(net.Ssid));
@@ -92,7 +92,58 @@ public sealed class MainWindowCommands
             AnimationHelper.ShakeAsync(owner).Forget();
             AccessibilityService.AnnounceError(L.AnnounceConnectFailed(net.Ssid));
         }
-        return success;
+        return wasSuccess;
+    }
+
+    /// <summary>
+    /// eduroam CAT (eap-config) ファイルの GUI インポート。
+    /// XML を解析して SSID/EAP種別/サーバー検証情報を ConnectDialog へ事前入力し、
+    /// CAT が保持しない資格情報はユーザーに入力させて接続する
+    /// (CLI `mwc import-cat` と同じ分割: 組織側設定は CAT、資格情報はユーザー)。
+    /// </summary>
+    public async Task ImportCatAsync(MainViewModel vm, Window owner)
+    {
+        var adapter = vm.SelectedAdapter;
+        if (adapter is null) return;
+
+        var ofd = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "CAT eap-config (*.eap-config;*.xml)|*.eap-config;*.xml|All files (*.*)|*.*",
+            Title  = L.MenuImportCat,
+        };
+        if (ofd.ShowDialog(owner) != true) return;
+
+        string xml;
+        try { xml = await File.ReadAllTextAsync(ofd.FileName); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            vm.StatusMessage = L.ImportCatInvalidFile;
+            return;
+        }
+
+        var cat = new CatImportService();
+        IReadOnlyList<CatProfile> profiles;
+        try { profiles = cat.ParseEapConfig(xml); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
+        {
+            vm.StatusMessage = L.ImportCatInvalidFile;
+            return;
+        }
+
+        var profile = profiles.FirstOrDefault(p => p.IsValid);
+        if (profile is null)
+        {
+            vm.StatusMessage = L.ImportCatNoUsableProfile;
+            return;
+        }
+
+        var baseSpec = cat.BuildEduroamSpec(profile);
+        var dlg = new ConnectDialog(baseSpec.Ssid, baseSpec.Auth, baseSpec) { Owner = owner };
+        if (dlg.ShowDialog() != true) return;
+        var spec = dlg.Spec ?? baseSpec;
+
+        await AdapterConnectExtension.ConnectWithAppleFlowAsync(
+            adapter, _executor, spec, _notify, owner: owner);
     }
 
     public void ShowQrCode(MainViewModel vm, Window owner)

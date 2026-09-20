@@ -15,16 +15,28 @@ public partial class ConnectDialog : Window
     public string? Passphrase { get; private set; }
     private readonly AuthMethod _auth;
     private readonly string _ssid;
+    // EAP-TLS で CertificatePickerDialog が返した thumbprint。
+    // OnConnect で設定され CaptureSpec が読む (ウィンドウ閉鎖後も値が残るよう
+    // 確定時捕捉の既存パターンに合わせる)。
+    private string? _clientCertThumbprint;
+    // CAT インポート等で外部から与えられた spec。TrustedRootCaThumbprints 等の
+    // UI 入力を持たないフィールドを CaptureSpec が引き継ぐために保持する。
+    private readonly WifiProfileSpec? _prefill;
 
     /// <summary>この認証方式が 802.1X Enterprise か。</summary>
     private bool IsEnterprise => _auth is AuthMethod.WPA2Enterprise
         or AuthMethod.WPA3Enterprise or AuthMethod.WPA3Enterprise192;
 
-    public ConnectDialog(string ssid, AuthMethod auth)
+    /// <param name="prefill">CAT インポート等で事前確定している spec。
+    /// EAP 種別・サーバー名・外部アイデンティティを入力欄へ初期表示し、
+    /// UI で編集不能なフィールド (CA thumbprint 等) は spec へ引き継ぐ。
+    /// null の場合は従来どおり空欄。</param>
+    public ConnectDialog(string ssid, AuthMethod auth, WifiProfileSpec? prefill = null)
     {
         InitializeComponent();
         _auth = auth;
         _ssid = ssid;
+        _prefill = prefill;
         SsidLabel.Text = ssid;
         var badge = SecurityBadgeService.GetBadge(auth);
         AuthLabel.Text = L.SecurityLevelLabel(badge.Level) + $"  ({badge.TechLabel})";
@@ -42,6 +54,16 @@ public partial class ConnectDialog : Window
             };
             EapTypeCombo.SelectedIndex = 0;
             EnterprisePanel.Visibility = Visibility.Visible;
+            if (prefill is not null)
+            {
+                if (prefill.EapType is { } pt &&
+                    pt is EapType.PEAP_MSCHAPv2 or EapType.EAP_TLS or EapType.EAP_TTLS)
+                    EapTypeCombo.SelectedItem = pt;
+                if (prefill.ServerNames is { Length: > 0 } sn)
+                    ServerNameBox.Text = string.Join(";", sn);
+                if (!string.IsNullOrWhiteSpace(prefill.Domain))
+                    IdentityBox.Text = prefill.Domain;
+            }
             UsernameBox.Focus();
         }
         else if (needsPassword)
@@ -85,6 +107,8 @@ public partial class ConnectDialog : Window
     /// 現在の入力内容から spec を組み立てる。
     /// Enterprise ではパスワード欄を EAP パスワードとして扱う
     /// (CLI の `-p` が PSK/EAP 兼用なのと同じ設計)。
+    /// EAP-TLS で選択されたクライアント証明書は <see cref="_clientCertThumbprint"/>
+    /// 経由で spec に乗せる (XML 上は SimpleCertSelection のためメタデータ扱い)。
     /// </summary>
     private WifiProfileSpec CaptureSpec()
     {
@@ -109,11 +133,15 @@ public partial class ConnectDialog : Window
             Ssid        = _ssid,
             Auth        = _auth,
             EapType     = SelectedEapType,
+            ClientCertThumbprint = _clientCertThumbprint,
             Username    = usesCredentials && !string.IsNullOrWhiteSpace(UsernameBox.Text)
                               ? UsernameBox.Text : null,
             Password    = usesCredentials && !string.IsNullOrEmpty(password) ? password : null,
             Domain      = string.IsNullOrWhiteSpace(IdentityBox.Text) ? null : IdentityBox.Text,
             ServerNames = servers,
+            // UI 入力欄を持たないフィールドは prefill から引き継ぐ (CAT の CA 固定)。
+            TrustedRootCaThumbprints = _prefill?.TrustedRootCaThumbprints
+                                           ?? Array.Empty<string>(),
         };
     }
 
@@ -204,6 +232,19 @@ public partial class ConnectDialog : Window
                 ErrorLabel.Text = MWC.App.Resources.L.Get("Error_EapUsernameRequired");
                 ErrorLabel.Visibility = Visibility.Visible;
                 return;
+            }
+
+            // EAP-TLS は証明書認証: 接続前にクライアント証明書を選択させる。
+            // WLAN プロファイル XML 自体は SimpleCertSelection のため Windows が
+            // 自動選択するが、適格な証明書が 0 枚の状態を曖昧な接続失敗ではなく
+            // ここで表面化する (ピッカーには certmgr を開く導線がある)。
+            // 選択した thumbprint は spec のメタデータとして保持される。
+            // キャンセル時は接続せず本ダイアログへ留まる (方式変更が可能)。
+            if (SelectedEapType is EapType.EAP_TLS)
+            {
+                var picker = new CertificatePickerDialog(new CertificateStoreService()) { Owner = this };
+                if (picker.ShowDialog() != true || picker.SelectedCert is null) return;
+                _clientCertThumbprint = picker.SelectedCert.Thumbprint;
             }
         }
         else if (_auth is not (AuthMethod.Open or AuthMethod.OWE))

@@ -223,7 +223,7 @@ fail-fast 化。検証対象 (2 引数)・例外型・パラメータ名は不�
 | 出典 | 記事 | 主張 |
 |------|------|------|
 | Microsoft Learn | [CA1863: Use 'CompositeFormat'](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1863) | 同じ format string を繰り返し `string.Format` するなら `CompositeFormat.Parse` で事前解析しキャッシュ。.NET 8 ベンチで反復フォーマット 15-30% 削減。 |
-| Qiita (vivinko) | [C# 非同期処理の基準｜UI スレッド/await/デッドロックを避ける判断軸](https://qiita.com/vivinko/items/659c3490853102de516a) | UI スレッドで `File.ReadAllText` 等の同期 I/O はブロックの主因。`*Async` 版＋`await`。 |
+| Qiita (vivinko) | [C# 非同期処理の基準｜UI スレッド/await/デッドロックを避ける判断軸](https://qiita.com/vivinko/items/659c3490853102de519a) | UI スレッドで `File.ReadAllText` 等の同期 I/O はブロックの主因。`*Async` 版＋`await`。 |
 | Zenn (mayuki) | [Task/ValueTask を直接返せる場合でも原則 async/await](https://zenn.dev/mayuki/articles/96a17916096714) | `ValueTask` をそのまま返すと dispose 競合や stack trace 欠落を招きうる。`async/await` を経由する。 |
 | Qiita (Kujiro) | [ループの最適化手法 ② `List<T>` を `Span<T>` 化](https://qiita.com/Kujiro/items/9569e91b942bcf9d528b) | `CollectionsMarshal.AsSpan(List<T>)` で foreach の境界チェック削減。ホットループで有効。 |
 
@@ -376,7 +376,7 @@ IDE/CI で検知できる。現状グリーンなのでノイズはゼロ。R1 �
 
 | 出典 | 記事 | 主張 |
 |------|------|------|
-| Qiita (keitakei777) | [XML External Entity (XXE) 脆弱性](https://qiita.com/keitakei777/items/b36d130bff5161159e87) | 外部実体解決で情報漏洩/SSRF/DoS。`DtdProcessing.Prohibit` + `XmlResolver=null` で封じる。 |
+| Qiita (keitakei777) | [XML External Entity (XXE) 脆弱性](https://qiita.com/keitakei777/items/b36d130bff5191159e87) | 外部実体解決で情報漏洩/SSRF/DoS。`DtdProcessing.Prohibit` + `XmlResolver=null` で封じる。 |
 | Qiita (tomoki0sanaki) | [XXE と .NET Framework](https://qiita.com/tomoki0sanaki/items/1987ecd472a1fd325d71) | `XmlResolver=null` を明示するのが手早い防止策。 |
 | Zenn (spacesolver) | [我々が enum に望むこと](https://zenn.dev/spacesolver/articles/ec960fb5b14d06) | C# は範囲外値を enum に格納できる。switch は網羅性を保証しない。 |
 | devleader / MS Learn | [Regex Performance / MatchTimeout](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex.matchtimeout?view=net-9.0) | ネスト量指定子は catastrophic backtracking (ReDoS)。`MatchTimeout` か `NonBacktracking`。 |

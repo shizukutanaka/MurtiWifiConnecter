@@ -668,4 +668,10 @@
   <data name="Label_EapServerName"><value>اسم خادم RADIUS (اختياري)</value></data>
   <data name="EapHint_Identity"><value>تُرسل بنص واضح قبل النفق. استخدم anonymous@realm لإخفاء اسم المستخدم.</value></data>
   <data name="Error_EapUsernameRequired"><value>يتطلب PEAP و EAP-TTLS اسم مستخدم وكلمة مرور.</value></data>
+  <data name="Menu_ImportCat"><value>استيراد ملف تعريف CAT…</value></data>
+  <data name="ImportCat_InvalidFile"><value>الملف ليس ملف CAT eap-config صالحاً.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>لا يوجد ملف تعريف قابل للاستخدام في الملف (يتطلب SSID واسم خادم RADIUS ونوع EAP مدعوم).</value></data>
+  <data name="Menu_ImportCat"><value>استيراد ملف تعريف CAT…</value></data>
+  <data name="ImportCat_InvalidFile"><value>الملف ليس ملف CAT eap-config صالحاً.</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>لا يوجد ملف تعريف قابل للاستخدام في الملف (يتطلب SSID واسم خادم RADIUS ونوع EAP مدعوم).</value></data>
 </root>

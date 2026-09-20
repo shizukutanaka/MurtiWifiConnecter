@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CLI 側の `--mac ?? ad.PhysicalAddress` 優先順位配線は済んでいたため、
   これで `--mac` 未指定でも実測 MAC からランダム化判定が動く。
 
+### Added (2026-09-19 第五ラウンド — GUI CAT インポート + EAP-TLS 証明書選択)
+
+- **GUI からの eduroam CAT (eap-config) インポート**: 「⋯」メニュー
+  「Import CAT Profile…」(`MainWindowCommands.ImportCatAsync`)が XML を解析し、
+  SSID/EAP 種別/RADIUS サーバー名/外部 ID を `ConnectDialog` へ事前入力
+  (新規 `prefill` 引数; CA thumbprint は UI 入力欄が無いため spec 経由で引継ぎ)。
+  CAT ファイルが資格情報を持たないのは eduroam 仕様のため、ユーザー名/パスワードは
+  ユーザーが入力 → 通常接続フロー。CLI `mwc import-cat` と同じ分割。
+- **EAP-TLS 接続時に `CertificatePickerDialog` を接続フローへ配線**
+  (これまでどこからも呼ばれない孤立ダイアログだった)。適格証明書 0 枚を接続失敗でなく
+  接続前に表面化し certmgr への導線を出す。選択 thumbprint は spec メタデータとして保持
+  (WLAN XML の SimpleCertSelection は thumbprint 指定を持たず Windows が自動選択する)。
+- 新規キー `Menu_ImportCat`/`ImportCat_InvalidFile`/`ImportCat_NoUsableProfile`
+  を全 15 ロケールに追加(計 519 キー)。
+
 ### Added (2026-09-19 第四ラウンド — 疎通プローブ設定化)
 
 - `HttpConnectivityChecker` のプローブ先を `MWC_CONNECTIVITY_URL` /

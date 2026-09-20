@@ -668,4 +668,7 @@
   <data name="Label_EapServerName"><value>RADIUS 服务器名称(可选)</value></data>
   <data name="EapHint_Identity"><value>在建立隧道前以明文发送。使用 anonymous@realm 可隐藏用户名。</value></data>
   <data name="Error_EapUsernameRequired"><value>PEAP 和 EAP-TTLS 需要用户名和密码。</value></data>
+  <data name="Menu_ImportCat"><value>导入 CAT 配置文件…</value></data>
+  <data name="ImportCat_InvalidFile"><value>不是有效的 CAT eap-config 文件。</value></data>
+  <data name="ImportCat_NoUsableProfile"><value>文件中没有可用的配置文件（需要 SSID、RADIUS 服务器名称和受支持的 EAP 类型）。</value></data>
 </root>
