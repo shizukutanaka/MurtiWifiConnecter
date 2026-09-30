@@ -72,3 +72,14 @@ MWC は当初 .NET 8 (LTS) をターゲットとしていた。
   (`tools/typecheck-core.sh` も `-langversion:12` で実ビルド設定に合わせている —
   意図的な整合であり型検査側の誤りではない)。他プロジェクトは
   `Directory.Build.props` の `<LangVersion>latest</LangVersion>` を継承する。
+
+## 2026-09 追記 2 — `Lock` 型への切替は現状では行わない(判断記録)
+
+`lock` 文が `System.Threading.Lock` を専用パス(`EnterScope()`)で扱うのは C# 13 から。
+`MWC.Core.csproj` は `LangVersion 12.0` 固定で、C# 12 では `Lock` インスタンスへの `lock` は
+従来の Monitor 経由となり**型を替える利得が無い**。LangVersion を上げると
+`tools/typecheck-core.sh` の `-langversion` 等も連動して変える必要があり、
+「利得の無い変更の代償」が大きいため見送り。切替の前提となる安全網として、
+ロック除去変異を殺せる並行テスト(`NetworkHistoryService_ConcurrentWrites_NoLostUpdates`)と
+`tools/mutation-check.sh` の対応変異を先に整備済み。LangVersion を上げる判断をする際は、
+それらを使って実測検証すること。
