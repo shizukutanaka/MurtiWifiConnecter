@@ -1,3 +1,4 @@
+# 未公開: リリースが一度も作成されておらず URL/SHA256 は placeholder(README「インストール」参照)。
 $ErrorActionPreference = 'Stop'
 $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
 
@@ -5,8 +6,8 @@ $packageArgs = @{
   packageName    = 'mwc'
   fileType       = 'zip'
   softwareName   = 'MWC*'
-  url64bit       = 'https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-x64.zip'
-  urlArm64       = 'https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-arm64.zip'
+  url64bit       = 'https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/mwc-3.12.0-win-x64.zip'
+  urlArm64       = 'https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/mwc-3.12.0-win-arm64.zip'
   checksum64     = 'PLACEHOLDER_SHA256_x64'
   checksumArm64  = 'PLACEHOLDER_SHA256_arm64'
   checksumType   = 'sha256'

@@ -108,8 +108,12 @@ installer/
 - `wifi-profile-xml-builder.md` ← 認証方式別の XML 雛形
 - `dpapi-secret-handling.md`     ← SecureString 取扱
 - `wpf-accessibility-review.md`  ← AutomationProperties 検証
-- `wlan-notification-handler.md` ← 通知待機実装パターン
+- `wlan-notification-handler.md` ← 通知待機実装パターン(2026-09 に新規作成。
+  それまでこのファイルは一覧に載っているだけで実在しなかった)
 - `gstack-release.md`            ← リリースワークフロー
+- `apple-hig-checklist.md`       ← Apple HIG(Clarity/Deference/Depth)準拠の UX
+  チェックリスト。Windows 専用アプリだが UX 品質基準として流用している
+  (2026-09 追記: 実在するのにこの一覧に無かった)
 
 ### Hooks(ガードレール)
 `.claude/settings.json` で次を禁止:

@@ -88,6 +88,20 @@ try src/MWC.Core/Services/EvilTwinDetector.cs \
 try src/MWC.Core/Profile/WifiUri.cs \
     '"WPA2"         => AuthMethod.WPA2PSK,' '"WPA2"         => AuthMethod.Open,' \
     "WifiUri: WPA2 parses as Open" kill
+try src/MWC.Core/Models/WifiProfileSpec.Validation.cs \
+    "public const int MinPassphraseLen  = 8;" "public const int MinPassphraseLen  = 6;" \
+    "Validator: WPA min passphrase 8->6" kill
+try src/MWC.Core/Models/WifiProfileSpec.Validation.cs \
+    "public const int MaxPassphraseLen  = 63;" "public const int MaxPassphraseLen  = 64;" \
+    "Validator: WPA max passphrase 63->64" kill
+try src/MWC.Core/Services/RetryPolicy.cs \
+    "MWC.Core.Models.ConnectionFailure.BadCredentials       => false," \
+    "MWC.Core.Models.ConnectionFailure.BadCredentials       => true," \
+    "Retry: BadCredentials becomes retriable" kill
+try src/MWC.Core/Services/RegulatoryDomainService.cs \
+    '["CN"] = new("CN", "China",          Band6GHzMode.None,' \
+    '["CN"] = new("CN", "China",          Band6GHzMode.FullBand,' \
+    "Regulatory: China 6GHz None->FullBand" kill
 try src/MWC.Core/Services/MacAddressModeInference.cs \
     "///   - オクテット 0 の bit 1 = **Locally Administered (LAA)**。" \
     "///   - (control mutant: comment only)" \

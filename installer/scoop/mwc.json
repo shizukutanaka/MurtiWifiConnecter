@@ -1,15 +1,16 @@
 {
-  "version": "2.0.1",
+  "##": "未公開: リリース未作成のため URL/hash は placeholder(README「インストール」参照)。",
+  "version": "3.12.0",
   "description": "MWC — Multi WiFi Connector. Manage multiple Wi-Fi adapters from a single window.",
   "homepage": "https://github.com/shizukutanaka/MurtiWifiConnecter",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-x64.zip",
+      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/mwc-3.12.0-win-x64.zip",
       "hash": "PLACEHOLDER_SHA256_x64"
     },
     "arm64": {
-      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v2.0.1/mwc-2.0.1-win-arm64.zip",
+      "url": "https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/mwc-3.12.0-win-arm64.zip",
       "hash": "PLACEHOLDER_SHA256_arm64"
     }
   },

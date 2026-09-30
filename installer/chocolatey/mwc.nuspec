@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 未公開: リリースが一度も作成されていないため URL・SHA256 は placeholder。README「インストール」参照。 -->
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>mwc</id>
-    <version>2.0.1</version>
+    <version>3.12.0</version>
     <title>MWC — Multi WiFi Connector</title>
     <authors>ShizukuTanaka</authors>
     <owners>ShizukuTanaka</owners>
     <projectUrl>https://github.com/shizukutanaka/MurtiWifiConnecter</projectUrl>
-    <licenseUrl>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/main/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/master/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>wifi wireless network scanner wpa3 enterprise</tags>
     <summary>Manage multiple Wi-Fi adapters from a single window.</summary>
@@ -25,9 +26,8 @@ Manage multiple Wi-Fi adapters from a single window.
 - Network quality measurement (ping RTT + packet loss)
 - Signal history graph + channel band graph
 - System tray + Win11 jump list
-- 12 languages (ja/en/zh-Hans/zh-Hant/ko/es/fr/de/ru/ar/pt-BR)
+- 14 languages (ja/en/zh-Hans/zh-Hant/ko/es/fr/de/ru/ar/pt-BR/hi/bn/ta)
 - CLI: `mwc list/scan/connect/disconnect/qr/export`
-- DPAPI password protection, Sigstore + SLSA
 
 ## Quick Start
 
@@ -38,9 +38,11 @@ mwc list        # list adapters
 mwc connect -s "MySSID" -p "password"
 ```
     ]]></description>
-    <releaseNotes>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/main/CHANGELOG.md</releaseNotes>
+    <releaseNotes>https://github.com/shizukutanaka/MurtiWifiConnecter/blob/master/CHANGELOG.md</releaseNotes>
     <dependencies>
-      <dependency id="dotnet-8.0-runtime" version="8.0.0" />
+      <!-- MWC は net9.0 を要求する(src/*/*.csproj)。旧記述は dotnet-8.0-runtime で不一致だった。
+           パッケージ ID は命名規則からの推定で choco.exe では未検証。 -->
+      <dependency id="dotnet-9.0-runtime" version="9.0.0" />
     </dependencies>
   </metadata>
 </package>

@@ -13,7 +13,7 @@
   <Identity
     Name="ShizukuTanaka.MWC"
     Publisher="CN=ShizukuTanaka"
-    Version="2.0.1.0"
+    Version="3.12.0.0"
     ProcessorArchitecture="neutral" />
 
   <mp:PhoneIdentity

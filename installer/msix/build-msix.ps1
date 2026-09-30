@@ -5,7 +5,7 @@
 [CmdletBinding()]
 param(
     [string] $Configuration = "Release",
-    [string] $Version       = "2.0.1.0",
+    [string] $Version       = "3.12.0.0",
     [string] $OutputDir     = "$PSScriptRoot\..\..\artifacts\msix",
     [string] $CertPath      = "",            # PFX 証明書パス
     [string] $CertPassword  = "",            # 証明書パスワード

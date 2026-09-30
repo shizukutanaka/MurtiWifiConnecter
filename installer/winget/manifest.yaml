@@ -1,5 +1,7 @@
+# 未公開: リリース未作成、かつ InstallerType wix の MSI は現状ビルド不能(WiX v4/v5 版数不一致。
+# docs/adr/0005-multi-channel-distribution.md 追記参照)。URL・SHA256 は placeholder。
 PackageIdentifier: ShizukuTanaka.MWC
-PackageVersion: 1.0.0
+PackageVersion: 3.12.0
 PackageLocale: en-US
 Publisher: Shizuku Tanaka
 PublisherUrl: https://github.com/shizukutanaka
@@ -27,7 +29,7 @@ Installers:
   - Architecture: x64
     InstallerType: wix
     Scope: machine
-    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v1.0.0/MWC-1.0.0-win-x64.msi
+    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/MWC-3.12.0-win-x64.msi
     InstallerSha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE
     ProductCode: '{A6D8F4E2-7C1B-4F9D-8E3A-2B5F6C7D8E9F}'
     UpgradeBehavior: install
@@ -36,7 +38,7 @@ Installers:
   - Architecture: arm64
     InstallerType: wix
     Scope: machine
-    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v1.0.0/MWC-1.0.0-win-arm64.msi
+    InstallerUrl: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/download/v3.12.0/MWC-3.12.0-win-arm64.msi
     InstallerSha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE
     ProductCode: '{A6D8F4E2-7C1B-4F9D-8E3A-2B5F6C7D8E9F}'
     UpgradeBehavior: install

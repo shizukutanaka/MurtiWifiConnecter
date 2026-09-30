@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **Mutation check widened from 5 to 9 mutants, and the first new run exposed a real test hole.**
+  Added passphrase min (8->6), passphrase max (63->64), `RetryPolicy` BadCredentials retriable, and
+  China 6GHz table mutants. "max 63->64" **survived**: nothing tested the upper boundary (a 64-char
+  hex string is a legal raw PSK, so only a 64-char *non-hex* input distinguishes it). Added
+  `ValidatePassphrase_63Chars_Accepted` / `_64NonHexChars_Throws`; all nine mutants now die (1252 tests).
+- **Installer manifests corrected against the repo**: chocolatey depended on `dotnet-8.0-runtime`
+  although every project targets net9.0 (new id inferred from naming, not verified with choco);
+  nuspec/licenseUrl pointed at `/main/` but the branch is `master`; nuspec still advertised
+  "DPAPI password protection, Sigstore + SLSA" (neither exists) and "12 languages" (14). Versions
+  (1.0.0 / 2.0.1) aligned to 3.12.0; each manifest now states it is unpublished with placeholder hashes.
+  Also added the previously missing `.claude/skills/wlan-notification-handler.md` listed in CLAUDE.md.
 - **`ConnectionWaiter` — the class CLAUDE.md names as the mechanism for real
   connection-completion detection — has never compiled against the actual ManagedNativeWifi
   package it depends on, and neither has the code around it.** `api.nuget.org` being blocked meant

@@ -88,6 +88,24 @@ public class WifiProfileValidatorTests
         act.Should().NotThrow("64-char hex is a valid raw PSK");
     }
 
+    // 境界値: 変異テスト (tools/mutation-check.sh) で「上限 63→64」が生存し、
+    // 上限側の境界がどのテストにも縛られていないことが判明したため追加。
+    // 64 桁は hex なら raw PSK として合法なので、hex でない文字で 64 桁を作る。
+    [Fact]
+    public void ValidatePassphrase_63Chars_Accepted()
+    {
+        var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.WPA2PSK, new string('z', 63));
+        act.Should().NotThrow("63 is the WPA passphrase maximum");
+    }
+
+    [Fact]
+    public void ValidatePassphrase_64NonHexChars_Throws()
+    {
+        var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.WPA2PSK, new string('z', 64));
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*must not exceed 63*");
+    }
+
     [Fact]
     public void ValidatePassphrase_Open_NullAllowed()
     {
