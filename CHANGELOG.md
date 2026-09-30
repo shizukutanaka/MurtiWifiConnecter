@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **`WifiAdapter.PhysicalAddress` is now populated on Windows** (`WindowsWifiService.GetAdaptersAsync`),
+  so `mwc privacy` can infer the MAC mode without `--mac`. The GUID<->NIC matching is a pure Core
+  function (`AdapterMacResolver`, 9 tests: brace/case tolerance, wrong-length and non-GUID ids ignored,
+  no match -> null). Type-checked via `typecheck-platform.sh`. **Not verified on Windows hardware**:
+  whether `NetworkInterface.Id` equals the WLAN interface GUID is an assumption; on mismatch the
+  value is null and behaviour is exactly as before.
 - **`NetworkHistoryService`'s concurrency test could not detect a missing lock.** The existing
   `ConcurrentWrites_ThreadSafe` asserts only `Count > 0`; a mutant deleting `lock (_lock)` from
   `RecordConnection` **survived** (with 8 threads x 25 the race never fired). Added

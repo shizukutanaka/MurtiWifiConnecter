@@ -50,6 +50,7 @@ public sealed class WindowsWifiService : IWifiService
     {
         try
         {
+            var nics = GetNicAddresses();
             var list = NativeWifi.EnumerateInterfaces()
                 .Select(i => new WifiAdapter
                 {
@@ -60,7 +61,10 @@ public sealed class WindowsWifiService : IWifiService
                     // ConnectedSsid must be set here; AdapterFailoverService reads it
                     // to detect link-loss transitions. Without this, currentSsid is
                     // always null and the failover trigger never fires.
-                    ConnectedSsid = GetConnectedSsid(i.Id)
+                    ConnectedSsid = GetConnectedSsid(i.Id),
+                    // mwc privacy が --mac 無しで MAC 種別を推定するための実アドレス。
+                    // NetworkInterface.Id と WLAN GUID の一致は実機未検証 — 不一致なら null。
+                    PhysicalAddress = AdapterMacResolver.Resolve(i.Id, nics)
                 })
                 .ToList();
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(list);
@@ -69,6 +73,21 @@ public sealed class WindowsWifiService : IWifiService
         {
             _log.LogError(ex, "EnumerateInterfaces failed");
             return Task.FromResult<IReadOnlyList<WifiAdapter>>(Array.Empty<WifiAdapter>());
+        }
+    }
+
+    private (string Id, byte[] Address)[] GetNicAddresses()
+    {
+        try
+        {
+            return System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Select(n => (n.Id, n.GetPhysicalAddress().GetAddressBytes()))
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "GetAllNetworkInterfaces failed; PhysicalAddress left null");
+            return Array.Empty<(string, byte[])>();
         }
     }
 
