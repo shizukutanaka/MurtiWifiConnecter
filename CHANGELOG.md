@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **`NetworkHistoryService`'s concurrency test could not detect a missing lock.** The existing
+  `ConcurrentWrites_ThreadSafe` asserts only `Count > 0`; a mutant deleting `lock (_lock)` from
+  `RecordConnection` **survived** (with 8 threads x 25 the race never fired). Added
+  `ConcurrentWrites_NoLostUpdates` (16 threads released by a `Barrier`, 60 records each on one SSID,
+  exact `ConnectCount` expected). With the lock removed it now fails deterministically in my runs
+  (List corruption); with the lock it passed 5/5 runs. The mutant is in `mutation-check.sh` (10 mutants).
+  This is the safety net required before ever swapping the lock type (ADR-0010/0014).
 - **Mutation check widened from 5 to 9 mutants, and the first new run exposed a real test hole.**
   Added passphrase min (8->6), passphrase max (63->64), `RetryPolicy` BadCredentials retriable, and
   China 6GHz table mutants. "max 63->64" **survived**: nothing tested the upper boundary (a 64-char

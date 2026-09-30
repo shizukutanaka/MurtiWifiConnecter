@@ -102,6 +102,16 @@ try src/MWC.Core/Services/RegulatoryDomainService.cs \
     '["CN"] = new("CN", "China",          Band6GHzMode.None,' \
     '["CN"] = new("CN", "China",          Band6GHzMode.FullBand,' \
     "Regulatory: China 6GHz None->FullBand" kill
+try src/MWC.Core/Services/NetworkHistoryService.cs \
+    "        List<ConnectionHistoryEntry> snapshot;
+        lock (_lock)
+        {
+            var existing" \
+    "        List<ConnectionHistoryEntry> snapshot;
+        // MUTANT: lock removed
+        {
+            var existing" \
+    "History: RecordConnection lock removed" kill
 try src/MWC.Core/Services/MacAddressModeInference.cs \
     "///   - オクテット 0 の bit 1 = **Locally Administered (LAA)**。" \
     "///   - (control mutant: comment only)" \

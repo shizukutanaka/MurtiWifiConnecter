@@ -205,6 +205,26 @@ public class DotNet9LanguageFeatureTests
             e.Ssid.Should().StartWith("SSID_"));
     }
 
+    // 既存の ConcurrentWrites テストは「Count > 0」しか見ず、lock を外しても通る。
+    // 失われた更新を検出できる形に強化: 同一 SSID への成功記録は合計が厳密に一致するはず。
+    [Fact]
+    public void NetworkHistoryService_ConcurrentWrites_NoLostUpdates()
+    {
+        var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
+        const int threads = 16, perThread = 60;
+        using var start = new System.Threading.Barrier(threads);
+        var tasks = Enumerable.Range(0, threads).Select(_ =>
+            System.Threading.Tasks.Task.Factory.StartNew(() =>
+            {
+                start.SignalAndWait();   // 全スレッドを同時に開始して競合窓を最大化
+                for (int i = 0; i < perThread; i++) svc.RecordConnection("SharedSsid", true);
+            }, System.Threading.Tasks.TaskCreationOptions.LongRunning)).ToArray();
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        svc.GetEntry("SharedSsid")!.ConnectCount.Should().Be(threads * perThread);
+        svc.Count.Should().Be(1);
+    }
+
     /// <summary>WifiProfileValidator — C# 13 の switch expression パターン</summary>
     [Theory]
     [InlineData("ValidSSID",  true)]
