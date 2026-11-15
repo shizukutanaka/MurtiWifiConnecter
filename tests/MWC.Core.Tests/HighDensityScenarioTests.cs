@@ -162,7 +162,7 @@ public class HighDensityNetworkHistoryTests
     [Fact]
     public void RecordConnectionSuccessAndFailureBothPersist()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var beforeCount = hist.GetRecentSsids(100).Count;
 
         hist.RecordConnection("NetA", true);
@@ -430,7 +430,7 @@ public class NetworkHistoryStatsTests
     [Fact]
     public void GetStatsReflectsRecentConnections()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         hist.RecordConnection("Alpha", true);
         hist.RecordConnection("Alpha", true);
         hist.RecordConnection("Beta",  false);
@@ -446,7 +446,11 @@ public class NetworkHistoryStatsTests
     [Fact]
     public void GetFrequentSsidsOrdersByCount()
     {
-        var hist = new NetworkHistoryService();
+        // 既定パス (%LocalAppData%/MWC/history.json) は全テストで共有され、
+        // 並列実行される他クラス (ConnectionExecutor 経由で "SavedNetwork" 等を
+        // 記録する) の書き込みを読んでしまうため、必ず隔離パスを使う。
+        // 実際に push 実行でのみ "SavedNetwork" が先頭に来て落ちた (PR 実行は合格)。
+        var hist = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         hist.RecordConnection("Rare",    true);
         hist.RecordConnection("Common",  true);
         hist.RecordConnection("Common",  true);
@@ -459,9 +463,29 @@ public class NetworkHistoryStatsTests
     }
 
     [Fact]
+    public void GetFrequentSsidsBreaksTiesBySsidAscending()
+    {
+        // 契約: 同数の場合は SSID 昇順。記録した順序 (内部リスト順) に
+        // 依存しないことを、挿入順を逆にした2ケースで固定する。
+        var zuluFirst = new NetworkHistoryService(null, TestHistoryPath.Fresh());
+        zuluFirst.RecordConnection("Zulu",  true);
+        zuluFirst.RecordConnection("Zulu",  true);
+        zuluFirst.RecordConnection("Alpha", true);
+        zuluFirst.RecordConnection("Alpha", true);
+        zuluFirst.GetFrequentSsids(2).Should().Equal("Alpha", "Zulu");
+
+        var alphaFirst = new NetworkHistoryService(null, TestHistoryPath.Fresh());
+        alphaFirst.RecordConnection("Alpha", true);
+        alphaFirst.RecordConnection("Alpha", true);
+        alphaFirst.RecordConnection("Zulu",  true);
+        alphaFirst.RecordConnection("Zulu",  true);
+        alphaFirst.GetFrequentSsids(2).Should().Equal("Alpha", "Zulu");
+    }
+
+    [Fact]
     public void CountReflectsEntries()
     {
-        var hist = new NetworkHistoryService();
+        var hist = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var before = hist.Count;
         hist.RecordConnection("NewNet", true);
         hist.Count.Should().BeGreaterThan(before - 1);
