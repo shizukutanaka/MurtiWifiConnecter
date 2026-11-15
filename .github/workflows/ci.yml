@@ -39,26 +39,37 @@ jobs:
           /p:CoverletOutputFormat=cobertura
           /p:CoverletOutput=TestResults/coverage.xml
 
-      # SECURITY.md が「dotnet list package --vulnerable を CI で実行」と
-      # 述べている根拠。既知の脆弱性を持つ依存が入ったらビルドを落とす。
-      # --include-transitive が無いと直接参照しか見ないため必ず付ける。
+      # 依存パッケージの脆弱性ゲート。既知の脆弱性を持つ依存が入ったら
+      # ビルドを落とす。検査は TFM に依存しない方式で行う:
+      #   1. プロジェクトごとに restore する (Directory.Build.props の
+      #      RestorePackagesWithLockFile により packages.lock.json が
+      #      生成/更新される)。
+      #   2. packages.lock.json から解決済みパッケージ (名前と版数) を
+      #      全て抽出する。resolved を持たないエントリ (Project 参照)
+      #      は NuGet パッケージではないため対象外。
+      #   3. OSV (https://api.osv.dev の querybatch API、NuGet
+      #      エコシステム) へ照会して脆弱性の有無を判定する。OSV は
+      #      GitHub Advisory を取り込んでおり、dotnet list package
+      #      --vulnerable と実質的に同じ情報源。
       #
-      # プロジェクト単位で実行する理由: dotnet list package は .slnf を
-      # 受け付けず "Parameter \"xml\" cannot be null." で落ちる (実測)。
-      # 対象プロジェクトは MWC.ci-win.slnf の一覧から読む。
-      # また、プロジェクトごとに restore を先行させる: MWC.sln 側で
+      # dotnet list package --vulnerable を使わない理由: TFM に
+      # プラットフォーム版数を含むプロジェクト
+      # (net9.0-windows10.0.19041.0) では、dotnet list が SDK 側の
+      # 不具合で "Sequence contains no matching element" となり必ず
+      # 失敗する (最小再現で確認済み。製品側の問題ではない)。その
+      # 方式ではゲートが恒常的に赤くなるため、lock ファイル + OSV
+      # 照会に切り替えた。
+      #
+      # プロジェクト単位で restore を先行させる理由: MWC.sln 側で
       # ビルド対象に選ばれていないプロジェクト (MWC.PSModule /
       # MWC.Benchmarks) は slnf の restore では assets が作られず、
-      # そのままだと検査自体ができないため。
+      # lock ファイルも生成されないため。対象プロジェクトは
+      # MWC.ci-win.slnf の一覧から読む。
       #
-      # ゲートの原則: 「検査できなかった」も失敗として扱う。restore や
-      # dotnet list 自体がエラーになったプロジェクトが1つでもあれば、
-      # 脆弱性が見つかった場合と同様にこのステップを失敗させる
-      # (黙って成功扱いにしない)。理由は必ずログに残す。
-      # 既知の制約: TFM にプラットフォーム版数を含むプロジェクト
-      # (net9.0-windows10.0.19041.0) では dotnet list が SDK 側の不具合で
-      # "Sequence contains no matching element" となり検査できない。
-      # その場合もこのステップは失敗する (製品側の問題ではない)。
+      # ゲートの原則: 「検査できなかった」も失敗として扱う。restore
+      # 失敗 / lock ファイル不在・読解不能 / OSV 照会失敗 (HTTP
+      # エラー等) / 脆弱性検出 のいずれでも、理由をログに残して
+      # このステップを失敗させる (黙って成功扱いにしない)。
       - name: Check for vulnerable dependencies
         shell: pwsh
         run: |
@@ -67,6 +78,8 @@ jobs:
           $projects = @($slnf.solution.projects)
           $checkFailed = @()
           $vulnerable = @()
+          # 一意な (パッケージ名, 版数) -> @{ Name; Version; Projects }
+          $pkgMap = @{}
           foreach ($proj in $projects) {
             Write-Host "=== $proj ==="
             $restoreOut = dotnet restore $proj 2>&1 | Out-String
@@ -76,27 +89,93 @@ jobs:
               $checkFailed += "$proj (restore failed)"
               continue
             }
-            $out = dotnet list $proj package --vulnerable --include-transitive 2>&1 | Out-String
-            Write-Host $out
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "::error::dotnet list failed for $proj - vulnerability check could not run for this project."
-              $checkFailed += "$proj (dotnet list failed)"
+            $lockPath = Join-Path (Split-Path $proj -Parent) 'packages.lock.json'
+            if (-not (Test-Path $lockPath)) {
+              Write-Host "::error::packages.lock.json not found for $proj (expected at $lockPath) - vulnerability check could not run for this project."
+              $checkFailed += "$proj (packages.lock.json not found)"
               continue
             }
-            if ($out -match 'has the following vulnerable packages') {
-              $vulnerable += $proj
+            try {
+              $lock = Get-Content $lockPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host "::error::packages.lock.json for $proj could not be parsed: $($_.Exception.Message)"
+              $checkFailed += "$proj (packages.lock.json parse failed)"
+              continue
             }
+            if ($null -eq $lock.dependencies) {
+              Write-Host "::error::packages.lock.json for $proj has no 'dependencies' section - vulnerability check could not run for this project."
+              $checkFailed += "$proj (packages.lock.json has no dependencies section)"
+              continue
+            }
+            $found = 0
+            foreach ($tfm in $lock.dependencies.PSObject.Properties) {
+              foreach ($pkg in $tfm.Value.PSObject.Properties) {
+                $resolved = $pkg.Value.resolved
+                if (-not $resolved) { continue }
+                $found++
+                $key = "$($pkg.Name.ToLowerInvariant())|$resolved"
+                if (-not $pkgMap.ContainsKey($key)) {
+                  $pkgMap[$key] = @{ Name = $pkg.Name; Version = $resolved; Projects = @() }
+                }
+                if ($pkgMap[$key].Projects -notcontains $proj) {
+                  $pkgMap[$key].Projects += $proj
+                }
+              }
+            }
+            if ($found -eq 0) {
+              Write-Host "::error::no resolved NuGet packages found in $lockPath - vulnerability check could not run for this project."
+              $checkFailed += "$proj (no packages found in packages.lock.json)"
+              continue
+            }
+            Write-Host "$proj`: $found package entries in packages.lock.json"
+          }
+          if ($pkgMap.Count -gt 0) {
+            $entries = @($pkgMap.Values)
+            Write-Host "Querying OSV (api.osv.dev) for $($entries.Count) unique packages..."
+            $chunkSize = 500
+            for ($i = 0; $i -lt $entries.Count; $i += $chunkSize) {
+              $chunk = @($entries | Select-Object -Skip $i -First $chunkSize)
+              $queries = @($chunk | ForEach-Object {
+                @{ package = @{ name = $_.Name; ecosystem = 'NuGet' }; version = $_.Version }
+              })
+              $queriesJson = ConvertTo-Json -InputObject $queries -Depth 6 -Compress
+              $body = "{`"queries`": $queriesJson}"
+              try {
+                $resp = Invoke-RestMethod -Uri 'https://api.osv.dev/v1/querybatch' -Method Post -Body $body -ContentType 'application/json' -Headers @{ 'User-Agent' = 'MurtiWifiConnecter-CI-vulnerability-check' } -TimeoutSec 120
+              } catch {
+                Write-Host "::error::OSV querybatch request failed: $($_.Exception.Message)"
+                $checkFailed += 'OSV querybatch request failed'
+                break
+              }
+              $results = @($resp.results)
+              if ($results.Count -ne $chunk.Count) {
+                Write-Host "::error::OSV response contains $($results.Count) results for $($chunk.Count) queries - the response cannot be matched to the queries."
+                $checkFailed += 'OSV querybatch response size mismatch'
+                break
+              }
+              for ($j = 0; $j -lt $chunk.Count; $j++) {
+                if ($results[$j].vulns) {
+                  $ids = (@($results[$j].vulns) | ForEach-Object { $_.id }) -join ', '
+                  $e = $chunk[$j]
+                  Write-Host "::error::Vulnerable package: $($e.Name) $($e.Version) -> $ids (used by: $($e.Projects -join ', '))"
+                  $vulnerable += "$($e.Name) $($e.Version) [$ids]"
+                }
+              }
+            }
+          } elseif ($checkFailed.Count -eq 0) {
+            Write-Host '::error::no packages were collected from any project - vulnerability check could not run.'
+            $checkFailed += 'no packages collected'
           }
           if ($vulnerable.Count -gt 0) {
-            Write-Error "Vulnerable NuGet packages found in: $($vulnerable -join ', ') (see the listings above)."
+            Write-Error "Vulnerable NuGet packages found: $($vulnerable -join '; ') (see the per-package lines above)."
           }
           if ($checkFailed.Count -gt 0) {
-            Write-Error "Vulnerability check could not be completed for: $($checkFailed -join ', '). Treating un-checked projects as a failure (see the log above for each reason)."
+            Write-Error "Vulnerability check could not be completed for: $($checkFailed -join ', '). Treating un-checked items as a failure (see the log above for each reason)."
           }
           if ($vulnerable.Count -gt 0 -or $checkFailed.Count -gt 0) {
             exit 1
           }
-          Write-Host "Vulnerability check passed for all $($projects.Count) projects in MWC.ci-win.slnf."
+          Write-Host "Vulnerability check passed: $($pkgMap.Count) unique packages across $($projects.Count) projects in MWC.ci-win.slnf, none vulnerable (source: OSV / api.osv.dev)."
 
       # カバー率の表示専用ステップ。今回はしきい値で落とさない
       # (数値が初公開になるため。落とすかどうかは実測値を見て別途判断する)。

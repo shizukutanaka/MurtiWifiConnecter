@@ -49,8 +49,11 @@
 
 ### 依存パッケージ
 - Dependabot で週次更新(`.github/dependabot.yml`。NuGet と GitHub Actions の両方を対象)
-- 以下は `docs/ci/` に実装済みだが **`.github/workflows/` が空のため未稼働**:
-  - `dotnet list package --vulnerable` の CI 実行(`ci.yml`)
+- 依存パッケージの脆弱性検査は `.github/workflows/ci.yml` で **稼働中**:
+  - 各プロジェクトの `packages.lock.json` から解決済みパッケージ(名前と版数)を抽出し、OSV(`api.osv.dev` の querybatch API、NuGet エコシステム)へ照会する。OSV は GitHub Advisory を取り込んでおり、`dotnet list package --vulnerable` と実質的に同じ情報源
+  - 脆弱性が検出された場合だけでなく、restore 失敗・lock ファイル不在・OSV 照会失敗などで検査できなかった場合も CI を失敗させる(黙って通さない)
+  - `dotnet list package --vulnerable` を使わない理由: TFM にプラットフォーム版数を含むプロジェクト(`net9.0-windows10.0.19041.0`)では、SDK 側の不具合で `Sequence contains no matching element` となり検査が必ず失敗するため
+- 以下は `docs/ci/` に実装済みだが **未稼働**(リリースワークフロー自体が未設置):
   - リリース毎の CycloneDX SBOM 生成(`release.yml`)
 
 ### 配布物保護
