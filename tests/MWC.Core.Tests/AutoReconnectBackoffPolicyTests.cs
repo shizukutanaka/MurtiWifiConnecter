@@ -30,7 +30,7 @@ public class AutoReconnectBackoffPolicyTests
         maxAttempts: 5);
 
     [Fact]
-    public void Backoff_GrowsAcrossAttempts_NotFixed()
+    public void BackoffGrowsAcrossAttemptsNotFixed()
     {
         var policy = AutoReconnectPolicy();
 
@@ -47,7 +47,7 @@ public class AutoReconnectBackoffPolicyTests
     }
 
     [Fact]
-    public void Backoff_IsCapped_SoRecoveryStaysResponsive()
+    public void BackoffIsCappedSoRecoveryStaysResponsive()
     {
         var policy = AutoReconnectPolicy();
 
@@ -60,7 +60,7 @@ public class AutoReconnectBackoffPolicyTests
     }
 
     [Fact]
-    public void Backoff_FirstRetryIsNotInstant_ButStaysUnderTenSeconds()
+    public void BackoffFirstRetryIsNotInstantButStaysUnderTenSeconds()
     {
         var policy = AutoReconnectPolicy();
 
@@ -71,7 +71,7 @@ public class AutoReconnectBackoffPolicyTests
     }
 
     [Fact]
-    public void MaxAttempts_IsBounded_SoFailingSsidIsEventuallyAbandoned()
+    public void MaxAttemptsIsBoundedSoFailingSsidIsEventuallyAbandoned()
     {
         // 一時的失敗であっても無制限に試し続けない。
         AutoReconnectPolicy().MaxAttempts.Should().BeInRange(3, 10);
@@ -82,7 +82,7 @@ public class AutoReconnectBackoffPolicyTests
     [InlineData(ConnectionFailure.InvalidProfile)]
     [InlineData(ConnectionFailure.ProfileRejected)]
     [InlineData(ConnectionFailure.InsufficientPrivilege)]
-    public void DeterministicFailures_AreNotRetried_ByUnattendedReconnect(ConnectionFailure failure)
+    public void DeterministicFailuresAreNotRetriedByUnattendedReconnect(ConnectionFailure failure)
     {
         // これらは何度試しても同じ結果になる。AutoReconnectService はこの分類を使って
         // 即座に打ち切る(パスワード変更後に永久リトライし続けないため)。
@@ -92,14 +92,14 @@ public class AutoReconnectBackoffPolicyTests
     [Theory]
     [InlineData(ConnectionFailure.Timeout)]
     [InlineData(ConnectionFailure.NotInRange)]
-    public void TransientFailures_AreRetried_WithBackoff(ConnectionFailure failure)
+    public void TransientFailuresAreRetriedWithBackoff(ConnectionFailure failure)
     {
         // 電波状況など一時的な要因は、バックオフを挟んで再試行する価値がある。
         RetryPolicy.IsRetriable(failure).Should().BeTrue();
     }
 
     [Fact]
-    public void TotalWaitAcrossAllAttempts_IsBoundedAndReasonable()
+    public void TotalWaitAcrossAllAttemptsIsBoundedAndReasonable()
     {
         var policy = AutoReconnectPolicy();
 

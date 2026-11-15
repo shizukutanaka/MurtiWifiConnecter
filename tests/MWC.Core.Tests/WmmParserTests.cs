@@ -55,14 +55,14 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void ParameterSetCount_FromQosInfoLowNibble()
+    public void ParameterSetCountFromQosInfoLowNibble()
     {
         var r = WmmParser.ParseParameters(WmmParamElement(qosInfo: 0x05));
         r!.ParameterSetCount.Should().Be(5);
     }
 
     [Fact]
-    public void UapsdEnabled_HighBitOfQosInfo()
+    public void UapsdEnabledHighBitOfQosInfo()
     {
         WmmParser.ParseParameters(WmmParamElement(qosInfo: 0x82))!
                  .UapsdEnabled.Should().BeTrue();
@@ -71,7 +71,7 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void VideoAc_DecodesAifsn_And_Txop()
+    public void VideoAcDecodesAifsnAndTxop()
     {
         var r = WmmParser.ParseParameters(WmmParamElement());
         var vi = r!.GetAc(WmmAccessCategory.Video)!;
@@ -84,7 +84,7 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void BestEffortAc_CwMinCwMax()
+    public void BestEffortAcCwMinCwMax()
     {
         var r = WmmParser.ParseParameters(WmmParamElement());
         var be = r!.GetAc(WmmAccessCategory.BestEffort)!;
@@ -96,7 +96,7 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void AdmissionControlMandatory_Decoded()
+    public void AdmissionControlMandatoryDecoded()
     {
         // ACM bit = bit4 of ACI/AIFSN byte
         // viAifsn with ACM=1: 0x42 | 0x10 = 0x52
@@ -105,7 +105,7 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void NonWmmVendorSpecific_ReturnsNull()
+    public void NonWmmVendorSpecificReturnsNull()
     {
         // OUI 00:0C:E7 (not WMM)
         var element = new byte[] { 221, 7, 0x00, 0x0C, 0xE7, 0x02, 0x01, 0x01, 0x00 };
@@ -113,13 +113,13 @@ public class WmmParserTests
     }
 
     [Fact]
-    public void EmptySpan_ReturnsNull()
+    public void EmptySpanReturnsNull()
     {
         WmmParser.ParseParameters(System.Array.Empty<byte>()).Should().BeNull();
     }
 
     [Fact]
-    public void ParseQosInfo_FindsFromInfoElement()
+    public void ParseQosInfoFindsFromInfoElement()
     {
         // WMM Info element (Subtype=0x00), length=7
         var info = new byte[] { 221, 7, 0x00, 0x50, 0xF2, 0x02, 0x00, 0x01, 0x03 };

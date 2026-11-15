@@ -3,6 +3,10 @@ using System.IO;
 using System.Windows;
 using Serilog;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Clipboard = System.Windows.Clipboard;
+using DataObject = System.Windows.DataObject;
+
 namespace MWC.App.Services;
 
 /// <summary>
@@ -47,7 +51,7 @@ public static class SensitiveClipboard
             Clipboard.SetDataObject(data, copy: true);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException)
         {
             // クリップボードは他プロセスとの競合で COMException/ExternalException を投げうる。
             // 機密内容自体はログに出さず、失敗の事実のみ記録する。

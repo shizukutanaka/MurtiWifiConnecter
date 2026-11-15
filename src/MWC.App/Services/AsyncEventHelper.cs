@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,8 @@ public static class AsyncEventHelper
     /// <summary>
     /// 例外捕捉付きで非同期処理を実行。
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Never-throw boundary by design (see class doc): SafeRunAsync exists so an async-void event handler can never crash the process; every failure is logged and routed to onError instead.")]
     public static async Task SafeRunAsync(
         ILogger? log,
         string operationName,
@@ -40,7 +43,7 @@ public static class AsyncEventHelper
         }
         catch (Exception ex)
         {
-            log?.LogError(ex, "Event handler {op} failed", operationName);
+            log?.LogError(ex, "Event handler {Op} failed", operationName);
             try { onError?.Invoke(ex); } catch { /* onError 自身もクラッシュしない */ }
         }
     }
@@ -48,6 +51,8 @@ public static class AsyncEventHelper
     /// <summary>
     /// 戻り値版。失敗時は default を返す。
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Never-throw boundary by design (see class doc): failures are logged and converted to the fallback value; no caller exists that could handle a rethrown exception.")]
     public static async Task<T?> SafeRunAsync<T>(
         ILogger? log,
         string operationName,
@@ -58,7 +63,7 @@ public static class AsyncEventHelper
         catch (OperationCanceledException) { return fallback; }
         catch (Exception ex)
         {
-            log?.LogError(ex, "Event handler {op} failed", operationName);
+            log?.LogError(ex, "Event handler {Op} failed", operationName);
             return fallback;
         }
     }

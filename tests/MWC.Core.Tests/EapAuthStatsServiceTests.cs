@@ -25,7 +25,7 @@ internal static class EapTestSsid
 public class EapAuthStatsServiceTests
 {
     [Fact]
-    public void RecordAttempt_Success_IncrementsSuccessCount()
+    public void RecordAttemptSuccessIncrementsSuccessCount()
     {
         var svc = new EapAuthStatsService();
         svc.RecordAttempt("EapTest_Success1", EapType.PEAP_MSCHAPv2, true);
@@ -37,7 +37,7 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void RecordAttempt_Failure_IncrementsFailCount()
+    public void RecordAttemptFailureIncrementsFailCount()
     {
         var svc = new EapAuthStatsService();
         svc.RecordAttempt("EapTest_Fail1", EapType.EAP_TLS, false);
@@ -48,7 +48,7 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void RecordAttempt_SameSsidDifferentEapType_TracksSeparately()
+    public void RecordAttemptSameSsidDifferentEapTypeTracksSeparately()
     {
         var svc = new EapAuthStatsService();
         svc.RecordAttempt("EapTest_MultiType", EapType.PEAP_MSCHAPv2, true);
@@ -59,7 +59,7 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void RecordAttempt_AccumulatesAcrossCalls()
+    public void RecordAttemptAccumulatesAcrossCalls()
     {
         var svc = new EapAuthStatsService();
         svc.RecordAttempt("EapTest_Accum", EapType.EAP_TTLS, true);
@@ -73,7 +73,7 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void SuccessRate_ComputesCorrectly()
+    public void SuccessRateComputesCorrectly()
     {
         var svc = new EapAuthStatsService();
         svc.RecordAttempt("EapTest_Rate", EapType.EAP_AKA, true);
@@ -85,7 +85,7 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void SuccessRate_NoAttempts_DefaultsToOptimistic()
+    public void SuccessRateNoAttemptsDefaultsToOptimistic()
     {
         // 記録が無い合成インスタンスは 1.0 (楽観値) を返す仕様。
         var stat = new EapAuthStat("Unrecorded", EapType.PEAP_MSCHAPv2, 0, 0, DateTimeOffset.UtcNow);
@@ -93,14 +93,14 @@ public class EapAuthStatsServiceTests
     }
 
     [Fact]
-    public void GetStat_UnknownSsid_ReturnsNull()
+    public void GetStatUnknownSsidReturnsNull()
     {
         var svc = new EapAuthStatsService();
         svc.GetStat(EapTestSsid.Unique("EapTest_DoesNotExist_"), EapType.PEAP_MSCHAPv2).Should().BeNull();
     }
 
     [Fact]
-    public void GetAll_IncludesRecordedEntry()
+    public void GetAllIncludesRecordedEntry()
     {
         var svc = new EapAuthStatsService();
         var uniqueSsid = EapTestSsid.Unique("EapTest_GetAll_");
@@ -116,7 +116,7 @@ public class EapAuthStatsServiceTests
 public class ConnectionExecutorEapStatsWiringTests
 {
     [Fact]
-    public async Task ConnectAsync_EnterpriseSpecSuccess_RecordsEapStat()
+    public async Task ConnectAsyncEnterpriseSpecSuccessRecordsEapStat()
     {
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };
         var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
@@ -144,7 +144,7 @@ public class ConnectionExecutorEapStatsWiringTests
     }
 
     [Fact]
-    public async Task ConnectAsync_EnterpriseSpecFailure_RecordsEapFailure()
+    public async Task ConnectAsyncEnterpriseSpecFailureRecordsEapFailure()
     {
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Fail(ConnectionFailure.BadCredentials) };
         var hist = new NetworkHistoryService(NullLogger<NetworkHistoryService>.Instance);
@@ -169,7 +169,7 @@ public class ConnectionExecutorEapStatsWiringTests
     }
 
     [Fact]
-    public async Task ConnectAsync_PersonalAuth_DoesNotRecordEapStat()
+    public async Task ConnectAsyncPersonalAuthDoesNotRecordEapStat()
     {
         // WPA2PSK には EapType がないため、EAP 統計には一切記録されないはず。
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };
@@ -186,7 +186,7 @@ public class ConnectionExecutorEapStatsWiringTests
     }
 
     [Fact]
-    public async Task ConnectAsync_NoEapStatsProvided_DoesNotThrow()
+    public async Task ConnectAsyncNoEapStatsProvidedDoesNotThrow()
     {
         // 既存の 3 引数コンストラクタ(EapAuthStatsService 省略)との後方互換性確認。
         var wifi = new FakeWifiService { NextConnectResult = ConnectionResult.Ok("ignored", true, false) };

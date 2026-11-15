@@ -8,6 +8,9 @@ using MWC.App.Resources;
 using MWC.App.ViewModels;
 using MWC.Core.Services;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Button = System.Windows.Controls.Button;
+
 namespace MWC.App.Views;
 
 public partial class AdapterPreferencesDialog : Window

@@ -54,13 +54,13 @@ public class PrivacyCliContractTests
     [InlineData("random_per_network", MacAddressMode.RandomPerNetwork)]
     [InlineData("random-daily", MacAddressMode.RandomDaily)]
     [InlineData("daily", MacAddressMode.RandomDaily)]
-    public void MacMode_ParsesFriendlyForms(string input, MacAddressMode expected)
+    public void MacModeParsesFriendlyForms(string input, MacAddressMode expected)
     {
         ParseMacMode(input).Should().Be(expected);
     }
 
     [Fact]
-    public void MacMode_OmittedIsUnknown_NotAnError()
+    public void MacModeOmittedIsUnknownNotAnError()
     {
         // 自動検出が未実装なので、省略時は Unknown を既定にする(エラーにはしない)。
         // Unknown が勧告ゼロになることは PrivacyAdvisoryTests が固定済み。
@@ -69,7 +69,7 @@ public class PrivacyCliContractTests
     }
 
     [Fact]
-    public void MacMode_GarbageIsRejected_SoTheCliCanErrorClearly()
+    public void MacModeGarbageIsRejectedSoTheCliCanErrorClearly()
     {
         // null を返せば CLI は InvalidInput で明示エラーを出せる。
         ParseMacMode("nope").Should().BeNull();
@@ -78,7 +78,7 @@ public class PrivacyCliContractTests
     // ── (2) 中立コンテキスト(--ssid 無し・未接続の経路) ──────────
 
     [Fact]
-    public void NeutralSecuredContext_StillProducesModeAdvice_WithoutThePublicWarning()
+    public void NeutralSecuredContextStillProducesModeAdviceWithoutThePublicWarning()
     {
         // 対象ネットワークが解決できないとき CLI は「セキュア扱いの中立ネットワーク」で
         // Analyze する。狙いは、公共特有の警告 (#1) を誤って出さずに、モード依存の
@@ -113,7 +113,7 @@ public class PrivacyCliContractTests
     }
 
     [Fact]
-    public void AdapterSuppliedAddressIsUsed_WhenNoExplicitMacGiven()
+    public void AdapterSuppliedAddressIsUsedWhenNoExplicitMacGiven()
     {
         EffectiveMac(macStr: null, adapterPhysicalAddress: "AA:BB:CC:DD:EE:FF")
             .Should().Be("AA:BB:CC:DD:EE:FF",
@@ -122,7 +122,7 @@ public class PrivacyCliContractTests
     }
 
     [Fact]
-    public void NoMacSourceAtAll_LeavesEffectiveMacNull()
+    public void NoMacSourceAtAllLeavesEffectiveMacNull()
     {
         EffectiveMac(macStr: null, adapterPhysicalAddress: null).Should().BeNull(
             because: "with neither source available, the CLI must fall back to --mac-mode or Unknown, " +
@@ -130,7 +130,7 @@ public class PrivacyCliContractTests
     }
 
     [Fact]
-    public void AdapterSuppliedAddress_FlowsThroughInferenceLikeAnyOtherAddress()
+    public void AdapterSuppliedAddressFlowsThroughInferenceLikeAnyOtherAddress()
     {
         // PrivacyCommand が実際にたどる経路の縮図: WifiAdapter.PhysicalAddress →
         // MacAddressModeInference.TryParse → FromAddress。特別扱いは無いことを固定する。
@@ -148,7 +148,7 @@ public class PrivacyCliContractTests
     // ── (3) 横断不変条件 ──────────────────────────────────────────
 
     [Fact]
-    public void EveryAdvisoryCitesAReference_SoUsersCanVerify()
+    public void EveryAdvisoryCitesAReferenceSoUsersCanVerify()
     {
         // 研究ベースであることが本サービスの価値。CLI は各勧告の ref 行を出すため、
         // どの (モード × 公共/セキュア) の組合せでも参照が空でないことを保証する。
@@ -166,7 +166,7 @@ public class PrivacyCliContractTests
     // これが崩れると CLI の分岐が意味を失う。
 
     [Fact]
-    public void UnknownYieldsNothingToSay_WhileKnownModesAlwaysSaySomething()
+    public void UnknownYieldsNothingToSayWhileKnownModesAlwaysSaySomething()
     {
         var svc = new PrivacyAdvisoryService();
         var net = new WifiNetwork { Ssid = "X", Auth = AuthMethod.WPA2PSK };

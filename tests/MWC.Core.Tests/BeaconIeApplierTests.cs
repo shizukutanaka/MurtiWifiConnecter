@@ -37,7 +37,7 @@ public class BeaconIeApplierTests
         => new() { Ssid = "Test", BssEntries = entries };
 
     [Fact]
-    public void AppliesFastTransition_And_NeighborReport()
+    public void AppliesFastTransitionAndNeighborReport()
     {
         var net = BaseNet().WithBeaconIe(Summary(ft: true, nr: true));
         net.FastTransition.Should().BeTrue();
@@ -94,7 +94,7 @@ public class BeaconIeApplierTests
     }
 
     [Fact]
-    public void NoBssEntries_NoThrow()
+    public void NoBssEntriesNoThrow()
     {
         var net = BaseNet().WithBeaconIe(Summary(bssLoad: new BssLoad(1, 1, 0)));
         net.BssEntries.Should().BeEmpty();
@@ -109,7 +109,7 @@ public class BeaconIeApplierTests
     }
 
     [Fact]
-    public void AppliesBssTransitionMgmt_WhenTrue()
+    public void AppliesBssTransitionMgmtWhenTrue()
     {
         var net = BaseNet().WithBeaconIe(Summary(bssTrans: true));
         net.BssTransitionMgmt.Should().BeTrue("802.11v capability from Extended Capabilities IE");

@@ -25,7 +25,7 @@ namespace MWC.Core.Tests;
 public class NetworkQualityRegressionTests
 {
     [Fact]
-    public void QualityResult_ZeroSuccess_ReturnsTimeout()
+    public void QualityResultZeroSuccessReturnsTimeout()
     {
         // success=0 でも 999を返し、クラッシュしない
         var result = new NetworkQualityResult(999, 999, 999, 100,
@@ -36,7 +36,7 @@ public class NetworkQualityRegressionTests
     }
 
     [Fact]
-    public void QualityResult_AllMetrics_AreConsistent()
+    public void QualityResultAllMetricsAreConsistent()
     {
         var r = new NetworkQualityResult(30, 20, 45, 0,
             QualityGrade.Good, DateTimeOffset.UtcNow);
@@ -52,7 +52,7 @@ public class NetworkQualityRegressionTests
     [InlineData(40,  1,  "Good")]
     [InlineData(80,  4,  "Fair")]
     [InlineData(999, 100,"Poor")]
-    public void GradeLabel_MatchesLatencyAndLoss(int ms, double loss, string expectedGrade)
+    public void GradeLabelMatchesLatencyAndLoss(int ms, double loss, string expectedGrade)
     {
         QualityGrade grade = ms >= 999 || loss >= 20 ? QualityGrade.Poor :
                              ms <= 20 && loss == 0   ? QualityGrade.Excellent :
@@ -66,8 +66,9 @@ public class NetworkQualityRegressionTests
 /// <summary>SettingsService sealed class with問題回帰防止</summary>
 public class SettingsServiceRegressionTests
 {
+    private static readonly string[] Net1Net2 = new[] { "Net1", "Net2" };
     [Fact]
-    public void AppSettings_CanBeCloned_WithoutRecordSyntax()
+    public void AppSettingsCanBeClonedWithoutRecordSyntax()
     {
         var original = new AppSettings
         {
@@ -92,12 +93,12 @@ public class SettingsServiceRegressionTests
 
         clone.Language.Should().Be("en");
         clone.Theme.Should().Be(AppTheme.Light);
-        clone.PinnedNetworks.Should().BeEquivalentTo(new[] { "Net1", "Net2" });
+        clone.PinnedNetworks.Should().BeEquivalentTo(Net1Net2);
         clone.PinnedNetworks.Should().NotBeSameAs(original.PinnedNetworks); // deep copy
     }
 
     [Fact]
-    public void AppSettings_PinnedAndHidden_AreIndependent()
+    public void AppSettingsPinnedAndHiddenAreIndependent()
     {
         var s = new AppSettings();
         s.PinnedNetworks.Add("A");
@@ -115,7 +116,7 @@ public class SettingsServiceRegressionTests
 public class NetworkHistoryAdvancedTests
 {
     [Fact]
-    public void RecordConnection_SameNetwork_UpdatesNotDuplicates()
+    public void RecordConnectionSameNetworkUpdatesNotDuplicates()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Net", true);
@@ -129,7 +130,7 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Fact]
-    public void GetRecentSsids_RespectsLimit()
+    public void GetRecentSsidsRespectsLimit()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         for (int i = 0; i < 15; i++)
@@ -139,7 +140,7 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Fact]
-    public void ClearAll_EmptiesHistory()
+    public void ClearAllEmptiesHistory()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("A", true);
@@ -149,7 +150,7 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Fact]
-    public void GetStats_ReturnsCorrectAggregates()
+    public void GetStatsReturnsCorrectAggregates()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         // "Alpha": 3 successes, 1 failure
@@ -171,7 +172,7 @@ public class NetworkHistoryAdvancedTests
     }
 
     [Fact]
-    public void GetStats_ZeroHistory_SuccessRateIsOne()
+    public void GetStatsZeroHistorySuccessRateIsOne()
     {
         var svc   = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var stats = svc.GetStats(30);
@@ -184,12 +185,12 @@ public class NetworkHistoryAdvancedTests
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(-30)]
-    public void GetStats_NonPositiveDays_Throws(int days)
+    public void GetStatsNonPositiveDaysThrows(int days)
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.Invoking(s => s.GetStats(days))
            .Should().Throw<ArgumentOutOfRangeException>()
-           .WithParameterName("days");
+           .WithParameterName(nameof(days));
     }
 
     [Theory]
@@ -197,7 +198,7 @@ public class NetworkHistoryAdvancedTests
     [InlineData(-2,   "2m ago")]
     [InlineData(-90,  "1h ago")]
     [InlineData(-168, "7h ago")]
-    public void LastConnectedLabel_TimeLabels(int minutesAgo, string expected)
+    public void LastConnectedLabelTimeLabels(int minutesAgo, string expected)
     {
         var at = minutesAgo == -90 ? DateTimeOffset.UtcNow.AddHours(-1.5)
                : minutesAgo == -168 ? DateTimeOffset.UtcNow.AddHours(-7)
@@ -216,7 +217,7 @@ public class AccessibilityServiceTests
     [InlineData(0,   196, 204, 15,  17,  21,  true)]   // AccentBrush on BgBrush (約7:1)
     [InlineData(156, 163, 175, 15,  17,  21,  true)]   // FgMutedBrush on BgBrush (約6:1 = AA)
     [InlineData(75,  85,  99,  15,  17,  21,  false)]  // 低コントラスト例
-    public void Contrast_MeetsWcagAA(byte fgR, byte fgG, byte fgB,
+    public void ContrastMeetsWcagAA(byte fgR, byte fgG, byte fgB,
                                       byte bgR, byte bgG, byte bgB,
                                       bool expectsAAA)
     {
@@ -229,14 +230,14 @@ public class AccessibilityServiceTests
     }
 
     [Fact]
-    public void Contrast_BlackOnWhite_Is21()
+    public void ContrastBlackOnWhiteIs21()
     {
         var ratio = AccessibilityService.CalcContrast(0, 0, 0, 255, 255, 255);
         ratio.Should().BeApproximately(21.0, 0.1);
     }
 
     [Fact]
-    public void Contrast_SameColor_Is1()
+    public void ContrastSameColorIs1()
     {
         var ratio = AccessibilityService.CalcContrast(128, 128, 128, 128, 128, 128);
         ratio.Should().BeApproximately(1.0, 0.01);
@@ -247,7 +248,7 @@ public class AccessibilityServiceTests
 public class ThemeServiceTests
 {
     [Fact]
-    public void AppTheme_HasAllThreeOptions()
+    public void AppThemeHasAllThreeOptions()
     {
         Enum.GetValues<AppTheme>().Should()
             .Contain(AppTheme.Dark)
@@ -256,7 +257,7 @@ public class ThemeServiceTests
     }
 
     [Fact]
-    public void AppTheme_DefaultIsDark()
+    public void AppThemeDefaultIsDark()
         => new AppSettings().Theme.Should().Be(AppTheme.Dark);
 }
 
@@ -264,7 +265,7 @@ public class ThemeServiceTests
 public class AppUpdateServiceTests
 {
     [Fact]
-    public void UpdateCheckResult_Failed_IsCorrect()
+    public void UpdateCheckResultFailedIsCorrect()
     {
         var r = UpdateCheckResult.Failed;
         r.HasUpdate.Should().BeFalse();
@@ -275,7 +276,7 @@ public class AppUpdateServiceTests
     [InlineData("1.0.0", "2.0.0", true)]
     [InlineData("2.0.0", "1.9.9", false)]
     [InlineData("1.0.0", "1.0.0", false)]
-    public void UpdateCheck_VersionComparison(string current, string latest, bool shouldUpdate)
+    public void UpdateCheckVersionComparison(string current, string latest, bool shouldUpdate)
     {
         var cv = Version.Parse(current);
         var lv = Version.Parse(latest);
@@ -286,7 +287,7 @@ public class AppUpdateServiceTests
     // ── NetworkHistoryService 並行アクセステスト ─────────────────────
 
     [Fact]
-    public async Task NetworkHistory_ConcurrentRecordAndRead_NoCrash()
+    public async Task NetworkHistoryConcurrentRecordAndReadNoCrash()
     {
         // 複数スレッドから同時に RecordConnection / GetRecent / GetStats を呼び出し、
         // デッドロック・IndexOutOfRange・InvalidOperationException が発生しないことを確認。
@@ -323,7 +324,7 @@ public class AppUpdateServiceTests
     }
 
     [Fact]
-    public async Task NetworkHistory_ConcurrentForgetAndRecord_NoCrash()
+    public async Task NetworkHistoryConcurrentForgetAndRecordNoCrash()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         for (int i = 0; i < 20; i++) svc.RecordConnection($"Net{i}", true);
@@ -381,7 +382,7 @@ public class ConnectionExecutorShouldRegisterTests
     [InlineData(AuthMethod.WPA2PSK,        "pass1234", true)]
     [InlineData(AuthMethod.Open,           "",        true)]
     [InlineData(AuthMethod.OWE,            "",        true)]
-    public async Task RegisterProfileAsync_CalledOrSkipped(
+    public async Task RegisterProfileAsyncCalledOrSkipped(
         AuthMethod auth, string passphrase, bool expectRegistration)
     {
         var (executor, wifi) = Build();
@@ -400,7 +401,7 @@ public class ConnectionExecutorShouldRegisterTests
     }
 
     [Fact]
-    public async Task EmptyPassphrase_PSK_ConnectIsStillInvoked()
+    public async Task EmptyPassphrasePSKConnectIsStillInvoked()
     {
         // プロファイル登録スキップ後も実接続呼び出しは行われること
         var (executor, wifi) = Build();
@@ -433,7 +434,7 @@ public class ConnectionExecutorDisconnectInhibitTests
                NullLogger<ConnectionExecutor>.Instance);
 
     [Fact]
-    public async Task AfterDisconnect_WasRecentlyDisconnectedByUser_ReturnsTrue()
+    public async Task AfterDisconnectWasRecentlyDisconnectedByUserReturnsTrue()
     {
         var executor = Build();
         var id = Guid.NewGuid();
@@ -445,7 +446,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     }
 
     [Fact]
-    public void WithoutDisconnect_WasRecentlyDisconnectedByUser_ReturnsFalse()
+    public void WithoutDisconnectWasRecentlyDisconnectedByUserReturnsFalse()
     {
         var executor = Build();
         var id = Guid.NewGuid();
@@ -455,7 +456,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     }
 
     [Fact]
-    public async Task DifferentAdapter_NotInhibited()
+    public async Task DifferentAdapterNotInhibited()
     {
         var executor = Build();
         var idA = Guid.NewGuid();
@@ -468,7 +469,7 @@ public class ConnectionExecutorDisconnectInhibitTests
     }
 
     [Fact]
-    public async Task ZeroWindow_AlwaysReturnsFalse()
+    public async Task ZeroWindowAlwaysReturnsFalse()
     {
         var executor = Build();
         var id = Guid.NewGuid();
@@ -502,7 +503,7 @@ public class ConnectionExecutorDisconnectInhibitTests
 public class IWifiServiceGetAdaptersConnectedSsidTests
 {
     [Fact]
-    public void ConnectedAdapter_HasNonNullConnectedSsid()
+    public void ConnectedAdapterHasNonNullConnectedSsid()
     {
         var adapter = new WifiAdapter
         {
@@ -516,7 +517,7 @@ public class IWifiServiceGetAdaptersConnectedSsidTests
     }
 
     [Fact]
-    public void DisconnectedAdapter_ConnectedSsidIsNull()
+    public void DisconnectedAdapterConnectedSsidIsNull()
     {
         var adapter = new WifiAdapter
         {
@@ -529,7 +530,7 @@ public class IWifiServiceGetAdaptersConnectedSsidTests
     }
 
     [Fact]
-    public async Task FakeWifiService_GetAdapters_ConnectedAdapterHasSsid()
+    public async Task FakeWifiServiceGetAdaptersConnectedAdapterHasSsid()
     {
         // Ensure FakeWifiService (used throughout tests) also satisfies the contract.
         var svc      = new MWC.Core.Tests.Fakes.FakeWifiService();
@@ -553,11 +554,12 @@ public class IWifiServiceGetAdaptersConnectedSsidTests
 /// </summary>
 public class ProfileXmlBuilderEapTlsRegressionTests
 {
+    private static readonly string[] RadiusExampleComBackupExampleCom = new[] { "radius.example.com", "backup.example.com" };
     private static readonly XNamespace EtNs =
         "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
 
     [Fact]
-    public void EapTls_EmptyServerNames_ProducesEmptyElementNotException()
+    public void EapTlsEmptyServerNamesProducesEmptyElementNotException()
     {
         var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
         {
@@ -574,14 +576,14 @@ public class ProfileXmlBuilderEapTlsRegressionTests
     }
 
     [Fact]
-    public void EapTls_WithServerNames_JoinedBySemicolon()
+    public void EapTlsWithServerNamesJoinedBySemicolon()
     {
         var xmlStr = ProfileXmlBuilder.Build(new WifiProfileSpec
         {
             Ssid        = "Corp",
             Auth        = AuthMethod.WPA2Enterprise,
             EapType     = EapType.EAP_TLS,
-            ServerNames = new[] { "radius.example.com", "backup.example.com" },
+            ServerNames = RadiusExampleComBackupExampleCom,
         });
 
         var doc = XDocument.Parse(xmlStr);
@@ -610,11 +612,11 @@ public class PiiMaskSsidTests
     [InlineData("MyWiFi",     "My****")]    // 6 chars: keep 2, mask 4
     [InlineData("HomeNetwork", "Ho******")] // 11 chars: keep 2, mask 6 (cap)
     [InlineData("XY",          "XY*")]      // regression: must NOT be "X*"
-    public void Ssid_MasksCorrectly(string? input, string expected)
+    public void SsidMasksCorrectly(string? input, string expected)
         => PiiMask.Ssid(input).Should().Be(expected);
 
     [Fact]
-    public void Ssid_LongSsid_MasksAtMostSixChars()
+    public void SsidLongSsidMasksAtMostSixChars()
     {
         var result = PiiMask.Ssid("ABCDEFGHIJKLMNOP");  // 16 chars
         result.Should().StartWith("AB");
@@ -632,7 +634,7 @@ public class PiiMaskSsidTests
     [InlineData("\roverwrite")]                        // CR (端末上書き)
     [InlineData("\t\ttabbed")]                         // TAB
     [InlineData("\u0007\u001bbell-esc")]               // BEL / ESC
-    public void Ssid_NeutralizesControlChars_PreventsLogInjection(string input)
+    public void SsidNeutralizesControlCharsPreventsLogInjection(string input)
     {
         var masked = PiiMask.Ssid(input);
         masked.Any(char.IsControl).Should().BeFalse(
@@ -643,7 +645,7 @@ public class PiiMaskSsidTests
     [Theory]
     [InlineData("日本語ネット", "日本")]   // 非ラテン (BMP) は保持
     [InlineData("Café", "Ca")]             // アクセント付きは制御文字ではない
-    public void Ssid_PreservesVisibleNonControlChars(string input, string expectedPrefix)
+    public void SsidPreservesVisibleNonControlChars(string input, string expectedPrefix)
         => PiiMask.Ssid(input).Should().StartWith(expectedPrefix);
 }
 
@@ -674,7 +676,7 @@ public class WildcardHostnameRegressionTests
     }
 
     [Fact]
-    public void Wildcard_SingleLevel_Matches()
+    public void WildcardSingleLevelMatches()
     {
         // *.example.com should match foo.example.com
         var der  = MakeWildcardCert("*.example.com");
@@ -686,7 +688,7 @@ public class WildcardHostnameRegressionTests
     }
 
     [Fact]
-    public void Wildcard_MultiLevel_DoesNotMatch()
+    public void WildcardMultiLevelDoesNotMatch()
     {
         // *.example.com must NOT match deep.sub.example.com (RFC 6125 §6.4.3)
         var der  = MakeWildcardCert("*.example.com");
@@ -698,7 +700,7 @@ public class WildcardHostnameRegressionTests
     }
 
     [Fact]
-    public void ExactMatch_Works()
+    public void ExactMatchWorks()
     {
         var der  = MakeWildcardCert("radius.example.com");
         var svc  = new CertificateStoreService();
@@ -729,26 +731,26 @@ public class JumpListEscapeArgTests
     }
 
     [Fact]
-    public void SimpleSsid_IsWrappedInDoubleQuotes()
+    public void SimpleSsidIsWrappedInDoubleQuotes()
         => Escape("HomeWifi").Should().Be("\"HomeWifi\"");
 
     [Fact]
-    public void EmptySsid_ReturnsEmptyQuotedPair()
+    public void EmptySsidReturnsEmptyQuotedPair()
         => Escape("").Should().Be("\"\"");
 
     [Fact]
-    public void SsidWithSpace_SpacePreservedInsideQuotes()
+    public void SsidWithSpaceSpacePreservedInsideQuotes()
         => Escape("My WiFi").Should().Be("\"My WiFi\"");
 
     [Fact]
-    public void SsidWithDoubleQuote_QuoteIsBackslashEscaped()
+    public void SsidWithDoubleQuoteQuoteIsBackslashEscaped()
     {
         // SSID: foo"bar  →  "foo\"bar"
         Escape("foo\"bar").Should().Be("\"foo\\\"bar\"");
     }
 
     [Fact]
-    public void SsidWithTrailingBackslash_BackslashIsDoubled()
+    public void SsidWithTrailingBackslashBackslashIsDoubled()
     {
         // SSID: foo\  →  "foo\\"
         // Without doubling, "foo\" would be parsed as "foo" + leftover " (injection)
@@ -756,7 +758,7 @@ public class JumpListEscapeArgTests
     }
 
     [Fact]
-    public void SsidWithBackslashBeforeQuote_BothEscaped()
+    public void SsidWithBackslashBeforeQuoteBothEscaped()
     {
         // SSID: foo\"bar  →  "foo\\\"bar"
         // The backslash before a quote must itself be doubled, then the quote escaped
@@ -764,14 +766,14 @@ public class JumpListEscapeArgTests
     }
 
     [Fact]
-    public void SsidWithMultipleTrailingBackslashes_AllDoubled()
+    public void SsidWithMultipleTrailingBackslashesAllDoubled()
     {
         // SSID: foo\\  (two trailing backslashes) →  "foo\\\\"
         Escape("foo\\\\").Should().Be("\"foo\\\\\\\\\"");
     }
 
     [Fact]
-    public void InjectionAttempt_DoubleQuoteInSsid_CannotBreakOutOfToken()
+    public void InjectionAttemptDoubleQuoteInSsidCannotBreakOutOfToken()
     {
         // Old code: $"connect \"{ssid}\""
         // With ssid = evil" --inject, old result: connect "evil" --inject"
@@ -804,7 +806,7 @@ public class TroubleshootingAdviceEnterpriseRegressionTests
     [InlineData(AuthMethod.WPA2Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise192)]
-    public void BadCredentials_EnterpriseAuth_ReturnsEnterpriseTitle(AuthMethod auth)
+    public void BadCredentialsEnterpriseAuthReturnsEnterpriseTitle(AuthMethod auth)
     {
         var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
             ConnectionFailure.BadCredentials, auth);
@@ -815,7 +817,7 @@ public class TroubleshootingAdviceEnterpriseRegressionTests
     }
 
     [Fact]
-    public void BadCredentials_PersonalAuth_ReturnsWrongPasswordTitle()
+    public void BadCredentialsPersonalAuthReturnsWrongPasswordTitle()
     {
         var advice = MWC.App.Resources.L.GetTroubleshootingAdvice(
             ConnectionFailure.BadCredentials, AuthMethod.WPA3SAE);
@@ -836,14 +838,14 @@ public class TroubleshootingAdviceEnterpriseRegressionTests
 public class NetworkQualityServiceCacheTests
 {
     [Fact]
-    public void GetCached_ReturnsNull_WhenNotYetMeasured()
+    public void GetCachedReturnsNullWhenNotYetMeasured()
     {
         var svc = new NetworkQualityService();
         svc.GetCached("8.8.8.8").Should().BeNull();
     }
 
     [Fact]
-    public void GetCached_ReturnsFreshResult_WhenWithinTtl()
+    public void GetCachedReturnsFreshResultWhenWithinTtl()
     {
         // MeasuredAt = just now → must be returned
         var fresh = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
@@ -859,7 +861,7 @@ public class NetworkQualityServiceCacheTests
     }
 
     [Fact]
-    public void GetCached_ReturnsNull_WhenResultIsOlderThan5Minutes()
+    public void GetCachedReturnsNullWhenResultIsOlderThan5Minutes()
     {
         // MeasuredAt = 6 minutes ago → TTL expired
         var stale = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
@@ -875,7 +877,7 @@ public class NetworkQualityServiceCacheTests
     }
 
     [Fact]
-    public void GetCached_ReturnsCachedResult_JustBeforeTtlExpiry()
+    public void GetCachedReturnsCachedResultJustBeforeTtlExpiry()
     {
         // MeasuredAt = 4 min 59 sec ago → still within TTL
         var nearExpiry = new NetworkQualityResult(20, 15, 25, 0, QualityGrade.Excellent,
@@ -911,7 +913,7 @@ public class AccessibilityAuditHexValidationTests
     [InlineData("FFFF")]       // 4 桁 (CSS では無効)
     [InlineData("FFFFF")]      // 5 桁
     [InlineData("FFFFFFFFF")]  // 9 桁
-    public void CalcContrast_ThrowsArgumentException_ForInvalidLength(string bad)
+    public void CalcContrastThrowsArgumentExceptionForInvalidLength(string bad)
     {
         var act = () => _svc.CalcContrast(bad, "#FFFFFF");
         act.Should().Throw<ArgumentException>(
@@ -923,7 +925,7 @@ public class AccessibilityAuditHexValidationTests
     [InlineData("FFFFFF",  "000000")] // # なし 6 桁
     [InlineData("#FFFFFF", "#000000")]
     [InlineData("#FFFFFFAA", "#000000")] // 8 桁 CSS → 先頭 6 桁使用
-    public void CalcContrast_AcceptsValidHex(string fg, string bg)
+    public void CalcContrastAcceptsValidHex(string fg, string bg)
     {
         var act = () => _svc.CalcContrast(fg, bg);
         act.Should().NotThrow();
@@ -931,7 +933,7 @@ public class AccessibilityAuditHexValidationTests
     }
 
     [Fact]
-    public void EvaluateContrast_WhiteOnBlack_IsAaaLevel()
+    public void EvaluateContrastWhiteOnBlackIsAaaLevel()
     {
         var r = _svc.EvaluateContrast("#FFFFFF", "#000000");
         r.Level.Should().Be(WcagLevel.AAA);

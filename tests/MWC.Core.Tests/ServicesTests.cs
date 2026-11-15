@@ -19,25 +19,25 @@ public class OuiLookupServiceTests
     [InlineData("04:18:D6:AA:BB:CC", "Ubiquiti Networks Inc.")]
     [InlineData("1C:3B:F3:01:02:03", "TP-Link Technologies")]
     [InlineData("B8:27:EB:00:11:22", "Raspberry Pi Foundation")]
-    public void Lookup_KnownBssid_ReturnsVendor(string bssid, string expected)
+    public void LookupKnownBssidReturnsVendor(string bssid, string expected)
         => _sut.Lookup(bssid).Should().Be(expected);
 
     [Fact]
-    public void Lookup_Unknown_ReturnsNull()
+    public void LookupUnknownReturnsNull()
         => _sut.Lookup("FF:FF:FF:FF:FF:FF").Should().BeNull();
 
     [Fact]
-    public void Lookup_Null_ReturnsNull()
+    public void LookupNullReturnsNull()
         // オーバーロードを明示する。`null!` だけだと Lookup(string) と
         // Lookup(ReadOnlySpan<byte>) の双方に変換可能で曖昧になり得る。
         => _sut.Lookup((string)null!).Should().BeNull();
 
     [Fact]
-    public void Lookup_DashSeparated_Works()
+    public void LookupDashSeparatedWorks()
         => _sut.Lookup("70-DE-E2-11-22-33").Should().Be("Apple, Inc.");
 
     [Fact]
-    public void Lookup_LowerCase_Works()
+    public void LookupLowerCaseWorks()
         => _sut.Lookup("70:de:e2:11:22:33").Should().Be("Apple, Inc.");
 }
 
@@ -48,7 +48,7 @@ public class SignalHistoryServiceTests
         new() { Ssid = ssid, SignalQuality = quality, Rssi = rssi };
 
     [Fact]
-    public void Record_And_GetHistory_ReturnsSamples()
+    public void RecordAndGetHistoryReturnsSamples()
     {
         var sut = new SignalHistoryService(100);
         sut.Record(new[] { MakeNet("TestNet", 75) });
@@ -61,7 +61,7 @@ public class SignalHistoryServiceTests
     }
 
     [Fact]
-    public void RingBuffer_WrapsAround_WhenFull()
+    public void RingBufferWrapsAroundWhenFull()
     {
         var sut = new SignalHistoryService(maxSamples: 3);
         for (int i = 0; i < 5; i++)
@@ -74,11 +74,11 @@ public class SignalHistoryServiceTests
     }
 
     [Fact]
-    public void GetHistory_UnknownSsid_ReturnsEmpty()
+    public void GetHistoryUnknownSsidReturnsEmpty()
         => new SignalHistoryService().GetHistory("nobody").Should().BeEmpty();
 
     [Fact]
-    public void Clear_RemovesEntries()
+    public void ClearRemovesEntries()
     {
         var sut = new SignalHistoryService();
         sut.Record(new[] { MakeNet("A", 50) });
@@ -87,7 +87,7 @@ public class SignalHistoryServiceTests
     }
 
     [Fact]
-    public void Record_EvictsOldestSsid_WhenOverCapacity()
+    public void RecordEvictsOldestSsidWhenOverCapacity()
     {
         // 上限2件: 3つ目の SSID を記録すると最も古い更新の SSID が退去する。
         // LastAt を確実に区別するため記録間に微小スリープを挟む。
@@ -104,7 +104,7 @@ public class SignalHistoryServiceTests
     }
 
     [Fact]
-    public void Prune_RemovesEmptiedBuffersFromDictionary()
+    public void PruneRemovesEmptiedBuffersFromDictionary()
     {
         var sut = new SignalHistoryService(maxSamples: 10);
         sut.Record(new[] { MakeNet("Stale", 40) });
@@ -121,7 +121,12 @@ public class ExportServiceTests : IDisposable
     private readonly string _tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServiceTests() => Directory.CreateDirectory(_tmpDir);
-    public void Dispose() { try { Directory.Delete(_tmpDir, true); } catch { } }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        try { Directory.Delete(_tmpDir, true); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { }
+    }
 
     private static IReadOnlyList<WifiNetwork> SampleNetworks() =>
     [
@@ -146,7 +151,7 @@ public class ExportServiceTests : IDisposable
     ];
 
     [Fact]
-    public void ToCsv_CreatesFile_WithHeader()
+    public void ToCsvCreatesFileWithHeader()
     {
         var path = Path.Combine(_tmpDir, "scan.csv");
         ExportService.ToCsv(SampleNetworks(), path);
@@ -157,7 +162,7 @@ public class ExportServiceTests : IDisposable
     }
 
     [Fact]
-    public void ToCsv_EscapesCommaInSsid()
+    public void ToCsvEscapesCommaInSsid()
     {
         var path = Path.Combine(_tmpDir, "escape.csv");
         ExportService.ToCsv(SampleNetworks(), path);
@@ -166,7 +171,7 @@ public class ExportServiceTests : IDisposable
     }
 
     [Fact]
-    public void ToJson_CreatesValidJson()
+    public void ToJsonCreatesValidJson()
     {
         var path = Path.Combine(_tmpDir, "scan.json");
         ExportService.ToJson(SampleNetworks(), path);
@@ -179,7 +184,7 @@ public class ExportServiceTests : IDisposable
     }
 
     [Fact]
-    public void ToText_CreatesReport_WithBars()
+    public void ToTextCreatesReportWithBars()
     {
         var path = Path.Combine(_tmpDir, "scan.txt");
         ExportService.ToText(SampleNetworks(), path);
@@ -196,10 +201,10 @@ public class PhyTypeExtensionsTests
     [InlineData(PhyType.Dot11be, "Wi-Fi 7")]
     [InlineData(PhyType.Dot11ac, "Wi-Fi 5")]
     [InlineData(PhyType.Dot11n,  "Wi-Fi 4")]
-    public void ToShortLabel_ReturnsExpected(PhyType phy, string expected)
+    public void ToShortLabelReturnsExpected(PhyType phy, string expected)
         => phy.ToShortLabel().Should().Be(expected);
 
     [Fact]
-    public void ToGenerationLabel_ContainsIeee802()
+    public void ToGenerationLabelContainsIeee802()
         => PhyType.Dot11ax.ToGenerationLabel().Should().Contain("802.11ax");
 }

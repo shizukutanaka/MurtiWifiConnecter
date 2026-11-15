@@ -8,9 +8,10 @@ using MWC.Core.Models;
 
 namespace MWC.App.Views;
 
-public partial class ConnectionProgressDialog : Window
+public partial class ConnectionProgressDialog : Window, IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
+    private bool _disposed;
 
     public CancellationToken CancellationToken => _cts.Token;
     public ConnectionResult? Result { get; private set; }
@@ -60,10 +61,18 @@ public partial class ConnectionProgressDialog : Window
         Close();
     }
 
-    protected override void OnClosed(EventArgs e)
+    public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _cts.Cancel();
         _cts.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        Dispose();
         base.OnClosed(e);
     }
 }

@@ -8,6 +8,9 @@ using MWC.Core.Models;
 
 // System.Drawing.Brush (WinForms 併用時の global using) と曖昧なため WPF 側に固定
 using Brush = System.Windows.Media.Brush;
+using Color = System.Windows.Media.Color;
+using Pen = System.Windows.Media.Pen;
+using Point = System.Windows.Point;
 
 namespace MWC.App.Controls;
 
@@ -62,7 +65,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
 
     protected override int VisualChildrenCount => _visuals.Count;
     protected override Visual GetVisualChild(int index) => _visuals[index];
-    protected override void OnRenderSizeChanged(SizeChangedInfo info) => Rebuild();
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) => Rebuild();
 
     private void Rebuild()
     {
@@ -106,7 +109,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
             dc.DrawLine(gp, new Point(x, 0), new Point(x, baseY));
             if ((ch - chMin) % (step * 3) == 0)
             {
-                var ft = Fmt(ch.ToString(), 8, lbr, tf);
+                var ft = Fmt(ch.ToString(CultureInfo.InvariantCulture), 8, lbr, tf);
                 dc.DrawText(ft, new Point(x - ft.Width / 2, baseY + 2));
             }
         }
@@ -125,7 +128,7 @@ public sealed class ChannelBandCanvas : FrameworkElement
         double baseY = h - 18;
         double peak  = n.SignalQuality / 100.0 * (baseY - 4);
         double xc    = ChX(n.Channel, w, chMin, chMax);
-        double wide  = n.ChannelWidth switch { 40 => 4, 80 => 8, 160 => 16, 320 => 32, _ => 2 };
+        int    wide  = n.ChannelWidth switch { 40 => 4, 80 => 8, 160 => 16, 320 => 32, _ => 2 };
         double sigma = Math.Max(ChX(n.Channel + wide / 2, w, chMin, chMax) - xc, 12);
 
         // ガウス曲線
@@ -174,5 +177,5 @@ public sealed class ChannelBandCanvas : FrameworkElement
     }
 
     private static FormattedText Fmt(string s, double size, Brush brush, Typeface tf) =>
-        new(s, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, tf, size, brush, 96);
+        new(s, CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight, tf, size, brush, 96);
 }

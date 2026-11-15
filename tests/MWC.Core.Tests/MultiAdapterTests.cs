@@ -15,7 +15,7 @@ namespace MWC.Core.Tests;
 public class MultiAdapterTests
 {
     [Fact]
-    public async Task MultipleAdapters_CanConnectToDifferentNetworks()
+    public async Task MultipleAdaptersCanConnectToDifferentNetworks()
     {
         var svc = new FakeWifiService();
         var ads = await svc.GetAdaptersAsync();
@@ -33,7 +33,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task MultipleAdapters_DisconnectIndependently()
+    public async Task MultipleAdaptersDisconnectIndependently()
     {
         var svc = new FakeWifiService();
         var ads = await svc.GetAdaptersAsync();
@@ -42,7 +42,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task ScanAsync_AdapterIsolation()
+    public async Task ScanAsyncAdapterIsolation()
     {
         var svc = new FakeWifiService();
         var nets1 = await svc.ScanAsync(FakeWifiService.AdapterId1);
@@ -52,7 +52,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task DifferentAdapters_ProcessInParallel()
+    public async Task DifferentAdaptersProcessInParallel()
     {
         var svc = new FakeWifiService();
         var ads = await svc.GetAdaptersAsync();
@@ -62,7 +62,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task DuplicateConnectionDetection_Logic()
+    public void DuplicateConnectionDetectionLogic()
     {
         // 別アダプターで同SSIDに接続中を検出する想定ロジック
         var connectedMap = new[]
@@ -79,7 +79,7 @@ public class MultiAdapterTests
     }
 
     [Fact]
-    public async Task NoConflict_WhenSameAdapter()
+    public void NoConflictWhenSameAdapter()
     {
         var connectedMap = new[] { (Adapter: "Wi-Fi 1", Ssid: "SharedNet") };
         // Wi-Fi 1 で SharedNet に再接続(自分自身は競合ではない)
@@ -93,11 +93,11 @@ public class AdapterShortcutTests
 {
     [Theory]
     [InlineData(1)] [InlineData(2)] [InlineData(9)]
-    public void AdapterIndex_InValidRange(int idx)
+    public void AdapterIndexInValidRange(int idx)
         => idx.Should().BeInRange(1, 9);
 
     [Fact]
-    public void KeyD1_ToIndex1()
+    public void KeyD1ToIndex1()
     {
         const int KeyD0 = 34, KeyD1 = 35, KeyD9 = 43;
         (KeyD1 - KeyD0).Should().Be(1);

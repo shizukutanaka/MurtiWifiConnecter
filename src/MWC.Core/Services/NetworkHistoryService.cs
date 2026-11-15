@@ -134,16 +134,24 @@ public sealed class NetworkHistoryService
             TotalConnects: recent.Sum(e => e.ConnectCount),
             TotalFails:    recent.Sum(e => e.FailCount),
             UniqueNetworks: recent.Count,
-            TopSsid:       recent.OrderByDescending(e => e.ConnectCount).FirstOrDefault()?.Ssid);
+            TopSsid:       recent.OrderByDescending(e => e.ConnectCount)
+                                 .ThenBy(e => e.Ssid, StringComparer.Ordinal)
+                                 .FirstOrDefault()?.Ssid);
     }
 
-    /// <summary>最も頻繁に接続するSSID上位N件</summary>
+    /// <summary>
+    /// 最も頻繁に接続するSSID上位N件。
+    /// 並びは決定的にする: 接続回数の降順、同数なら SSID の昇順 (Ordinal)。
+    /// タイブレークが無いと同数の順序が内部リスト順 (直近接続順) に依存し、
+    /// 同じデータでも表示順が変わってしまう。
+    /// </summary>
     public IReadOnlyList<string> GetFrequentSsids(int n = 5)
     {
         lock (_lock)
         {
             return _entries
                 .OrderByDescending(e => e.ConnectCount)
+                .ThenBy(e => e.Ssid, StringComparer.Ordinal)
                 .Take(n)
                 .Select(e => e.Ssid)
                 .ToList();

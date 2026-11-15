@@ -8,6 +8,9 @@ using MWC.Core.Models;
 using MWC.Core.Profile;
 using Serilog;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+
 namespace MWC.App.Views;
 
 public partial class QrCodeDialog : Window
@@ -48,7 +51,7 @@ public partial class QrCodeDialog : Window
                 darkColorRgba:  new byte[] { 0, 0, 0, 255 },
                 lightColorRgba: new byte[] { 255, 255, 255, 255 });
         }
-        catch (Exception ex) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { Log.Warning(ex, "QR code generation failed"); return Array.Empty<byte>(); }
     }
 
     private void OnCopy(object sender, RoutedEventArgs e)

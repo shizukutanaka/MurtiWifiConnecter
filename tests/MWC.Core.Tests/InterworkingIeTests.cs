@@ -43,7 +43,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void InterworkingElement_IsDetected()
+    public void InterworkingElementIsDetected()
     {
         var data = SsidIe("Passpoint-AP").Concat(InterworkingIe()).ToArray();
 
@@ -51,7 +51,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void WithoutInterworkingElement_IsNotDetected()
+    public void WithoutInterworkingElementIsNotDetected()
     {
         // 誤検知しないこと。普通の AP を Passpoint と誤認すると
         // Hotspot20Service が的外れな案内を出す。
@@ -59,14 +59,14 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void ElementIdIs107_PerIeee80211u()
+    public void ElementIdIs107PerIeee80211u()
     {
         // 規格で定められた値。ここがずれると全く別の要素を Passpoint と誤認する。
         BeaconIeSummary.InterworkingElementId.Should().Be(107);
     }
 
     [Fact]
-    public void InterworkingAmongOtherElements_IsStillFound()
+    public void InterworkingAmongOtherElementsIsStillFound()
     {
         // 実際のビーコンでは多数の IE が並ぶ。途中に埋もれていても検出できること。
         var data = SsidIe("Campus")
@@ -79,7 +79,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void TruncatedIe_DoesNotFalselyReportInterworking()
+    public void TruncatedIeDoesNotFalselyReportInterworking()
     {
         // 長さが本文を超える壊れた IE。パーサーは打ち切るので、
         // その先にある要素は「存在した」ことにしてはならない。
@@ -99,7 +99,7 @@ public class InterworkingIeTests
         };
 
     [Fact]
-    public void AppliedSummary_SetsHasInterworkingElementOnBss()
+    public void AppliedSummarySetsHasInterworkingElementOnBss()
     {
         // これが「読む側はあるが埋める側が無い」状態を解消する配線そのもの。
         var summary = BeaconIeParser.Parse(
@@ -111,7 +111,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void WithoutInterworking_BssFlagStaysFalse()
+    public void WithoutInterworkingBssFlagStaysFalse()
     {
         var summary = BeaconIeParser.Parse(SsidIe("PlainAP"));
         var net = NetWithOneBss().WithBeaconIe(summary);
@@ -135,7 +135,7 @@ public class InterworkingIeTests
     private static byte[] MultiLinkIe() => ExtIe(BeaconIeSummary.MultiLinkExtensionId, 0x00, 0x00);
 
     [Fact]
-    public void MultiLinkElement_IsDetected()
+    public void MultiLinkElementIsDetected()
     {
         var data = SsidIe("WiFi7-AP").Concat(MultiLinkIe()).ToArray();
 
@@ -143,7 +143,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void InterworkingAlone_IsNotMistakenForMultiLink()
+    public void InterworkingAloneIsNotMistakenForMultiLink()
     {
         // 同じ 107 でも通常要素なので MLO ではない。
         var summary = BeaconIeParser.Parse(SsidIe("Passpoint").Concat(InterworkingIe()).ToArray());
@@ -153,7 +153,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void MultiLinkAlone_IsNotMistakenForInterworking()
+    public void MultiLinkAloneIsNotMistakenForInterworking()
     {
         var summary = BeaconIeParser.Parse(SsidIe("WiFi7").Concat(MultiLinkIe()).ToArray());
 
@@ -162,7 +162,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void ExtendedElementWithEmptyBody_IsIgnored_NotMisread()
+    public void ExtendedElementWithEmptyBodyIsIgnoredNotMisread()
     {
         // [255][0] — 拡張要素を名乗るが Ext ID が無い壊れた形。
         // 範囲外参照せず、何も検出しないこと。
@@ -174,7 +174,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void MultiLinkSummary_SetsIsMloOnTheNetwork()
+    public void MultiLinkSummarySetsIsMloOnTheNetwork()
     {
         var summary = BeaconIeParser.Parse(SsidIe("WiFi7-AP").Concat(MultiLinkIe()).ToArray());
 
@@ -182,7 +182,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void WithoutMultiLink_IsMloStaysFalse()
+    public void WithoutMultiLinkIsMloStaysFalse()
     {
         var summary = BeaconIeParser.Parse(SsidIe("PlainAP"));
 
@@ -190,7 +190,7 @@ public class InterworkingIeTests
     }
 
     [Fact]
-    public void AlreadySetFlag_IsNeverClearedByASummaryWithoutIt()
+    public void AlreadySetFlagIsNeverClearedByASummaryWithoutIt()
     {
         // 他の値と同じく「立ったら降ろさない」。あるスキャンで Interworking が
         // 取れなかっただけで Passpoint 判定を失うのは望ましくない。

@@ -29,27 +29,205 @@ jobs:
       - name: Build
         run: dotnet build MWC.ci-win.slnf -c Release --no-restore
 
+      # カバレッジは coverlet.collector (VSTest のデータコレクタ) で取る。
+      # このドライバは --collect:"XPlat Code Coverage" を付けたときだけ
+      # 有効化され、出力先は results-directory 配下の GUID フォルダに
+      # coverage.cobertura.xml として固定される (ベンダ同梱ドキュメント
+      # VSTestIntegration.md の仕様。出力パスを選ぶオプションは無い)。
+      #
+      # 以前ここに書かれていた /p:CollectCoverage / /p:CoverletOutput 等は
+      # もう一方のドライバ coverlet.msbuild 用の MSBuild プロパティで、
+      # 本リポジトリは coverlet.msbuild を参照していないため無効だった。
+      # そのため「TestResults/coverage.xml に出ているはず」という前提自体が
+      # 誤りで、実際にはカバレッジは一切生成されていなかった (成果物にも
+      # 入っていないことと符合する)。--collect を付け、Report coverage
+      # ステップ側は TestResults 配下を再帰検索して受け取る。
       - name: Test
         run: >
           dotnet test tests/MWC.Core.Tests/MWC.Core.Tests.csproj
           -c Release --no-build
           --logger "trx;LogFileName=results.trx"
           --results-directory TestResults
-          /p:CollectCoverage=true
-          /p:CoverletOutputFormat=cobertura
-          /p:CoverletOutput=TestResults/coverage.xml
+          --collect:"XPlat Code Coverage"
 
-      # SECURITY.md が「dotnet list package --vulnerable を CI で実行」と
-      # 述べている根拠。既知の脆弱性を持つ依存が入ったらビルドを落とす。
-      # --include-transitive が無いと直接参照しか見ないため必ず付ける。
+      # 依存パッケージの脆弱性ゲート。既知の脆弱性を持つ依存が入ったら
+      # ビルドを落とす。検査は TFM に依存しない方式で行う:
+      #   1. プロジェクトごとに restore する (Directory.Build.props の
+      #      RestorePackagesWithLockFile により packages.lock.json が
+      #      生成/更新される)。
+      #   2. packages.lock.json から解決済みパッケージ (名前と版数) を
+      #      全て抽出する。resolved を持たないエントリ (Project 参照)
+      #      は NuGet パッケージではないため対象外。
+      #   3. OSV (https://api.osv.dev の querybatch API、NuGet
+      #      エコシステム) へ照会して脆弱性の有無を判定する。OSV は
+      #      GitHub Advisory を取り込んでおり、dotnet list package
+      #      --vulnerable と実質的に同じ情報源。
+      #
+      # dotnet list package --vulnerable を使わない理由: TFM に
+      # プラットフォーム版数を含むプロジェクト
+      # (net9.0-windows10.0.19041.0) では、dotnet list が SDK 側の
+      # 不具合で "Sequence contains no matching element" となり必ず
+      # 失敗する (最小再現で確認済み。製品側の問題ではない)。その
+      # 方式ではゲートが恒常的に赤くなるため、lock ファイル + OSV
+      # 照会に切り替えた。
+      #
+      # プロジェクト単位で restore を先行させる理由: MWC.sln 側で
+      # ビルド対象に選ばれていないプロジェクト (MWC.PSModule /
+      # MWC.Benchmarks) は slnf の restore では assets が作られず、
+      # lock ファイルも生成されないため。対象プロジェクトは
+      # MWC.ci-win.slnf の一覧から読む。
+      #
+      # ゲートの原則: 「検査できなかった」も失敗として扱う。restore
+      # 失敗 / lock ファイル不在・読解不能 / OSV 照会失敗 (HTTP
+      # エラー等) / 脆弱性検出 のいずれでも、理由をログに残して
+      # このステップを失敗させる (黙って成功扱いにしない)。
       - name: Check for vulnerable dependencies
         shell: pwsh
         run: |
-          $out = dotnet list MWC.ci-win.slnf package --vulnerable --include-transitive 2>&1 | Out-String
-          Write-Host $out
-          if ($out -match 'has the following vulnerable packages') {
-            Write-Error 'Vulnerable NuGet packages found (see the listing above).'
+          $ErrorActionPreference = 'Continue'
+          $slnf = Get-Content 'MWC.ci-win.slnf' -Raw | ConvertFrom-Json
+          $projects = @($slnf.solution.projects)
+          $checkFailed = @()
+          $vulnerable = @()
+          # 一意な (パッケージ名, 版数) -> @{ Name; Version; Projects }
+          $pkgMap = @{}
+          foreach ($proj in $projects) {
+            Write-Host "=== $proj ==="
+            $restoreOut = dotnet restore $proj 2>&1 | Out-String
+            Write-Host $restoreOut
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::restore failed for $proj - vulnerability check could not run for this project."
+              $checkFailed += "$proj (restore failed)"
+              continue
+            }
+            $lockPath = Join-Path (Split-Path $proj -Parent) 'packages.lock.json'
+            if (-not (Test-Path $lockPath)) {
+              Write-Host "::error::packages.lock.json not found for $proj (expected at $lockPath) - vulnerability check could not run for this project."
+              $checkFailed += "$proj (packages.lock.json not found)"
+              continue
+            }
+            try {
+              $lock = Get-Content $lockPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host "::error::packages.lock.json for $proj could not be parsed: $($_.Exception.Message)"
+              $checkFailed += "$proj (packages.lock.json parse failed)"
+              continue
+            }
+            if ($null -eq $lock.dependencies) {
+              Write-Host "::error::packages.lock.json for $proj has no 'dependencies' section - vulnerability check could not run for this project."
+              $checkFailed += "$proj (packages.lock.json has no dependencies section)"
+              continue
+            }
+            $found = 0
+            foreach ($tfm in $lock.dependencies.PSObject.Properties) {
+              foreach ($pkg in $tfm.Value.PSObject.Properties) {
+                $resolved = $pkg.Value.resolved
+                if (-not $resolved) { continue }
+                $found++
+                $key = "$($pkg.Name.ToLowerInvariant())|$resolved"
+                if (-not $pkgMap.ContainsKey($key)) {
+                  $pkgMap[$key] = @{ Name = $pkg.Name; Version = $resolved; Projects = @() }
+                }
+                if ($pkgMap[$key].Projects -notcontains $proj) {
+                  $pkgMap[$key].Projects += $proj
+                }
+              }
+            }
+            if ($found -eq 0) {
+              Write-Host "::error::no resolved NuGet packages found in $lockPath - vulnerability check could not run for this project."
+              $checkFailed += "$proj (no packages found in packages.lock.json)"
+              continue
+            }
+            Write-Host "$proj`: $found package entries in packages.lock.json"
+          }
+          if ($pkgMap.Count -gt 0) {
+            $entries = @($pkgMap.Values)
+            Write-Host "Querying OSV (api.osv.dev) for $($entries.Count) unique packages..."
+            $chunkSize = 500
+            for ($i = 0; $i -lt $entries.Count; $i += $chunkSize) {
+              $chunk = @($entries | Select-Object -Skip $i -First $chunkSize)
+              $queries = @($chunk | ForEach-Object {
+                @{ package = @{ name = $_.Name; ecosystem = 'NuGet' }; version = $_.Version }
+              })
+              $queriesJson = ConvertTo-Json -InputObject $queries -Depth 6 -Compress
+              $body = "{`"queries`": $queriesJson}"
+              try {
+                $resp = Invoke-RestMethod -Uri 'https://api.osv.dev/v1/querybatch' -Method Post -Body $body -ContentType 'application/json' -Headers @{ 'User-Agent' = 'MurtiWifiConnecter-CI-vulnerability-check' } -TimeoutSec 120
+              } catch {
+                Write-Host "::error::OSV querybatch request failed: $($_.Exception.Message)"
+                $checkFailed += 'OSV querybatch request failed'
+                break
+              }
+              $results = @($resp.results)
+              if ($results.Count -ne $chunk.Count) {
+                Write-Host "::error::OSV response contains $($results.Count) results for $($chunk.Count) queries - the response cannot be matched to the queries."
+                $checkFailed += 'OSV querybatch response size mismatch'
+                break
+              }
+              for ($j = 0; $j -lt $chunk.Count; $j++) {
+                if ($results[$j].vulns) {
+                  $ids = (@($results[$j].vulns) | ForEach-Object { $_.id }) -join ', '
+                  $e = $chunk[$j]
+                  Write-Host "::error::Vulnerable package: $($e.Name) $($e.Version) -> $ids (used by: $($e.Projects -join ', '))"
+                  $vulnerable += "$($e.Name) $($e.Version) [$ids]"
+                }
+              }
+            }
+          } elseif ($checkFailed.Count -eq 0) {
+            Write-Host '::error::no packages were collected from any project - vulnerability check could not run.'
+            $checkFailed += 'no packages collected'
+          }
+          if ($vulnerable.Count -gt 0) {
+            Write-Error "Vulnerable NuGet packages found: $($vulnerable -join '; ') (see the per-package lines above)."
+          }
+          if ($checkFailed.Count -gt 0) {
+            Write-Error "Vulnerability check could not be completed for: $($checkFailed -join ', '). Treating un-checked items as a failure (see the log above for each reason)."
+          }
+          if ($vulnerable.Count -gt 0 -or $checkFailed.Count -gt 0) {
             exit 1
+          }
+          Write-Host "Vulnerability check passed: $($pkgMap.Count) unique packages across $($projects.Count) projects in MWC.ci-win.slnf, none vulnerable (source: OSV / api.osv.dev)."
+
+      # カバー率の表示専用ステップ。今回はしきい値で落とさない
+      # (数値が初公開になるため。落とすかどうかは実測値を見て別途判断する)。
+      # カバレッジファイルが無い場合は警告を明示し、黙って成功扱いにしない。
+      #
+      # ファイルの在りか: coverlet.collector は results-directory 配下の
+      # GUID フォルダに coverage.cobertura.xml を出す (Test ステップの
+      # コメント参照)。まず TestResults 配下を再帰検索し、見つからなければ
+      # 念のためワークスペース全体から探す。複数あれば最も新しいものを使う。
+      - name: Report coverage
+        if: always()
+        shell: pwsh
+        run: |
+          $covPath = $null
+          $found = Get-ChildItem -Path 'TestResults' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $found) {
+            $found = Get-ChildItem -Path '.' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          }
+          if ($found) { $covPath = $found.FullName }
+          if (-not $covPath) {
+            Write-Warning 'coverage xml was not found anywhere in the workspace - coverage was NOT measured in this run.'
+            Write-Host '::warning::coverage xml not found - coverage was not measured in this run.'
+            if ($env:GITHUB_STEP_SUMMARY) {
+              "## Coverage`n`ncoverage.xml が見つからず、カバー率は計測できませんでした。" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+            return
+          }
+          [xml]$cov = Get-Content $covPath
+          $ci = [System.Globalization.CultureInfo]::InvariantCulture
+          $lineRate = [Convert]::ToDouble($cov.coverage.GetAttribute('line-rate'), $ci)
+          $branchRate = [Convert]::ToDouble($cov.coverage.GetAttribute('branch-rate'), $ci)
+          $linePct = '{0:P1}' -f $lineRate
+          $branchPct = '{0:P1}' -f $branchRate
+          Write-Host "Coverage (source: $covPath)"
+          Write-Host "  line-rate:   $linePct"
+          Write-Host "  branch-rate: $branchPct"
+          if ($env:GITHUB_STEP_SUMMARY) {
+            "## Coverage`n`n| Metric | Rate |`n| --- | --- |`n| Line | $linePct |`n| Branch | $branchPct |`n`nSource: $covPath" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
 
       - name: Upload test results

@@ -27,7 +27,7 @@ public class EvilTwinDetectorTests
         };
 
     [Fact]
-    public void Analyze_MixedSecurity_FlagsHighRisk()
+    public void AnalyzeMixedSecurityFlagsHighRisk()
     {
         var detector = new EvilTwinDetector();
         var legit = Net("CorpWiFi", AuthMethod.WPA2Enterprise, "AA:BB:CC:00:00:01");
@@ -41,7 +41,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_KnownBssid_NoSuspicion()
+    public void AnalyzeKnownBssidNoSuspicion()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("HomeWiFi", "AA:BB:CC:DD:EE:FF", AuthMethod.WPA3SAE);
@@ -54,7 +54,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_SecurityDowngrade_Flags()
+    public void AnalyzeSecurityDowngradeFlags()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("MyNet", "AA:BB:CC:DD:EE:FF", AuthMethod.WPA3SAE);
@@ -68,7 +68,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_OpenImpersonatingEncrypted_HighRisk()
+    public void AnalyzeOpenImpersonatingEncryptedHighRisk()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("Secure", "AA:BB:CC:DD:EE:FF", AuthMethod.WPA2PSK);
@@ -84,7 +84,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_DifferentOui_Flags()
+    public void AnalyzeDifferentOuiFlags()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("Office", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
@@ -97,7 +97,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void GetTrustedBssids_ReturnsRecorded()
+    public void GetTrustedBssidsReturnsRecorded()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("Net", "AA:BB:CC:DD:EE:FF", AuthMethod.WPA2PSK);
@@ -109,14 +109,14 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void GetTrustedBssids_UnknownSsid_Empty()
+    public void GetTrustedBssidsUnknownSsidEmpty()
     {
         var detector = new EvilTwinDetector();
         detector.GetTrustedBssids("Ghost").Should().BeEmpty();
     }
 
     [Fact]
-    public void RecordTrusted_NormalizesBssidFormat()
+    public void RecordTrustedNormalizesBssidFormat()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("Net", "aa-bb-cc-dd-ee-ff", AuthMethod.WPA2PSK);
@@ -126,7 +126,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_KnownVendor_SameBssidVendor_NoExtraFlag()
+    public void AnalyzeKnownVendorSameBssidVendorNoExtraFlag()
     {
         var detector = new EvilTwinDetector();
         // 既知の正規 AP を記録 (Cisco の OUI を含む BSSID と仮定)
@@ -145,7 +145,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_KnownVendorMismatch_IsOnlyOneSuspiciousReason()
+    public void AnalyzeKnownVendorMismatchIsOnlyOneSuspiciousReason()
     {
         // Regression: a new BSSID whose OUI is known in the DB used to fire BOTH check 2
         // ("BSSID detected with different vendor") AND check 4 ("Device vendor different"),
@@ -167,7 +167,7 @@ public class EvilTwinDetectorTests
     }
 
     [Fact]
-    public void Analyze_DifferentOuiAndSecurityDowngrade_IsHighRisk()
+    public void AnalyzeDifferentOuiAndSecurityDowngradeIsHighRisk()
     {
         // Verify that two simultaneous indicators escalate to HighRisk (2+ reasons).
         // Previous tests only trigger one indicator at a time and never assert HighRisk.
@@ -192,7 +192,7 @@ public class EvilTwinDetectorTests
 public class TwtFlagsTests
 {
     [Fact]
-    public void TwtFlags_DefaultFalse()
+    public void TwtFlagsDefaultFalse()
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz };
         net.TargetWakeTime.Should().BeFalse();
@@ -200,7 +200,7 @@ public class TwtFlagsTests
     }
 
     [Fact]
-    public void TwtFlags_CanBeSet()
+    public void TwtFlagsCanBeSet()
     {
         var net = new WifiNetwork
         {

@@ -15,7 +15,7 @@ public class FakeWifiServiceIntegrationTests
 {
     // ─── GetAdapters ───
     [Fact]
-    public async Task GetAdapters_ReturnsTwoFakeAdapters()
+    public async Task GetAdaptersReturnsTwoFakeAdapters()
     {
         var svc = new FakeWifiService();
         var ads = await svc.GetAdaptersAsync();
@@ -26,7 +26,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── Scan ───
     [Fact]
-    public async Task Scan_Adapter1_Returns4Networks()
+    public async Task ScanAdapter1Returns4Networks()
     {
         var svc = new FakeWifiService();
         var nets = await svc.ScanAsync(FakeWifiService.AdapterId1);
@@ -35,7 +35,7 @@ public class FakeWifiServiceIntegrationTests
     }
 
     [Fact]
-    public async Task Scan_Adapter2_ReturnsEmpty()
+    public async Task ScanAdapter2ReturnsEmpty()
     {
         var svc = new FakeWifiService();
         var nets = await svc.ScanAsync(FakeWifiService.AdapterId2);
@@ -44,7 +44,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── WiFi 7 / 6GHz ───
     [Fact]
-    public async Task Scan_ContainsWifi7_6GHz()
+    public async Task ScanContainsWifi76GHz()
     {
         var svc = new FakeWifiService();
         var nets = await svc.ScanAsync(FakeWifiService.AdapterId1);
@@ -57,7 +57,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── Connect ───
     [Fact]
-    public async Task Connect_Success_ReturnsOk()
+    public async Task ConnectSuccessReturnsOk()
     {
         var svc = new FakeWifiService();
         var res = await svc.ConnectAsync(FakeWifiService.AdapterId1, "HomeNet", "HomeNet",
@@ -68,7 +68,7 @@ public class FakeWifiServiceIntegrationTests
     }
 
     [Fact]
-    public async Task Connect_Failure_ReturnsFail()
+    public async Task ConnectFailureReturnsFail()
     {
         var svc = new FakeWifiService
         {
@@ -82,7 +82,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── SignalHistory + OUI 統合 ───
     [Fact]
-    public async Task OuiLookup_OnFakeNetworks_ResolvesApple()
+    public async Task OuiLookupOnFakeNetworksResolvesApple()
     {
         var svc = new FakeWifiService();
         var oui = new OuiLookupService();
@@ -94,7 +94,7 @@ public class FakeWifiServiceIntegrationTests
     }
 
     [Fact]
-    public async Task SignalHistory_Record_StoreSamples()
+    public async Task SignalHistoryRecordStoreSamples()
     {
         var svc  = new FakeWifiService();
         var hist = new SignalHistoryService();
@@ -110,7 +110,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── Export ───
     [Fact]
-    public async Task Export_AllFormats_Succeed()
+    public async Task ExportAllFormatsSucceed()
     {
         var svc  = new FakeWifiService();
         var nets = await svc.ScanAsync(FakeWifiService.AdapterId1);
@@ -137,7 +137,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── ProfileXmlBuilder + FakeService 接続往復 ───
     [Fact]
-    public async Task FullConnectFlow_BuildXml_Register_Connect()
+    public async Task FullConnectFlowBuildXmlRegisterConnect()
     {
         var svc  = new FakeWifiService();
         var spec = new WifiProfileSpec
@@ -158,7 +158,7 @@ public class FakeWifiServiceIntegrationTests
 
     // ─── WifiUri ラウンドトリップ ───
     [Fact]
-    public void WifiUri_Wpa3_RoundTrip()
+    public void WifiUriWpa3RoundTrip()
     {
         var spec = new WifiProfileSpec
         {

@@ -11,7 +11,7 @@ namespace MWC.Core.Tests;
 public class AsyncEventHelperTests
 {
     [Fact]
-    public async Task SafeRunAsync_TaskCompletes_NoException()
+    public async Task SafeRunAsyncTaskCompletesNoException()
     {
         bool ran = false;
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
@@ -23,7 +23,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_TaskThrows_DoesNotPropagate()
+    public async Task SafeRunAsyncTaskThrowsDoesNotPropagate()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
         {
@@ -33,7 +33,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OperationCanceled_DoesNotPropagate()
+    public async Task SafeRunAsyncOperationCanceledDoesNotPropagate()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
         {
@@ -43,7 +43,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OnError_IsCalledOnException()
+    public async Task SafeRunAsyncOnErrorIsCalledOnException()
     {
         Exception? captured = null;
         await AsyncEventHelper.SafeRunAsync(null, "test",
@@ -54,15 +54,15 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OnErrorThrows_DoesNotCascade()
+    public async Task SafeRunAsyncOnErrorThrowsDoesNotCascade()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test",
             () => Task.FromException(new InvalidOperationException()),
-            onError: _ => throw new Exception("nested"));
+            onError: _ => throw new InvalidOperationException("nested"));
     }
 
     [Fact]
-    public async Task SafeRunAsync_Generic_ReturnsValue()
+    public async Task SafeRunAsyncGenericReturnsValue()
     {
         var result = await AsyncEventHelper.SafeRunAsync<int>(
             null, "test", () => Task.FromResult(42));
@@ -70,11 +70,11 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_Generic_OnException_ReturnsFallback()
+    public async Task SafeRunAsyncGenericOnExceptionReturnsFallback()
     {
         var result = await AsyncEventHelper.SafeRunAsync<int>(
             null, "test",
-            () => throw new Exception(),
+            () => throw new InvalidOperationException(),
             fallback: -1);
         result.Should().Be(-1);
     }
@@ -89,7 +89,7 @@ public class ChangelogConsistencyTests
     }
 
     [Fact]
-    public void Changelog_VersionEntriesAreUnique()
+    public void ChangelogVersionEntriesAreUnique()
     {
         var path = GetChangelogPath();
         if (!File.Exists(path)) return;
@@ -109,7 +109,7 @@ public class ResourceCoverageV8Tests
             "..", "..", "..", "..", "..", "src", "MWC.App", "Resources"));
 
     [Fact]
-    public void NewKeysExist_StatusCopied_AllLanguages()
+    public void NewKeysExistStatusCopiedAllLanguages()
     {
         var dir = ResxDir();
         if (!Directory.Exists(dir)) return;
@@ -129,7 +129,7 @@ public class ResourceCoverageV8Tests
 public class ConstructorIntegrityTests
 {
     [Fact]
-    public void AdapterViewModel_Constructor_Requires7Args()
+    public void AdapterViewModelConstructorRequires7Args()
     {
         var ctors = typeof(MWC.App.ViewModels.AdapterViewModel).GetConstructors();
         ctors.Should().HaveCount(1);
@@ -139,16 +139,30 @@ public class ConstructorIntegrityTests
     }
 
     [Fact]
-    public void ConnectionExecutor_Constructor_Requires3Args()
+    public void ConnectionExecutorConstructorHas3RequiredArgsPlusOptionalEapStats()
     {
         var ctors = typeof(MWC.Core.Services.ConnectionExecutor).GetConstructors();
         ctors.Should().HaveCount(1);
-        ctors.Single().GetParameters().Should().HaveCount(3,
-            because: "IWifiService, NetworkHistoryService, ILogger<ConnectionExecutor>");
+        var parameters = ctors.Single().GetParameters();
+        // 必須の依存は3つ。4番目の EapAuthStatsService は 802.1X 統計のために
+        // 後から足された任意注入 (e717adc): 製品側コメントが「未指定なら記録を
+        // スキップし、3引数呼び出しとの後方互換を保つ」と明記し、DI でも
+        // App/Cli 両方で AddSingleton 済みのため、実契約は「4パラメータ・
+        // 4番目はデフォルト値あり」。以前のテストは総数3を数えており、
+        // 任意引数の追加で実態とずれていた。
+        parameters.Should().HaveCount(4,
+            because: "IWifiService, NetworkHistoryService, ILogger<ConnectionExecutor>, optional EapAuthStatsService");
+        parameters.Select(p => p.ParameterType).Should().Equal(
+            typeof(MWC.Core.Abstractions.IWifiService),
+            typeof(MWC.Core.Services.NetworkHistoryService),
+            typeof(Microsoft.Extensions.Logging.ILogger<MWC.Core.Services.ConnectionExecutor>),
+            typeof(MWC.Core.Services.EapAuthStatsService));
+        parameters[3].HasDefaultValue.Should().BeTrue(
+            because: "EapAuthStatsService is optional injection; 3-argument construction must keep working");
     }
 
     [Fact]
-    public void AllAdaptersOverviewViewModel_Constructor_HasExecutor()
+    public void AllAdaptersOverviewViewModelConstructorHasExecutor()
     {
         var ctor = typeof(MWC.App.ViewModels.AllAdaptersOverviewViewModel)
             .GetConstructors().Single();
@@ -160,7 +174,7 @@ public class ConstructorIntegrityTests
 public class WifiConnectAuditTests
 {
     [Fact]
-    public void ConnectionExecutor_IsTheSingleConnectEntryPoint()
+    public void ConnectionExecutorIsTheSingleConnectEntryPoint()
     {
         // App層のソースコードに _wifi.ConnectAsync が存在しないことを検証
         var appDir = Path.GetFullPath(Path.Combine(

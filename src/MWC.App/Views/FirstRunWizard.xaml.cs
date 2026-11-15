@@ -6,13 +6,14 @@ using MWC.App.Services;
 
 // System.Drawing.Brush (WinForms 併用時の global using) と曖昧なため WPF 側に固定
 using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
 
 namespace MWC.App.Views;
 
 public partial class FirstRunWizard : Window
 {
     private readonly SettingsService _settings;
-    private int _page = 0;
+    private int _page;
 
     private static (string Icon, string Title, string Body, string Hint)[] BuildPages() => new[]
     {
@@ -55,16 +56,17 @@ public partial class FirstRunWizard : Window
             VerticalAlignment = VerticalAlignment.Top
         };
 
+        // 装飾アイコン (旧コードは WinUI 専用の AutomationProperties.AccessibilityView を
+        // 指定していたが、WPF には相当する添付プロパティが存在しないため指定しない)
         panel.Children.Add(new TextBlock
         {
-            Text = icon, FontSize = 52, HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 20),
-            AutomationProperties.AccessibilityView = AccessibilityView.Raw  // decorative
+            Text = icon, FontSize = 52, HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
         });
         panel.Children.Add(new TextBlock
         {
             Text = title, FontSize = 22, FontWeight = FontWeights.Bold,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
             Foreground = Res("FgBrush"),
             Margin = new Thickness(0, 0, 0, 16)
@@ -81,7 +83,7 @@ public partial class FirstRunWizard : Window
         var hintBorder = new Border
         {
             Background = Res("SurfaceBrush"),
-            CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10)
+            CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10, 14, 10)
         };
         hintBorder.Child = new TextBlock
         {

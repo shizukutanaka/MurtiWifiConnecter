@@ -12,7 +12,7 @@ namespace MWC.Core.Tests;
 public class NetworkQualityServiceTests
 {
     [Fact]
-    public void QualityGrade_AllValues_Exist()
+    public void QualityGradeAllValuesExist()
     {
         var grades = Enum.GetValues<QualityGrade>();
         grades.Should().Contain(QualityGrade.Excellent);
@@ -27,7 +27,7 @@ public class NetworkQualityServiceTests
     [InlineData(40,  0,   QualityGrade.Good)]
     [InlineData(80,  3,   QualityGrade.Fair)]
     [InlineData(200, 30,  QualityGrade.Poor)]
-    public void NetworkQualityResult_GradeLabel_NotEmpty(
+    public void NetworkQualityResultGradeLabelNotEmpty(
         int latency, double loss, QualityGrade _)
     {
         var r = new NetworkQualityResult(latency, latency, latency, loss,
@@ -38,7 +38,7 @@ public class NetworkQualityServiceTests
     }
 
     [Fact]
-    public void LatencyLabel_Timeout_ShowsText()
+    public void LatencyLabelTimeoutShowsText()
     {
         var r = new NetworkQualityResult(999, 999, 999, 100,
             QualityGrade.Poor, DateTimeOffset.UtcNow);
@@ -46,7 +46,7 @@ public class NetworkQualityServiceTests
     }
 
     [Fact]
-    public void LatencyLabel_Normal_ShowsMs()
+    public void LatencyLabelNormalShowsMs()
     {
         var r = new NetworkQualityResult(25, 20, 30, 0,
             QualityGrade.Good, DateTimeOffset.UtcNow);
@@ -58,7 +58,7 @@ public class NetworkQualityServiceTests
 public class NetworkHistoryServiceTests
 {
     [Fact]
-    public void RecordConnection_Success_IncrementsCount()
+    public void RecordConnectionSuccessIncrementsCount()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("TestNet", true);
@@ -69,7 +69,7 @@ public class NetworkHistoryServiceTests
     }
 
     [Fact]
-    public void RecordConnection_Failure_IncrementsFailCount()
+    public void RecordConnectionFailureIncrementsFailCount()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("TestNet", false);
@@ -80,7 +80,7 @@ public class NetworkHistoryServiceTests
     }
 
     [Fact]
-    public void RecordConnection_MultipleEntries_MostRecentFirst()
+    public void RecordConnectionMultipleEntriesMostRecentFirst()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Old",    true);
@@ -91,7 +91,7 @@ public class NetworkHistoryServiceTests
     }
 
     [Fact]
-    public void Forget_RemovesEntry()
+    public void ForgetRemovesEntry()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("ToForget", true);
@@ -100,14 +100,14 @@ public class NetworkHistoryServiceTests
     }
 
     [Fact]
-    public void LastConnectedLabel_JustNow_ReturnsLabel()
+    public void LastConnectedLabelJustNowReturnsLabel()
     {
         var e = new ConnectionHistoryEntry("X", DateTimeOffset.UtcNow, 1, 0);
         e.LastConnectedLabel.Should().Be("just now");
     }
 
     [Fact]
-    public void LastConnectedLabel_HoursAgo_ContainsUnit()
+    public void LastConnectedLabelHoursAgoContainsUnit()
     {
         var e = new ConnectionHistoryEntry("X",
             DateTimeOffset.UtcNow.AddHours(-3), 1, 0);
@@ -119,11 +119,11 @@ public class NetworkHistoryServiceTests
 public class UpdateCheckResultTests
 {
     [Fact]
-    public void Failed_HasNoUpdate()
+    public void FailedHasNoUpdate()
         => UpdateCheckResult.Failed.HasUpdate.Should().BeFalse();
 
     [Fact]
-    public void UpdateResult_WithNewerVersion_HasUpdate()
+    public void UpdateResultWithNewerVersionHasUpdate()
     {
         var r = new UpdateCheckResult(
             HasUpdate: true,
@@ -140,7 +140,7 @@ public class UpdateCheckResultTests
 public class ColorConsistencyTests
 {
     [Fact]
-    public void SecurityLevels_AllHaveDistinctColors()
+    public void SecurityLevelsAllHaveDistinctColors()
     {
         var levels = Enum.GetValues<SecurityLevel>();
         var colors = levels.Select(l => l switch
@@ -159,7 +159,7 @@ public class ColorConsistencyTests
     }
 
     [Fact]
-    public void SignalColors_AreOrdered()
+    public void SignalColorsAreOrdered()
     {
         // 強い信号ほど「安全」な緑系、弱いほど赤系
         var strong = SecurityBadgeService.GetSignalLabel(90);
@@ -179,7 +179,7 @@ public class HistoryLabelTests
     [InlineData(-59, "59m ago")]
     [InlineData(-60, "1h ago")]
     [InlineData(-23, "23h ago")]
-    public void LastConnectedLabel_TimeFormats(int minutesOffset, string contains)
+    public void LastConnectedLabelTimeFormats(int minutesOffset, string contains)
     {
         DateTimeOffset at = minutesOffset == -60
             ? DateTimeOffset.UtcNow.AddHours(-1)

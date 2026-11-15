@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
@@ -41,9 +40,7 @@ public class LocaleKeyConsistencyTests
         "Strings.zh-Hans.resx", "Strings.zh-Hant.resx",
     };
 
-    private static string ResourcesDir([CallerFilePath] string thisFile = "")
-        => Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(thisFile)!, "..", "..", "src", "MWC.App", "Resources"));
+    private static string ResourcesDir() => Path.Combine(RepoPaths.AppDir(), "Resources");
 
     private static HashSet<string> KeysIn(string path)
         => XDocument.Load(path)
@@ -57,7 +54,7 @@ public class LocaleKeyConsistencyTests
 
     [Theory]
     [MemberData(nameof(LocaleFileNames))]
-    public void EveryLocale_DefinesEveryNeutralKey(string fileName)
+    public void EveryLocaleDefinesEveryNeutralKey(string fileName)
     {
         var neutralKeys = KeysIn(Path.Combine(ResourcesDir(), "Strings.resx"));
         var localeKeys = KeysIn(Path.Combine(ResourcesDir(), fileName));

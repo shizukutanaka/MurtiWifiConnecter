@@ -11,11 +11,21 @@ namespace MWC.Core.Tests;
 /// </summary>
 public class PerAdapterPreferencesServiceTests
 {
-    private static readonly Guid Adapter1 = Guid.Parse("aaaaaaaa-1111-1111-1111-111111111111");
-    private static readonly Guid Adapter2 = Guid.Parse("bbbbbbbb-2222-2222-2222-222222222222");
+    private static readonly string[] XYZ = new[] { "X", "Y", "Z" };
+    private static readonly string[] B = new[] { "B" };
+    private static readonly string[] ABC = new[] { "A", "B", "C" };
+    private static readonly string[] AB = new[] { "A", "B" };
+    private static readonly string[] HomeOfficeIoT = new[] { "Home", "Office", "IoT" };
+    private static readonly string[] OfficeGuestIoT = new[] { "Office", "Guest", "IoT" };
+    private static readonly string[] HomeOffice = new[] { "Home", "Office" };
+    private static readonly string[] Stranger = new[] { "Stranger" };
+    private static readonly string[] Home = new[] { "Home" };
+    private static readonly string[] HomeNet = new[] { "HomeNet" };
+    private static readonly string[] Homenet = new[] { "homenet" };
+    private static readonly string[] A = new[] { "A" };
 
     [Fact]
-    public void NewService_NoPreferences_ReturnsEmpty()
+    public void NewServiceNoPreferencesReturnsEmpty()
     {
         var svc = new AdapterPreferencesService();
         // 一意なGuidなのでテスト環境での既存ファイル影響なし
@@ -26,7 +36,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void AddPreferred_Single_AppearsInList()
+    public void AddPreferredSingleAppearsInList()
     {
         var svc = new AdapterPreferencesService();
         var id = Guid.NewGuid();
@@ -35,7 +45,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void AddPreferred_Duplicate_NotAddedTwice()
+    public void AddPreferredDuplicateNotAddedTwice()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -45,7 +55,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void DifferentAdapters_HaveSeparatePreferences()
+    public void DifferentAdaptersHaveSeparatePreferences()
     {
         var svc = new AdapterPreferencesService();
         var id1 = Guid.NewGuid();
@@ -59,87 +69,87 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void SetAutoConnectPriority_ReplacesEntireList()
+    public void SetAutoConnectPriorityReplacesEntireList()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.AddPreferred(id, "A");
         svc.AddPreferred(id, "B");
-        svc.SetAutoConnectPriority(id, new[] { "X", "Y", "Z" });
+        svc.SetAutoConnectPriority(id, XYZ);
         svc.GetPreferredNetworks(id).Should().ContainInOrder("X", "Y", "Z").And.HaveCount(3);
     }
 
     [Fact]
-    public void RemovePreferred_DropsEntry()
+    public void RemovePreferredDropsEntry()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.AddPreferred(id, "A");
         svc.AddPreferred(id, "B");
         svc.RemovePreferred(id, "A");
-        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(new[] { "B" });
+        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(B);
     }
 
     [Fact]
-    public void MoveUp_PromotesEntry()
+    public void MoveUpPromotesEntry()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "A", "B", "C" });
+        svc.SetAutoConnectPriority(id, ABC);
         svc.MoveUp(id, "C");
         svc.GetPreferredNetworks(id).Should().ContainInOrder("A", "C", "B");
     }
 
     [Fact]
-    public void MoveUp_FirstEntry_NoChange()
+    public void MoveUpFirstEntryNoChange()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "A", "B" });
+        svc.SetAutoConnectPriority(id, AB);
         svc.MoveUp(id, "A");
         svc.GetPreferredNetworks(id)[0].Should().Be("A");
     }
 
     [Fact]
-    public void PickBestSsid_ReturnsFirstAvailable()
+    public void PickBestSsidReturnsFirstAvailable()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "Home", "Office", "IoT" });
+        svc.SetAutoConnectPriority(id, HomeOfficeIoT);
 
-        var best = svc.PickBestSsid(id, new[] { "Office", "Guest", "IoT" });
+        var best = svc.PickBestSsid(id, OfficeGuestIoT);
         best.Should().Be("Office", because: "Office is preferred over IoT");
     }
 
     [Fact]
-    public void PickBestSsid_NoneInRange_ReturnsNull()
+    public void PickBestSsidNoneInRangeReturnsNull()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "Home", "Office" });
-        svc.PickBestSsid(id, new[] { "Stranger" }).Should().BeNull();
+        svc.SetAutoConnectPriority(id, HomeOffice);
+        svc.PickBestSsid(id, Stranger).Should().BeNull();
     }
 
     [Fact]
-    public void PickBestSsid_NoPreferences_ReturnsNull()
+    public void PickBestSsidNoPreferencesReturnsNull()
     {
         var svc = new AdapterPreferencesService();
-        svc.PickBestSsid(Guid.NewGuid(), new[] { "Home" }).Should().BeNull();
+        svc.PickBestSsid(Guid.NewGuid(), Home).Should().BeNull();
     }
 
     [Fact]
-    public void PickBestSsid_CaseSensitive_NoMatch()
+    public void PickBestSsidCaseSensitiveNoMatch()
     {
         // SSID matching is case-sensitive (uses HashSet without OrdinalIgnoreCase)
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "HomeNet" });
-        svc.PickBestSsid(id, new[] { "homenet" })
+        svc.SetAutoConnectPriority(id, HomeNet);
+        svc.PickBestSsid(id, Homenet)
            .Should().BeNull("SSID matching is case-sensitive");
     }
 
     [Fact]
-    public void IsAutoReconnectEnabled_DefaultFalse_WhenNoSsidsConfigured()
+    public void IsAutoReconnectEnabledDefaultFalseWhenNoSsidsConfigured()
     {
         // IsEnabled=true by default but both PinnedSsids and AutoConnectPriority are empty
         // → IsAutoReconnectEnabled returns false
@@ -148,7 +158,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void IsAutoReconnectEnabled_TrueAfterAddingPreferred()
+    public void IsAutoReconnectEnabledTrueAfterAddingPreferred()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -157,7 +167,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void SetAutoReconnect_False_ClearsListsAndDisables()
+    public void SetAutoReconnectFalseClearsListsAndDisables()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -171,7 +181,7 @@ public class PerAdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void AdapterPreferences_Record_CanBeCloned()
+    public void AdapterPreferencesRecordCanBeCloned()
     {
         var p1 = new AdapterPreferences
         {
@@ -180,7 +190,7 @@ public class PerAdapterPreferencesServiceTests
         };
         var p2 = p1 with { IsEnabled = false };
         p2.IsEnabled.Should().BeFalse();
-        p2.AutoConnectPriority.Should().BeEquivalentTo(new[] { "A" });
+        p2.AutoConnectPriority.Should().BeEquivalentTo(A);
         p1.IsEnabled.Should().BeTrue("record with creates a copy, p1 is unchanged");
     }
 }

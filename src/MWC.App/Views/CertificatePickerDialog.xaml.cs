@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using MWC.App.Resources;
@@ -9,6 +10,8 @@ using Serilog;
 
 // System.Drawing.Brush (WinForms 併用時の global using) と曖昧なため WPF 側に固定
 using Brush = System.Windows.Media.Brush;
+using Application = System.Windows.Application;
+using Brushes = System.Windows.Media.Brushes;
 
 namespace MWC.App.Views;
 
@@ -52,7 +55,7 @@ public partial class CertificatePickerDialog : Window
 
         SubjectLabel.Text     = vm.Cert.Subject;
         IssuerLabel.Text      = vm.Cert.Issuer;
-        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd"), vm.Cert.DaysUntilExpiry);
+        ExpiryDetailLabel.Text = L.CertPickerExpiryFormat(vm.Cert.NotAfter.ToString("yyyy-MM-dd", CultureInfo.CurrentCulture), vm.Cert.DaysUntilExpiry);
     }
 
     private void OnOk(object sender, RoutedEventArgs e)
@@ -71,7 +74,7 @@ public partial class CertificatePickerDialog : Window
     {
         // certmgr.msc を起動
         try { Process.Start(new ProcessStartInfo("certmgr.msc") { UseShellExecute = true }); }
-        catch (Exception ex) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { Log.Warning(ex, "Failed to open Windows Certificate Manager"); }
     }
 
     // ── ViewModel ───────────────────────────────────────────────────

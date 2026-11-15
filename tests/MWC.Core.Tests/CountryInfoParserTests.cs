@@ -25,7 +25,7 @@ public class CountryInfoParserTests
     }
 
     [Fact]
-    public void ParsesCountryCode_AndIndoorEnvironment()
+    public void ParsesCountryCodeAndIndoorEnvironment()
     {
         var r = CountryInfoParser.Parse(Element("US", 'I', (1, 11, 30)));
         r.Should().NotBeNull();
@@ -34,7 +34,7 @@ public class CountryInfoParserTests
     }
 
     [Fact]
-    public void ParsesTriplet_MaxTxPower()
+    public void ParsesTripletMaxTxPower()
     {
         var r = CountryInfoParser.Parse(Element("JP", ' ', (1, 13, 20), (36, 4, 23)));
         r!.Triplets.Should().HaveCount(2);
@@ -44,14 +44,14 @@ public class CountryInfoParserTests
     }
 
     [Fact]
-    public void OutdoorEnvironment_Detected()
+    public void OutdoorEnvironmentDetected()
     {
         CountryInfoParser.Parse(Element("DE", 'O', (1, 13, 20)))!
             .Environment.Should().Be(RegulatoryEnvironment.Outdoor);
     }
 
     [Fact]
-    public void NegativeTxPower_DecodedSigned()
+    public void NegativeTxPowerDecodedSigned()
     {
         var r = CountryInfoParser.Parse(Element("US", 'I', (1, 11, -3)));
         r!.Triplets[0].MaxTxPowerDbm.Should().Be(-3);
@@ -66,7 +66,7 @@ public class CountryInfoParserTests
     }
 
     [Fact]
-    public void TruncatedOrEmpty_ReturnsNull()
+    public void TruncatedOrEmptyReturnsNull()
     {
         CountryInfoParser.Parse(System.Array.Empty<byte>()).Should().BeNull();
         CountryInfoParser.Parse(new byte[] { 7, 10, 0x55 }).Should().BeNull();

@@ -29,7 +29,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
         new() { Ssid = ssid, Auth = auth, Band = WifiBand.Band5GHz, SignalQuality = 70 };
 
     [Fact]
-    public void Load_UnknownEncryptedNetwork_ShowsRecommendedVpnAdvice()
+    public void LoadUnknownEncryptedNetworkShowsRecommendedVpnAdvice()
     {
         var vm = new NetworkDetailViewModel();
         var ssid = "VpnWiring_Unknown_" + Guid.NewGuid().ToString("N")[..8];
@@ -43,7 +43,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     }
 
     [Fact]
-    public void Load_OpenNetwork_ShowsStronglyRecommendedVpnAdvice()
+    public void LoadOpenNetworkShowsStronglyRecommendedVpnAdvice()
     {
         var vm = new NetworkDetailViewModel();
         var ssid = "VpnWiring_Open_" + Guid.NewGuid().ToString("N")[..8];
@@ -54,7 +54,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     }
 
     [Fact]
-    public void Load_NullNetwork_ClearsVpnAndEapLabels()
+    public void LoadNullNetworkClearsVpnAndEapLabels()
     {
         var vm = new NetworkDetailViewModel();
         vm.Load(Net("VpnWiring_ToBeCleared", AuthMethod.WPA2PSK));
@@ -68,7 +68,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     }
 
     [Fact]
-    public void Load_NetworkWithNoPriorEapAttempts_HasEapStatsIsFalse()
+    public void LoadNetworkWithNoPriorEapAttemptsHasEapStatsIsFalse()
     {
         var vm = new NetworkDetailViewModel();
         // A fresh, never-connected-to SSID has no recorded EapAuthStatsService entry.
@@ -91,7 +91,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     [Theory]
     [InlineData(WifiBand.Band2_4GHz)]
     [InlineData(WifiBand.Band5GHz)]
-    public void Load_NonSixGhzNetwork_HasNoRegulatoryInfo(WifiBand band)
+    public void LoadNonSixGhzNetworkHasNoRegulatoryInfo(WifiBand band)
     {
         var vm = new NetworkDetailViewModel();
         var ssid = "RegWiring_NonSixGhz_" + Guid.NewGuid().ToString("N")[..8];
@@ -104,7 +104,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     }
 
     [Fact]
-    public void Load_SixGhzNetwork_ShowsRegulatoryInfoConsistentWithService()
+    public void LoadSixGhzNetworkShowsRegulatoryInfoConsistentWithService()
     {
         var vm = new NetworkDetailViewModel();
         var ssid = "RegWiring_SixGhz_" + Guid.NewGuid().ToString("N")[..8];
@@ -129,7 +129,7 @@ public class NetworkDetailViewModelVpnEapWiringTests
     }
 
     [Fact]
-    public void Load_NullNetwork_ClearsRegulatoryInfo()
+    public void LoadNullNetworkClearsRegulatoryInfo()
     {
         var vm = new NetworkDetailViewModel();
         vm.Load(new WifiNetwork { Ssid = "RegWiring_ToClear", Auth = AuthMethod.WPA3SAE, Band = WifiBand.Band6GHz, Channel = 37 });

@@ -4,6 +4,10 @@ using Microsoft.Extensions.Logging;
 using MWC.App.Services;
 using MWC.App.ViewModels;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Button = System.Windows.Controls.Button;
+using MessageBox = System.Windows.MessageBox;
+
 namespace MWC.App.Views;
 
 public partial class ProfileManagerDialog : Window

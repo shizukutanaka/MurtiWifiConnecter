@@ -25,7 +25,7 @@ namespace MWC.Core.Tests;
 public class AdapterFailoverCycleTests
 {
     [Fact]
-    public void SelfReference_IsRejected_AndFailoverDisabled()
+    public void SelfReferenceIsRejectedAndFailoverDisabled()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -39,7 +39,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void MutualReference_SecondEdgeIsRejected()
+    public void MutualReferenceSecondEdgeIsRejected()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -62,7 +62,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void LongerCycle_IsRejected()
+    public void LongerCycleIsRejected()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -82,7 +82,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void AcyclicChain_IsAllowed()
+    public void AcyclicChainIsAllowed()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -100,7 +100,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void TwoAdaptersSharingOneBackup_IsAllowed()
+    public void TwoAdaptersSharingOneBackupIsAllowed()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -116,7 +116,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void ClearingFailover_WithNull_IsAlwaysAllowed()
+    public void ClearingFailoverWithNullIsAlwaysAllowed()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();
@@ -130,7 +130,7 @@ public class AdapterFailoverCycleTests
     }
 
     [Fact]
-    public void AfterRejection_AdapterCanStillBeGivenAValidBackup()
+    public void AfterRejectionAdapterCanStillBeGivenAValidBackup()
     {
         var svc = new AdapterPreferencesService();
         var a = Guid.NewGuid();

@@ -18,10 +18,10 @@ public class SettingsServiceTests : IDisposable
         // テスト分離: 実際のLocalAppDataには書かない
     }
 
-    public void Dispose() { }
+    public void Dispose() => GC.SuppressFinalize(this);
 
     [Fact]
-    public void DefaultSettings_AreReasonable()
+    public void DefaultSettingsAreReasonable()
     {
         var s = new AppSettings();
         s.AutoScanIntervalSeconds.Should().BeInRange(5, 60);
@@ -32,11 +32,11 @@ public class SettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public void AppSettings_PinnedNetworks_DefaultEmpty()
+    public void AppSettingsPinnedNetworksDefaultEmpty()
         => new AppSettings().PinnedNetworks.Should().BeEmpty();
 
     [Fact]
-    public void DisplayMode_Enum_HasBothValues()
+    public void DisplayModeEnumHasBothValues()
     {
         var modes = Enum.GetValues<DisplayMode>();
         modes.Should().Contain(DisplayMode.Simple);
@@ -44,15 +44,16 @@ public class SettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public void AppTheme_Enum_HasAllValues()
+    public void AppThemeEnumHasAllValues()
         => Enum.GetValues<AppTheme>().Should().HaveCountGreaterOrEqualTo(2);
 }
 
 // ───── SecurityBadge 色マッピング不変条件 ─────
 public class SecurityBadgeInvariantsTests
 {
+    private static readonly int[] Ints0135366061808110 = new[] { 0, 1, 35, 36, 60, 61, 80, 81, 100 };
     [Fact]
-    public void AllAuthMethods_HaveBadge()
+    public void AllAuthMethodsHaveBadge()
     {
         foreach (var auth in Enum.GetValues<AuthMethod>())
         {
@@ -63,23 +64,23 @@ public class SecurityBadgeInvariantsTests
     }
 
     [Fact]
-    public void Open_And_WEP_AreDangerous()
+    public void OpenAndWEPAreDangerous()
     {
         SecurityBadgeService.GetBadge(AuthMethod.Open).Level.Should().Be(SecurityLevel.Danger);
         SecurityBadgeService.GetBadge(AuthMethod.WEP).Level.Should().Be(SecurityLevel.Danger);
     }
 
     [Fact]
-    public void WPA3_IsExcellent()
+    public void WPA3IsExcellent()
     {
         SecurityBadgeService.GetBadge(AuthMethod.WPA3SAE).Level.Should().Be(SecurityLevel.Excellent);
         SecurityBadgeService.GetBadge(AuthMethod.WPA3Enterprise192).Level.Should().Be(SecurityLevel.Excellent);
     }
 
     [Fact]
-    public void SignalLabels_CoverAllRanges()
+    public void SignalLabelsCoverAllRanges()
     {
-        var labels = new[] { 0, 1, 35, 36, 60, 61, 80, 81, 100 }
+        var labels = Ints0135366061808110
             .Select(q => (q, SecurityBadgeService.GetSignalLabel(q)))
             .ToList();
 
@@ -96,7 +97,7 @@ public class TroubleshootingNoJargonTests
         { "WPA", "SSID", "BSSID", "IEEE", "802.11", "TKIP", "CCMP", "GHz", "MHz" };
 
     [Fact]
-    public void AllFailures_TitlesContainNoTechJargon()
+    public void AllFailuresTitlesContainNoTechJargon()
     {
         foreach (var failure in Enum.GetValues<ConnectionFailure>())
         {
@@ -108,11 +109,16 @@ public class TroubleshootingNoJargonTests
     }
 
     [Fact]
-    public void AllFailures_StepsAreActionable()
+    public void AllFailuresStepsAreActionable()
     {
-        // 各解決ステップは動詞で始まる(何をすべきか明示)
-        var actionVerbs = new[] { "確認", "押", "試", "入力", "再起動", "移動", "実行",
-                                  "サインイン", "開", "報告", "ご確認" };
+        // 各解決ステップは行動を示す動詞を含む(何をすべきか明示)。
+        // TroubleshootingHelper の文案は英語が正本 (AppleHigTests も英語文案を
+        // 前提に検証している) のため、動詞リストは実際の文案で使われている
+        // 英語の行動動詞から採る。以前の日本語リストは文案の言語と合っておらず、
+        // どのカテゴリでも一致し得なかった。
+        var actionVerbs = new[] { "Verify", "enter", "Ask", "Double-check", "Try", "try",
+                                  "Make sure", "Move", "Restart", "Check", "Use", "Press",
+                                  "Go to", "choose", "sign in", "report" };
         foreach (var failure in Enum.GetValues<ConnectionFailure>())
         {
             var advice = TroubleshootingHelper.GetAdvice(failure, AuthMethod.WPA2PSK);
@@ -124,7 +130,7 @@ public class TroubleshootingNoJargonTests
     }
 
     [Fact]
-    public void AllFailures_HaveDistinctIcons()
+    public void AllFailuresHaveDistinctIcons()
     {
         var icons = Enum.GetValues<ConnectionFailure>()
             .Select(f => TroubleshootingHelper.GetAdvice(f, AuthMethod.WPA2PSK).Icon)
@@ -137,7 +143,7 @@ public class TroubleshootingNoJargonTests
 public class ConnectionProgressStepTests
 {
     [Fact]
-    public void StepState_HasAllRequiredValues()
+    public void StepStateHasAllRequiredValues()
     {
         var states = Enum.GetValues<MWC.App.Views.StepState>();
         states.Should().Contain(MWC.App.Views.StepState.Pending);
@@ -147,7 +153,7 @@ public class ConnectionProgressStepTests
     }
 
     [Fact]
-    public void StepItem_PropertyChanged_Fires()
+    public void StepItemPropertyChangedFires()
     {
         var step = new MWC.App.Views.StepItem("テスト");
         bool fired = false;

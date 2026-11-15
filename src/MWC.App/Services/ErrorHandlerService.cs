@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Models;
@@ -50,6 +51,8 @@ public sealed class ErrorHandlerService
     /// <summary>
     /// async タスク全体をラップ。例外時はエラーメッセージを返す。
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Central error boundary of the app: TryAsync's contract is to convert every exception into a TryResult with a user-facing message via Handle; narrowing the catch would leak exceptions past the one place that guarantees handling.")]
     public async Task<TryResult<T>> TryAsync<T>(
         Func<Task<T>> task, string operation, string? context = null)
     {
@@ -116,7 +119,15 @@ public enum ErrorCategory
 /// <summary>例外を投げない結果型</summary>
 public readonly record struct TryResult<T>(bool Success, T? Value, string? ErrorMessage, bool IsCancelled)
 {
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types",
+        Justification = "Result-type factory: Ok/Fail/Cancelled on TryResult<T> are the public API (also used by tests as TryResult<int>.Ok(...)); a non-generic companion could not infer T for Fail/Cancelled.")]
     public static TryResult<T> Ok(T value)              => new(true, value, null, false);
+
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types",
+        Justification = "Result-type factory: Ok/Fail/Cancelled on TryResult<T> are the public API (also used by tests as TryResult<int>.Fail(...)); a non-generic companion could not infer T for Fail/Cancelled.")]
     public static TryResult<T> Fail(string msg)         => new(false, default, msg, false);
+
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types",
+        Justification = "Result-type factory: Ok/Fail/Cancelled on TryResult<T> are the public API (also used by tests as TryResult<int>.Cancelled); a non-generic companion could not infer T for Fail/Cancelled.")]
     public static TryResult<T> Cancelled                => new(false, default, null, true);
 }

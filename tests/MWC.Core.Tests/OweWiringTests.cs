@@ -28,7 +28,7 @@ public class OweWiringTests
     };
 
     [Fact]
-    public async Task AdapterViewModel_RefreshAsync_MergesOweTransitionPair()
+    public async Task AdapterViewModelRefreshAsyncMergesOweTransitionPair()
     {
         var wifi = new FakeWifiService();
         wifi.FakeNetworks.Clear();
@@ -65,7 +65,7 @@ public class OweWiringTests
     }
 
     [Fact]
-    public async Task AllAdaptersOverview_AdapterPanel_RefreshAsync_MergesOweTransitionPair()
+    public async Task AllAdaptersOverviewAdapterPanelRefreshAsyncMergesOweTransitionPair()
     {
         var wifi = new FakeWifiService();
         wifi.FakeNetworks.Clear();

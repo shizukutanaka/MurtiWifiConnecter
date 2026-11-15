@@ -17,7 +17,7 @@ public class HandoverPredictorTests
         new() { Ssid = "Better", Band = WifiBand.Band5GHz, SignalQuality = signal, Channel = 36 };
 
     [Fact]
-    public void Evaluate_GoodSignal_NoHandover()
+    public void EvaluateGoodSignalNoHandover()
     {
         var hp = new HandoverPredictor();
         var rec = hp.Evaluate(currentRssi: -50, predictedRssi: -52, SignalTrend.Stable);
@@ -27,7 +27,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void Evaluate_DegradingWithCandidate_RecommendsHandover()
+    public void EvaluateDegradingWithCandidateRecommendsHandover()
     {
         var hp = new HandoverPredictor();
         var rec = hp.Evaluate(
@@ -40,7 +40,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void Evaluate_VeryWeakSignal_HighUrgency()
+    public void EvaluateVeryWeakSignalHighUrgency()
     {
         var hp = new HandoverPredictor();
         var rec = hp.Evaluate(
@@ -52,7 +52,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void Evaluate_WeakNoCandidate_WarnsSticky()
+    public void EvaluateWeakNoCandidateWarnsSticky()
     {
         var hp = new HandoverPredictor();
         var rec = hp.Evaluate(currentRssi: -80, predictedRssi: null, SignalTrend.Stable);
@@ -63,7 +63,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void IsStickyClient_WeakAndLongConnected_True()
+    public void IsStickyClientWeakAndLongConnectedTrue()
     {
         var hp = new HandoverPredictor();
         hp.IsStickyClient(currentRssi: -80, connectedDuration: TimeSpan.FromMinutes(5))
@@ -71,7 +71,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void IsStickyClient_StrongSignal_False()
+    public void IsStickyClientStrongSignalFalse()
     {
         var hp = new HandoverPredictor();
         hp.IsStickyClient(currentRssi: -55, connectedDuration: TimeSpan.FromMinutes(5))
@@ -79,7 +79,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void DetectFlapping_RepeatedPingPong_Detected()
+    public void DetectFlappingRepeatedPingPongDetected()
     {
         var hp = new HandoverPredictor();
         var now = DateTimeOffset.UtcNow;
@@ -97,7 +97,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void DetectFlapping_FewHandovers_NotFlapping()
+    public void DetectFlappingFewHandoversNotFlapping()
     {
         var hp = new HandoverPredictor();
         var now = DateTimeOffset.UtcNow;
@@ -107,7 +107,7 @@ public class HandoverPredictorTests
     }
 
     [Fact]
-    public void RecordHandover_OldEventsPurged()
+    public void RecordHandoverOldEventsPurged()
     {
         var hp = new HandoverPredictor();
         var now = DateTimeOffset.UtcNow;
@@ -133,7 +133,7 @@ public class InterferenceAnalyzerTests
         new() { Ssid = "N", Band = band, Channel = channel, SignalQuality = 70 };
 
     [Fact]
-    public void Analyze_CleanChannel_LowInterference()
+    public void AnalyzeCleanChannelLowInterference()
     {
         var target = Net(WifiBand.Band5GHz, 36);
         var report = _svc.Analyze(target, new[] { target });
@@ -143,7 +143,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_CoChannelCongestion_HigherInterference()
+    public void AnalyzeCoChannelCongestionHigherInterference()
     {
         var target = Net(WifiBand.Band5GHz, 36);
         var others = Enumerable.Range(0, 4).Select(_ => Net(WifiBand.Band5GHz, 36)).ToList();
@@ -157,7 +157,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_24GHz_IncludesBluetoothRisk()
+    public void Analyze24GHzIncludesBluetoothRisk()
     {
         var target = Net(WifiBand.Band2_4GHz, 6);
         var report = _svc.Analyze(target, new[] { target });
@@ -166,7 +166,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_24GHzCongested_RecommendsBandChange()
+    public void Analyze24GHzCongestedRecommendsBandChange()
     {
         var target = Net(WifiBand.Band2_4GHz, 6);
         var others = Enumerable.Range(0, 5).Select(_ => Net(WifiBand.Band2_4GHz, 6)).ToList();
@@ -179,7 +179,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void BluetoothCoexistenceScore_5GHz_Perfect()
+    public void BluetoothCoexistenceScore5GHzPerfect()
     {
         _svc.BluetoothCoexistenceScore(Net(WifiBand.Band5GHz, 36), 10).Should().Be(100);
     }
@@ -189,7 +189,7 @@ public class InterferenceAnalyzerTests
     [InlineData(6, true)]
     [InlineData(11, true)]
     [InlineData(3, false)]
-    public void BluetoothCoexistenceScore_NonOverlapping_HigherScore(int channel, bool nonOverlap)
+    public void BluetoothCoexistenceScoreNonOverlappingHigherScore(int channel, bool nonOverlap)
     {
         var score = _svc.BluetoothCoexistenceScore(Net(WifiBand.Band2_4GHz, channel), 2);
         if (nonOverlap)
@@ -199,7 +199,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void BluetoothCoexistenceScore_ManyNearbyAps_Lower()
+    public void BluetoothCoexistenceScoreManyNearbyApsLower()
     {
         var sparse = _svc.BluetoothCoexistenceScore(Net(WifiBand.Band2_4GHz, 6), 1);
         var dense  = _svc.BluetoothCoexistenceScore(Net(WifiBand.Band2_4GHz, 6), 10);
@@ -207,7 +207,7 @@ public class InterferenceAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_ScoreAlwaysInBounds()
+    public void AnalyzeScoreAlwaysInBounds()
     {
         var target = Net(WifiBand.Band2_4GHz, 6);
         var crowd = Enumerable.Range(0, 20).Select(_ => Net(WifiBand.Band2_4GHz, 6)).ToList();

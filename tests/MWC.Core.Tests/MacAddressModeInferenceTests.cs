@@ -24,7 +24,7 @@ public class MacAddressModeInferenceTests
     [InlineData(0x0A)]
     [InlineData(0x0E)]
     [InlineData(0xDA)]   // 実際に Windows/Android が生成しがちな形
-    public void LocallyAdministeredAddress_IsRandomised(byte firstOctet)
+    public void LocallyAdministeredAddressIsRandomised(byte firstOctet)
     {
         var mac = new byte[] { firstOctet, 0x11, 0x22, 0x33, 0x44, 0x55 };
 
@@ -37,7 +37,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void UniversallyAdministeredAddress_IsHardware()
+    public void UniversallyAdministeredAddressIsHardware()
     {
         // LAA ビットが立っていない = IEEE 割当の焼き込みアドレス
         var mac = new byte[] { 0x3C, 0x22, 0xFB, 0x01, 0x02, 0x03 };
@@ -49,7 +49,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void KnownVendorOui_StrengthensTheHardwareVerdict()
+    public void KnownVendorOuiStrengthensTheHardwareVerdict()
     {
         // 00:11:22 は内蔵 OUI DB に Apple として存在する
         var mac = new byte[] { 0x00, 0x11, 0x22, 0xAA, 0xBB, 0xCC };
@@ -61,7 +61,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void UnknownOui_DoesNotChangeTheVerdict()
+    public void UnknownOuiDoesNotChangeTheVerdict()
     {
         // 内蔵 DB は IEEE 全体の抜粋にすぎない。引けないことを randomized の
         // 根拠にしてはならない — LAA ビットだけが結論を決める。
@@ -74,7 +74,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void GroupAddress_IsRejected()
+    public void GroupAddressIsRejected()
     {
         // bit0 = Group/Multicast。端末アドレスではない。
         var mac = new byte[] { 0x01, 0x00, 0x5E, 0x00, 0x00, 0xFB };
@@ -89,7 +89,7 @@ public class MacAddressModeInferenceTests
     [InlineData(0)]
     [InlineData(5)]
     [InlineData(7)]
-    public void WrongLength_IsRejected(int length)
+    public void WrongLengthIsRejected(int length)
     {
         var r = MacAddressModeInference.FromAddress(new byte[length]);
 
@@ -100,7 +100,7 @@ public class MacAddressModeInferenceTests
     // ── 観測履歴からの判定 ──────────────────────────────────────
 
     [Fact]
-    public void SameSsidDifferentAddressesAcrossDays_IsDailyRotation()
+    public void SameSsidDifferentAddressesAcrossDaysIsDailyRotation()
     {
         var day1 = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
         var obs = new List<MacObservation>
@@ -116,7 +116,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void DifferentAddressPerSsid_IsPerNetworkRandomisation()
+    public void DifferentAddressPerSsidIsPerNetworkRandomisation()
     {
         var t = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
         var obs = new List<MacObservation>
@@ -132,7 +132,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void SameSsidSameAddress_StaysUndetermined()
+    public void SameSsidSameAddressStaysUndetermined()
     {
         // ランダム化されていることは分かるが、種類を判定する材料が無い。
         // ここで RandomPerNetwork と決めつけないことが重要。
@@ -151,7 +151,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void AllHardwareObservations_ReportHardware()
+    public void AllHardwareObservationsReportHardware()
     {
         var t = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
         var mac = new byte[] { 0x3C, 0x22, 0xFB, 0x01, 0x02, 0x03 };
@@ -165,7 +165,7 @@ public class MacAddressModeInferenceTests
     }
 
     [Fact]
-    public void NoObservations_IsUnknown()
+    public void NoObservationsIsUnknown()
     {
         var r = MacAddressModeInference.FromHistory(Array.Empty<MacObservation>());
 
@@ -181,7 +181,7 @@ public class MacAddressModeInferenceTests
     [InlineData("AABB.CCDD.EEFF")]
     [InlineData("AABBCCDDEEFF")]
     [InlineData("  AA:BB:CC:DD:EE:FF  ")]
-    public void TryParse_AcceptsTheUsualSeparators(string text)
+    public void TryParseAcceptsTheUsualSeparators(string text)
     {
         MacAddressModeInference.TryParse(text, out var mac).Should().BeTrue();
         mac.Should().Equal(0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF);
@@ -193,7 +193,7 @@ public class MacAddressModeInferenceTests
     [InlineData("AA:BB:CC")]
     [InlineData("AA:BB:CC:DD:EE:FF:00")]
     [InlineData("ZZ:BB:CC:DD:EE:FF")]
-    public void TryParse_RejectsMalformedInput(string? text)
+    public void TryParseRejectsMalformedInput(string? text)
     {
         MacAddressModeInference.TryParse(text, out _).Should().BeFalse();
     }

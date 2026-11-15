@@ -13,6 +13,7 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class RoamingAdvisoryServiceTests
 {
+    private static readonly string[] Standards80211Rkv = new[] { "802.11r", "802.11k", "802.11v" };
     private readonly RoamingAdvisoryService _svc = new();
 
     private static WifiNetwork Net(
@@ -30,19 +31,19 @@ public class RoamingAdvisoryServiceTests
         };
 
     [Fact]
-    public void Analyze_AllThreeStandards_IsSeamless()
+    public void AnalyzeAllThreeStandardsIsSeamless()
     {
         var profile = _svc.Analyze(Net(ft: true, k: true, v: true));
 
         profile.Tier.Should().Be(RoamingTier.Seamless);
-        profile.SupportedStandards.Should().BeEquivalentTo(new[] { "802.11r", "802.11k", "802.11v" });
+        profile.SupportedStandards.Should().BeEquivalentTo(Standards80211Rkv);
         profile.EstimatedHandoverMs.Should().Be(RoamingAdvisoryService.OptimalFtMs);
         profile.EstimatedHandoverMs.Should().Be(13, "論文の最良ケースは 13ms");
         profile.VoipReady.Should().BeTrue();
     }
 
     [Fact]
-    public void Analyze_OnlyFastTransition_IsFast()
+    public void AnalyzeOnlyFastTransitionIsFast()
     {
         var profile = _svc.Analyze(Net(ft: true));
 
@@ -52,7 +53,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_OnlyKAndV_IsAssisted()
+    public void AnalyzeOnlyKAndVIsAssisted()
     {
         var profile = _svc.Analyze(Net(k: true, v: true));
 
@@ -63,7 +64,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_NoRoamingSupport_IsStandard()
+    public void AnalyzeNoRoamingSupportIsStandard()
     {
         var profile = _svc.Analyze(Net());
 
@@ -74,7 +75,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_EnterpriseWithFt_IsEnterpriseOptimized()
+    public void AnalyzeEnterpriseWithFtIsEnterpriseOptimized()
     {
         var profile = _svc.Analyze(Net(ft: true, auth: AuthMethod.WPA2Enterprise));
 
@@ -83,7 +84,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_PskWithFt_NotEnterpriseOptimized()
+    public void AnalyzePskWithFtNotEnterpriseOptimized()
     {
         var profile = _svc.Analyze(Net(ft: true, auth: AuthMethod.WPA2PSK));
         profile.IsEnterpriseOptimized.Should().BeFalse();
@@ -94,13 +95,13 @@ public class RoamingAdvisoryServiceTests
     [InlineData(true,  false, false, true)]   // Fast → VoIP OK
     [InlineData(false, true,  true,  false)]  // Assisted → VoIP NG (120ms)
     [InlineData(false, false, false, false)]  // Standard → VoIP NG
-    public void IsRealtimeCapable_MatchesExpectation(bool ft, bool k, bool v, bool expected)
+    public void IsRealtimeCapableMatchesExpectation(bool ft, bool k, bool v, bool expected)
     {
         _svc.IsRealtimeCapable(Net(ft, k, v)).Should().Be(expected);
     }
 
     [Fact]
-    public void RecommendForMobility_PrefersSeamless()
+    public void RecommendForMobilityPrefersSeamless()
     {
         var networks = new[]
         {
@@ -117,7 +118,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void DescribeRoaming_Seamless_MentionsVoip()
+    public void DescribeRoamingSeamlessMentionsVoip()
     {
         var desc = _svc.DescribeRoaming(Net(ft: true, k: true, v: true));
         desc.Should().Contain("Seamless");
@@ -126,7 +127,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void DescribeRoaming_Standard_MentionsInterruption()
+    public void DescribeRoamingStandardMentionsInterruption()
     {
         var desc = _svc.DescribeRoaming(Net());
         desc.Should().Contain("Standard");
@@ -134,7 +135,7 @@ public class RoamingAdvisoryServiceTests
     }
 
     [Fact]
-    public void HandoverDelay_Constants_AreOrdered()
+    public void HandoverDelayConstantsAreOrdered()
     {
         // 遅延の大小関係: 最適FT < FT < レガシー
         RoamingAdvisoryService.OptimalFtMs.Should().BeLessThan(RoamingAdvisoryService.FastTransitionMs);
@@ -148,7 +149,7 @@ public class RoamingAdvisoryServiceTests
 public class WifiNetworkRoamingFlagsTests
 {
     [Fact]
-    public void RoamingFlags_DefaultFalse()
+    public void RoamingFlagsDefaultFalse()
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz };
         net.FastTransition.Should().BeFalse();
@@ -157,7 +158,7 @@ public class WifiNetworkRoamingFlagsTests
     }
 
     [Fact]
-    public void RoamingFlags_CanBeSet()
+    public void RoamingFlagsCanBeSet()
     {
         var net = new WifiNetwork
         {

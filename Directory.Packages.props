@@ -6,7 +6,11 @@
 
   <ItemGroup>
     <!-- ビルド専用 (Directory.Build.props が全プロジェクトへ注入) -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub"     Version="8.0.0" />
+    <!-- 8.0.0 は推移的依存 Microsoft.Build.Tasks.Git 8.0.0 に GHSA-23fw-v26w-5fgq
+         (CVE-2026-62900, Moderate) があり、8.0.0 系に修正済み NuGet 版は存在しない
+         (アドバイザリ明記)。修正済み帯域は 10.0.111 以降のため、SourceLink ごと
+         10.0.111 へ上げる (Build.Tasks.Git も 10.0.111 に解決される)。 -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub"     Version="10.0.111" />
 
     <!-- Core -->
     <PackageVersion Include="CommunityToolkit.Mvvm"          Version="8.4.0" />

@@ -10,7 +10,7 @@ namespace MWC.Core.Tests;
 public class SixGhzChannelHelperTests
 {
     [Fact]
-    public void AllChannels_Has59Channels()
+    public void AllChannelsHas59Channels()
     {
         // IEEE 802.11ax: 6GHz = ch 1–233 (20MHz 間隔) = 59 チャネル
         SixGhzChannelHelper.AllChannels.Should().HaveCount(59);
@@ -19,7 +19,7 @@ public class SixGhzChannelHelperTests
     }
 
     [Fact]
-    public void PreferredScanningChannels_StartsAt5_Step16_15Channels()
+    public void PreferredScanningChannelsStartsAt5Step1615Channels()
     {
         var psc = SixGhzChannelHelper.PreferredScanningChannels;
         // IEEE 802.11ax: 15 PSC channels, 5,21,37,...,229 (step 16)
@@ -40,7 +40,7 @@ public class SixGhzChannelHelperTests
     [InlineData(9,   false)]
     [InlineData(69,  true)]   // 5 + 4*16 = 69
     [InlineData(100, false)]
-    public void IsPreferredScanningChannel_Correct(int channel, bool expected)
+    public void IsPreferredScanningChannelCorrect(int channel, bool expected)
     {
         SixGhzChannelHelper.IsPreferredScanningChannel(channel).Should().Be(expected);
     }
@@ -50,7 +50,7 @@ public class SixGhzChannelHelperTests
     [InlineData(5,   5975)]   // 5950 + 5×5
     [InlineData(37,  6135)]   // PSC ch 37
     [InlineData(233, 7115)]   // last ch
-    public void ChannelToFreqMhz_KnownValues(int channel, int expectedMhz)
+    public void ChannelToFreqMhzKnownValues(int channel, int expectedMhz)
     {
         SixGhzChannelHelper.ChannelToFreqMhz(channel).Should().Be(expectedMhz);
     }
@@ -62,7 +62,7 @@ public class SixGhzChannelHelperTests
     [InlineData(7115, 233)]
     [InlineData(2400, -1)]   // 2.4GHz → invalid
     [InlineData(5180, -1)]   // 5GHz → invalid
-    public void FreqMhzToChannel_RoundTrip(int freqMhz, int expectedChannel)
+    public void FreqMhzToChannelRoundTrip(int freqMhz, int expectedChannel)
     {
         SixGhzChannelHelper.FreqMhzToChannel(freqMhz).Should().Be(expectedChannel);
     }

@@ -8,7 +8,7 @@ namespace MWC.Core.Tests;
 public class WifiUriTests
 {
     [Fact]
-    public void Build_WPA2_BasicShape()
+    public void BuildWPA2BasicShape()
     {
         var spec = new WifiProfileSpec
         {
@@ -21,14 +21,14 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Build_Open_NoPassword()
+    public void BuildOpenNoPassword()
     {
         var uri = WifiUri.Build(new() { Ssid = "FreeSpot", Auth = AuthMethod.Open });
         uri.Should().Be("WIFI:T:nopass;S:FreeSpot;;");
     }
 
     [Fact]
-    public void Build_Wpa3_UsesSAE()
+    public void BuildWpa3UsesSAE()
     {
         var uri = WifiUri.Build(new()
         {
@@ -38,7 +38,7 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Build_EscapesSpecial()
+    public void BuildEscapesSpecial()
     {
         var uri = WifiUri.Build(new()
         {
@@ -51,7 +51,7 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Parse_RoundTrip()
+    public void ParseRoundTrip()
     {
         var src = new WifiProfileSpec
         {
@@ -68,7 +68,7 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Parse_EscapedSpecial()
+    public void ParseEscapedSpecial()
     {
         var p = WifiUri.Parse(@"WIFI:T:WPA;S:Cafe\;1;P:a\\b\:c;;");
         p!.Ssid.Should().Be("Cafe;1");
@@ -76,7 +76,7 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Parse_Invalid_ReturnsNull()
+    public void ParseInvalidReturnsNull()
     {
         WifiUri.Parse("not a uri").Should().BeNull();
         WifiUri.Parse("").Should().BeNull();
@@ -84,7 +84,7 @@ public class WifiUriTests
     }
 
     [Fact]
-    public void Parse_RoundTrip_ValueEndingInEscapedSpecial()
+    public void ParseRoundTripValueEndingInEscapedSpecial()
     {
         // Regression: Parse used TrimEnd(';'), which stripped the escaped trailing
         // "\;" from the last field along with the structural ";;" terminator,
@@ -105,7 +105,7 @@ public class WifiUriTests
 public class WifiUriHighDensityTests
 {
     [Fact]
-    public void Parse_RoundTrip_AllAuthMethods()
+    public void ParseRoundTripAllAuthMethods()
     {
         foreach (var auth in new[] {
             MWC.Core.Models.AuthMethod.Open,
@@ -124,7 +124,7 @@ public class WifiUriHighDensityTests
     }
 
     [Fact]
-    public void Build_EscapesSpecialCharacters()
+    public void BuildEscapesSpecialCharacters()
     {
         var spec = new MWC.Core.Models.WifiProfileSpec
         {

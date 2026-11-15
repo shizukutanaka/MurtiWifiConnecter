@@ -22,14 +22,14 @@ public class CliWifiUriTests
     [InlineData("MyNet",  AuthMethod.WPA2PSK,  "mypass1", "WIFI:T:WPA;S:MyNet;P:mypass1;;")]
     [InlineData("Open",   AuthMethod.Open,      null,       "WIFI:T:nopass;S:Open;;")]
     [InlineData("WPA3Net",AuthMethod.WPA3SAE,  "secure99","WIFI:T:SAE;S:WPA3Net;P:secure99;;")]
-    public void WifiUri_Build_MatchesExpected(string ssid, AuthMethod auth, string? pw, string expected)
+    public void WifiUriBuildMatchesExpected(string ssid, AuthMethod auth, string? pw, string expected)
     {
         var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = pw };
         WifiUri.Build(spec).Should().Be(expected);
     }
 
     [Fact]
-    public void WifiUri_SpecialChars_EscapedProperly()
+    public void WifiUriSpecialCharsEscapedProperly()
     {
         var spec = new WifiProfileSpec
         {
@@ -51,7 +51,12 @@ public class ExportServicePhase5Tests : IDisposable
         System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServicePhase5Tests() => System.IO.Directory.CreateDirectory(_tmp);
-    public void Dispose() { try { System.IO.Directory.Delete(_tmp, true); } catch { } }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        try { System.IO.Directory.Delete(_tmp, true); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { }
+    }
 
     private static readonly IReadOnlyList<WifiNetwork> Networks = new[]
     {
@@ -79,7 +84,7 @@ public class ExportServicePhase5Tests : IDisposable
     };
 
     [Fact]
-    public void ToCsv_Wi7_6GHz_BandShownCorrectly()
+    public void ToCsvWi76GHzBandShownCorrectly()
     {
         var path = System.IO.Path.Combine(_tmp, "out.csv");
         ExportService.ToCsv(Networks, path);
@@ -89,7 +94,7 @@ public class ExportServicePhase5Tests : IDisposable
     }
 
     [Fact]
-    public void ToCsv_CommaInSsid_Escaped()
+    public void ToCsvCommaInSsidEscaped()
     {
         var path = System.IO.Path.Combine(_tmp, "esc.csv");
         ExportService.ToCsv(Networks, path);
@@ -97,7 +102,7 @@ public class ExportServicePhase5Tests : IDisposable
     }
 
     [Fact]
-    public void ToJson_ValidStructure()
+    public void ToJsonValidStructure()
     {
         var path = System.IO.Path.Combine(_tmp, "out.json");
         ExportService.ToJson(Networks, path);
@@ -106,7 +111,7 @@ public class ExportServicePhase5Tests : IDisposable
     }
 
     [Fact]
-    public void ToText_ContainsWifi7Label()
+    public void ToTextContainsWifi7Label()
     {
         var path = System.IO.Path.Combine(_tmp, "out.txt");
         ExportService.ToText(Networks, path);
@@ -131,11 +136,11 @@ public class OuiLookupPhase5Tests
     [InlineData("70:de:e2:AA:BB:CC", "Apple, Inc.")]   // 混在大小文字
     [InlineData("04:18:D6:AB:CD:EF", "Ubiquiti Networks Inc.")] // Ubiquiti
     [InlineData("B8:27:EB:00:00:00", "Raspberry Pi Foundation")]
-    public void Lookup_MultipleSeparators(string bssid, string vendor)
+    public void LookupMultipleSeparators(string bssid, string vendor)
         => _svc.Lookup(bssid).Should().Be(vendor);
 
     [Fact]
-    public void Lookup_Short_ReturnsNull()
+    public void LookupShortReturnsNull()
         => _svc.Lookup("11:22").Should().BeNull();
 }
 
@@ -146,7 +151,7 @@ public class OuiLookupPhase5Tests
 public class SignalHistoryThreadSafetyTests
 {
     [Fact]
-    public async Task Record_ConcurrentWrites_DoesNotThrow()
+    public async Task RecordConcurrentWritesDoesNotThrow()
     {
         var svc = new SignalHistoryService(maxSamples: 100);
         var net = new WifiNetwork { Ssid = "Net", SignalQuality = 70 };
@@ -159,7 +164,7 @@ public class SignalHistoryThreadSafetyTests
     }
 
     [Fact]
-    public void Prune_RemovesOldSamples()
+    public void PruneRemovesOldSamples()
     {
         var svc = new SignalHistoryService();
         svc.Record(new[] { new WifiNetwork { Ssid = "X", SignalQuality = 50 } });
@@ -176,7 +181,7 @@ public class SignalHistoryThreadSafetyTests
 public class FakeWifiServiceCliFlowTests
 {
     [Fact]
-    public async Task FullFlow_Scan_Export_History()
+    public async Task FullFlowScanExportHistory()
     {
         var fake    = new FakeWifiService();
         var oui     = new OuiLookupService();
@@ -208,7 +213,7 @@ public class FakeWifiServiceCliFlowTests
     }
 
     [Fact]
-    public async Task ProfileXml_AllAuthMethods_BuildWithoutException()
+    public void ProfileXmlAllAuthMethodsBuildWithoutException()
     {
         var methods = new[]
         {
@@ -239,7 +244,7 @@ public class FakeWifiServiceCliFlowTests
 public class Phase5LocalizationTests
 {
     [Fact]
-    public void ResourceFiles_ExistForAllTargetLanguages()
+    public void ResourceFilesExistForAllTargetLanguages()
     {
         var resxDir = System.IO.Path.Combine(
             AppContext.BaseDirectory,

@@ -28,7 +28,7 @@ public class SecurityAdvisoryServiceTests
         };
 
     [Fact]
-    public void Analyze_Wpa3TransitionMode_WarnsDragonblood()
+    public void AnalyzeWpa3TransitionModeWarnsDragonblood()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Capable, transition: true));
 
@@ -40,7 +40,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_NoMfp_WarnsDeauthAttack()
+    public void AnalyzeNoMfpWarnsDeauthAttack()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Disabled));
 
@@ -51,7 +51,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_Wep_IsCritical()
+    public void AnalyzeWepIsCritical()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WEP));
         advisories.Should().Contain(a => a.Code == "MWC-SEC-003" && a.Severity == AdvisorySeverity.Critical);
@@ -62,7 +62,7 @@ public class SecurityAdvisoryServiceTests
     // that the platform layer (WindowsWifiService) sets Auth=WEP when Cipher=WEP,
     // regardless of the underlying 802.11 auth algorithm (Open or SharedKey both use WEP cipher).
     [Fact]
-    public void Analyze_Wep_DoesNotTriggerOpenNetworkAdvisory()
+    public void AnalyzeWepDoesNotTriggerOpenNetworkAdvisory()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WEP));
         // Open-network advisory must NOT fire for WEP — WEP has its own, stronger advisory
@@ -71,7 +71,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_Wep_SecurityScoreIsLowerThanOpen()
+    public void AnalyzeWepSecurityScoreIsLowerThanOpen()
     {
         // WEP score=10 must be below Open score=20 — false-sense-of-security makes
         // WEP worse than openly admitting no encryption.
@@ -82,7 +82,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_HardenedNetwork_GivesPositiveFeedback()
+    public void AnalyzeHardenedNetworkGivesPositiveFeedback()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: false));
 
@@ -93,7 +93,7 @@ public class SecurityAdvisoryServiceTests
     // 2026-07: WPA3 でも SSID がハンドシェイクに暗号学的束縛されないという 2025 年の
     // 指摘に基づく情報提供 (Evil Twin 検査の重要性を伝える)。
     [Fact]
-    public void Analyze_PureWpa3Sae_IncludesSsidNotBoundInfoAdvisory()
+    public void AnalyzePureWpa3SaeIncludesSsidNotBoundInfoAdvisory()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: false));
 
@@ -102,7 +102,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_Wpa3TransitionMode_DoesNotDuplicateSsidNotBoundAdvisory()
+    public void AnalyzeWpa3TransitionModeDoesNotDuplicateSsidNotBoundAdvisory()
     {
         // Transition mode already gets the stricter MWC-SEC-001 (Dragonblood downgrade warning);
         // MWC-SEC-008 is reserved for pure WPA3-SAE to avoid redundant/conflicting advice.
@@ -115,21 +115,21 @@ public class SecurityAdvisoryServiceTests
     [InlineData(AuthMethod.WPA2PSK)]
     [InlineData(AuthMethod.WPA3Enterprise)]
     [InlineData(AuthMethod.Open)]
-    public void Analyze_NonPureWpa3Sae_DoesNotIncludeSsidNotBoundAdvisory(AuthMethod auth)
+    public void AnalyzeNonPureWpa3SaeDoesNotIncludeSsidNotBoundAdvisory(AuthMethod auth)
     {
         _svc.Analyze(Net(auth, PmfStatus.Required))
             .Should().NotContain(a => a.Code == "MWC-SEC-008");
     }
 
     [Fact]
-    public void Analyze_OpenNetwork_WarningLevel()
+    public void AnalyzeOpenNetworkWarningLevel()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.Open));
         advisories.Should().Contain(a => a.Code == "MWC-SEC-005" && a.Severity == AdvisorySeverity.Warning);
     }
 
     [Fact]
-    public void Analyze_EncryptedWithoutMfpRequired_InfoFragAttacks()
+    public void AnalyzeEncryptedWithoutMfpRequiredInfoFragAttacks()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Capable));
 
@@ -140,7 +140,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_WpsEnabled_WarnsPinBruteForce()
+    public void AnalyzeWpsEnabledWarnsPinBruteForce()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required) with { WpsEnabled = true });
 
@@ -149,14 +149,14 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_WpsDisabled_NoWpsAdvisory()
+    public void AnalyzeWpsDisabledNoWpsAdvisory()
     {
         var advisories = _svc.Analyze(Net(AuthMethod.WPA2PSK, PmfStatus.Required));
         advisories.Should().NotContain(a => a.Code == "MWC-SEC-007");
     }
 
     [Fact]
-    public void ComputeScore_WpsEnabled_LowersScore()
+    public void ComputeScoreWpsEnabledLowersScore()
     {
         var baseNet = Net(AuthMethod.WPA2PSK, PmfStatus.Required);
         var withWps = baseNet with { WpsEnabled = true };
@@ -164,7 +164,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void Analyze_MfpRequiredOrOpen_NoFragAttacksAdvisory()
+    public void AnalyzeMfpRequiredOrOpenNoFragAttacksAdvisory()
     {
         // MFP 必須 (緩和済み) では FragAttacks 情報を出さない
         _svc.Analyze(Net(AuthMethod.WPA3SAE, PmfStatus.Required))
@@ -180,7 +180,7 @@ public class SecurityAdvisoryServiceTests
     [InlineData(AuthMethod.WPA2PSK,           PmfStatus.Disabled, false, 60)]
     [InlineData(AuthMethod.WEP,               PmfStatus.Unknown,  false, 10)]
     [InlineData(AuthMethod.Open,              PmfStatus.Unknown,  false, 20)]
-    public void ComputeScore_ReflectsSecurityLevel(
+    public void ComputeScoreReflectsSecurityLevel(
         AuthMethod auth, PmfStatus pmf, bool transition, int expectedMin)
     {
         var score = _svc.ComputeScore(Net(auth, pmf, transition));
@@ -190,7 +190,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void ComputeScore_TransitionMode_PenalizesScore()
+    public void ComputeScoreTransitionModePenalizesScore()
     {
         var hardened   = _svc.ComputeScore(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: false));
         var transition = _svc.ComputeScore(Net(AuthMethod.WPA3SAE, PmfStatus.Required, transition: true));
@@ -199,7 +199,7 @@ public class SecurityAdvisoryServiceTests
     }
 
     [Fact]
-    public void RecommendMostSecure_PrefersHardenedNetwork()
+    public void RecommendMostSecurePrefersHardenedNetwork()
     {
         var networks = new[]
         {
@@ -221,7 +221,7 @@ public class SecurityAdvisoryServiceTests
 public class SignalQualityPredictorTests
 {
     [Fact]
-    public void Predict_NoObservations_ReturnsNull()
+    public void PredictNoObservationsReturnsNull()
     {
         var p = new SignalQualityPredictor();
         p.Predict().Should().BeNull();
@@ -229,7 +229,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void Predict_StableSignal_ConvergesToValue()
+    public void PredictStableSignalConvergesToValue()
     {
         var p = new SignalQualityPredictor();
         for (int i = 0; i < 20; i++) p.Observe(-50);
@@ -241,7 +241,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void EvaluateTrend_ImprovingSignal_DetectsImproving()
+    public void EvaluateTrendImprovingSignalDetectsImproving()
     {
         var p = new SignalQualityPredictor();
         // 弱い → 強い (RSSI が -80 から -50 に上昇)
@@ -252,7 +252,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void EvaluateTrend_DegradingSignal_DetectsDegrading()
+    public void EvaluateTrendDegradingSignalDetectsDegrading()
     {
         var p = new SignalQualityPredictor();
         foreach (var rssi in new[] { -50, -55, -60, -65, -70, -75, -80, -85 })
@@ -262,7 +262,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void EvaluateTrend_FewSamples_ReturnsUnknown()
+    public void EvaluateTrendFewSamplesReturnsUnknown()
     {
         var p = new SignalQualityPredictor();
         p.Observe(-60);
@@ -270,7 +270,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void PredictFromHistory_StaticHelper_Works()
+    public void PredictFromHistoryStaticHelperWorks()
     {
         var history = new[] { -60, -58, -62, -59, -61, -60 };
         var prediction = SignalQualityPredictor.PredictFromHistory(history);
@@ -280,7 +280,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void Reset_ClearsState()
+    public void ResetClearsState()
     {
         var p = new SignalQualityPredictor();
         p.Observe(-50);
@@ -290,7 +290,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void FastEma_RespondsQuickerThanSlow()
+    public void FastEmaRespondsQuickerThanSlow()
     {
         // 急激な変化に対し、fast 重視の予測器は slow 重視より速く追従する
         var fast = new SignalQualityPredictor(wFast: 0.9, wMid: 0.05, wSlow: 0.05);
@@ -306,7 +306,7 @@ public class SignalQualityPredictorTests
     }
 
     [Fact]
-    public void Ctor_ZeroWeightSum_Throws()
+    public void CtorZeroWeightSumThrows()
     {
         // 重み合計0だと正規化で 0/0 = NaN が全予測に伝播する
         var act = () => new SignalQualityPredictor(wFast: 0, wMid: 0, wSlow: 0);
@@ -317,7 +317,7 @@ public class SignalQualityPredictorTests
     [InlineData(0.0)]    // alpha は (0,1] 範囲外不可
     [InlineData(1.5)]
     [InlineData(-0.1)]
-    public void Ctor_AlphaOutOfRange_Throws(double alpha)
+    public void CtorAlphaOutOfRangeThrows(double alpha)
     {
         var act = () => new SignalQualityPredictor(alphaFast: alpha);
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -330,7 +330,7 @@ public class SignalQualityPredictorTests
 public class SecurityHardeningTests
 {
     [Fact]
-    public void Hardening_Wpa3SaeWithRequiredMfp_IsHardened()
+    public void HardeningWpa3SaeWithRequiredMfpIsHardened()
     {
         var net = new WifiNetwork
         {
@@ -342,7 +342,7 @@ public class SecurityHardeningTests
     }
 
     [Fact]
-    public void Hardening_TransitionMode_IsTransitionRisk()
+    public void HardeningTransitionModeIsTransitionRisk()
     {
         var net = new WifiNetwork
         {
@@ -354,7 +354,7 @@ public class SecurityHardeningTests
     }
 
     [Fact]
-    public void Hardening_Wpa2NoMfp_IsNoMfpRisk()
+    public void HardeningWpa2NoMfpIsNoMfpRisk()
     {
         var net = new WifiNetwork
         {

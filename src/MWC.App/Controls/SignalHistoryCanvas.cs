@@ -9,6 +9,8 @@ using MWC.Core.Services;
 // System.Drawing 側 (WinForms 併用時の global using) と曖昧なため WPF 側に固定
 using Brush = System.Windows.Media.Brush;
 using Pen = System.Windows.Media.Pen;
+using Color = System.Windows.Media.Color;
+using Point = System.Windows.Point;
 
 namespace MWC.App.Controls;
 
@@ -67,7 +69,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
 
     protected override int VisualChildrenCount => _visuals.Count;
     protected override Visual GetVisualChild(int index) => _visuals[index];
-    protected override void OnRenderSizeChanged(SizeChangedInfo info) => Rebuild();
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) => Rebuild();
 
     private void Rebuild()
     {
@@ -106,7 +108,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
             double y = t + ph * (1 - pct / 100.0);
             dc.DrawLine(GridPen, new Point(l, y), new Point(l + pw, y));
             var ft = new FormattedText($"{pct}",
-                CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
                 Typeface, 8, new SolidColorBrush(Color.FromArgb(100, 200, 200, 200)), 96);
             dc.DrawText(ft, new Point(l - ft.Width - 3, y - ft.Height / 2));
         }
@@ -180,7 +182,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
         {
             var ft = new FormattedText(at.LocalDateTime.ToString("HH:mm",
                 CultureInfo.InvariantCulture), CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, Typeface, 8, brush, 96);
+                System.Windows.FlowDirection.LeftToRight, Typeface, 8, brush, 96);
             dc.DrawText(ft, new Point(Math.Clamp(x - ft.Width / 2, l, l + pw - ft.Width),
                 t + ph + 3));
         }
@@ -191,7 +193,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
         var valBrush = new SolidColorBrush(Color.FromArgb(220, 0, 196, 204));
         valBrush.Freeze();
         var valFt = new FormattedText($"{latest.Quality}%",
-            CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
             Typeface, 9, valBrush, 96);
         double yVal = t + ph * (1 - latest.Quality / 100.0);
         dc.DrawText(valFt, new Point(l + pw - valFt.Width - 2, yVal - valFt.Height - 2));
@@ -200,7 +202,7 @@ public sealed class SignalHistoryCanvas : FrameworkElement
     private static void DrawNoData(DrawingContext dc, double w, double h)
     {
         var ft = new FormattedText(MWC.App.Resources.L.LabelNoData,
-            CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
             Typeface, 11,
             new SolidColorBrush(Color.FromArgb(80, 180, 180, 180)), 96);
         dc.DrawText(ft, new Point((w - ft.Width) / 2, (h - ft.Height) / 2));

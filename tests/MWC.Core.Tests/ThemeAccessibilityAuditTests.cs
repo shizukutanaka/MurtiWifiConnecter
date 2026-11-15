@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using FluentAssertions;
 using MWC.Core.Services;
@@ -65,9 +64,7 @@ public class ThemeAccessibilityAuditTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-    private static string ThemesDir([CallerFilePath] string thisFile = "")
-        => Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(thisFile)!, "..", "..", "src", "MWC.App", "Themes"));
+    private static string ThemesDir() => Path.Combine(RepoPaths.AppDir(), "Themes");
 
     public static IEnumerable<object[]> AaaBodyTextThemeNames() => AaaBodyTextThemes.Select(f => new object[] { f });
     public static IEnumerable<object[]> AllStaticThemeNames() => AllStaticThemes.Select(f => new object[] { f });
@@ -84,7 +81,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AaaBodyTextThemeNames))]
-    public void BodyText_MeetsAaa(string fileName)
+    public void BodyTextMeetsAaa(string fileName)
     {
         // FgBrush-on-BgBrush is the single most common composition in the app
         // (every window's default Background/Foreground).
@@ -97,7 +94,7 @@ public class ThemeAccessibilityAuditTests
     }
 
     [Fact]
-    public void Solarized_BodyText_MeetsAaButNotAaa()
+    public void SolarizedBodyTextMeetsAaButNotAaa()
     {
         // Documented exception: see class-level comment. Canonical Solarized
         // base0-on-base03 scores ~5.6:1 (solid AA); we do not retune the
@@ -111,7 +108,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AllStaticThemeNames))]
-    public void AccentButtonText_MeetsAa(string fileName)
+    public void AccentButtonTextMeetsAa(string fileName)
     {
         // AccentTextBrush-on-AccentBrush is what every primary/accent-styled
         // button actually renders (verified: every view that sets
@@ -130,7 +127,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AllStaticThemeNames))]
-    public void DangerText_MeetsAa(string fileName)
+    public void DangerTextMeetsAa(string fileName)
     {
         // DangerTextBrush-on-DangerBrush: the error banner / delete-button
         // composition fixed for *visibility* earlier this session

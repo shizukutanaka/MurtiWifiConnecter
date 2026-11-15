@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.IO;
 using System.Reflection;
@@ -19,6 +20,8 @@ using MWC.Platform.Windows;
 // UseWindowsForms=true のため global using の System.Windows.Forms.Application
 // と曖昧になる。WPF 側を正とする (NotifyIcon 等の Forms 型は完全修飾で使う)。
 using Application = System.Windows.Application;
+using FlowDirection = System.Windows.FlowDirection;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MWC.App;
 
@@ -42,6 +45,7 @@ public partial class App : Application
             .WriteTo.File(Path.Combine(logsDir, "mwc-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
+                formatProvider: CultureInfo.InvariantCulture,
                 outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
@@ -208,7 +212,7 @@ public partial class App : Application
                     typeof(FrameworkElement),
                     new FrameworkPropertyMetadata(FlowDirection.RightToLeft));
             }
-            catch (Exception ex) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { Log.Debug(ex, "FlowDirection metadata override skipped (already registered)"); }
         }
     }
 
