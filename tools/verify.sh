@@ -394,6 +394,17 @@ def locate(meth, cls=None):
 impl = set()
 impl_opts = {}
 unresolved = []
+
+# 共有エイリアス定数 PasswordAliases (Program.cs) は
+# new Option<string?>(PasswordAliases) の形で使われるため、"--password" の
+# リテラルがメソッド断片に現れず、下の収集だけでは実装に無い誤判定になる。
+# 実装は実際にこのオプションを持つ (connect / qr / import-cat が使用) ので、
+# 定数を解決し、参照しているコマンドのオプション集合へ合成する。
+pw_aliases = set()
+m_pw = re.search(r'PasswordAliases\s*=\s*\{([^}]*)\}', prog)
+if m_pw:
+    pw_aliases = set(re.findall(r'"(--[a-z][\w-]*)"', m_pw.group(1)))
+
 for c in re.findall(r'root\.AddCommand\(\s*([\w\.]+)\s*\(', prog):
     cls, meth = (c.split('.', 1) if '.' in c else (None, c))
     # 修飾なし呼び出しは partial class Program のメソッド。同名メソッドが
@@ -407,15 +418,22 @@ for c in re.findall(r'root\.AddCommand\(\s*([\w\.]+)\s*\(', prog):
         if n:
             name = n.group(1)
             opts = set(re.findall(r'"(--[a-z][\w-]*)"', seg))
+            if 'PasswordAliases' in seg:
+                opts |= pw_aliases
             # サブコマンドを別メソッドに分けているコンテナは定義ファイル全体を見る
             if path != 'src/MWC.Cli/Program.cs':
                 opts |= set(re.findall(r'"(--[a-z][\w-]*)"', files[path]))
+                if 'PasswordAliases' in files[path]:
+                    opts |= pw_aliases
             impl_opts[name] = opts
     (impl.add(name) if name else unresolved.append(c))
 
 errs = []
 if unresolved:
     errs.append('could not resolve command name for: ' + ' '.join(unresolved)
+                + ' — fix this check, do not ignore it')
+if not pw_aliases and any('PasswordAliases' in b for b in files.values()):
+    errs.append('could not resolve the PasswordAliases definition in Program.cs'
                 + ' — fix this check, do not ignore it')
 if len(impl) < 5:
     errs.append(f'only {len(impl)} commands parsed — the check itself is broken')
