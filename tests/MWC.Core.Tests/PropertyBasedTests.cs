@@ -44,7 +44,15 @@ public class WifiUriPropertyTests
         {
             var spec = new WifiProfileSpec { Ssid = "TestNet", Auth = AuthMethod.WPA2PSK, Passphrase = pass };
             var xml  = ProfileXmlBuilder.Build(spec);
-            return xml.Contains("<keyMaterial>") && xml.Contains(pass);
+            // パスフレーズ中の & < > は XElement のシリアライズで &amp; 等に
+            // エスケープされる (製品の設計どおり) ため、生文字列の部分一致では
+            // 正しい XML でも失敗する。keyMaterial 要素をパースし、その値が
+            // パスフレーズと完全一致することで「鍵素材が常に入っている」を
+            // 検証する (検証対象は弱めていない: 値の往復一致まで見る)。
+            var doc = System.Xml.Linq.XDocument.Parse(xml);
+            var keyMaterial = doc.Descendants()
+                .SingleOrDefault(e => e.Name.LocalName == "keyMaterial");
+            return xml.Contains("<keyMaterial>") && keyMaterial?.Value == pass;
         });
     }
 

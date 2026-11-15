@@ -111,9 +111,14 @@ public class TroubleshootingNoJargonTests
     [Fact]
     public void AllFailuresStepsAreActionable()
     {
-        // 各解決ステップは動詞で始まる(何をすべきか明示)
-        var actionVerbs = new[] { "確認", "押", "試", "入力", "再起動", "移動", "実行",
-                                  "サインイン", "開", "報告", "ご確認" };
+        // 各解決ステップは行動を示す動詞を含む(何をすべきか明示)。
+        // TroubleshootingHelper の文案は英語が正本 (AppleHigTests も英語文案を
+        // 前提に検証している) のため、動詞リストは実際の文案で使われている
+        // 英語の行動動詞から採る。以前の日本語リストは文案の言語と合っておらず、
+        // どのカテゴリでも一致し得なかった。
+        var actionVerbs = new[] { "Verify", "enter", "Ask", "Double-check", "Try", "try",
+                                  "Make sure", "Move", "Restart", "Check", "Use", "Press",
+                                  "Go to", "choose", "sign in", "report" };
         foreach (var failure in Enum.GetValues<ConnectionFailure>())
         {
             var advice = TroubleshootingHelper.GetAdvice(failure, AuthMethod.WPA2PSK);

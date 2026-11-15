@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
@@ -48,11 +47,10 @@ public class ThemeContractTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-    // Locate src/MWC.App via this test file's compile-time path so the tests are
-    // independent of the runtime working directory.
-    private static string AppDir([CallerFilePath] string thisFile = "")
-        => Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(thisFile)!, "..", "..", "src", "MWC.App"));
+    // Locate src/MWC.App by walking up from the test assembly (see RepoPaths)
+    // so the tests are independent of the runtime working directory and of
+    // CI's deterministic source paths, which broke [CallerFilePath] lookups.
+    private static string AppDir() => RepoPaths.AppDir();
 
     private static string ThemesDir() => Path.Combine(AppDir(), "Themes");
 

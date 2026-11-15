@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
@@ -41,9 +40,7 @@ public class LocaleKeyConsistencyTests
         "Strings.zh-Hans.resx", "Strings.zh-Hant.resx",
     };
 
-    private static string ResourcesDir([CallerFilePath] string thisFile = "")
-        => Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(thisFile)!, "..", "..", "src", "MWC.App", "Resources"));
+    private static string ResourcesDir() => Path.Combine(RepoPaths.AppDir(), "Resources");
 
     private static HashSet<string> KeysIn(string path)
         => XDocument.Load(path)

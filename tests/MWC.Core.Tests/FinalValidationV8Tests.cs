@@ -139,12 +139,26 @@ public class ConstructorIntegrityTests
     }
 
     [Fact]
-    public void ConnectionExecutorConstructorRequires3Args()
+    public void ConnectionExecutorConstructorHas3RequiredArgsPlusOptionalEapStats()
     {
         var ctors = typeof(MWC.Core.Services.ConnectionExecutor).GetConstructors();
         ctors.Should().HaveCount(1);
-        ctors.Single().GetParameters().Should().HaveCount(3,
-            because: "IWifiService, NetworkHistoryService, ILogger<ConnectionExecutor>");
+        var parameters = ctors.Single().GetParameters();
+        // 必須の依存は3つ。4番目の EapAuthStatsService は 802.1X 統計のために
+        // 後から足された任意注入 (e717adc): 製品側コメントが「未指定なら記録を
+        // スキップし、3引数呼び出しとの後方互換を保つ」と明記し、DI でも
+        // App/Cli 両方で AddSingleton 済みのため、実契約は「4パラメータ・
+        // 4番目はデフォルト値あり」。以前のテストは総数3を数えており、
+        // 任意引数の追加で実態とずれていた。
+        parameters.Should().HaveCount(4,
+            because: "IWifiService, NetworkHistoryService, ILogger<ConnectionExecutor>, optional EapAuthStatsService");
+        parameters.Select(p => p.ParameterType).Should().Equal(
+            typeof(MWC.Core.Abstractions.IWifiService),
+            typeof(MWC.Core.Services.NetworkHistoryService),
+            typeof(Microsoft.Extensions.Logging.ILogger<MWC.Core.Services.ConnectionExecutor>),
+            typeof(MWC.Core.Services.EapAuthStatsService));
+        parameters[3].HasDefaultValue.Should().BeTrue(
+            because: "EapAuthStatsService is optional injection; 3-argument construction must keep working");
     }
 
     [Fact]
