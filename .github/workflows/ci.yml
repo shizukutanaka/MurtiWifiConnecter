@@ -29,15 +29,26 @@ jobs:
       - name: Build
         run: dotnet build MWC.ci-win.slnf -c Release --no-restore
 
+      # カバレッジは coverlet.collector (VSTest のデータコレクタ) で取る。
+      # このドライバは --collect:"XPlat Code Coverage" を付けたときだけ
+      # 有効化され、出力先は results-directory 配下の GUID フォルダに
+      # coverage.cobertura.xml として固定される (ベンダ同梱ドキュメント
+      # VSTestIntegration.md の仕様。出力パスを選ぶオプションは無い)。
+      #
+      # 以前ここに書かれていた /p:CollectCoverage / /p:CoverletOutput 等は
+      # もう一方のドライバ coverlet.msbuild 用の MSBuild プロパティで、
+      # 本リポジトリは coverlet.msbuild を参照していないため無効だった。
+      # そのため「TestResults/coverage.xml に出ているはず」という前提自体が
+      # 誤りで、実際にはカバレッジは一切生成されていなかった (成果物にも
+      # 入っていないことと符合する)。--collect を付け、Report coverage
+      # ステップ側は TestResults 配下を再帰検索して受け取る。
       - name: Test
         run: >
           dotnet test tests/MWC.Core.Tests/MWC.Core.Tests.csproj
           -c Release --no-build
           --logger "trx;LogFileName=results.trx"
           --results-directory TestResults
-          /p:CollectCoverage=true
-          /p:CoverletOutputFormat=cobertura
-          /p:CoverletOutput=TestResults/coverage.xml
+          --collect:"XPlat Code Coverage"
 
       # 依存パッケージの脆弱性ゲート。既知の脆弱性を持つ依存が入ったら
       # ビルドを落とす。検査は TFM に依存しない方式で行う:
@@ -179,20 +190,28 @@ jobs:
 
       # カバー率の表示専用ステップ。今回はしきい値で落とさない
       # (数値が初公開になるため。落とすかどうかは実測値を見て別途判断する)。
-      # coverage.xml が無い場合は警告を明示し、黙って成功扱いにしない。
+      # カバレッジファイルが無い場合は警告を明示し、黙って成功扱いにしない。
+      #
+      # ファイルの在りか: coverlet.collector は results-directory 配下の
+      # GUID フォルダに coverage.cobertura.xml を出す (Test ステップの
+      # コメント参照)。まず TestResults 配下を再帰検索し、見つからなければ
+      # 念のためワークスペース全体から探す。複数あれば最も新しいものを使う。
       - name: Report coverage
         if: always()
         shell: pwsh
         run: |
-          $covPath = 'TestResults/coverage.xml'
-          if (-not (Test-Path $covPath)) {
-            # coverlet の出力ファイル名が想定と異なる場合に備えて探す
-            $found = Get-ChildItem -Path 'TestResults' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($found) { $covPath = $found.FullName }
+          $covPath = $null
+          $found = Get-ChildItem -Path 'TestResults' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $found) {
+            $found = Get-ChildItem -Path '.' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1
           }
-          if (-not (Test-Path $covPath)) {
-            Write-Warning 'coverage.xml was not found under TestResults - coverage was NOT measured in this run.'
-            Write-Host '::warning::coverage.xml not found - coverage was not measured in this run.'
+          if ($found) { $covPath = $found.FullName }
+          if (-not $covPath) {
+            Write-Warning 'coverage xml was not found anywhere in the workspace - coverage was NOT measured in this run.'
+            Write-Host '::warning::coverage xml not found - coverage was not measured in this run.'
             if ($env:GITHUB_STEP_SUMMARY) {
               "## Coverage`n`ncoverage.xml が見つからず、カバー率は計測できませんでした。" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             }

@@ -5,10 +5,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <CollectCoverage>true</CollectCoverage>
-    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
-    <CoverletOutput>../../artifacts/coverage/MWC.Core.Tests.</CoverletOutput>
-    <Threshold>80</Threshold>
+    <!-- カバレッジは coverlet.collector (VSTest データコレクタ) で計測する。
+         以前ここにあった CollectCoverage / CoverletOutputFormat /
+         CoverletOutput / Threshold は coverlet.msbuild 用のプロパティで、
+         本プロジェクトは coverlet.msbuild を参照していないため全て無効
+         だった (CI でカバレッジが一度も生成されなかった原因)。
+         計測は CI の Test ステップが collect 指定 (XPlat Code Coverage) で
+         行い、結果は TestResults/<guid>/coverage.cobertura.xml に出る。
+         しきい値で落とすかどうかは実測値を見て別途判断する (CI 側コメント参照)。 -->
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MWC.Core\MWC.Core.csproj" />
