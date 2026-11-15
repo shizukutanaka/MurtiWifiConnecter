@@ -44,12 +44,10 @@ public partial class CaptivePortalDialog : Window
             : MWC.App.Resources.L.Get("Captive_PageLoaded");
     }
 
-    private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
-    {
-        e.Handled = true;
-        StatusLabel.Text = MWC.App.Resources.L.Get("Captive_NavigationFailed");
-        Serilog.Log.Warning("Captive portal navigation failed (error handled in UI)");
-    }
+    // 以前ここに OnNavigationFailed ハンドラがあったが、WPF の WebBrowser には
+    // NavigationFailed イベント自体が存在せず (XAML 側 MC3072)、一度も配線
+    // できていなかったため削除した。失敗時の案内が要るなら、タイマーで
+    // LoadCompleted の未達を検出する方式が別途必要。
 
     private void OnOpenExternal(object sender, RoutedEventArgs e)
     {

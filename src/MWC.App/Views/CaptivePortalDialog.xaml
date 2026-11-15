@@ -54,10 +54,12 @@
         </Border>
 
         <!-- WebBrowser -->
+        <!-- WPF の WebBrowser には NavigationFailed イベントが存在しない
+             (それは Frame/NavigationService のもの)。失敗時は LoadCompleted が
+             発火しないことでしか判別できないため、ここではフックしない。 -->
         <WebBrowser Grid.Row="1" x:Name="Browser"
                     Navigating="OnNavigating"
-                    LoadCompleted="OnLoaded"
-                    NavigationFailed="OnNavigationFailed"/>
+                    LoadCompleted="OnLoaded"/>
 
         <!-- フッタ -->
         <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"

@@ -3,6 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
+// System.Windows.Forms.Control (WinForms 併用時の global using) と曖昧なため WPF 側に固定
+using Control = System.Windows.Controls.Control;
+
 namespace MWC.App.Controls;
 
 /// <summary>

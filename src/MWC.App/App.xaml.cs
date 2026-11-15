@@ -16,6 +16,10 @@ using MWC.Core.Services;
 using MWC.App.Controls;
 using MWC.Platform.Windows;
 
+// UseWindowsForms=true のため global using の System.Windows.Forms.Application
+// と曖昧になる。WPF 側を正とする (NotifyIcon 等の Forms 型は完全修飾で使う)。
+using Application = System.Windows.Application;
+
 namespace MWC.App;
 
 public partial class App : Application

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using MWC.Core.Abstractions;
@@ -26,6 +27,8 @@ public sealed class WlanBssIeProvider : IBeaconIeProvider
 
     public WlanBssIeProvider(ILogger<WlanBssIeProvider> log) => _log = log;
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Defensive P/Invoke boundary (see class doc): malformed native data or a failing WLAN call must yield whatever was parsed so far, never propagate to callers.")]
     public IReadOnlyDictionary<string, RawBeaconData> GetRawBeacons(Guid adapterId)
     {
         var result = new Dictionary<string, RawBeaconData>(StringComparer.OrdinalIgnoreCase);
@@ -53,7 +56,13 @@ public sealed class WlanBssIeProvider : IBeaconIeProvider
         finally
         {
             if (bssListPtr != IntPtr.Zero) WlanFreeMemory(bssListPtr);
-            if (clientHandle != IntPtr.Zero) WlanCloseHandle(clientHandle, IntPtr.Zero);
+            if (clientHandle != IntPtr.Zero)
+            {
+                // クローズ失敗は致命的ではないが、無言で捨てず記録する (CA1806)。
+                int closeRet = WlanCloseHandle(clientHandle, IntPtr.Zero);
+                if (closeRet != 0)
+                    _log.LogDebug("WlanCloseHandle failed with error {ErrorCode}", closeRet);
+            }
         }
         return result;
     }

@@ -12,6 +12,10 @@ using MWC.App.Services;
 using MWC.App.ViewModels;
 using MWC.App.Views;
 using MWC.Core.Models;
+using MWC.Core.Services;
+
+// System.Windows.Forms.KeyEventArgs (WinForms 併用時の global using) と曖昧なため WPF 側に固定
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 namespace MWC.App;
 
 /// <summary>

@@ -41,8 +41,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     // RadioButton 相互排他
-    partial void OnIsSimpleModeChanged(bool v)  { if (v) _isExpertMode = false; OnPropertyChanged(nameof(IsExpertMode)); }
-    partial void OnIsExpertModeChanged(bool v)  { if (v) _isSimpleMode = false; OnPropertyChanged(nameof(IsSimpleMode)); }
+    partial void OnIsSimpleModeChanged(bool value)  { if (value) _isExpertMode = false; OnPropertyChanged(nameof(IsExpertMode)); }
+    partial void OnIsExpertModeChanged(bool value)  { if (value) _isSimpleMode = false; OnPropertyChanged(nameof(IsSimpleMode)); }
 
     // 公開プロパティ (SettingsService 向け変換)
     public AppTheme    Theme       => _themeIndex switch

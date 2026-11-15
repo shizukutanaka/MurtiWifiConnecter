@@ -7,6 +7,9 @@ using MWC.App.Resources;
 using MWC.Core.Services;
 using Serilog;
 
+// System.Drawing.Brush (WinForms 併用時の global using) と曖昧なため WPF 側に固定
+using Brush = System.Windows.Media.Brush;
+
 namespace MWC.App.Views;
 
 public partial class CertificatePickerDialog : Window

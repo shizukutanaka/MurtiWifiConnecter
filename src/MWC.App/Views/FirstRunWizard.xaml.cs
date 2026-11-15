@@ -4,6 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using MWC.App.Services;
 
+// System.Drawing.Brush (WinForms 併用時の global using) と曖昧なため WPF 側に固定
+using Brush = System.Windows.Media.Brush;
+
 namespace MWC.App.Views;
 
 public partial class FirstRunWizard : Window
