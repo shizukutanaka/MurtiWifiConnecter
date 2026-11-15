@@ -42,14 +42,94 @@ jobs:
       # SECURITY.md が「dotnet list package --vulnerable を CI で実行」と
       # 述べている根拠。既知の脆弱性を持つ依存が入ったらビルドを落とす。
       # --include-transitive が無いと直接参照しか見ないため必ず付ける。
+      #
+      # プロジェクト単位で実行する理由: dotnet list package は .slnf を
+      # 受け付けず "Parameter \"xml\" cannot be null." で落ちる (実測)。
+      # 対象プロジェクトは MWC.ci-win.slnf の一覧から読む。
+      # また、プロジェクトごとに restore を先行させる: MWC.sln 側で
+      # ビルド対象に選ばれていないプロジェクト (MWC.PSModule /
+      # MWC.Benchmarks) は slnf の restore では assets が作られず、
+      # そのままだと検査自体ができないため。
+      #
+      # ゲートの原則: 「検査できなかった」も失敗として扱う。restore や
+      # dotnet list 自体がエラーになったプロジェクトが1つでもあれば、
+      # 脆弱性が見つかった場合と同様にこのステップを失敗させる
+      # (黙って成功扱いにしない)。理由は必ずログに残す。
+      # 既知の制約: TFM にプラットフォーム版数を含むプロジェクト
+      # (net9.0-windows10.0.19041.0) では dotnet list が SDK 側の不具合で
+      # "Sequence contains no matching element" となり検査できない。
+      # その場合もこのステップは失敗する (製品側の問題ではない)。
       - name: Check for vulnerable dependencies
         shell: pwsh
         run: |
-          $out = dotnet list MWC.ci-win.slnf package --vulnerable --include-transitive 2>&1 | Out-String
-          Write-Host $out
-          if ($out -match 'has the following vulnerable packages') {
-            Write-Error 'Vulnerable NuGet packages found (see the listing above).'
+          $ErrorActionPreference = 'Continue'
+          $slnf = Get-Content 'MWC.ci-win.slnf' -Raw | ConvertFrom-Json
+          $projects = @($slnf.solution.projects)
+          $checkFailed = @()
+          $vulnerable = @()
+          foreach ($proj in $projects) {
+            Write-Host "=== $proj ==="
+            $restoreOut = dotnet restore $proj 2>&1 | Out-String
+            Write-Host $restoreOut
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::restore failed for $proj - vulnerability check could not run for this project."
+              $checkFailed += "$proj (restore failed)"
+              continue
+            }
+            $out = dotnet list $proj package --vulnerable --include-transitive 2>&1 | Out-String
+            Write-Host $out
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::dotnet list failed for $proj - vulnerability check could not run for this project."
+              $checkFailed += "$proj (dotnet list failed)"
+              continue
+            }
+            if ($out -match 'has the following vulnerable packages') {
+              $vulnerable += $proj
+            }
+          }
+          if ($vulnerable.Count -gt 0) {
+            Write-Error "Vulnerable NuGet packages found in: $($vulnerable -join ', ') (see the listings above)."
+          }
+          if ($checkFailed.Count -gt 0) {
+            Write-Error "Vulnerability check could not be completed for: $($checkFailed -join ', '). Treating un-checked projects as a failure (see the log above for each reason)."
+          }
+          if ($vulnerable.Count -gt 0 -or $checkFailed.Count -gt 0) {
             exit 1
+          }
+          Write-Host "Vulnerability check passed for all $($projects.Count) projects in MWC.ci-win.slnf."
+
+      # カバー率の表示専用ステップ。今回はしきい値で落とさない
+      # (数値が初公開になるため。落とすかどうかは実測値を見て別途判断する)。
+      # coverage.xml が無い場合は警告を明示し、黙って成功扱いにしない。
+      - name: Report coverage
+        if: always()
+        shell: pwsh
+        run: |
+          $covPath = 'TestResults/coverage.xml'
+          if (-not (Test-Path $covPath)) {
+            # coverlet の出力ファイル名が想定と異なる場合に備えて探す
+            $found = Get-ChildItem -Path 'TestResults' -Recurse -Filter '*coverage*.xml' -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) { $covPath = $found.FullName }
+          }
+          if (-not (Test-Path $covPath)) {
+            Write-Warning 'coverage.xml was not found under TestResults - coverage was NOT measured in this run.'
+            Write-Host '::warning::coverage.xml not found - coverage was not measured in this run.'
+            if ($env:GITHUB_STEP_SUMMARY) {
+              "## Coverage`n`ncoverage.xml が見つからず、カバー率は計測できませんでした。" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+            return
+          }
+          [xml]$cov = Get-Content $covPath
+          $ci = [System.Globalization.CultureInfo]::InvariantCulture
+          $lineRate = [Convert]::ToDouble($cov.coverage.GetAttribute('line-rate'), $ci)
+          $branchRate = [Convert]::ToDouble($cov.coverage.GetAttribute('branch-rate'), $ci)
+          $linePct = '{0:P1}' -f $lineRate
+          $branchPct = '{0:P1}' -f $branchRate
+          Write-Host "Coverage (source: $covPath)"
+          Write-Host "  line-rate:   $linePct"
+          Write-Host "  branch-rate: $branchPct"
+          if ($env:GITHUB_STEP_SUMMARY) {
+            "## Coverage`n`n| Metric | Rate |`n| --- | --- |`n| Line | $linePct |`n| Branch | $branchPct |`n`nSource: $covPath" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
 
       - name: Upload test results
