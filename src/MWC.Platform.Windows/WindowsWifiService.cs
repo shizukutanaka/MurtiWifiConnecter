@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -46,6 +47,8 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Adapters ────────────────────────────────────────────────────
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "IWifiService boundary: adapter enumeration degrades to an empty list when the WLAN stack is unavailable; ManagedNativeWifi surfaces native failures as undocumented exception types.")]
     public Task<IReadOnlyList<WifiAdapter>> GetAdaptersAsync(CancellationToken ct = default)
     {
         try
@@ -79,12 +82,18 @@ public sealed class WindowsWifiService : IWifiService
     /// 許可が必要。未許可だと Native Wifi が <see cref="UnauthorizedAccessException"/> を
     /// 投げ、列挙結果が空になる。本実装はこれを区別して実用的な案内をログに出す。
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Scan is best-effort by design: the trigger call, BSS/IE enrichment and enumeration each degrade to partial or empty results instead of throwing (see the class doc: API differences are absorbed by try/catch).")]
     public async Task<IReadOnlyList<WifiNetwork>> ScanAsync(
         Guid adapterId, CancellationToken ct = default)
     {
         try
         {
-            await NativeWifi.ScanNetworksAsync(adapterId, TimeSpan.FromSeconds(8), ct);
+            // 実 API に (Guid, TimeSpan, CancellationToken) のオーバーロードは無い
+            // (3.0.2 実物で確認)。アダプターを指定する形は
+            // (ScanMode, IEnumerable<Guid>, TimeSpan, CancellationToken) を使う。
+            await NativeWifi.ScanNetworksAsync(
+                ScanMode.All, new[] { adapterId }, TimeSpan.FromSeconds(8), ct);
         }
         catch (OperationCanceledException) { throw; }
         catch (UnauthorizedAccessException ex)
@@ -177,6 +186,8 @@ public sealed class WindowsWifiService : IWifiService
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Best-effort enrichment: any failure returns the partial map built so far; scan results must not be lost because BSS detail collection failed.")]
     private Dictionary<string, BssInfo[]> BuildBssMap(Guid adapterId)
     {
         var map = new Dictionary<string, List<BssInfo>>(StringComparer.Ordinal);
@@ -221,6 +232,8 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Profile ──────────────────────────────────────────────────────
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Boolean result API: any failure is reported as false, never thrown across the IWifiService boundary.")]
     public Task<bool> RegisterProfileAsync(Guid adapterId, string profileXml,
         bool overwrite, CancellationToken ct = default)
     {
@@ -242,6 +255,8 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Connect ──────────────────────────────────────────────────────
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Result-type API: unexpected failures are mapped to ConnectionFailure.OsError so callers always get a structured outcome.")]
     public async Task<ConnectionResult> ConnectAsync(
         Guid adapterId, string profileName, string ssid,
         TimeSpan timeout, CancellationToken ct = default)
@@ -280,6 +295,8 @@ public sealed class WindowsWifiService : IWifiService
     }
 
     // ── Misc ─────────────────────────────────────────────────────────
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Boolean result API: any failure is reported as false, never thrown across the IWifiService boundary.")]
     public Task<bool> DisconnectAsync(Guid adapterId, CancellationToken ct = default)
     {
         try   { return Task.FromResult(NativeWifi.DisconnectNetwork(adapterId)); }
@@ -313,9 +330,10 @@ public sealed class WindowsWifiService : IWifiService
         {
             // 2026-09 修正: `NetworkStateChangedEventArgs`(ConnectionWaiter.cs で定義)は
             // InterfaceId/State/Reason/ConnectionMode のみを持ち、`Ssid` は存在しない
-            // (以前の参照は一度もコンパイルできていなかった)。この型自体がまだ実 API
-            // (NativeWifiPlayer の 7 instance イベント)に対応する再設計を待っている
-            // 状態のため(docs/COMPLETION-CHECKLIST.md §5)、ここでは正直に null を渡す。
+            // (以前の参照は一度もコンパイルできていなかった)。
+            // 2026-11-16: Bridge が実 API (NativeWifiPlayer.ConnectionChanged)への
+            // 対応付けを実装した。ただし自製型に Ssid の置き場が無いのは変わらない
+            // ため、ここでは引き続き null を渡す (Ssid が要るなら型の拡張が別途必要)。
             ch.Writer.TryWrite(new WifiEvent(
                 e.InterfaceId,
                 MapEventType(e.State),
@@ -323,8 +341,8 @@ public sealed class WindowsWifiService : IWifiService
                 DateTimeOffset.UtcNow));
         }
 
-        // ManagedNativeWifi が NetworkStateChanged を公開している場合のみ購読
-        // (バージョンによりイベント名が異なるため型で安全に判定)
+        // 接続状態の変化は Bridge 経由で購読する (実 API との対応付けは
+        // Bridge 側に一本化。Player が使えない環境ではイベントが来ないだけ)。
         NetworkStateChangedEventHandlerBridge.Subscribe(OnChanged, _log);
         try
         {
@@ -346,6 +364,8 @@ public sealed class WindowsWifiService : IWifiService
     // 正しい実 API は `GetCurrentConnection(Guid interfaceId)` で、アダプター単位で直接引ける
     // (`CurrentConnectionInfo.Ssid` は同じ `NetworkIdentifier` 型 — 元コードの `.ToString()` は
     // そのまま使える)。
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Best-effort query: any failure is indistinguishable from 'not connected' for callers and is reported as null.")]
     private string? GetConnectedSsid(Guid adapterId)
     {
         try

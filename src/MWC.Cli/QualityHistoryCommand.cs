@@ -100,7 +100,10 @@ public static partial class Program
                 Console.WriteLine($"Packet loss:  {r.LossLabel}");
             }
             catch (OperationCanceledException) { Console.Error.WriteLine("Measurement cancelled."); Environment.Exit(ExitCode.GeneralError); }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not ThreadAbortException)
+            { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, host, samples, json, bloat, loadUrl);
         return cmd;
     }
@@ -122,7 +125,10 @@ public static partial class Program
                     while (!ct.IsCancellationRequested && await stream.ReadAsync(buf, ct) > 0) { }
                 }
                 catch (OperationCanceledException) { break; }
-                catch { /* 一時的失敗はキャンセルまで再試行 */ }
+                catch (Exception ex) when (ex is not OutOfMemoryException
+                                           and not StackOverflowException
+                                           and not ThreadAbortException)
+                { /* 一時的失敗はキャンセルまで再試行 */ }
             }
         });
         try { await Task.WhenAll(workers); }
@@ -152,7 +158,10 @@ public static partial class Program
                 foreach (var e in entries)
                     Console.WriteLine($"{Trunc(e.Ssid,32),-32} {e.ConnectCount,7} {e.FailCount,5}  {e.LastConnectedLabel}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not ThreadAbortException)
+            { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, limit, json, clear);
         return cmd;
     }
@@ -200,7 +209,10 @@ public static partial class Program
                         $"{Trunc(e.Ssid,32),-32} {e.EapType,-16} {e.SuccessCount,7} {e.FailCount,5} " +
                         $"{e.SuccessRate * 100,5:F0}%  {e.LastAttempt.LocalDateTime:yyyy-MM-dd HH:mm}");
             }
-            catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
+            catch (Exception ex) when (ex is not OutOfMemoryException
+                                       and not StackOverflowException
+                                       and not ThreadAbortException)
+            { Console.Error.WriteLine($"Error: {ex.Message}"); Environment.Exit(ExitCode.GeneralError); }
         }, json, clear);
         return cmd;
     }
@@ -209,7 +221,7 @@ public static partial class Program
     private static async Task<WifiAdapter?> Resolve(IWifiService svc, string? filter)
     {
         var all = await svc.GetAdaptersAsync();
-        if (string.IsNullOrEmpty(filter)) return all.FirstOrDefault();
+        if (string.IsNullOrEmpty(filter)) return all.Count > 0 ? all[0] : null;
         return all.FirstOrDefault(a =>
             a.Id.ToString().Equals(filter, StringComparison.OrdinalIgnoreCase) ||
             a.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));

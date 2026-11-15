@@ -11,5 +11,6 @@
   <ItemGroup>
     <PackageReference Include="ManagedNativeWifi" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 </Project>

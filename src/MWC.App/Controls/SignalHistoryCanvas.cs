@@ -6,6 +6,10 @@ using System.Windows;
 using System.Windows.Media;
 using MWC.Core.Services;
 
+// System.Drawing 側 (WinForms 併用時の global using) と曖昧なため WPF 側に固定
+using Brush = System.Windows.Media.Brush;
+using Pen = System.Windows.Media.Pen;
+
 namespace MWC.App.Controls;
 
 /// <summary>

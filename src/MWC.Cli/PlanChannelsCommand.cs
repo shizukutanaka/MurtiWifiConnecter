@@ -121,7 +121,10 @@ public static partial class Program
                     }
                 }
               }
-              catch (Exception ex) { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
+              catch (Exception ex) when (ex is not OutOfMemoryException
+                                         and not StackOverflowException
+                                         and not ThreadAbortException)
+              { Err(ex.Message); Environment.Exit(ExitCode.GeneralError); }
             },
             adapterOpt, bandOpt, dfsOpt, rankedOpt, jsonOpt);
 

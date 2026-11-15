@@ -38,12 +38,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool              _isBusy;
     [ObservableProperty] private bool              _isScanning;
 
-    partial void OnSelectedAdapterChanged(AdapterViewModel? v)
+    partial void OnSelectedAdapterChanged(AdapterViewModel? value)
     {
-        Filter.SetAdapter(v?.Id);
+        Filter.SetAdapter(value?.Id);
         // fire-and-forget だが SafeRunAsync で例外を捕捉・ログ化し、未観測例外でのクラッシュを防ぐ
-        if (v is not null)
-            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => v.RefreshAsync());
+        if (value is not null)
+            _ = AsyncEventHelper.SafeRunAsync(_log, "AdapterSelected", () => value.RefreshAsync());
     }
 
     public NetworkFilterViewModel Filter { get; }

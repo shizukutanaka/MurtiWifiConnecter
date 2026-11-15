@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -42,6 +43,8 @@ public sealed class HttpConnectivityChecker : IConnectivityChecker
 
     public HttpConnectivityChecker(ILogger<HttpConnectivityChecker> log) => _log = log;
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Probe contract: every failure mode (HTTP, socket, timeout, interface query) is a 'not connected' result; this method never throws by design.")]
     public async Task<ConnectivityStatus> CheckAsync(
         Guid? adapterId = null, CancellationToken ct = default)
     {

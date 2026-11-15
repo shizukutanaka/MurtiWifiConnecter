@@ -8,6 +8,10 @@ using MWC.Core.Abstractions;
 using MWC.Core.Models;
 using MWC.Core.Services;
 
+// System.Windows.Forms.Timer (WinForms 併用時の global using) と曖昧なため、
+// Change/Dispose を使う System.Threading.Timer 側に固定
+using Timer = System.Threading.Timer;
+
 namespace MWC.App.Services;
 
 /// <summary>

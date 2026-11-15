@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using ManagedNativeWifi;
 using Microsoft.Extensions.Logging;
 
 namespace MWC.Platform.Windows;
@@ -18,17 +17,20 @@ internal enum ConnectionOutcome
 
 /// <summary>
 /// 接続要求後、ACM connection_complete 通知を待機。
-/// netshのExitCode依存ではなく実通知で判定 …**する設計だったが、下記の通り現状は
-/// コンパイルできない**。
+/// netshのExitCode依存ではなく実通知で判定する。
 ///
-/// ⚠ **2026-09 実測**: 下で購読している `NativeWifi.NetworkStateChanged` は
-/// ManagedNativeWifi 3.0.2(ピン留めバージョン。GitHub 実ソースで確認済み)に
-/// 存在しない。詳細な根拠・実 API・修正に必要な設計判断は
-/// `NetworkStateChangedEventHandlerBridge.cs` の class doc に記載(同じ問題の
-/// 原因はそちらに一本化してある)。CLAUDE.md が必須事項として掲げる
-/// 「接続成功は WlanNotification の connection_complete 受信 + 疎通確認の 2 段」
-/// のうち、前段を担うのが本クラスであるため、この欠陥は静的解析やモックを使う
-/// テストでは検出できず、実機 Windows での接続検証を経て初めて発覚しうるものだった。
+/// **2026-11-16 解決**: 購読先だった `NativeWifi.NetworkStateChanged` は
+/// ManagedNativeWifi 3.0.2 に存在せず、本クラスはコンパイルできない状態だった。
+/// 現在は <see cref="NetworkStateChangedEventHandlerBridge"/> 経由で実 API
+/// (`NativeWifiPlayer.ConnectionChanged`)を購読する。対応付けの設計判断と
+/// 根拠は Bridge 側の class doc に一本化してある。CLAUDE.md が必須事項として
+/// 掲げる「接続成功は WlanNotification の connection_complete 受信 + 疎通確認
+/// の 2 段」のうち、前段を担うのが本クラスである。
+///
+/// 既知の制限: 実 API は WLAN の理由コードを公開しないため、通知の
+/// `Reason` は常に null になり、下記の BadCredentials / NotInRange 分類は
+/// 発火しない(失敗は Failed になる)。理由コードの取得には生の
+/// WlanNotification の P/Invoke が別途必要。
 /// </summary>
 internal sealed class ConnectionWaiter : IDisposable
 {
@@ -53,7 +55,7 @@ internal sealed class ConnectionWaiter : IDisposable
             if (e.InterfaceId != _adapterId) return;
 
             var s = e.State?.ToLowerInvariant() ?? "";
-            _log.LogDebug("WLAN event: {state} adapter={id}", s, e.InterfaceId);
+            _log.LogDebug("WLAN event: {State} adapter={Id}", s, e.InterfaceId);
 
             if (s == "connected")
             {
@@ -80,7 +82,7 @@ internal sealed class ConnectionWaiter : IDisposable
             }
         };
 
-        NativeWifi.NetworkStateChanged += _handler;
+        NetworkStateChangedEventHandlerBridge.Subscribe(_handler, _log);
     }
 
     public async Task<ConnectionOutcome> WaitAsync(TimeSpan timeout, CancellationToken ct)
@@ -103,7 +105,7 @@ internal sealed class ConnectionWaiter : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        NativeWifi.NetworkStateChanged -= _handler;
+        NetworkStateChangedEventHandlerBridge.Unsubscribe(_handler);
     }
 
     // Match WLAN reason code strings that indicate the BSS/network was not found.
@@ -119,8 +121,10 @@ internal sealed class ConnectionWaiter : IDisposable
 }
 
 /// <summary>
-/// ManagedNativeWifi が StateChanged イベントを公開しない版に対応する
-/// シム。実装は ManagedNativeWifi のバージョンに合わせて差替。
+/// 接続状態変化の統一表現。<see cref="NetworkStateChangedEventHandlerBridge"/>
+/// が実 API (`NativeWifiPlayer.ConnectionChanged`) から詰めて渡す。
+/// State は文字列のままにしてあるのは、購読側の判定が語彙ベース
+/// ("connected" / "disconnect" を含むか等)で書かれているため。
 /// </summary>
 public sealed class NetworkStateChangedEventArgs : EventArgs
 {

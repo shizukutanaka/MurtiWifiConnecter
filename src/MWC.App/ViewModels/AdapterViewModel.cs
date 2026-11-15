@@ -76,9 +76,9 @@ public sealed partial class AdapterViewModel : ObservableObject
             ? Array.Empty<MWC.Core.Services.SignalSample>()
             : _history.GetHistory(_selected.Ssid);
 
-    partial void OnSelectedChanged(NetworkItemViewModel? v)
+    partial void OnSelectedChanged(NetworkItemViewModel? value)
     {
-        Detail.Load(v?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(v?.Ssid));
+        Detail.Load(value?.Source, SourceNetworks, ConnectedDuration(), RssiHistoryFor(value?.Ssid));
         OnPropertyChanged(nameof(SelectedHistory));
         OnPropertyChanged(nameof(SignalHistoryTitle));
     }
