@@ -3,15 +3,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
+[![CI](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-910%20methods-22C55E)](#)
 [![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20517%20keys-00C4CC)](#)
 
-<!-- CI / CodeQL バッジは意図的に外してある。
-     .github/workflows/ が存在せず GitHub Actions が一度も実行されていないため
-     (docs/FEATURE-AUDIT.md §0)、バッジは常に "no status" を表示し、
-     実施されていない検証を実施しているかのように見せてしまう。
-     CI を設置したら以下を戻すこと:
-     [![CI](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml)
+<!-- CodeQL バッジは意図的に外してある。
+     codeql.yml はまだ .github/workflows/ に設置していないため、バッジは常に
+     "no status" を表示し、実施されていない検証を実施しているかのように
+     見せてしまう。設置したら以下を戻すこと:
      [![CodeQL](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/codeql.yml)
      テストバッジも、実際に dotnet test を走らせた実測値で "N passing" に戻せる。 -->
 
