@@ -8,7 +8,6 @@ namespace MWC.Platform.Windows;
 // ManagedNativeWifi のバージョン差を吸収する型エイリアス
 // 実際のバージョンに合わせて変更してください
 using PhyType_ = ManagedNativeWifi.PhyType;
-using ChannelBandwidth = ManagedNativeWifi.ChannelBandwidth;   // ⚠ 2026-09: 下記参照。実在しない。
 
 /// <summary>
 /// NativeWifi.NetworkStateChanged をラップして型安全に購読する。
@@ -41,6 +40,14 @@ using ChannelBandwidth = ManagedNativeWifi.ChannelBandwidth;   // ⚠ 2026-09: �
 /// static add/remove の使い方とはライフサイクルモデルが異なる。
 /// **実機 Windows で検証できるセッションが設計・実装すべき**
 /// (詳細は `docs/COMPLETION-CHECKLIST.md` の該当項目)。
+///
+/// ── 2026-11-16 追記(実測): NuGet 配布物の 3.0.2 DLL に対して
+/// .NET SDK 9.0.308 で実際にコンパイル検証した。未使用の
+/// `ChannelBandwidth` エイリアスは CS0234 であり削除した(型が実在しない
+/// 点は上記のとおり)。そのうえで残るエラーは CS0117
+/// (`NativeWifi.NetworkStateChanged` が存在しない)で、**配布物 DLL に
+/// 対しても上記の分析が正しい**ことを確認した。本ファイルの設計判断は
+/// 引き続き未解決。
 /// </summary>
 internal static class NetworkStateChangedEventHandlerBridge
 {
