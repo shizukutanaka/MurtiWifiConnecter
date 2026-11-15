@@ -4,7 +4,7 @@
 [![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D6)](https://www.microsoft.com/windows)
 [![CI](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml/badge.svg)](https://github.com/shizukutanaka/MurtiWifiConnecter/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-910%20methods-22C55E)](#)
+[![Tests](https://img.shields.io/badge/tests-911%20methods-22C55E)](#)
 [![i18n](https://img.shields.io/badge/i18n-14%20langs%20%C2%B7%20517%20keys-00C4CC)](#)
 
 <!-- CodeQL バッジは意図的に外してある。
@@ -193,7 +193,7 @@ dotnet test    MWC.sln                    # 910 test methods
 - `SecureString` + 使用直後ゼロクリア
 - ※ **Sigstore keyless signing** + **SLSA provenance** + CycloneDX SBOM は
   `docs/ci/release.yml` に実装済みだが、**まだ一度も実行されていない**
-  (`.github/workflows/` が空のため)。設置して最初のリリースを切るまで、
+  (`release.yml` はまだ `.github/workflows/` に設置していないため)。設置して最初のリリースを切るまで、
   署名済みの配布物は存在しない
 - 詳細: [`SECURITY.md`](SECURITY.md)
 

@@ -182,16 +182,3 @@ public class CatImportBenchmarks
         return _svc.BuildEduroamSpec(profiles[0]);
     }
 }
-
-[MemoryDiagnoser]
-[SimpleJob]
-public class WifiDirectModelBenchmarks
-{
-    [Benchmark]
-    public WifiDirectDiscoveryOptions DefaultOptions()
-        => WifiDirectDiscoveryOptions.Default;
-
-    [Benchmark]
-    public WifiDirectGroupOwnerResult CreateResult()
-        => new(true, "DIRECT-MWC-AB12", "pass1234", "192.168.49.1");
-}
