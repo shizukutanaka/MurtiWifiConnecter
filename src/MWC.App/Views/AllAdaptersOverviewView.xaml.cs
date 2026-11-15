@@ -10,6 +10,9 @@ using MWC.App.ViewModels;
 using MWC.Core.Models;
 using MWC.Core.Services;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Button = System.Windows.Controls.Button;
+
 namespace MWC.App.Views;
 
 public partial class AllAdaptersOverviewView : Window
@@ -87,7 +90,7 @@ public partial class AllAdaptersOverviewView : Window
             {
                 // ユーザーが ConnectionProgressDialog をキャンセル。エラー扱いしない。
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException)
             {
                 // 以前は finally のみで catch が無く、_executor.ConnectAsync 以外の例外
                 // (ダイアログ構築失敗等) が無音で握りつぶされていた

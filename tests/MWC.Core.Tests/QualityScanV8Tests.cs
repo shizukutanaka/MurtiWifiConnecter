@@ -14,7 +14,7 @@ namespace MWC.Core.Tests;
 public class DIRegistrationTests
 {
     [Fact]
-    public void AppXamlCs_DoesNotContainDuplicateDIRegistrations()
+    public void AppXamlCsDoesNotContainDuplicateDIRegistrations()
     {
         // ビルド後の DI 登録ソースを文字列レベルで検証
         // 同じサービスを 2 回登録すると Microsoft.Extensions.DependencyInjection が
@@ -63,7 +63,7 @@ public class DIRegistrationTests
 public class ConnectionExecutorIntegrationTests
 {
     [Fact]
-    public void ConnectionExecutor_HasRequiredDependencies()
+    public void ConnectionExecutorHasRequiredDependencies()
     {
         // ConnectionExecutor の依存型を反映チェック
         var ctor = typeof(MWC.Core.Services.ConnectionExecutor).GetConstructors().Single();
@@ -79,7 +79,7 @@ public class ConnectionExecutorIntegrationTests
 public class LocalizationIntegrationTests
 {
     [Fact]
-    public void L_NewKeysAreAccessible()
+    public void LNewKeysAreAccessible()
     {
         var copied = MWC.App.Resources.L.StatusCopied("TestSSID");
         copied.Should().Contain("TestSSID");
@@ -89,7 +89,7 @@ public class LocalizationIntegrationTests
     }
 
     [Fact]
-    public void L_StaticAccessors_CountAtLeast15()
+    public void LStaticAccessorsCountAtLeast15()
     {
         // L クラスの静的プロパティ・メソッドが十分な数あること
         var lType = typeof(MWC.App.Resources.L);
@@ -108,7 +108,7 @@ public class LocalizationIntegrationTests
 public class SafeFireAndForgetIntegrationTests
 {
     [Fact]
-    public async Task ChainedForget_PreventsExceptionPropagation()
+    public async Task ChainedForgetPreventsExceptionPropagation()
     {
         // チェイン使用パターンが動作する
         Task.Run(() => throw new InvalidOperationException()).Forget();
@@ -117,7 +117,7 @@ public class SafeFireAndForgetIntegrationTests
     }
 
     [Fact]
-    public void Forget_AcceptsNullLogger()
+    public void ForgetAcceptsNullLogger()
     {
         // log = null でもクラッシュしないこと
         var task = Task.CompletedTask;
@@ -132,7 +132,7 @@ public class SafeFireAndForgetIntegrationTests
 public class ConfigureAwaitConventionTests
 {
     [Fact]
-    public void CoreServices_HaveConfigureAwait()
+    public void CoreServicesHaveConfigureAwait()
     {
         // ConnectionExecutor は ConfigureAwait(false) を使用しているはず
         var path = Path.Combine(

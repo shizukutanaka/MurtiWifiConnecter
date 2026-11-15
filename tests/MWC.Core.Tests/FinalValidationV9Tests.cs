@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -74,7 +75,7 @@ public class ConnectionExecutorIntegrationV2Tests
     }
 
     [Fact]
-    public async Task ConnectAsync_CallsAllSteps_InOrder()
+    public async Task ConnectAsyncCallsAllStepsInOrder()
     {
         var (exec, wifi, _) = Build();
         var result = await exec.ConnectAsync(Guid.NewGuid(), "TestNet", AuthMethod.WPA2PSK, "pass1234");
@@ -87,7 +88,7 @@ public class ConnectionExecutorIntegrationV2Tests
     }
 
     [Fact]
-    public async Task ConnectAsync_GeneratedXml_ContainsRequiredElements()
+    public async Task ConnectAsyncGeneratedXmlContainsRequiredElements()
     {
         var (exec, wifi, _) = Build();
         await exec.ConnectAsync(Guid.NewGuid(), "MyOffice", AuthMethod.WPA3SAE, "secret123");
@@ -99,7 +100,7 @@ public class ConnectionExecutorIntegrationV2Tests
     }
 
     [Fact]
-    public async Task ConnectAsync_RecordsHistory_OnSuccess()
+    public async Task ConnectAsyncRecordsHistoryOnSuccess()
     {
         var (exec, _, hist) = Build();
         await exec.ConnectAsync(Guid.NewGuid(), "HistoryNet", AuthMethod.Open);
@@ -111,7 +112,7 @@ public class ConnectionExecutorIntegrationV2Tests
     }
 
     [Fact]
-    public async Task DisconnectAsync_CallsService_Once()
+    public async Task DisconnectAsyncCallsServiceOnce()
     {
         var (exec, wifi, _) = Build();
         var ok = await exec.DisconnectAsync(Guid.NewGuid());
@@ -123,7 +124,7 @@ public class ConnectionExecutorIntegrationV2Tests
     }
 
     [Fact]
-    public async Task ConnectAsync_OpenNetwork_GeneratesValidXml()
+    public async Task ConnectAsyncOpenNetworkGeneratesValidXml()
     {
         var (exec, wifi, _) = Build();
         await exec.ConnectAsync(Guid.NewGuid(), "FreeWifi", AuthMethod.Open, passphrase: "");
@@ -138,7 +139,7 @@ public class ConnectionExecutorIntegrationV2Tests
 public class WifiUriIntegrationTests
 {
     [Fact]
-    public void Parse_FullSpec_ExtractsAllFields()
+    public void ParseFullSpecExtractsAllFields()
     {
         var uri = "WIFI:T:WPA2;S:MyHome;P:secretpass;;";
         var spec = WifiUri.TryParse(uri);
@@ -150,7 +151,7 @@ public class WifiUriIntegrationTests
     }
 
     [Fact]
-    public void Build_RoundTrip_PreservesFields()
+    public void BuildRoundTripPreservesFields()
     {
         var original = new WifiProfileSpec
         {
@@ -168,7 +169,7 @@ public class WifiUriIntegrationTests
     }
 
     [Fact]
-    public void Parse_InvalidScheme_ReturnsNull()
+    public void ParseInvalidSchemeReturnsNull()
     {
         WifiUri.TryParse("HTTP://example.com").Should().BeNull();
         WifiUri.TryParse("").Should().BeNull();
@@ -179,7 +180,7 @@ public class WifiUriIntegrationTests
 public class ProfileXmlBuilderIntegrationV2Tests
 {
     [Fact]
-    public void Build_WPA2PSK_GeneratesValidXml()
+    public void BuildWPA2PSKGeneratesValidXml()
     {
         var spec = new WifiProfileSpec { Ssid = "Test", Passphrase = "pass1234", Auth = AuthMethod.WPA2PSK };
         var xml = ProfileXmlBuilder.Build(spec);
@@ -192,7 +193,7 @@ public class ProfileXmlBuilderIntegrationV2Tests
     }
 
     [Fact]
-    public void Build_OpenNetwork_NoSharedKey()
+    public void BuildOpenNetworkNoSharedKey()
     {
         var spec = new WifiProfileSpec { Ssid = "Open", Auth = AuthMethod.Open };
         var xml = ProfileXmlBuilder.Build(spec);
@@ -204,7 +205,7 @@ public class ProfileXmlBuilderIntegrationV2Tests
     }
 
     [Fact]
-    public void Build_NonBroadcastNetwork_IncludesFlag()
+    public void BuildNonBroadcastNetworkIncludesFlag()
     {
         var spec = new WifiProfileSpec
         {
@@ -224,15 +225,19 @@ public class ProfileXmlBuilderIntegrationV2Tests
 
 public class AdapterPreferencesIntegrationV2Tests
 {
+    private static readonly string[] CafeRandom = new[] { "Cafe", "Random" };
+    private static readonly string[] TopPriority = new[] { "TopPriority" };
+    private static readonly string[] PinnedTopPriority = new[] { "Pinned", "TopPriority" };
+    private static readonly string[] HomeOffice = new[] { "Home", "Office" };
     [Fact]
-    public void PinAndPickBest_FullFlow()
+    public void PinAndPickBestFullFlow()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
 
         svc.PinSsid(id, "Office");
         svc.PinSsid(id, "Cafe");
-        var best = svc.PickBestSsid(id, new[] { "Cafe", "Random" });
+        var best = svc.PickBestSsid(id, CafeRandom);
 
         best.Should().Be("Cafe", "Officeは圏外、Cafeはピン留め済みで圏内");
         svc.IsAutoReconnectEnabled(id).Should().BeTrue();
@@ -246,9 +251,9 @@ public class AdapterPreferencesIntegrationV2Tests
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.PinSsid(id, "Pinned");
-        svc.SetAutoConnectPriority(id, new[] { "TopPriority" });
+        svc.SetAutoConnectPriority(id, TopPriority);
 
-        var best = svc.PickBestSsid(id, new[] { "Pinned", "TopPriority" });
+        var best = svc.PickBestSsid(id, PinnedTopPriority);
 
         best.Should().Be("TopPriority", "AutoConnectPriorityが最優先");
         svc.GetPreferredNetworks(id).Should().Contain("TopPriority");
@@ -257,14 +262,14 @@ public class AdapterPreferencesIntegrationV2Tests
     }
 
     [Fact]
-    public void DisabledAdapter_PickBestReturnsNull()
+    public void DisabledAdapterPickBestReturnsNull()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.PinSsid(id, "Home");
         svc.SetEnabled(id, false);
 
-        var best = svc.PickBestSsid(id, new[] { "Home", "Office" });
+        var best = svc.PickBestSsid(id, HomeOffice);
 
         best.Should().BeNull("無効化アダプタは候補返さない");
         svc.IsAutoReconnectEnabled(id).Should().BeFalse();
@@ -278,7 +283,7 @@ public class AdapterPreferencesIntegrationV2Tests
 public class ConfigureAwaitCoverageTests
 {
     [Fact]
-    public void AllCoreServices_HaveConfigureAwaitOnAwaitedCalls()
+    public void AllCoreServicesHaveConfigureAwaitOnAwaitedCalls()
     {
         var coreDir = GetCoreServicesDir();
         if (!Directory.Exists(coreDir)) return;
@@ -293,7 +298,7 @@ public class ConfigureAwaitCoverageTests
             {
                 var line = lines[i];
                 // awaitがあるがConfigureAwaitなし、かつTask.Delayか外部呼出
-                if (line.TrimStart().StartsWith("await ") &&
+                if (line.TrimStart().StartsWith("await ", StringComparison.Ordinal) &&
                     !line.Contains("ConfigureAwait") &&
                     !line.Contains("//") &&
                     !line.Contains("foreach"))

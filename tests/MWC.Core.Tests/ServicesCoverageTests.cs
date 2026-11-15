@@ -20,7 +20,7 @@ public class OweSelectionServiceTests
         => new() { Ssid = ssid, Auth = auth, SignalQuality = signal, Band = WifiBand.Band5GHz };
 
     [Fact]
-    public void ApplyOwePreference_NoOwe_ReturnsSameCount()
+    public void ApplyOwePreferenceNoOweReturnsSameCount()
     {
         var nets = new[] { Net("A", AuthMethod.Open), Net("B", AuthMethod.WPA2PSK) };
         var result = _svc.ApplyOwePreference(nets);
@@ -29,7 +29,7 @@ public class OweSelectionServiceTests
     }
 
     [Fact]
-    public void ApplyOwePreference_OweReplaces_Open()
+    public void ApplyOwePreferenceOweReplacesOpen()
     {
         var nets = new[]
         {
@@ -45,7 +45,7 @@ public class OweSelectionServiceTests
     }
 
     [Fact]
-    public void RecommendAuth_OpenWithOwe_ReturnsOwe()
+    public void RecommendAuthOpenWithOweReturnsOwe()
     {
         var open = Net("Cafe", AuthMethod.Open);
         var owe  = Net("Cafe", AuthMethod.OWE);
@@ -54,14 +54,14 @@ public class OweSelectionServiceTests
     }
 
     [Fact]
-    public void RecommendAuth_OpenWithoutOwe_ReturnsOpen()
+    public void RecommendAuthOpenWithoutOweReturnsOpen()
     {
         var open = Net("Public", AuthMethod.Open);
         _svc.RecommendAuth(open, new[] { open }).Should().Be(AuthMethod.Open);
     }
 
     [Fact]
-    public void BuildOweSpec_GeneratesCorrectSpec()
+    public void BuildOweSpecGeneratesCorrectSpec()
     {
         var spec = _svc.BuildOweSpec("TestNet");
         spec.Ssid.Should().Be("TestNet");
@@ -78,7 +78,7 @@ public class CatImportServiceExtendedTests
     private readonly CatImportService _svc = new();
 
     [Fact]
-    public void ParseEapConfig_MissingProviders_Throws()
+    public void ParseEapConfigMissingProvidersThrows()
     {
         var xml = "<?xml version='1.0'?><EAPIdentityProviderList></EAPIdentityProviderList>";
         Action act = () => _svc.ParseEapConfig(xml);
@@ -86,14 +86,14 @@ public class CatImportServiceExtendedTests
     }
 
     [Fact]
-    public void ParseEapConfig_InvalidXml_Throws()
+    public void ParseEapConfigInvalidXmlThrows()
     {
         Action act = () => _svc.ParseEapConfig("<broken xml");
         act.Should().Throw<FormatException>();
     }
 
     [Fact]
-    public void ParseEapConfig_XxeExternalEntity_Rejected()
+    public void ParseEapConfigXxeExternalEntityRejected()
     {
         // 信頼できない CAT XML に仕込んだ外部実体 (ローカルファイル漏洩 XXE) は、
         // DtdProcessing.Prohibit が <!DOCTYPE> 時点で拒否するため実体解決に到達しない。
@@ -109,7 +109,7 @@ public class CatImportServiceExtendedTests
     }
 
     [Fact]
-    public void ParseEapConfig_EntityExpansionDtd_Rejected()
+    public void ParseEapConfigEntityExpansionDtdRejected()
     {
         // billion laughs (実体展開 DoS) も <!DOCTYPE> 拒否で封じられる。
         const string bomb = """
@@ -125,7 +125,7 @@ public class CatImportServiceExtendedTests
     }
 
     [Fact]
-    public void BuildEduroamSpec_IsValidProfile()
+    public void BuildEduroamSpecIsValidProfile()
     {
         const string xml = """
             <EAPIdentityProviderList>
@@ -160,7 +160,7 @@ public class RegulatoryDomainServiceExtendedTests
     private readonly RegulatoryDomainService _svc = new();
 
     [Fact]
-    public void FullBandCountries_HaveMoreChannels_ThanLowerHalf()
+    public void FullBandCountriesHaveMoreChannelsThanLowerHalf()
     {
         var usCh  = _svc.GetAvailable6GHzChannels("US");
         var euCh  = _svc.GetAvailable6GHzChannels("DE");
@@ -169,7 +169,7 @@ public class RegulatoryDomainServiceExtendedTests
     }
 
     [Fact]
-    public void ChannelFrequency_FollowsStandard()
+    public void ChannelFrequencyFollowsStandard()
     {
         var ch5   = _svc.GetAvailable6GHzChannels("US").First(c => c.Channel == 5);
         // ch5: 5950 + 5×5 = 5975 MHz  (IEEE 802.11ax-2021 §27.3.23.2)
@@ -180,7 +180,7 @@ public class RegulatoryDomainServiceExtendedTests
     }
 
     [Fact]
-    public void AllRegions_ReturnedBy_AllRegionsProperty()
+    public void AllRegionsReturnedByAllRegionsProperty()
     {
         _svc.AllRegions.Count.Should().BeGreaterOrEqualTo(15);
         _svc.AllRegions.Any(r => r.CountryCode == "US").Should().BeTrue();
@@ -189,7 +189,7 @@ public class RegulatoryDomainServiceExtendedTests
     }
 
     [Fact]
-    public void IsChannelLegal_ValidChannel_US_ReturnsTrue()
+    public void IsChannelLegalValidChannelUSReturnsTrue()
     {
         _svc.IsChannelLegal(5,   "US").Should().BeTrue();
         _svc.IsChannelLegal(233, "US").Should().BeTrue();
@@ -204,10 +204,12 @@ public class RegulatoryDomainServiceExtendedTests
 // ═══════════════════════════════════════════════════════════════
 public class Hotspot20ServiceTests
 {
+    private static readonly string[] RoamingOi = new[] { "001BC5" };
+
     private readonly Hotspot20Service _svc = new();
 
     [Fact]
-    public void KnownCarriers_HasJapanese_And_US()
+    public void KnownCarriersHasJapaneseAndUS()
     {
         Hotspot20Service.KnownCarriers.Should().NotBeEmpty();
         Hotspot20Service.KnownCarriers.Any(c => c.CarrierName.Contains("au")).Should().BeTrue();
@@ -217,7 +219,7 @@ public class Hotspot20ServiceTests
     }
 
     [Fact]
-    public void BuildCarrierProfile_Au_GeneratesSpec()
+    public void BuildCarrierProfileAuGeneratesSpec()
     {
         var au = Hotspot20Service.KnownCarriers.First(c => c.CarrierName == "au Wi-Fi");
         var spec = _svc.BuildCarrierProfile(au);
@@ -227,10 +229,10 @@ public class Hotspot20ServiceTests
     }
 
     [Fact]
-    public void BuildProfile_GeneratesWithHomeOi()
+    public void BuildProfileGeneratesWithHomeOi()
     {
         var p = _svc.BuildProfile("001DE0", "au.kddi.com", EapType.EAP_AKA,
-            roamingOis: new[] { "001BC5" });
+            roamingOis: RoamingOi);
         p.HomeOI.Should().Be("001DE0");
         p.Domain.Should().Be("au.kddi.com");
         p.EapType.Should().Be(EapType.EAP_AKA);
@@ -238,7 +240,7 @@ public class Hotspot20ServiceTests
     }
 
     [Fact]
-    public void FilterPasspointNetworks_NoPasspointNets_ReturnsEmpty()
+    public void FilterPasspointNetworksNoPasspointNetsReturnsEmpty()
     {
         var nets = new[]
         {
@@ -253,10 +255,12 @@ public class Hotspot20ServiceTests
 // ═══════════════════════════════════════════════════════════════
 public class CertificateStoreServiceTests
 {
+    private static readonly string[] RadiusCorpCom = new[] { "radius.corp.com" };
+
     private readonly CertificateStoreService _svc = new();
 
     [Fact]
-    public void GetClientCertificates_ReturnsListWithoutException()
+    public void GetClientCertificatesReturnsListWithoutException()
     {
         // 実機証明書ストアへのアクセス(CIでは空リストで正常)
         var act = () => _svc.GetClientCertificates();
@@ -264,14 +268,14 @@ public class CertificateStoreServiceTests
     }
 
     [Fact]
-    public void FindByThumbprint_NonExistent_ReturnsNull()
+    public void FindByThumbprintNonExistentReturnsNull()
     {
         var result = _svc.FindByThumbprint("DEADBEEF0000000000000000000000000000CAFE");
         result.Should().BeNull();
     }
 
     [Fact]
-    public void ValidateRadiusCert_InvalidDerBytes_ReturnsFail()
+    public void ValidateRadiusCertInvalidDerBytesReturnsFail()
     {
         var result = _svc.ValidateRadiusCert(new byte[] { 0x00, 0x01, 0x02 });
         result.IsValid.Should().BeFalse();
@@ -280,7 +284,7 @@ public class CertificateStoreServiceTests
     }
 
     [Fact]
-    public void BuildEapTlsSpec_GeneratesCorrectSpec()
+    public void BuildEapTlsSpecGeneratesCorrectSpec()
     {
         var certInfo = new ClientCertInfo(
             Subject:      "CN=test",
@@ -293,7 +297,7 @@ public class CertificateStoreServiceTests
             FriendlyName: "Test Cert");
 
         var spec = _svc.BuildEapTlsSpec("CorpWifi", certInfo,
-            serverNames: new[] { "radius.corp.com" });
+            serverNames: RadiusCorpCom);
 
         spec.Ssid.Should().Be("CorpWifi");
         spec.Auth.Should().Be(AuthMethod.WPA2Enterprise);
@@ -303,7 +307,7 @@ public class CertificateStoreServiceTests
     }
 
     [Fact]
-    public void ClientCertInfo_DaysUntilExpiry_IsPositive()
+    public void ClientCertInfoDaysUntilExpiryIsPositive()
     {
         var cert = new ClientCertInfo(
             "CN=x", "AA", "CN=CA",

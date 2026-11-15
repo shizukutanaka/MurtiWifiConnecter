@@ -15,6 +15,7 @@ namespace MWC.Core.Tests.Fakes;
 /// </summary>
 public sealed class FakeWifiService : IWifiService
 {
+    private static readonly string[] HomeNetGuestWiFi = new[] { "HomeNet", "GuestWiFi" };
     public static readonly Guid AdapterId1 = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
     public static readonly Guid AdapterId2 = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002");
 
@@ -138,7 +139,7 @@ public sealed class FakeWifiService : IWifiService
 
     public Task<IReadOnlyList<string>> ListProfilesAsync(Guid adapterId,
         CancellationToken ct = default)
-        => Task.FromResult<IReadOnlyList<string>>(new[] { "HomeNet", "GuestWiFi" });
+        => Task.FromResult<IReadOnlyList<string>>(HomeNetGuestWiFi);
 
     public async IAsyncEnumerable<WifiEvent> SubscribeEventsAsync(
         [EnumeratorCancellation] CancellationToken ct = default)

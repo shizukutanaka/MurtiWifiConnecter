@@ -14,7 +14,7 @@ public class RssiDistanceEstimatorTests
     private readonly RssiDistanceEstimator _svc = new();
 
     [Fact]
-    public void StrongerSignal_ShorterDistance()
+    public void StrongerSignalShorterDistance()
     {
         var near = _svc.Estimate(rssiDbm: -40, frequencyMhz: 2442);
         var far  = _svc.Estimate(rssiDbm: -80, frequencyMhz: 2442);
@@ -23,7 +23,7 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void HigherFrequency_ShorterDistanceAtSameRssi()
+    public void HigherFrequencyShorterDistanceAtSameRssi()
     {
         // 同 RSSI なら 6GHz は減衰が大きいため距離は短く出る
         var at24 = _svc.Estimate(rssiDbm: -60, frequencyMhz: 2442);
@@ -41,7 +41,7 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void VeryStrongSignal_TreatedAsCloseRange()
+    public void VeryStrongSignalTreatedAsCloseRange()
     {
         // RSSI が送信出力以上 → 至近 (1m 未満)
         var e = _svc.Estimate(rssiDbm: 25, frequencyMhz: 2442);
@@ -49,7 +49,7 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void InvalidFrequency_Unknown()
+    public void InvalidFrequencyUnknown()
     {
         var e = _svc.Estimate(rssiDbm: -60, frequencyMhz: 0);
         e.Confidence.Should().Be(DistanceConfidence.Unknown);
@@ -59,13 +59,13 @@ public class RssiDistanceEstimatorTests
     [InlineData(-45, DistanceConfidence.High)]
     [InlineData(-65, DistanceConfidence.Medium)]
     [InlineData(-85, DistanceConfidence.Low)]
-    public void Confidence_TracksSignalStrength(int rssi, DistanceConfidence expected)
+    public void ConfidenceTracksSignalStrength(int rssi, DistanceConfidence expected)
     {
         _svc.Estimate(rssi, 2442).Confidence.Should().Be(expected);
     }
 
     [Fact]
-    public void PathLossExponent_HigherMeansShorterForSamePathLoss()
+    public void PathLossExponentHigherMeansShorterForSamePathLoss()
     {
         // 遮蔽環境 (n=3.5) は同じパスロスでも近い距離に対応
         var los = new RssiDistanceEstimator(RssiDistanceEstimator.IndoorLineOfSight);
@@ -78,14 +78,14 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void InvalidExponent_Throws()
+    public void InvalidExponentThrows()
     {
-        Action act = () => new RssiDistanceEstimator(pathLossExponent: 0);
+        Action act = () => { _ = new RssiDistanceEstimator(pathLossExponent: 0); };
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
-    public void EstimateFromNetwork_UsesRssiAndFrequency()
+    public void EstimateFromNetworkUsesRssiAndFrequency()
     {
         var net = new WifiNetwork
         {
@@ -97,7 +97,7 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void EstimateFromNetwork_FallsBackToBandFreq_WhenFrequencyMissing()
+    public void EstimateFromNetworkFallsBackToBandFreqWhenFrequencyMissing()
     {
         var net = new WifiNetwork
         {
@@ -108,7 +108,7 @@ public class RssiDistanceEstimatorTests
     }
 
     [Fact]
-    public void Label_FormatsWithRange()
+    public void LabelFormatsWithRange()
     {
         var e = _svc.Estimate(-60, 2442);
         e.Label.Should().Contain("~");

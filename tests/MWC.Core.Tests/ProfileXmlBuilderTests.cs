@@ -8,8 +8,15 @@ namespace MWC.Core.Tests;
 
 public class ProfileXmlBuilderTests
 {
+    private static readonly string[] RadiusExampleCom = new[] { "radius.example.com" };
+    private static readonly string[] ABCDEF1234567890 = new[] { "ABCDEF1234567890" };
+    private static readonly string[] RadiusGovExample = new[] { "radius.gov.example" };
+    private static readonly string[] DEADBEEF = new[] { "DEADBEEF" };
+    private static readonly string[] RadiusUniExample = new[] { "radius.uni.example" };
+    private static readonly string[] RadiusExample = new[] { "radius.example" };
+    private static readonly string[] CAFEBABE = new[] { "CAFEBABE" };
     [Fact]
-    public void Open_NoSharedKey()
+    public void OpenNoSharedKey()
     {
         var xml = ProfileXmlBuilder.Build(new() { Ssid = "FreeWiFi", Auth = AuthMethod.Open });
 
@@ -23,7 +30,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void OWE_HasAES_NoSharedKey()
+    public void OWEHasAESNoSharedKey()
     {
         var xml = ProfileXmlBuilder.Build(new() { Ssid = "OpenSecure", Auth = AuthMethod.OWE });
         var doc = XDocument.Parse(xml);
@@ -34,7 +41,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void WPA2PSK_HasPassphrase()
+    public void WPA2PSKHasPassphrase()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -50,7 +57,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void WPA3SAE_AuthIsCorrect()
+    public void WPA3SAEAuthIsCorrect()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -64,7 +71,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void WEP_HexKey_UsesNetworkKey()
+    public void WEPHexKeyUsesNetworkKey()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -79,7 +86,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Enterprise_PEAP_UseOneXIsTrue()
+    public void EnterprisePEAPUseOneXIsTrue()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -88,8 +95,8 @@ public class ProfileXmlBuilderTests
             EapType = EapType.PEAP_MSCHAPv2,
             Username = "alice",
             Password = "p",
-            ServerNames = new[] { "radius.example.com" },
-            TrustedRootCaThumbprints = new[] { "ABCDEF1234567890" }
+            ServerNames = RadiusExampleCom,
+            TrustedRootCaThumbprints = ABCDEF1234567890
         });
         var doc = XDocument.Parse(xml);
         var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
@@ -99,7 +106,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Enterprise_192_UsesGCMP256()
+    public void Enterprise192UsesGCMP256()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -107,8 +114,8 @@ public class ProfileXmlBuilderTests
             Auth = AuthMethod.WPA3Enterprise192,
             EapType = EapType.EAP_TLS,
             ClientCertThumbprint = "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
-            ServerNames = new[] { "radius.gov.example" },
-            TrustedRootCaThumbprints = new[] { "DEADBEEF" }
+            ServerNames = RadiusGovExample,
+            TrustedRootCaThumbprints = DEADBEEF
         });
         var doc = XDocument.Parse(xml);
         var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
@@ -117,7 +124,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Enterprise_TTLS_BuildsEapTtlsConfig()
+    public void EnterpriseTTLSBuildsEapTtlsConfig()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -126,8 +133,8 @@ public class ProfileXmlBuilderTests
             EapType = EapType.EAP_TTLS,
             Username = "student",
             Password = "p@ss",
-            ServerNames = new[] { "radius.uni.example" },
-            TrustedRootCaThumbprints = new[] { "ABCDEF1234567890" }
+            ServerNames = RadiusUniExample,
+            TrustedRootCaThumbprints = ABCDEF1234567890
         });
         var doc = XDocument.Parse(xml);
         var ns = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";
@@ -144,7 +151,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Enterprise_AKA_IsRejected()
+    public void EnterpriseAKAIsRejected()
     {
         var act = () => ProfileXmlBuilder.Build(new()
         {
@@ -159,7 +166,7 @@ public class ProfileXmlBuilderTests
     [InlineData("Has\"Quote", "")]
     [InlineData("",           "")]
     [InlineData("OK",         "short")]   // 5 文字 < 8 → 無効
-    public void Validation_Rejects_Invalid(string ssid, string pw)
+    public void ValidationRejectsInvalid(string ssid, string pw)
     {
         var act = () => ProfileXmlBuilder.Build(new()
         {
@@ -171,7 +178,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Injection_AttemptIsEscaped()
+    public void InjectionAttemptIsEscaped()
     {
         // SSID内に閉じタグ含めても XElement が自動エスケープ
         var xml = ProfileXmlBuilder.Build(new()
@@ -187,7 +194,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void NonBroadcast_AddsHiddenFlag()
+    public void NonBroadcastAddsHiddenFlag()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -200,7 +207,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void ManualConnection_SetsManual()
+    public void ManualConnectionSetsManual()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -216,7 +223,7 @@ public class ProfileXmlBuilderTests
     // ── 回帰: XElement(name, strayXName, content) 誤用で transitionMode /
     //    PerformServerValidation が壊れた値になっていたバグ ──
     [Fact]
-    public void Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace()
+    public void Wpa3TransitionEmitsWellFormedTransitionModeInV4Namespace()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -234,7 +241,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void EapTls_EmitsV2ServerValidationElements()
+    public void EapTlsEmitsV2ServerValidationElements()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -242,8 +249,8 @@ public class ProfileXmlBuilderTests
             Auth = AuthMethod.WPA2Enterprise,
             EapType = EapType.EAP_TLS,
             ClientCertThumbprint = "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
-            ServerNames = new[] { "radius.example" },
-            TrustedRootCaThumbprints = new[] { "DEADBEEF" }
+            ServerNames = RadiusExample,
+            TrustedRootCaThumbprints = DEADBEEF
         });
         var doc = XDocument.Parse(xml);
         var v2 = (XNamespace)"http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2";
@@ -255,7 +262,7 @@ public class ProfileXmlBuilderTests
 
     // ── WEP キー長検証 (5/13 ASCII or 10/26 hex) ──
     [Fact]
-    public void Wep_5CharAsciiKey_Accepted()
+    public void Wep5CharAsciiKeyAccepted()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -269,7 +276,7 @@ public class ProfileXmlBuilderTests
     [InlineData("abc")]                                  // 3 chars — invalid length
     [InlineData("abcdefg")]                              // 7 chars — invalid length
     [InlineData("01234567890123456789012345678901")]      // 32 hex — not a valid WEP length
-    public void Wep_InvalidLengthKey_Rejected(string key)
+    public void WepInvalidLengthKeyRejected(string key)
     {
         var act = () => ProfileXmlBuilder.Build(new()
         {
@@ -279,7 +286,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Wep_13CharAsciiKey_Accepted()
+    public void Wep13CharAsciiKeyAccepted()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -290,7 +297,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Wep_26HexKey_Accepted_AsNetworkKey()
+    public void Wep26HexKeyAcceptedAsNetworkKey()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -301,7 +308,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void Wpa3Transition_RequiresPassphrase()
+    public void Wpa3TransitionRequiresPassphrase()
     {
         var act = () => ProfileXmlBuilder.Build(new()
         {
@@ -315,7 +322,7 @@ public class ProfileXmlBuilderTests
     [InlineData("こんにちは123")]    // 8 chars, contains Japanese (passes length, must fail on non-ASCII)
     [InlineData("passé_wordX")]      // 10 chars, accented Latin (passes length, must fail on non-ASCII)
     [InlineData("pass\x01word1")]    // 11 chars, control char U+0001 (passes length, must fail on non-ASCII)
-    public void WPA2PSK_NonAsciiPassphrase_Rejected(string pw)
+    public void WPA2PSKNonAsciiPassphraseRejected(string pw)
     {
         var act = () => ProfileXmlBuilder.Build(new()
         {
@@ -325,9 +332,9 @@ public class ProfileXmlBuilderTests
     }
 
     // ── WPA3Transition 完全ゴールデン: auth/enc/passphrase/MFP欠如をすべて検証 ──
-    // transitionMode 要素の形式は Wpa3Transition_EmitsWellFormedTransitionModeInV4Namespace で別途検証。
+    // transitionMode 要素の形式は Wpa3TransitionEmitsWellFormedTransitionModeInV4Namespace で別途検証。
     [Fact]
-    public void Wpa3Transition_FullProfile_AuthEncPassphraseMfpAbsent()
+    public void Wpa3TransitionFullProfileAuthEncPassphraseMfpAbsent()
     {
         var xml = ProfileXmlBuilder.Build(new()
         {
@@ -356,7 +363,7 @@ public class ProfileXmlBuilderTests
     // ── 不足していたゴールデンテスト ─────────────────────────────────
 
     [Fact]
-    public void WPAPSK_LegacyAuth_CorrectXml()
+    public void WPAPSKLegacyAuthCorrectXml()
     {
         // WPA (TKIP/AES) — MapAuth が "WPAPSK" を返すことを保証
         var xml = ProfileXmlBuilder.Build(new()
@@ -377,7 +384,7 @@ public class ProfileXmlBuilderTests
     }
 
     [Fact]
-    public void WPA3Enterprise_NonSuite192_CorrectXml()
+    public void WPA3EnterpriseNonSuite192CorrectXml()
     {
         // WPA3-Enterprise (AES) — Suite B 192-bit 以外の Enterprise
         var xml = ProfileXmlBuilder.Build(new()
@@ -386,8 +393,8 @@ public class ProfileXmlBuilderTests
             Auth                     = AuthMethod.WPA3Enterprise,
             EapType                  = EapType.EAP_TLS,
             ClientCertThumbprint     = "ABCDEF1234567890ABCDEF1234567890ABCDEF12",
-            ServerNames              = new[] { "radius.uni.example" },
-            TrustedRootCaThumbprints = new[] { "CAFEBABE" }
+            ServerNames              = RadiusUniExample,
+            TrustedRootCaThumbprints = CAFEBABE
         });
         var doc = XDocument.Parse(xml);
         var ns  = (XNamespace)"http://www.microsoft.com/networking/WLAN/profile/v1";

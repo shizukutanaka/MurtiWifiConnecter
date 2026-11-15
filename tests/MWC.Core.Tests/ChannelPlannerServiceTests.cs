@@ -12,6 +12,7 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class ChannelPlannerServiceTests
 {
+    private static readonly int[] Ints1611 = new[] { 1, 6, 11 };
     private readonly ChannelPlannerService _svc = new();
 
     private static WifiNetwork Ap(WifiBand band, int channel, int quality, int widthMhz = 20) =>
@@ -21,14 +22,14 @@ public class ChannelPlannerServiceTests
     // ── 候補集合 ──────────────────────────────────────────────
 
     [Fact]
-    public void Recommend_24GHz_OnlyConsiders_1_6_11()
+    public void Recommend24GHzOnlyConsiders1611()
     {
         var rec = _svc.Recommend(WifiBand.Band2_4GHz, new List<WifiNetwork>());
-        rec!.Ranked.Select(r => r.Channel).Should().BeEquivalentTo(new[] { 1, 6, 11 });
+        rec!.Ranked.Select(r => r.Channel).Should().BeEquivalentTo(Ints1611);
     }
 
     [Fact]
-    public void Recommend_5GHz_ExcludesDfsByDefault_IncludesWhenAsked()
+    public void Recommend5GHzExcludesDfsByDefaultIncludesWhenAsked()
     {
         var noDfs = _svc.Recommend(WifiBand.Band5GHz, new List<WifiNetwork>())!;
         noDfs.Ranked.Select(r => r.Channel).Should().NotContain(52);   // DFS 除外
@@ -39,7 +40,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_6GHz_UsesPscChannels()
+    public void Recommend6GHzUsesPscChannels()
     {
         var rec = _svc.Recommend(WifiBand.Band6GHz, new List<WifiNetwork>())!;
         rec.Ranked.Select(r => r.Channel).Should()
@@ -47,13 +48,13 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_UnknownBand_ReturnsNull()
+    public void RecommendUnknownBandReturnsNull()
         => _svc.Recommend(WifiBand.Unknown, new List<WifiNetwork>()).Should().BeNull();
 
     // ── スコアリング ──────────────────────────────────────────
 
     [Fact]
-    public void Recommend_EmptyScan_AllChannelsClear_Score100()
+    public void RecommendEmptyScanAllChannelsClearScore100()
     {
         var rec = _svc.Recommend(WifiBand.Band2_4GHz, new List<WifiNetwork>())!;
         rec.Score.Should().Be(100);
@@ -62,7 +63,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_24GHz_AvoidsTheCongestedChannel()
+    public void Recommend24GHzAvoidsTheCongestedChannel()
     {
         // ch 1 に強い AP が密集 → プランナは 6 か 11 を選ぶべき。
         var visible = new List<WifiNetwork>
@@ -77,7 +78,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_24GHz_AdjacentChannelInterferenceCounts()
+    public void Recommend24GHzAdjacentChannelInterferenceCounts()
     {
         // ch 3 の AP は ch 1 とも ch 6 とも重なる (2.4GHz の重なり)。
         // ch 11 は ch 3 と十分離れている (|11-3|=8≥5) → ch 11 が最良。
@@ -94,7 +95,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_StrongerNeighborHurtsMoreThanWeak()
+    public void RecommendStrongerNeighborHurtsMoreThanWeak()
     {
         // ch 1 に弱い AP (20%)、ch 6 に強い AP (100%)。
         // ch 11 は両者と十分離れ最良。弱 ch1 と強 ch6 の比較では ch1 の方がクリーン。
@@ -113,7 +114,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_5GHz_CoChannelDominates()
+    public void Recommend5GHzCoChannelDominates()
     {
         // ch 36 に強い AP → ch 36 は避ける。ch 40 (Δ=4) は軽い干渉、ch 149 は無干渉。
         var visible = new List<WifiNetwork>
@@ -129,7 +130,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_IgnoresNetworksOnOtherBands()
+    public void RecommendIgnoresNetworksOnOtherBands()
     {
         // 5GHz/6GHz の AP は 2.4GHz の推奨に影響しない。
         var visible = new List<WifiNetwork>
@@ -145,7 +146,7 @@ public class ChannelPlannerServiceTests
     // ── 全バンド一括 + 決定論性 ─────────────────────────────────
 
     [Fact]
-    public void RecommendAllBands_ReturnsThreeBands()
+    public void RecommendAllBandsReturnsThreeBands()
     {
         var visible = new List<WifiNetwork> { Ap(WifiBand.Band2_4GHz, 1, 50) };
         var all = _svc.RecommendAllBands(visible);
@@ -154,7 +155,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Ranking_IsDeterministic_TiesBrokenByChannelNumber()
+    public void RankingIsDeterministicTiesBrokenByChannelNumber()
     {
         // 全 candidate がクリーン (score 100) → チャネル番号昇順で安定。
         var rec = _svc.Recommend(WifiBand.Band2_4GHz, new List<WifiNetwork>())!;
@@ -163,7 +164,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void RankCandidates_NullVisible_Throws()
+    public void RankCandidatesNullVisibleThrows()
     {
         var act = () => _svc.RankCandidates(WifiBand.Band2_4GHz, null!);
         act.Should().Throw<System.ArgumentNullException>();
@@ -172,7 +173,7 @@ public class ChannelPlannerServiceTests
     // ── 自己レビューで発見した短所の回帰テスト ─────────────────────
 
     [Fact]
-    public void Recommend_SkipsNeighborsWithUnknownChannel()
+    public void RecommendSkipsNeighborsWithUnknownChannel()
     {
         // チャネル不明 (0) の AP は干渉に数えない。含めると |1-0|=1 で ch1 に偽の干渉が乗る。
         var visible = new List<WifiNetwork> { Ap(WifiBand.Band2_4GHz, 0, 100) };
@@ -182,7 +183,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_5GHz_WideChannelNeighborReachesFurther()
+    public void Recommend5GHzWideChannelNeighborReachesFurther()
     {
         // ch36 の AP。20MHz なら ch48 (Δ=12) には届かないが、80MHz だと 36–48 を占有し届く。
         var narrow = new List<WifiNetwork> { Ap(WifiBand.Band5GHz, 36, 90, widthMhz: 20) };
@@ -196,7 +197,7 @@ public class ChannelPlannerServiceTests
     }
 
     [Fact]
-    public void Recommend_24GHz_ExactDelta5_IsNotOverlapping()
+    public void Recommend24GHzExactDelta5IsNotOverlapping()
     {
         // 2.4 GHz overlap uses strict inequality: delta < 5 means 0..4 overlap, 5 does not.
         // A neighbor exactly on ch 6 is |1-6|=5 and |11-6|=5 from both ch 1 and ch 11.

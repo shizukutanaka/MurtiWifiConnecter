@@ -17,7 +17,7 @@ public class RoamingStabilityTests
         => new(bssid, Now.AddSeconds(-secondsAgo));
 
     [Fact]
-    public void ManyRoamsInWindow_Flapping()
+    public void ManyRoamsInWindowFlapping()
     {
         var roams = new[] { R(5, "a"), R(15, "b"), R(25, "a"), R(35, "b") };
         var s = _svc.AnalyzeStability(roams, -55, Now);
@@ -27,14 +27,14 @@ public class RoamingStabilityTests
     }
 
     [Fact]
-    public void WeakSignalNoRoam_Sticky()
+    public void WeakSignalNoRoamSticky()
     {
         var s = _svc.AnalyzeStability(Array.Empty<RoamEvent>(), -82, Now);
         s.State.Should().Be(RoamingStabilityState.Sticky);
     }
 
     [Fact]
-    public void StrongSignalNoRoam_Stable()
+    public void StrongSignalNoRoamStable()
     {
         var s = _svc.AnalyzeStability(Array.Empty<RoamEvent>(), -50, Now);
         s.State.Should().Be(RoamingStabilityState.Stable);
@@ -42,7 +42,7 @@ public class RoamingStabilityTests
     }
 
     [Fact]
-    public void OldRoamsOutsideWindow_AreIgnored()
+    public void OldRoamsOutsideWindowAreIgnored()
     {
         // 全て 60 秒より前 → window 外
         var roams = new[] { R(120, "a"), R(130, "b"), R(140, "a"), R(150, "b") };
@@ -52,7 +52,7 @@ public class RoamingStabilityTests
     }
 
     [Fact]
-    public void SingleRoam_Stable()
+    public void SingleRoamStable()
     {
         var s = _svc.AnalyzeStability(new[] { R(5) }, -50, Now);
         s.State.Should().Be(RoamingStabilityState.Stable);

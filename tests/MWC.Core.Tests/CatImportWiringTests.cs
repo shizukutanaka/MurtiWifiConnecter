@@ -39,7 +39,7 @@ public class CatImportWiringTests
         => new CatImportService().ParseEapConfig(CatXml).First(p => p.IsValid);
 
     [Fact]
-    public void CatSpecAlone_IsIncomplete_BecauseCatNeverCarriesCredentials()
+    public void CatSpecAloneIsIncompleteBecauseCatNeverCarriesCredentials()
     {
         // これが import-cat が --username/-p を要求する理由。
         // PEAP はユーザー名+パスワード必須なので、CAT の情報だけでは検証を通らない。
@@ -52,7 +52,7 @@ public class CatImportWiringTests
     }
 
     [Fact]
-    public void AddingUserCredentials_MakesItConnectable()
+    public void AddingUserCredentialsMakesItConnectable()
     {
         // import-cat が行う合成そのもの。
         var spec = new CatImportService().BuildEduroamSpec(Parsed()) with
@@ -69,7 +69,7 @@ public class CatImportWiringTests
     }
 
     [Fact]
-    public void AnonymousIdentity_GoesToDomain_NotUsername()
+    public void AnonymousIdentityGoesToDomainNotUsername()
     {
         // 2026-07 に修正した取り違えの回帰テスト。
         // spec.Username はトンネル内で使う実 ID、spec.Domain は平文で送る外部 ID。
@@ -88,7 +88,7 @@ public class CatImportWiringTests
     }
 
     [Fact]
-    public void WithoutExplicitAnonymousIdentity_OneIsDerivedFromTheRealm()
+    public void WithoutExplicitAnonymousIdentityOneIsDerivedFromTheRealm()
     {
         // CAT が匿名 ID を明示しない場合でも realm があれば anonymous@realm を組み立てる。
         // realm で経路制御する RADIUS 配備を壊さないため、素の "anonymous" にはしない。
@@ -99,14 +99,14 @@ public class CatImportWiringTests
     }
 
     [Fact]
-    public void WithNeitherIdentityNorRealm_DomainStaysNull()
+    public void WithNeitherIdentityNorRealmDomainStaysNull()
     {
         var profile = Parsed() with { AnonymousIdentity = null, Domain = null };
         new CatImportService().BuildEduroamSpec(profile).Domain.Should().BeNull();
     }
 
     [Fact]
-    public void ImportedSpec_ProducesAProfileWithServerValidationEnforced()
+    public void ImportedSpecProducesAProfileWithServerValidationEnforced()
     {
         // CAT はサーバ名を必ず持つ (IsValid の条件)。その結果、生成される
         // プロファイルでは証明書の信頼プロンプトが抑止される — つまり利用者が
@@ -122,7 +122,7 @@ public class CatImportWiringTests
     }
 
     [Fact]
-    public void RealUsername_NeverBecomesTheCleartextOuterIdentity()
+    public void RealUsernameNeverBecomesTheCleartextOuterIdentity()
     {
         var spec = new CatImportService().BuildEduroamSpec(
             Parsed() with { AnonymousIdentity = "anonymous@univ.ac.jp" }) with

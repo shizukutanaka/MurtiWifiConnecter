@@ -16,7 +16,12 @@ public class ExportServiceCompletionTests : IDisposable
     private readonly string _tmp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
     public ExportServiceCompletionTests() => Directory.CreateDirectory(_tmp);
-    public void Dispose() { try { Directory.Delete(_tmp, true); } catch { } }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        try { Directory.Delete(_tmp, true); }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { }
+    }
 
     private static System.Collections.Generic.List<WifiNetwork> SampleNets() =>
     [
@@ -32,7 +37,7 @@ public class ExportServiceCompletionTests : IDisposable
     ];
 
     [Fact]
-    public void ToCsv_AllNetworks_Written()
+    public void ToCsvAllNetworksWritten()
     {
         var path = Path.Combine(_tmp, "out.csv");
         ExportService.ToCsv(SampleNets(), path);
@@ -43,7 +48,7 @@ public class ExportServiceCompletionTests : IDisposable
     }
 
     [Fact]
-    public void ToJson_ValidJson_WithAllNetworks()
+    public void ToJsonValidJsonWithAllNetworks()
     {
         var path = Path.Combine(_tmp, "out.json");
         ExportService.ToJson(SampleNets(), path);
@@ -53,7 +58,7 @@ public class ExportServiceCompletionTests : IDisposable
     }
 
     [Fact]
-    public void ToText_ContainsWifi7Phy()
+    public void ToTextContainsWifi7Phy()
     {
         var path = Path.Combine(_tmp, "out.txt");
         ExportService.ToText(SampleNets(), path);
@@ -63,7 +68,7 @@ public class ExportServiceCompletionTests : IDisposable
     }
 
     [Fact]
-    public void ToCsv_EmptyList_OnlyHeader()
+    public void ToCsvEmptyListOnlyHeader()
     {
         var path = Path.Combine(_tmp, "empty.csv");
         ExportService.ToCsv(new System.Collections.Generic.List<WifiNetwork>(), path);
@@ -75,7 +80,7 @@ public class ExportServiceCompletionTests : IDisposable
 public class NetworkHistoryPersistenceTests
 {
     [Fact]
-    public void RecordMultiple_GetRecent_CorrectOrder()
+    public void RecordMultipleGetRecentCorrectOrder()
     {
         var svc = new NetworkHistoryService();
         svc.RecordConnection("Alpha",  true);
@@ -89,7 +94,7 @@ public class NetworkHistoryPersistenceTests
     }
 
     [Fact]
-    public void RecordFailure_HasFailures_True()
+    public void RecordFailureHasFailuresTrue()
     {
         var svc = new NetworkHistoryService();
         svc.RecordConnection("Fail", false);
@@ -97,7 +102,7 @@ public class NetworkHistoryPersistenceTests
     }
 
     [Fact]
-    public void ClearAll_RemovesEverything()
+    public void ClearAllRemovesEverything()
     {
         var svc = new NetworkHistoryService();
         svc.RecordConnection("X", true);
@@ -116,7 +121,7 @@ public class RoundTripCompleteTests
     [InlineData("Open Guest",   AuthMethod.Open,               null)]
     [InlineData("OWE-Secure",   AuthMethod.OWE,                null)]
     [InlineData("WEP-Legacy",   AuthMethod.WEP,                "0123456789")]
-    public void ProfileXml_BuildAndParse_AllAuthMethods(
+    public void ProfileXmlBuildAndParseAllAuthMethods(
         string ssid, AuthMethod auth, string? pw)
     {
         var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = pw };
@@ -132,7 +137,7 @@ public class RoundTripCompleteTests
     [InlineData("WPA3Net",   AuthMethod.WPA3SAE, "secure99")]
     [InlineData("OpenFree",  AuthMethod.Open,    null)]
     [InlineData("OWE",       AuthMethod.OWE,     null)]
-    public void WifiUri_RoundTrip_AllSupportedAuth(
+    public void WifiUriRoundTripAllSupportedAuth(
         string ssid, AuthMethod auth, string? pw)
     {
         var spec   = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = pw };
@@ -148,7 +153,7 @@ public class RoundTripCompleteTests
 public class E2EFlowTests
 {
     [Fact]
-    public async System.Threading.Tasks.Task FullFlow_BuildXml_Register_Connect_Export()
+    public async System.Threading.Tasks.Task FullFlowBuildXmlRegisterConnectExport()
     {
         var svc  = new FakeWifiService();
         var oui  = new OuiLookupService();

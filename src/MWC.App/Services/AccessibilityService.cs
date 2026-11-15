@@ -4,6 +4,9 @@ using System.Windows.Automation.Peers;   // AutomationNotificationKind / ...Proc
                                          // 下の UIElementAutomationPeer は完全修飾しているが、
                                          // この 2 つの列挙は未修飾で使っており using が要る。
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Application = System.Windows.Application;
+
 namespace MWC.App.Services;
 
 /// <summary>
@@ -49,7 +52,7 @@ public static class AccessibilityService
                     ?? System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(w);
             peer?.RaiseNotificationEvent(kind, processing, message, "MWC.Status");
         }
-        catch { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { /* スクリーンリーダー非実行/未対応 OS — 無視 */ }
     }
 
     /// <summary>

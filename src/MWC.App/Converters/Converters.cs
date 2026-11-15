@@ -12,9 +12,9 @@ namespace MWC.App.Converters;
 public sealed class NullToBoolConverter : IValueConverter
 {
     public static readonly NullToBoolConverter Instance = new();
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is not null;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is not null;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
 
@@ -27,14 +27,14 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 
     public bool Invert { get; set; }
 
-    public object Convert(object v, Type t, object p, CultureInfo c)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        bool b = v is bool bl && bl;
+        bool b = value is bool bl && bl;
         if (Invert) b = !b;
         return b ? Visibility.Visible : Visibility.Collapsed;
     }
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
-        => (v is Visibility vis && vis == Visibility.Visible) != Invert;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => (value is Visibility vis && vis == Visibility.Visible) != Invert;
 }
 
 // ── int → bool (Count > 0) ───────────────────────────
@@ -42,9 +42,9 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 public sealed class CountToBoolConverter : IValueConverter
 {
     public static readonly CountToBoolConverter Instance = new();
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is int i && i > 0;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int i && i > 0;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
 
@@ -53,9 +53,9 @@ public sealed class CountToBoolConverter : IValueConverter
 public sealed class ZeroToVisibleConverter : IValueConverter
 {
     public static readonly ZeroToVisibleConverter Instance = new();
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is int i && i == 0 ? Visibility.Visible : Visibility.Collapsed;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is int i && i == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
 
@@ -70,14 +70,14 @@ public sealed class NullToVisibilityConverter : IValueConverter
 
     public bool Invert { get; set; }
 
-    public object Convert(object v, Type t, object p, CultureInfo c)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        bool hasValue = v is not null
-                     && (v is not string s || !string.IsNullOrEmpty(s));
+        bool hasValue = value is not null
+                     && (value is not string s || !string.IsNullOrEmpty(s));
         bool show = Invert ? !hasValue : hasValue;
         return show ? Visibility.Visible : Visibility.Collapsed;
     }
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
 
@@ -86,10 +86,10 @@ public sealed class NullToVisibilityConverter : IValueConverter
 public sealed class ExpertModeToBoolConverter : IValueConverter
 {
     public static readonly ExpertModeToBoolConverter Instance = new();
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is bool b && b;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
-        => v is bool b && b;
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b && b;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b && b;
 }
 
 // ── string? → Visibility (空/nullならCollapsed) ──────
@@ -97,9 +97,9 @@ public sealed class ExpertModeToBoolConverter : IValueConverter
 public sealed class StringToVisibilityConverter : IValueConverter
 {
     public static readonly StringToVisibilityConverter Instance = new();
-    public object Convert(object v, Type t, object p, CultureInfo c)
-        => v is string s && !string.IsNullOrEmpty(s)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string s && !string.IsNullOrEmpty(s)
             ? Visibility.Visible : Visibility.Collapsed;
-    public object ConvertBack(object v, Type t, object p, CultureInfo c)
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }

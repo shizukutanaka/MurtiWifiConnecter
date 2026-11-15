@@ -57,7 +57,7 @@ public class LocaleKeyConsistencyTests
 
     [Theory]
     [MemberData(nameof(LocaleFileNames))]
-    public void EveryLocale_DefinesEveryNeutralKey(string fileName)
+    public void EveryLocaleDefinesEveryNeutralKey(string fileName)
     {
         var neutralKeys = KeysIn(Path.Combine(ResourcesDir(), "Strings.resx"));
         var localeKeys = KeysIn(Path.Combine(ResourcesDir(), fileName));

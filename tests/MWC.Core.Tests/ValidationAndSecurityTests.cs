@@ -22,7 +22,7 @@ public class WifiProfileValidatorTests
     [InlineData("ABC123!@#")]
     [InlineData("あいうえお")]               // 5文字 = 15 bytes UTF-8 — OK
     [InlineData("1234567890123456789012")]   // 22 ASCII = 22 bytes — OK
-    public void ValidateSsid_ValidInputs_DoesNotThrow(string ssid)
+    public void ValidateSsidValidInputsDoesNotThrow(string ssid)
     {
         var act = () => WifiProfileValidator.ValidateSsid(ssid);
         act.Should().NotThrow();
@@ -32,7 +32,7 @@ public class WifiProfileValidatorTests
     [Theory]
     [InlineData("")]                           // 空
     [InlineData("12345678901234567890123456789012X")]  // 33 ASCII chars = 33 bytes > 32
-    public void ValidateSsid_TooLongOrEmpty_Throws(string ssid)
+    public void ValidateSsidTooLongOrEmptyThrows(string ssid)
     {
         var act = () => WifiProfileValidator.ValidateSsid(ssid);
         act.Should().Throw<ArgumentException>()
@@ -41,7 +41,7 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void ValidateSsid_ControlCharacter_Throws()
+    public void ValidateSsidControlCharacterThrows()
     {
         var act = () => WifiProfileValidator.ValidateSsid("Net\x01Work");
         act.Should().Throw<ArgumentException>()
@@ -49,7 +49,7 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void ValidateSsid_MultibyteSsid_ChecksByBytes()
+    public void ValidateSsidMultibyteSsidChecksByBytes()
     {
         // "日本語ネットワーク" = 9 chars × 3 bytes UTF-8 = 27 bytes — OK
         WifiProfileValidator.IsValidSsid("日本語ネットワーク").Should().BeTrue();
@@ -64,7 +64,7 @@ public class WifiProfileValidatorTests
     [InlineData(AuthMethod.WPA2PSK, "aValidPass1!")]    // normal
     [InlineData(AuthMethod.WPA3SAE, "MyS3cur3Pass!")]   // WPA3
     [InlineData(AuthMethod.WPAPSK,  "oldschool1")]      // WPA1
-    public void ValidatePassphrase_Valid_DoesNotThrow(AuthMethod auth, string pass)
+    public void ValidatePassphraseValidDoesNotThrow(AuthMethod auth, string pass)
     {
         var act = () => WifiProfileValidator.ValidatePassphrase(auth, pass);
         act.Should().NotThrow();
@@ -73,7 +73,7 @@ public class WifiProfileValidatorTests
     [Theory]
     [InlineData(AuthMethod.WPA2PSK, "short")]    // 5 < 8
     [InlineData(AuthMethod.WPA3SAE, "1234567")]  // 7 < 8
-    public void ValidatePassphrase_TooShort_Throws(AuthMethod auth, string pass)
+    public void ValidatePassphraseTooShortThrows(AuthMethod auth, string pass)
     {
         var act = () => WifiProfileValidator.ValidatePassphrase(auth, pass);
         act.Should().Throw<ArgumentException>()
@@ -81,7 +81,7 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void ValidatePassphrase_64HexRawPsk_Accepted()
+    public void ValidatePassphrase64HexRawPskAccepted()
     {
         var rawPsk = new string('a', 64);   // 64 hex chars = valid raw PSK
         var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.WPA2PSK, rawPsk);
@@ -89,21 +89,21 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void ValidatePassphrase_Open_NullAllowed()
+    public void ValidatePassphraseOpenNullAllowed()
     {
         var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.Open, null);
         act.Should().NotThrow("Open network does not need a passphrase");
     }
 
     [Fact]
-    public void ValidatePassphrase_Enterprise_NullAllowed()
+    public void ValidatePassphraseEnterpriseNullAllowed()
     {
         var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.WPA2Enterprise, null);
         act.Should().NotThrow("Enterprise uses EAP credentials, not a passphrase");
     }
 
     [Fact]
-    public void ValidatePassphrase_NonAscii_Throws()
+    public void ValidatePassphraseNonAsciiThrows()
     {
         var act = () => WifiProfileValidator.ValidatePassphrase(AuthMethod.WPA2PSK, "パスワード1234");
         act.Should().Throw<ArgumentException>()
@@ -113,7 +113,7 @@ public class WifiProfileValidatorTests
     // ── TryValidate ────────────────────────────────────────
 
     [Fact]
-    public void TryValidate_Valid_ReturnsTrueNoError()
+    public void TryValidateValidReturnsTrueNoError()
     {
         var spec = new WifiProfileSpec
         {
@@ -129,7 +129,7 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void TryValidate_EmptySsid_ReturnsFalseWithMessage()
+    public void TryValidateEmptySsidReturnsFalseWithMessage()
     {
         var spec = new WifiProfileSpec { Ssid = "", Auth = AuthMethod.Open };
 
@@ -143,7 +143,7 @@ public class WifiProfileValidatorTests
     // ── ProfileXmlBuilder 統合 ─────────────────────────────
 
     [Fact]
-    public void ProfileXmlBuilder_InvalidSsid_ThrowsArgumentException()
+    public void ProfileXmlBuilderInvalidSsidThrowsArgumentException()
     {
         var spec = new WifiProfileSpec { Ssid = "", Auth = AuthMethod.Open };
         var act  = () => ProfileXmlBuilder.Build(spec);
@@ -151,7 +151,7 @@ public class WifiProfileValidatorTests
     }
 
     [Fact]
-    public void ProfileXmlBuilder_ShortPassphrase_ThrowsArgumentException()
+    public void ProfileXmlBuilderShortPassphraseThrowsArgumentException()
     {
         var spec = new WifiProfileSpec
         {
@@ -213,7 +213,7 @@ public class ConnectionExecutorConcurrencyTests
     }
 
     [Fact]
-    public async Task ConnectAsync_ConcurrentSameAdapter_IsSerializedNotParallel()
+    public async Task ConnectAsyncConcurrentSameAdapterIsSerializedNotParallel()
     {
         var wifi = new SlowFakeWifi();
         var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
@@ -238,7 +238,7 @@ public class ConnectionExecutorConcurrencyTests
     }
 
     [Fact]
-    public async Task ConnectAsync_DifferentAdapters_CanRunInParallel()
+    public async Task ConnectAsyncDifferentAdaptersCanRunInParallel()
     {
         var wifi = new SlowFakeWifi();
         var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);
@@ -252,12 +252,12 @@ public class ConnectionExecutorConcurrencyTests
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var t1 = exec.ConnectAsync(id1, "Net1", AuthMethod.WPA2PSK, "pass12345", ct: cts.Token);
         var t2 = exec.ConnectAsync(id2, "Net2", AuthMethod.WPA2PSK, "pass12345", ct: cts.Token);
-        await Task.WhenAll(t1, t2);
+        var results = await Task.WhenAll(t1, t2);
         sw.Stop();
 
         // 異なるアダプターはロックを共有しないため並列実行可能
-        t1.Result.Should().NotBeNull();
-        t2.Result.Should().NotBeNull();
+        results[0].Should().NotBeNull();
+        results[1].Should().NotBeNull();
         wifi.ConnectCount.Should().BeGreaterOrEqualTo(2);
     }
 
@@ -267,7 +267,7 @@ public class ConnectionExecutorConcurrencyTests
     [InlineData(AuthMethod.WPA3SAE)]
     [InlineData(AuthMethod.WPA3Transition)]
     [InlineData(AuthMethod.WPAPSK)]
-    public async Task ConnectAsync_EmptyPassphrase_SkipsProfileRegistration_AndSucceeds(AuthMethod auth)
+    public async Task ConnectAsyncEmptyPassphraseSkipsProfileRegistrationAndSucceeds(AuthMethod auth)
     {
         var wifi = new SlowFakeWifi();
         var hist = new NetworkHistoryService(Microsoft.Extensions.Logging.Abstractions.NullLogger<NetworkHistoryService>.Instance);

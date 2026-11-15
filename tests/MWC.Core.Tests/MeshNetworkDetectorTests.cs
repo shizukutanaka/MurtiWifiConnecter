@@ -12,6 +12,7 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class MeshNetworkDetectorTests
 {
+    private static readonly string[] HomeNetOfficeNet = new[] { "HomeNet", "OfficeNet" };
     private readonly MeshNetworkDetector _svc = new();
 
     // ── 小ファクトリ ─────────────────────────────────────────────
@@ -37,7 +38,7 @@ public class MeshNetworkDetectorTests
     };
 
     [Fact]
-    public void DualBandSameSsid_DetectedAsMesh()
+    public void DualBandSameSsidDetectedAsMesh()
     {
         var nets = new[]
         {
@@ -53,7 +54,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void TriBand_Has6GHz_And_IsTriBand()
+    public void TriBandHas6GHzAndIsTriBand()
     {
         var nets = new[]
         {
@@ -67,7 +68,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void SameSsidSameBand_NotDetectedAsMesh()
+    public void SameSsidSameBandNotDetectedAsMesh()
     {
         // 同一バンドの 2 AP は単なる同名 SSID (または隣室の別ルーター)
         var nets = new[]
@@ -79,7 +80,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void KnownEeroOui_HighConfidence()
+    public void KnownEeroOuiHighConfidence()
     {
         var nets = new[]
         {
@@ -92,7 +93,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void UnknownVendorDualBand_MediumOrLowConfidence()
+    public void UnknownVendorDualBandMediumOrLowConfidence()
     {
         var nets = new[]
         {
@@ -105,7 +106,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void FastTransitionAllMembers_FlagSet()
+    public void FastTransitionAllMembersFlagSet()
     {
         var nets = new[]
         {
@@ -117,7 +118,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void ConsistentMdid_AcrossNodes_RaisesConfidence()
+    public void ConsistentMdidAcrossNodesRaisesConfidence()
     {
         // 同一 MDID を全 BSS が共有 → FT メッシュ網羅展開
         WifiNetwork WithMdid(WifiBand band, string bssid, ushort mdid) => new()
@@ -141,7 +142,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void InconsistentMdid_NotFlaggedConsistent()
+    public void InconsistentMdidNotFlaggedConsistent()
     {
         WifiNetwork WithMdid(WifiBand band, string bssid, ushort mdid) => new()
         {
@@ -160,7 +161,7 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void DifferentSsids_NotGroupedTogether()
+    public void DifferentSsidsNotGroupedTogether()
     {
         var nets = new[]
         {
@@ -172,13 +173,13 @@ public class MeshNetworkDetectorTests
     }
 
     [Fact]
-    public void EmptyInput_ReturnsEmpty()
+    public void EmptyInputReturnsEmpty()
     {
         _svc.Detect(Array.Empty<WifiNetwork>()).Should().BeEmpty();
     }
 
     [Fact]
-    public void MultipleMeshNetworks_DetectedSeparately()
+    public void MultipleMeshNetworksDetectedSeparately()
     {
         var nets = new[]
         {
@@ -189,6 +190,6 @@ public class MeshNetworkDetectorTests
         };
         var groups = _svc.Detect(nets);
         groups.Should().HaveCount(2);
-        groups.Select(g => g.Ssid).Should().Contain(new[] { "HomeNet", "OfficeNet" });
+        groups.Select(g => g.Ssid).Should().Contain(HomeNetOfficeNet);
     }
 }

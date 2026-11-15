@@ -25,7 +25,7 @@ public class VpnAdvisoryServiceTests
         };
 
     [Fact]
-    public void OpenNetwork_KnownOrNot_AlwaysStronglyRecommended()
+    public void OpenNetworkKnownOrNotAlwaysStronglyRecommended()
     {
         _svc.Analyze(Net(AuthMethod.Open), isKnownTrustedNetwork: false)
             .Recommendation.Should().Be(VpnRecommendation.StronglyRecommended);
@@ -35,7 +35,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void UnknownNetwork_EvenIfStronglyEncrypted_IsRecommended()
+    public void UnknownNetworkEvenIfStronglyEncryptedIsRecommended()
     {
         var result = _svc.Analyze(Net(AuthMethod.WPA3SAE), isKnownTrustedNetwork: false);
         result.Recommendation.Should().Be(VpnRecommendation.Recommended);
@@ -43,7 +43,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void KnownEnterpriseNetwork_IsNotNeeded()
+    public void KnownEnterpriseNetworkIsNotNeeded()
     {
         var result = _svc.Analyze(Net(AuthMethod.WPA2Enterprise), isKnownTrustedNetwork: true);
         result.Recommendation.Should().Be(VpnRecommendation.NotNeeded);
@@ -51,21 +51,21 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void KnownWpa3EnterpriseNetwork_IsNotNeeded()
+    public void KnownWpa3EnterpriseNetworkIsNotNeeded()
     {
         _svc.Analyze(Net(AuthMethod.WPA3Enterprise), isKnownTrustedNetwork: true)
             .Recommendation.Should().Be(VpnRecommendation.NotNeeded);
     }
 
     [Fact]
-    public void KnownStrongPersonalNetwork_Wpa3Sae_IsOptional()
+    public void KnownStrongPersonalNetworkWpa3SaeIsOptional()
     {
         var result = _svc.Analyze(Net(AuthMethod.WPA3SAE), isKnownTrustedNetwork: true);
         result.Recommendation.Should().Be(VpnRecommendation.Optional);
     }
 
     [Fact]
-    public void KnownWpa3TransitionMode_IsStillRecommended()
+    public void KnownWpa3TransitionModeIsStillRecommended()
     {
         // Dragonblood downgrade risk — transition mode should not get the "Optional" pass
         // even though the reported Auth is WPA3SAE.
@@ -77,14 +77,14 @@ public class VpnAdvisoryServiceTests
     [InlineData(AuthMethod.WPA2PSK)]
     [InlineData(AuthMethod.WPAPSK)]
     [InlineData(AuthMethod.WEP)]
-    public void KnownWeakerPersonalNetwork_IsRecommended(AuthMethod auth)
+    public void KnownWeakerPersonalNetworkIsRecommended(AuthMethod auth)
     {
         _svc.Analyze(Net(auth), isKnownTrustedNetwork: true)
             .Recommendation.Should().Be(VpnRecommendation.Recommended);
     }
 
     [Fact]
-    public void KnownOweNetwork_IsRecommended()
+    public void KnownOweNetworkIsRecommended()
     {
         // OWE encrypts opportunistically but provides no authentication of the AP identity,
         // so it should not be treated as "strong personal" even when marked known/trusted.
@@ -99,7 +99,7 @@ public class VpnAdvisoryServiceTests
     // credentials. So the portal state dominates the auth-method reasoning.
 
     [Fact]
-    public void BehindCaptivePortal_IsStronglyRecommended_EvenOnEncryptedNetwork()
+    public void BehindCaptivePortalIsStronglyRecommendedEvenOnEncryptedNetwork()
     {
         _svc.Analyze(Net(AuthMethod.WPA2PSK), isKnownTrustedNetwork: true,
                      behindCaptivePortal: true)
@@ -107,7 +107,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void BehindCaptivePortal_OverridesEnterpriseNotNeeded()
+    public void BehindCaptivePortalOverridesEnterpriseNotNeeded()
     {
         // The key regression this guards: rule 3 says a known enterprise network needs no
         // personal VPN because traffic "already routes through the organisation's
@@ -126,7 +126,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void BehindCaptivePortal_OverridesStrongWpa3Optional()
+    public void BehindCaptivePortalOverridesStrongWpa3Optional()
     {
         // Same reasoning for the "strong encryption, VPN optional" case: link-layer
         // encryption does not protect what the portal operator (or an impostor) sees.
@@ -136,7 +136,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void CaptivePortalAdvice_ExplainsWhyRatherThanJustAsserting()
+    public void CaptivePortalAdviceExplainsWhyRatherThanJustAsserting()
     {
         var advice = _svc.Analyze(Net(AuthMethod.WPA3SAE), isKnownTrustedNetwork: true,
                                   behindCaptivePortal: true);
@@ -147,7 +147,7 @@ public class VpnAdvisoryServiceTests
     }
 
     [Fact]
-    public void DefaultingCaptivePortalToFalse_PreservesExistingBehaviour()
+    public void DefaultingCaptivePortalToFalsePreservesExistingBehaviour()
     {
         // The parameter is optional so existing call sites (NetworkDetailViewModel,
         // mwc vpn-advice) keep compiling and behaving identically. Scans cannot know

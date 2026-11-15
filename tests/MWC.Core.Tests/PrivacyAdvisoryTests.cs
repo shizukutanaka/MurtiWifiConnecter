@@ -24,7 +24,7 @@ public class PrivacyAdvisoryServiceTests
         };
 
     [Fact]
-    public void HardwareMac_OnPublicNetwork_WarnsTracking()
+    public void HardwareMacOnPublicNetworkWarnsTracking()
     {
         var advisories = _svc.Analyze(MacAddressMode.Hardware, Net(AuthMethod.Open));
 
@@ -34,7 +34,7 @@ public class PrivacyAdvisoryServiceTests
     }
 
     [Fact]
-    public void HardwareMac_OnPrivateNetwork_InfoRecommendRandomization()
+    public void HardwareMacOnPrivateNetworkInfoRecommendRandomization()
     {
         var advisories = _svc.Analyze(MacAddressMode.Hardware, Net(AuthMethod.WPA2PSK));
 
@@ -43,7 +43,7 @@ public class PrivacyAdvisoryServiceTests
     }
 
     [Fact]
-    public void RandomPerNetwork_SuggestsDailyRotation_AndFingerprintNote()
+    public void RandomPerNetworkSuggestsDailyRotationAndFingerprintNote()
     {
         var advisories = _svc.Analyze(MacAddressMode.RandomPerNetwork, Net(AuthMethod.WPA3SAE));
 
@@ -53,7 +53,7 @@ public class PrivacyAdvisoryServiceTests
     }
 
     [Fact]
-    public void RandomDaily_IsGood_WithFingerprintNote()
+    public void RandomDailyIsGoodWithFingerprintNote()
     {
         var advisories = _svc.Analyze(MacAddressMode.RandomDaily, Net(AuthMethod.WPA3SAE));
 
@@ -62,7 +62,7 @@ public class PrivacyAdvisoryServiceTests
     }
 
     [Fact]
-    public void UnknownMode_ProducesNoAdvisories()
+    public void UnknownModeProducesNoAdvisories()
     {
         var advisories = _svc.Analyze(MacAddressMode.Unknown, Net(AuthMethod.Open));
         advisories.Should().BeEmpty();

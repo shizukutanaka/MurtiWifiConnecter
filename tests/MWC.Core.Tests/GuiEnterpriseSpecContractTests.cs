@@ -48,26 +48,26 @@ public class GuiEnterpriseSpecContractTests
         };
 
     [Fact]
-    public void Peap_WithUsernameAndPassword_IsValid()
+    public void PeapWithUsernameAndPasswordIsValid()
     {
         DialogSpec().Validate().IsValid.Should().BeTrue();
     }
 
     [Fact]
-    public void Peap_WithoutUsername_IsRejected()
+    public void PeapWithoutUsernameIsRejected()
     {
         // ダイアログは接続前にこれを検出して Error_EapUsernameRequired を出す。
         DialogSpec(username: "   ").Validate().IsValid.Should().BeFalse();
     }
 
     [Fact]
-    public void Peap_WithoutPassword_IsRejected()
+    public void PeapWithoutPasswordIsRejected()
     {
         DialogSpec(password: "").Validate().IsValid.Should().BeFalse();
     }
 
     [Fact]
-    public void EapTls_WithoutCredentials_IsValid()
+    public void EapTlsWithoutCredentialsIsValid()
     {
         // EAP-TLS は証明書認証。ダイアログはこの方式を選ぶとユーザー名/パスワード欄を隠す。
         // ここで検証が通らないと、隠した結果 接続不能になってしまう。
@@ -79,14 +79,14 @@ public class GuiEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapTtls_RequiresCredentials_LikePeap()
+    public void EapTtlsRequiresCredentialsLikePeap()
     {
         DialogSpec(eap: EapType.EAP_TTLS).Validate().IsValid.Should().BeTrue();
         DialogSpec(eap: EapType.EAP_TTLS, password: "").Validate().IsValid.Should().BeFalse();
     }
 
     [Fact]
-    public void ShortPassword_IsAcceptedForEnterprise_UnlikePsk()
+    public void ShortPasswordIsAcceptedForEnterpriseUnlikePsk()
     {
         // PSK は 8 文字以上を要求するが、EAP パスワードにその規則は無い。
         // ダイアログが Enterprise で IsPassphraseValid を使い回すと、
@@ -95,14 +95,14 @@ public class GuiEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void ServerNameField_SplitsOnSemicolon_AndTrims()
+    public void ServerNameFieldSplitsOnSemicolonAndTrims()
     {
         var spec = DialogSpec(serverNameField: " radius1.univ.ac.jp ; radius2.univ.ac.jp ");
         spec.ServerNames.Should().Equal("radius1.univ.ac.jp", "radius2.univ.ac.jp");
     }
 
     [Fact]
-    public void EmptyServerNameField_YieldsNoPinning_NotAnEmptyString()
+    public void EmptyServerNameFieldYieldsNoPinningNotAnEmptyString()
     {
         // 空文字が 1 件入ると ProfileXmlBuilder は「サーバ名を指定した」と解釈し、
         // 照合不能な検証を有効化してしまう。空欄は必ず空配列にする。
@@ -110,7 +110,7 @@ public class GuiEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void IdentityField_BecomesTheAnonymousOuterIdentity()
+    public void IdentityFieldBecomesTheAnonymousOuterIdentity()
     {
         // ダイアログの「匿名 ID」欄は spec.Domain に入り、PEAP では PeapExtensions の
         // IdentityPrivacy、EAP-TTLS では Phase1Identity として平文の外部 ID になる。
@@ -125,7 +125,7 @@ public class GuiEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void DialogSpec_BuildsValidProfileXml_ForEveryOfferedEapType()
+    public void DialogSpecBuildsValidProfileXmlForEveryOfferedEapType()
     {
         // ダイアログが提示する 3 方式すべてで、実際にプロファイル XML が生成できること。
         foreach (var eap in new[] { EapType.PEAP_MSCHAPv2, EapType.EAP_TLS, EapType.EAP_TTLS })
@@ -142,7 +142,7 @@ public class GuiEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void NonEnterpriseAuth_StillUsesPassphrase_NotEapFields()
+    public void NonEnterpriseAuthStillUsesPassphraseNotEapFields()
     {
         // 非 Enterprise 分岐 (BuildSpec の前半) の形。
         var spec = new WifiProfileSpec

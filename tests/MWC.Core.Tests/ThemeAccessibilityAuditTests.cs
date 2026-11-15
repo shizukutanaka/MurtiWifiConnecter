@@ -84,7 +84,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AaaBodyTextThemeNames))]
-    public void BodyText_MeetsAaa(string fileName)
+    public void BodyTextMeetsAaa(string fileName)
     {
         // FgBrush-on-BgBrush is the single most common composition in the app
         // (every window's default Background/Foreground).
@@ -97,7 +97,7 @@ public class ThemeAccessibilityAuditTests
     }
 
     [Fact]
-    public void Solarized_BodyText_MeetsAaButNotAaa()
+    public void SolarizedBodyTextMeetsAaButNotAaa()
     {
         // Documented exception: see class-level comment. Canonical Solarized
         // base0-on-base03 scores ~5.6:1 (solid AA); we do not retune the
@@ -111,7 +111,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AllStaticThemeNames))]
-    public void AccentButtonText_MeetsAa(string fileName)
+    public void AccentButtonTextMeetsAa(string fileName)
     {
         // AccentTextBrush-on-AccentBrush is what every primary/accent-styled
         // button actually renders (verified: every view that sets
@@ -130,7 +130,7 @@ public class ThemeAccessibilityAuditTests
 
     [Theory]
     [MemberData(nameof(AllStaticThemeNames))]
-    public void DangerText_MeetsAa(string fileName)
+    public void DangerTextMeetsAa(string fileName)
     {
         // DangerTextBrush-on-DangerBrush: the error banner / delete-button
         // composition fixed for *visibility* earlier this session

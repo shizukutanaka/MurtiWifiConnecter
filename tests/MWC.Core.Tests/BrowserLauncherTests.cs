@@ -20,7 +20,7 @@ public class BrowserLauncherTests
     [InlineData("ms-settings:network")]         // カスタム OS スキーム
     [InlineData("ftp://example.com/x")]         // 非 http スキーム
     [InlineData("mailto:a@b.com")]              // mailto
-    public void OpenHttp_NonHttpScheme_Refused(string url)
+    public void OpenHttpNonHttpSchemeRefused(string url)
     {
         BrowserLauncher.OpenHttp(url).Should().BeFalse(
             "non-http(s) schemes must never reach the shell-execute sink");
@@ -33,14 +33,14 @@ public class BrowserLauncherTests
     [InlineData("not a uri")]
     [InlineData("/relative/path")]
     [InlineData("github.com/foo")]   // スキームなし → 絶対 URI ではない
-    public void OpenHttp_InvalidOrRelative_Refused(string? url)
+    public void OpenHttpInvalidOrRelativeRefused(string? url)
     {
         BrowserLauncher.OpenHttp(url).Should().BeFalse(
             "only absolute http/https URIs are permitted");
     }
 
     [Fact]
-    public void OpenHttp_NullUri_Refused()
+    public void OpenHttpNullUriRefused()
     {
         BrowserLauncher.OpenHttp((System.Uri?)null).Should().BeFalse();
     }

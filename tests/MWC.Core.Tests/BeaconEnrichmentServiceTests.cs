@@ -36,7 +36,7 @@ public class BeaconEnrichmentServiceTests
     };
 
     [Fact]
-    public void EnrichOne_AppliesParsedIeFlags()
+    public void EnrichOneAppliesParsedIeFlags()
     {
         var raw = new Dictionary<string, RawBeaconData>
         {
@@ -51,7 +51,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void EnrichOne_BssidCaseInsensitiveMatch()
+    public void EnrichOneBssidCaseInsensitiveMatch()
     {
         var raw = new Dictionary<string, RawBeaconData>
         {
@@ -63,7 +63,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void EnrichOne_NoMatch_ReturnsOriginal()
+    public void EnrichOneNoMatchReturnsOriginal()
     {
         var raw = new Dictionary<string, RawBeaconData>
         {
@@ -76,7 +76,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void Enrich_EmptyRawBeacons_ReturnsInputUnchanged()
+    public void EnrichEmptyRawBeaconsReturnsInputUnchanged()
     {
         var nets = new[] { Net("A", "aa:bb:cc:00:00:01") };
         var result = _svc.Enrich(nets, new Dictionary<string, RawBeaconData>());
@@ -84,7 +84,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void Enrich_MixedMatches_OnlyMatchedEnriched()
+    public void EnrichMixedMatchesOnlyMatchedEnriched()
     {
         var nets = new[]
         {
@@ -102,7 +102,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void NoBssEntries_ReturnsOriginal()
+    public void NoBssEntriesReturnsOriginal()
     {
         var net = new WifiNetwork { Ssid = "Hidden" };
         var raw = new Dictionary<string, RawBeaconData>
@@ -113,7 +113,7 @@ public class BeaconEnrichmentServiceTests
     }
 
     [Fact]
-    public void NullBeaconIeProvider_ReturnsEmpty()
+    public void NullBeaconIeProviderReturnsEmpty()
     {
         NullBeaconIeProvider.Instance.GetRawBeacons(Guid.NewGuid()).Should().BeEmpty();
     }

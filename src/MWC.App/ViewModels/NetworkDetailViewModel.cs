@@ -249,7 +249,7 @@ public sealed partial class NetworkDetailViewModel : ObservableObject
         }
 
         var iReport = _interferenceAnalyzer.Analyze(n, visible);
-        var firstFactor = iReport.Factors.FirstOrDefault();
+        var firstFactor = iReport.Factors.Count > 0 ? iReport.Factors[0] : null;
         InterferenceLabel = iReport.Level == InterferenceLevel.Low
             ? L.Format("Detail_Interference_Low", iReport.Score)
             : L.Format("Detail_Interference_Other", iReport.Level, iReport.Score,

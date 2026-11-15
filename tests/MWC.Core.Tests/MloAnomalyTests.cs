@@ -17,14 +17,14 @@ public class MloAnomalyTests
         new() { Ssid = "MLO-AP", IsMlo = true, MloLinks = links };
 
     [Fact]
-    public void NonMlo_NoAnomaly()
+    public void NonMloNoAnomaly()
     {
         var n = new WifiNetwork { Ssid = "x", IsMlo = false };
         _svc.DetectAnomaly(n).HasAnomaly.Should().BeFalse();
     }
 
     [Fact]
-    public void HealthyCrossBand_NoAnomaly()
+    public void HealthyCrossBandNoAnomaly()
     {
         var n = Mlo(
             new MloLink { Band = WifiBand.Band5GHz, ChannelWidth = 160, Rssi = -50 },
@@ -33,7 +33,7 @@ public class MloAnomalyTests
     }
 
     [Fact]
-    public void AsymmetricLinks_FlaggedWithAdvice()
+    public void AsymmetricLinksFlaggedWithAdvice()
     {
         var n = Mlo(
             new MloLink { Band = WifiBand.Band5GHz, ChannelWidth = 160, Rssi = -45 },
@@ -44,7 +44,7 @@ public class MloAnomalyTests
     }
 
     [Fact]
-    public void AllLinksWeak_Flagged()
+    public void AllLinksWeakFlagged()
     {
         var n = Mlo(
             new MloLink { Band = WifiBand.Band5GHz, ChannelWidth = 80, Rssi = -82 },
@@ -53,7 +53,7 @@ public class MloAnomalyTests
     }
 
     [Fact]
-    public void SameBandOnly_FlaggedAsLimitedRedundancy()
+    public void SameBandOnlyFlaggedAsLimitedRedundancy()
     {
         var n = Mlo(
             new MloLink { Band = WifiBand.Band5GHz, ChannelWidth = 160, Rssi = -50 },

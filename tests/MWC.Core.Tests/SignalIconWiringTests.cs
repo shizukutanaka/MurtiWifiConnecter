@@ -36,13 +36,13 @@ public class SignalIconWiringTests
     [InlineData(79,  3)]  // 旧アドホック閾値では 4 本だった — 統一による意図的変更
     [InlineData(80,  4)]
     [InlineData(100, 4)]
-    public void Bars_MatchesSignalIconServiceTiers(int signal, int expectedBars)
+    public void BarsMatchesSignalIconServiceTiers(int signal, int expectedBars)
     {
         Vm(signal).Bars.Should().Be(expectedBars);
     }
 
     [Fact]
-    public void Bars_AgreesWithSignalIconService_ForEveryQualityValue()
+    public void BarsAgreesWithSignalIconServiceForEveryQualityValue()
     {
         // 将来どちらかの実装だけが変更された場合に、2基準併存への逆行を全数検出する。
         for (int q = 0; q <= 100; q++)

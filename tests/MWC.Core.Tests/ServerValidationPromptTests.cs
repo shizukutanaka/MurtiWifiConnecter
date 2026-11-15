@@ -32,6 +32,8 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class ServerValidationPromptTests
 {
+    private static readonly string[] RadiusUnivAcJp = new[] { "radius.univ.ac.jp" };
+    private static readonly string[] RadiusCorpExample = new[] { "radius.corp.example" };
     private static readonly XNamespace MsPeap =
         "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
     private static readonly XNamespace EapTls =
@@ -59,9 +61,9 @@ public class ServerValidationPromptTests
     // ── PEAP ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void Peap_WithPinnedServerName_SuppressesThePrompt()
+    public void PeapWithPinnedServerNameSuppressesThePrompt()
     {
-        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }));
+        var doc = Build(Peap(servers: RadiusUnivAcJp));
 
         doc.Descendants(MsPeap + "DisableUserPromptForServerValidation")
             .Single().Value.Should().Be("true",
@@ -70,7 +72,7 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void Peap_WithPinnedTrustedRootCa_SuppressesThePrompt()
+    public void PeapWithPinnedTrustedRootCaSuppressesThePrompt()
     {
         var doc = Build(Peap(cas: new[] { Thumb }));
 
@@ -79,7 +81,7 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void Peap_WithNoValidationMaterial_KeepsThePromptAvailable()
+    public void PeapWithNoValidationMaterialKeepsThePromptAvailable()
     {
         // 照合対象が無い状態で厳格化すると、初回設定や CAT 未導入の環境で
         // 接続手段が失われる。ここは意図的に従来どおり。
@@ -92,14 +94,14 @@ public class ServerValidationPromptTests
     // ── EAP-TLS ──────────────────────────────────────────────────────
 
     [Fact]
-    public void EapTls_WithPinnedServerName_SuppressesThePrompt()
+    public void EapTlsWithPinnedServerNameSuppressesThePrompt()
     {
         var doc = Build(new WifiProfileSpec
         {
             Ssid = "CorpNet",
             Auth = AuthMethod.WPA2Enterprise,
             EapType = EapType.EAP_TLS,
-            ServerNames = new[] { "radius.corp.example" },
+            ServerNames = RadiusCorpExample,
         });
 
         doc.Descendants(EapTls + "DisableUserPromptForServerValidation")
@@ -107,7 +109,7 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void EapTls_WithNoValidationMaterial_KeepsThePromptAvailable()
+    public void EapTlsWithNoValidationMaterialKeepsThePromptAvailable()
     {
         var doc = Build(new WifiProfileSpec
         {
@@ -125,7 +127,7 @@ public class ServerValidationPromptTests
     // (true = プロンプト抑止 = 厳格)。
 
     [Fact]
-    public void EapTtls_WithPinnedTrustedRootCa_SuppressesThePrompt()
+    public void EapTtlsWithPinnedTrustedRootCaSuppressesThePrompt()
     {
         var doc = Build(new WifiProfileSpec
         {
@@ -142,7 +144,7 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void EapTtls_WithNoValidationMaterial_KeepsThePromptAvailable()
+    public void EapTtlsWithNoValidationMaterialKeepsThePromptAvailable()
     {
         var doc = Build(new WifiProfileSpec
         {
@@ -169,25 +171,25 @@ public class ServerValidationPromptTests
         "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2";
 
     [Fact]
-    public void Peap_WithPinning_EmitsPerformServerValidation()
+    public void PeapWithPinningEmitsPerformServerValidation()
     {
-        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }, cas: new[] { Thumb }));
+        var doc = Build(Peap(servers: RadiusUnivAcJp, cas: new[] { Thumb }));
 
         doc.Descendants(MsPeapV2 + "PerformServerValidation")
             .Single().Value.Should().Be("true");
     }
 
     [Fact]
-    public void Peap_WithServerName_EmitsAcceptServerName()
+    public void PeapWithServerNameEmitsAcceptServerName()
     {
-        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }));
+        var doc = Build(Peap(servers: RadiusUnivAcJp));
 
         doc.Descendants(MsPeapV2 + "AcceptServerName")
             .Single().Value.Should().Be("true");
     }
 
     [Fact]
-    public void Peap_WithCaButNoServerName_DoesNotClaimToMatchAServerName()
+    public void PeapWithCaButNoServerNameDoesNotClaimToMatchAServerName()
     {
         // 照合先 (ServerNames) が空なのに AcceptServerName=true を出すと
         // 検証が成立しない。CA のみのピン留めでは出してはならない。
@@ -199,7 +201,7 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void Peap_WithoutPinning_EmitsEmptyPeapExtensions()
+    public void PeapWithoutPinningEmitsEmptyPeapExtensions()
     {
         // 何も指定が無ければ従来どおり空 — 挙動を変えない。
         var doc = Build(Peap());
@@ -210,11 +212,11 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void Peap_WithDomain_EnablesIdentityPrivacyWithThatValue()
+    public void PeapWithDomainEnablesIdentityPrivacyWithThatValue()
     {
         // PEAP の外部アイデンティティは TLS トンネル確立前に平文で送られる。
         // --domain が指定された場合はそれを匿名アイデンティティとして使う。
-        var spec = Peap(servers: new[] { "radius.univ.ac.jp" });
+        var spec = Peap(servers: RadiusUnivAcJp);
         spec = spec with { Domain = "anonymous@univ.ac.jp" };
 
         var doc = Build(spec);
@@ -225,21 +227,21 @@ public class ServerValidationPromptTests
     }
 
     [Fact]
-    public void Peap_WithoutDomain_LeavesIdentityPrivacyOff_SoRealmRoutingKeepsWorking()
+    public void PeapWithoutDomainLeavesIdentityPrivacyOffSoRealmRoutingKeepsWorking()
     {
         // 既定で有効化してはならない。eduroam 等の RADIUS 配備は外部アイデンティティの
         // realm で経路制御しており、realm を欠いた "anonymous" を送ると認証が届かなくなる。
-        var doc = Build(Peap(servers: new[] { "radius.univ.ac.jp" }));
+        var doc = Build(Peap(servers: RadiusUnivAcJp));
 
         doc.Descendants(MsPeapV2 + "IdentityPrivacy").Should().BeEmpty(
             because: "a bare anonymous identity would break realm-based RADIUS routing");
     }
 
     [Fact]
-    public void PeapExtensions_ChildrenFollowTheSchemaSequenceOrder()
+    public void PeapExtensionsChildrenFollowTheSchemaSequenceOrder()
     {
         // PeapExtensionsType は xs:sequence。順序違反は取り込み拒否になりうる。
-        var spec = Peap(servers: new[] { "radius.univ.ac.jp" }, cas: new[] { Thumb });
+        var spec = Peap(servers: RadiusUnivAcJp, cas: new[] { Thumb });
         spec = spec with { Domain = "anonymous@univ.ac.jp" };
 
         var doc = Build(spec);
@@ -257,7 +259,7 @@ public class ServerValidationPromptTests
     [InlineData(EapType.PEAP_MSCHAPv2)]
     [InlineData(EapType.EAP_TLS)]
     [InlineData(EapType.EAP_TTLS)]
-    public void AllEapMethods_HonourPinning_Consistently(EapType eap)
+    public void AllEapMethodsHonourPinningConsistently(EapType eap)
     {
         // どの方式でも「ピン留めしたら厳格」が成り立つこと。
         // 一方式だけ緩いと、そこが攻撃者にとっての最弱リンクになる。

@@ -11,7 +11,7 @@ namespace MWC.Core.Tests;
 public class AsyncEventHelperTests
 {
     [Fact]
-    public async Task SafeRunAsync_TaskCompletes_NoException()
+    public async Task SafeRunAsyncTaskCompletesNoException()
     {
         bool ran = false;
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
@@ -23,7 +23,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_TaskThrows_DoesNotPropagate()
+    public async Task SafeRunAsyncTaskThrowsDoesNotPropagate()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
         {
@@ -33,7 +33,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OperationCanceled_DoesNotPropagate()
+    public async Task SafeRunAsyncOperationCanceledDoesNotPropagate()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test", async () =>
         {
@@ -43,7 +43,7 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OnError_IsCalledOnException()
+    public async Task SafeRunAsyncOnErrorIsCalledOnException()
     {
         Exception? captured = null;
         await AsyncEventHelper.SafeRunAsync(null, "test",
@@ -54,15 +54,15 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_OnErrorThrows_DoesNotCascade()
+    public async Task SafeRunAsyncOnErrorThrowsDoesNotCascade()
     {
         await AsyncEventHelper.SafeRunAsync(null, "test",
             () => Task.FromException(new InvalidOperationException()),
-            onError: _ => throw new Exception("nested"));
+            onError: _ => throw new InvalidOperationException("nested"));
     }
 
     [Fact]
-    public async Task SafeRunAsync_Generic_ReturnsValue()
+    public async Task SafeRunAsyncGenericReturnsValue()
     {
         var result = await AsyncEventHelper.SafeRunAsync<int>(
             null, "test", () => Task.FromResult(42));
@@ -70,11 +70,11 @@ public class AsyncEventHelperTests
     }
 
     [Fact]
-    public async Task SafeRunAsync_Generic_OnException_ReturnsFallback()
+    public async Task SafeRunAsyncGenericOnExceptionReturnsFallback()
     {
         var result = await AsyncEventHelper.SafeRunAsync<int>(
             null, "test",
-            () => throw new Exception(),
+            () => throw new InvalidOperationException(),
             fallback: -1);
         result.Should().Be(-1);
     }
@@ -89,7 +89,7 @@ public class ChangelogConsistencyTests
     }
 
     [Fact]
-    public void Changelog_VersionEntriesAreUnique()
+    public void ChangelogVersionEntriesAreUnique()
     {
         var path = GetChangelogPath();
         if (!File.Exists(path)) return;
@@ -109,7 +109,7 @@ public class ResourceCoverageV8Tests
             "..", "..", "..", "..", "..", "src", "MWC.App", "Resources"));
 
     [Fact]
-    public void NewKeysExist_StatusCopied_AllLanguages()
+    public void NewKeysExistStatusCopiedAllLanguages()
     {
         var dir = ResxDir();
         if (!Directory.Exists(dir)) return;
@@ -129,7 +129,7 @@ public class ResourceCoverageV8Tests
 public class ConstructorIntegrityTests
 {
     [Fact]
-    public void AdapterViewModel_Constructor_Requires7Args()
+    public void AdapterViewModelConstructorRequires7Args()
     {
         var ctors = typeof(MWC.App.ViewModels.AdapterViewModel).GetConstructors();
         ctors.Should().HaveCount(1);
@@ -139,7 +139,7 @@ public class ConstructorIntegrityTests
     }
 
     [Fact]
-    public void ConnectionExecutor_Constructor_Requires3Args()
+    public void ConnectionExecutorConstructorRequires3Args()
     {
         var ctors = typeof(MWC.Core.Services.ConnectionExecutor).GetConstructors();
         ctors.Should().HaveCount(1);
@@ -148,7 +148,7 @@ public class ConstructorIntegrityTests
     }
 
     [Fact]
-    public void AllAdaptersOverviewViewModel_Constructor_HasExecutor()
+    public void AllAdaptersOverviewViewModelConstructorHasExecutor()
     {
         var ctor = typeof(MWC.App.ViewModels.AllAdaptersOverviewViewModel)
             .GetConstructors().Single();
@@ -160,7 +160,7 @@ public class ConstructorIntegrityTests
 public class WifiConnectAuditTests
 {
     [Fact]
-    public void ConnectionExecutor_IsTheSingleConnectEntryPoint()
+    public void ConnectionExecutorIsTheSingleConnectEntryPoint()
     {
         // App層のソースコードに _wifi.ConnectAsync が存在しないことを検証
         var appDir = Path.GetFullPath(Path.Combine(

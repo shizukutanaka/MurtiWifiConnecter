@@ -13,6 +13,10 @@ using MWC.Core.Models;
 using MWC.Core.Services;
 
 using MWC.App.Resources;
+
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Clipboard = System.Windows.Clipboard;
+
 namespace MWC.App;
 
 /// <summary>
@@ -113,7 +117,7 @@ public sealed class MainWindowCommands
             vm.StatusMessage = L.Format("Status_Copied", ssid);
             AccessibilityService.AnnounceConnectionStatus(L.AnnounceSsidCopied(ssid));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException)
         {
             vm.StatusMessage = _errors.Handle(ex, "SSID コピー");
         }
@@ -160,7 +164,7 @@ public sealed class MainWindowCommands
         }, MWC.App.Resources.L.Get("Export_Op"), $"format={format}");
 
         return result.Success
-            ? MWC.App.Resources.L.Format("Status_Exported", result.Value)
+            ? MWC.App.Resources.L.Format("Status_Exported", result.Value ?? string.Empty)
             : result.ErrorMessage ?? MWC.App.Resources.L.Get("Status_Failed");
     }
 
@@ -266,7 +270,7 @@ public sealed class MainWindowCommands
             await System.IO.File.WriteAllTextAsync(dlg.FileName, markdown);
             vm.StatusMessage = L.StatusDiagnosticExported(System.IO.Path.GetFileName(dlg.FileName));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException)
         {
             vm.StatusMessage = _errors.Handle(ex, "Diagnostic export");
         }

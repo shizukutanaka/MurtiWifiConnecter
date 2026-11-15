@@ -26,7 +26,7 @@ public class WifiUriFuzzTests
     [InlineData("garbage\x00\x01\x02")]       // 制御文字
     [InlineData("WIFI:T:INVALID;S:Net;P:pass;;")]  // 不正な auth
     [InlineData("WIFI:S:Net;T:WPA;P:short;H:true;;")]
-    public void TryParse_MalformedInput_DoesNotThrow(string input)
+    public void TryParseMalformedInputDoesNotThrow(string input)
     {
         // ファズ: どんな不正入力でも例外を投げず null か有効な結果を返す
         var act = () => WifiUri.TryParse(input);
@@ -34,9 +34,9 @@ public class WifiUriFuzzTests
     }
 
     [Fact]
-    public void TryParse_RandomGarbage_NeverThrows()
+    public void TryParseRandomGarbageNeverThrows()
     {
-        var rng = new Random(42);
+        var rng = new DeterministicRandom(42);
         for (int i = 0; i < 200; i++)
         {
             var len = rng.Next(0, 100);
@@ -51,7 +51,7 @@ public class WifiUriFuzzTests
     }
 
     [Fact]
-    public void TryParse_ValidUri_RoundTrips()
+    public void TryParseValidUriRoundTrips()
     {
         var spec = new WifiProfileSpec
         {
@@ -76,7 +76,7 @@ public class SignalEdgeCaseTests
     [InlineData(-50)]
     [InlineData(0)]      // ありえない高 RSSI
     [InlineData(100)]
-    public void RssiToQuality_ExtremeValues_StayInBounds(int rssi)
+    public void RssiToQualityExtremeValuesStayInBounds(int rssi)
     {
         var quality = SignalIconService.RssiToQuality(rssi);
         quality.Should().BeInRange(0, 100);
@@ -90,7 +90,7 @@ public class SignalEdgeCaseTests
     [InlineData(101)]
     [InlineData(int.MaxValue)]
     [InlineData(int.MinValue)]
-    public void Describe_AnyQuality_ReturnsValidIndicator(int quality)
+    public void DescribeAnyQualityReturnsValidIndicator(int quality)
     {
         var ind = SignalIconService.Describe(quality);
         ind.Bars.Should().BeInRange(0, 4);
@@ -110,7 +110,7 @@ public class SignalIconServiceTests
     [InlineData(50, 2, SignalLevel.Fair)]
     [InlineData(30, 1, SignalLevel.Weak)]
     [InlineData(10, 0, SignalLevel.VeryWeak)]
-    public void Describe_MapsQualityToBarsAndLevel(int quality, int bars, SignalLevel level)
+    public void DescribeMapsQualityToBarsAndLevel(int quality, int bars, SignalLevel level)
     {
         var ind = SignalIconService.Describe(quality);
         ind.Bars.Should().Be(bars);
@@ -118,7 +118,7 @@ public class SignalIconServiceTests
     }
 
     [Fact]
-    public void Describe_RedundantEncoding_NotColorOnly()
+    public void DescribeRedundantEncodingNotColorOnly()
     {
         // WCAG 1.4.1: 色以外の手がかり (バー/記号/テキスト) が必ずある
         foreach (var q in new[] { 10, 30, 50, 70, 90 })
@@ -132,7 +132,7 @@ public class SignalIconServiceTests
     }
 
     [Fact]
-    public void Glyph_BarCount_MatchesBars()
+    public void GlyphBarCountMatchesBars()
     {
         // 記号の塗りつぶしバー (▰) の数が Bars と一致
         foreach (var q in new[] { 10, 30, 50, 70, 90 })
@@ -144,7 +144,7 @@ public class SignalIconServiceTests
     }
 
     [Fact]
-    public void AccessibleLabel_ContainsNonColorInfo()
+    public void AccessibleLabelContainsNonColorInfo()
     {
         var label = SignalIconService.AccessibleLabel(70);
         label.Should().Contain("Good");
@@ -160,7 +160,7 @@ public class SignalIconServiceTests
     [InlineData(-75, 50)]
     [InlineData(-100, 0)]
     [InlineData(-40, 100)]   // クランプ
-    public void RssiToQuality_LinearConversion(int rssi, int expected)
+    public void RssiToQualityLinearConversion(int rssi, int expected)
     {
         SignalIconService.RssiToQuality(rssi).Should().Be(expected);
     }
@@ -182,7 +182,7 @@ public class RecommendationExplainabilityTests
         };
 
     [Fact]
-    public void Explain_SecureProfile_TopFactorIsSecurity()
+    public void ExplainSecureProfileTopFactorIsSecurity()
     {
         var net = Net(AuthMethod.WPA3SAE, WifiBand.Band5GHz, 60, PmfStatus.Required);
         var score = _engine.Score(net, UsageProfile.Secure);
@@ -192,11 +192,11 @@ public class RecommendationExplainabilityTests
         explanation.ProfileReason.Should().Contain("security");
         explanation.Contributions.Should().HaveCount(4);
         // Secure プロファイルではセキュリティの重みが最大
-        explanation.Contributions.First().Dimension.Should().Be("Security");
+        explanation.Contributions[0].Dimension.Should().Be("Security");
     }
 
     [Fact]
-    public void Explain_ContributionsSumToTotal()
+    public void ExplainContributionsSumToTotal()
     {
         var net = Net(AuthMethod.WPA3SAE, WifiBand.Band6GHz, 80, PmfStatus.Required, ft: true);
         var score = _engine.Score(net);
@@ -208,7 +208,7 @@ public class RecommendationExplainabilityTests
     }
 
     [Fact]
-    public void Explain_ContributionsSortedDescending()
+    public void ExplainContributionsSortedDescending()
     {
         var net = Net(AuthMethod.WPA3SAE, WifiBand.Band6GHz, 90, PmfStatus.Required, ft: true);
         var score = _engine.Score(net);
@@ -218,17 +218,40 @@ public class RecommendationExplainabilityTests
             explanation.Contributions[i].WeightedContribution
                 .Should().BeLessOrEqualTo(explanation.Contributions[i - 1].WeightedContribution);
 
-        explanation.TopFactor.Should().Be(explanation.Contributions.First().Dimension);
+        explanation.TopFactor.Should().Be(explanation.Contributions[0].Dimension);
     }
 
     [Fact]
-    public void Explain_SummaryIncludesScoreAndGrade()
+    public void ExplainSummaryIncludesScoreAndGrade()
     {
         var net = Net(AuthMethod.WPA3SAE, WifiBand.Band6GHz, 90, PmfStatus.Required, ft: true);
         var score = _engine.Score(net);
         var explanation = _engine.Explain(score);
 
-        explanation.Summary.Should().Contain(score.Total.ToString("F0"));
+        explanation.Summary.Should().Contain(score.Total.ToString("F0", System.Globalization.CultureInfo.CurrentCulture));
         explanation.Summary.Should().Contain("100");
+    }
+}
+
+/// <summary>
+/// 再現性のあるファズ入力生成専用の決定的 PRNG (xorshift32)。
+/// System.Random はセキュリティ用途に不適という CA5394 の対象になるため、
+/// 暗号用途ではない「固定シードで同じゴミ入力を再生成する」目的に限定して自前実装する。
+/// </summary>
+internal sealed class DeterministicRandom
+{
+    private uint _state;
+
+    public DeterministicRandom(uint seed) => _state = seed == 0 ? 0x9E3779B9u : seed;
+
+    public int Next(int minValue, int maxValue)
+    {
+        // xorshift32
+        uint x = _state;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        _state = x;
+        return minValue + (int)(x % (uint)(maxValue - minValue));
     }
 }

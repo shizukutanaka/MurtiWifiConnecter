@@ -26,7 +26,7 @@ public class ChannelAdvisorServiceTests
         };
 
     [Fact]
-    public void RecommendBand_StrongSignalAllBands_Prefers6GHz()
+    public void RecommendBandStrongSignalAllBandsPrefers6GHz()
     {
         var networks = new[]
         {
@@ -42,7 +42,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void RecommendBand_Weak6GHzStrong5GHz_Prefers5GHz()
+    public void RecommendBandWeak6GHzStrong5GHzPrefers5GHz()
     {
         var networks = new[]
         {
@@ -57,7 +57,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void RecommendBand_EmptyList_ReturnsNull()
+    public void RecommendBandEmptyListReturnsNull()
     {
         _svc.RecommendBand(Array.Empty<WifiNetwork>()).Should().BeNull();
     }
@@ -68,14 +68,14 @@ public class ChannelAdvisorServiceTests
     [InlineData(11, true)]    // 非重複
     [InlineData(3,  false)]   // 重複
     [InlineData(9,  false)]   // 重複
-    public void IsNonOverlappingChannel_24GHz_DetectsCorrectly(int channel, bool expected)
+    public void IsNonOverlappingChannel24GHzDetectsCorrectly(int channel, bool expected)
     {
         var net = Net(WifiBand.Band2_4GHz, 70, channel: channel, width: 20);
         _svc.IsNonOverlappingChannel(net).Should().Be(expected);
     }
 
     [Fact]
-    public void IsNonOverlappingChannel_5GHz_AlwaysTrue()
+    public void IsNonOverlappingChannel5GHzAlwaysTrue()
     {
         // 5GHz は基本的に非重複扱い
         _svc.IsNonOverlappingChannel(Net(WifiBand.Band5GHz, 70, channel: 36)).Should().BeTrue();
@@ -83,7 +83,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void AdviseChannelWidth_DenseEnvironment_Recommends20MHz()
+    public void AdviseChannelWidthDenseEnvironmentRecommends20MHz()
     {
         var net = Net(WifiBand.Band5GHz, 80, width: 80);
         var advice = _svc.AdviseChannelWidth(net, nearbyApCount: 15);
@@ -94,7 +94,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void AdviseChannelWidth_SparseEnvironment_Recommends80MHz()
+    public void AdviseChannelWidthSparseEnvironmentRecommends80MHz()
     {
         var net = Net(WifiBand.Band5GHz, 80, width: 20);
         var advice = _svc.AdviseChannelWidth(net, nearbyApCount: 2);
@@ -104,7 +104,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void AdviseChannelWidth_AppropriateWidth_IsOptimal()
+    public void AdviseChannelWidthAppropriateWidthIsOptimal()
     {
         var net = Net(WifiBand.Band5GHz, 80, width: 20);
         var advice = _svc.AdviseChannelWidth(net, nearbyApCount: 15);  // 高密度で20MHz = 最適
@@ -117,7 +117,7 @@ public class ChannelAdvisorServiceTests
     [InlineData(5,  50)]    // 5台 → 50%
     [InlineData(10, 100)]   // 10台 → 100%
     [InlineData(15, 100)]   // 上限100%
-    public void EstimateCongestion_ScalesWithApCount(int apCount, int expectedCongestion)
+    public void EstimateCongestionScalesWithApCount(int apCount, int expectedCongestion)
     {
         var networks = Enumerable.Range(0, apCount)
             .Select(i => Net(WifiBand.Band5GHz, 70, channel: 36))
@@ -127,7 +127,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void EstimateCongestion_DifferentChannels_NotCounted()
+    public void EstimateCongestionDifferentChannelsNotCounted()
     {
         var networks = new[]
         {
@@ -141,7 +141,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void DescribeBandChoice_Weak6GHz_WarnsAboutWalls()
+    public void DescribeBandChoiceWeak6GHzWarnsAboutWalls()
     {
         var desc = _svc.DescribeBandChoice(Net(WifiBand.Band6GHz, 25));
         desc.Should().Contain("6 GHz");
@@ -149,14 +149,14 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void DescribeBandChoice_OverlappingChannel_WarnsInterference()
+    public void DescribeBandChoiceOverlappingChannelWarnsInterference()
     {
         var desc = _svc.DescribeBandChoice(Net(WifiBand.Band2_4GHz, 70, channel: 3, width: 20));
         desc.Should().Contain("interference");
     }
 
     [Fact]
-    public void ScoreBandChoice_6GHzStrong_HigherThan24GHz()
+    public void ScoreBandChoice6GHzStrongHigherThan24GHz()
     {
         var score6 = _svc.ScoreBandChoice(Net(WifiBand.Band6GHz, 85));
         var score24 = _svc.ScoreBandChoice(Net(WifiBand.Band2_4GHz, 85, channel: 6));
@@ -167,7 +167,7 @@ public class ChannelAdvisorServiceTests
     // ── AdviseCongestion (BSS Load ベース) ───────────────────────────────
 
     [Fact]
-    public void AdviseCongestion_BssLoadPresent_UsesBssLoad()
+    public void AdviseCongestionBssLoadPresentUsesBssLoad()
     {
         var network = new WifiNetwork
         {
@@ -196,7 +196,7 @@ public class ChannelAdvisorServiceTests
     }
 
     [Fact]
-    public void AdviseCongestion_NoBssLoad_FallsBackToApCount()
+    public void AdviseCongestionNoBssLoadFallsBackToApCount()
     {
         var network = Net(WifiBand.Band5GHz, 70, channel: 36);
         // 3 APs on same channel → 30% estimated

@@ -14,7 +14,7 @@ namespace MWC.Core.Tests;
 public class MwcLogTests
 {
     [Fact]
-    public void HashSsid_SameInput_SameHash()
+    public void HashSsidSameInputSameHash()
     {
         var h1 = MwcLog.HashSsid("HomeWiFi");
         var h2 = MwcLog.HashSsid("HomeWiFi");
@@ -22,13 +22,13 @@ public class MwcLogTests
     }
 
     [Fact]
-    public void HashSsid_DifferentInput_DifferentHash()
+    public void HashSsidDifferentInputDifferentHash()
     {
         MwcLog.HashSsid("NetA").Should().NotBe(MwcLog.HashSsid("NetB"));
     }
 
     [Fact]
-    public void HashSsid_DoesNotContainOriginal()
+    public void HashSsidDoesNotContainOriginal()
     {
         var ssid = "MySecretNetwork";
         var hash = MwcLog.HashSsid(ssid);
@@ -38,13 +38,13 @@ public class MwcLogTests
     }
 
     [Fact]
-    public void HashSsid_Empty_ReturnsPlaceholder()
+    public void HashSsidEmptyReturnsPlaceholder()
     {
         MwcLog.HashSsid("").Should().Be("(empty)");
     }
 
     [Fact]
-    public void HashSsid_IsHexFormat()
+    public void HashSsidIsHexFormat()
     {
         var hash = MwcLog.HashSsid("TestNetwork123");
         hash.Should().MatchRegex("^[0-9a-f]{8}$");
@@ -68,7 +68,7 @@ public class HealthCheckServiceTests
         };
 
     [Fact]
-    public void CheckAdapters_NoAdapters_Unhealthy()
+    public void CheckAdaptersNoAdaptersUnhealthy()
     {
         var report = _svc.CheckAdapters(Array.Empty<WifiAdapter>());
         report.Status.Should().Be(HealthStatus.Unhealthy);
@@ -76,7 +76,7 @@ public class HealthCheckServiceTests
     }
 
     [Fact]
-    public void CheckAdapters_ConnectedAdapter_Healthy()
+    public void CheckAdaptersConnectedAdapterHealthy()
     {
         var report = _svc.CheckAdapters(new[] { Adapter(AdapterState.Connected) });
         report.Status.Should().Be(HealthStatus.Healthy);
@@ -84,7 +84,7 @@ public class HealthCheckServiceTests
     }
 
     [Fact]
-    public void CheckAdapters_AllNotReady_Unhealthy()
+    public void CheckAdaptersAllNotReadyUnhealthy()
     {
         var report = _svc.CheckAdapters(new[]
         {
@@ -95,7 +95,7 @@ public class HealthCheckServiceTests
     }
 
     [Fact]
-    public void CheckAdapters_MixedStates_ReportsConnected()
+    public void CheckAdaptersMixedStatesReportsConnected()
     {
         var report = _svc.CheckAdapters(new[]
         {
@@ -107,14 +107,14 @@ public class HealthCheckServiceTests
     }
 
     [Fact]
-    public void IsLive_HealthyReport_True()
+    public void IsLiveHealthyReportTrue()
     {
         var report = _svc.CheckAdapters(new[] { Adapter(AdapterState.Connected) });
         _svc.IsLive(report).Should().BeTrue();
     }
 
     [Fact]
-    public void IsLive_UnhealthyReport_False()
+    public void IsLiveUnhealthyReportFalse()
     {
         var report = _svc.CheckAdapters(Array.Empty<WifiAdapter>());
         _svc.IsLive(report).Should().BeFalse();
@@ -129,7 +129,7 @@ public class PiiVerificationTests
     private readonly HealthCheckService _svc = new();
 
     [Fact]
-    public void VerifyNoPii_CleanLog_Passes()
+    public void VerifyNoPiiCleanLogPasses()
     {
         var ok = _svc.VerifyNoPii("接続成功 adapter=abc123 ssidHash=deadbeef elapsedMs=150", out var detected);
         ok.Should().BeTrue();
@@ -137,7 +137,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_ContainsIpv4_Fails()
+    public void VerifyNoPiiContainsIpv4Fails()
     {
         var ok = _svc.VerifyNoPii("gateway 192.168.1.1 reachable", out var detected);
         ok.Should().BeFalse();
@@ -145,7 +145,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_ContainsMac_Fails()
+    public void VerifyNoPiiContainsMacFails()
     {
         var ok = _svc.VerifyNoPii("bssid AA:BB:CC:DD:EE:FF detected", out var detected);
         ok.Should().BeFalse();
@@ -153,7 +153,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_ContainsEmail_Fails()
+    public void VerifyNoPiiContainsEmailFails()
     {
         var ok = _svc.VerifyNoPii("user admin@example.com logged in", out var detected);
         ok.Should().BeFalse();
@@ -161,7 +161,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_ContainsPhone_Fails()
+    public void VerifyNoPiiContainsPhoneFails()
     {
         var ok = _svc.VerifyNoPii("contact 03-1234-5678 office", out var detected);
         ok.Should().BeFalse();
@@ -169,7 +169,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_HashedSsidLog_Passes()
+    public void VerifyNoPiiHashedSsidLogPasses()
     {
         // MwcLog の出力形式は PII を含まない
         var ssidHash = MwcLog.HashSsid("RealNetwork");
@@ -178,7 +178,7 @@ public class PiiVerificationTests
     }
 
     [Fact]
-    public void VerifyNoPii_MultiplePii_DetectsAll()
+    public void VerifyNoPiiMultiplePiiDetectsAll()
     {
         var ok = _svc.VerifyNoPii(
             "192.168.1.1 admin@test.com AA:BB:CC:DD:EE:FF", out var detected);

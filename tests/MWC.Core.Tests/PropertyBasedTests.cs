@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using FsCheck;
+using FsCheck.Fluent;
 using FsCheck.Xunit;
 using FluentAssertions;
 using MWC.Core.Models;
@@ -17,13 +18,13 @@ namespace MWC.Core.Tests;
 public class WifiUriPropertyTests
 {
     [Property(MaxTest = 200)]
-    public Property WifiUri_RoundTrip_PreservesNonEmptySsid()
+    public Property WifiUriRoundTripPreservesNonEmptySsid()
     {
-        var gen = Arb.Default.String().Generator
+        var gen = ArbMap.Default.ArbFor<string>().Generator
             .Where(s => !string.IsNullOrEmpty(s) && s.Length <= 32
                         && s.All(c => c >= ' ' && c <= '~'));
 
-        return Prop.ForAll(gen, ssid =>
+        return Prop.ForAll(Arb.From(gen), ssid =>
         {
             var spec   = new WifiProfileSpec { Ssid = ssid, Auth = AuthMethod.WPA2PSK, Passphrase = "pass12345" };
             var uri    = WifiUri.Build(spec);
@@ -33,13 +34,13 @@ public class WifiUriPropertyTests
     }
 
     [Property(MaxTest = 200)]
-    public Property ProfileXmlBuilder_WPA2_AlwaysHasKeyMaterial()
+    public Property ProfileXmlBuilderWPA2AlwaysHasKeyMaterial()
     {
-        var gen = Arb.Default.String().Generator
+        var gen = ArbMap.Default.ArbFor<string>().Generator
             .Where(s => s != null && s.Length >= 8 && s.Length <= 63
                         && s.All(c => c >= ' ' && c <= '~') && !string.IsNullOrWhiteSpace(s));
 
-        return Prop.ForAll(gen, pass =>
+        return Prop.ForAll(Arb.From(gen), pass =>
         {
             var spec = new WifiProfileSpec { Ssid = "TestNet", Auth = AuthMethod.WPA2PSK, Passphrase = pass };
             var xml  = ProfileXmlBuilder.Build(spec);
@@ -48,7 +49,7 @@ public class WifiUriPropertyTests
     }
 
     [Property(MaxTest = 100)]
-    public Property ProfileXmlBuilder_Open_NeverHasKeyMaterial()
+    public Property ProfileXmlBuilderOpenNeverHasKeyMaterial()
     {
         var gen = Gen.Elements("TestNet", "Corp-Free", "Cafe");
         return Prop.ForAll(Arb.From(gen), ssid =>
@@ -60,7 +61,7 @@ public class WifiUriPropertyTests
     }
 
     [Property(MaxTest = 150)]
-    public Property WifiUri_Always_StartsWithWifi()
+    public Property WifiUriAlwaysStartsWithWifi()
     {
         var authGen = Gen.Elements(AuthMethod.Open, AuthMethod.WPA2PSK, AuthMethod.WPA3SAE);
         return Prop.ForAll(Arb.From(authGen), auth =>
@@ -73,7 +74,7 @@ public class WifiUriPropertyTests
             };
             var uri    = WifiUri.Build(spec);
             var parsed = WifiUri.TryParse(uri);
-            bool startsOk  = uri.StartsWith("WIFI:");
+            bool startsOk  = uri.StartsWith("WIFI:", StringComparison.Ordinal);
             bool parsedOk  = parsed?.Ssid == "Net";
             bool authMatch = parsed?.Auth == auth;
             return startsOk && parsedOk && authMatch;
@@ -86,7 +87,7 @@ public class AccessibilityPropertyTests
     private readonly AccessibilityAuditService _svc = new();
 
     [Property(MaxTest = 300)]
-    public Property Contrast_AlwaysAtLeastOne()
+    public Property ContrastAlwaysAtLeastOne()
     {
         var hexGen = Gen.Choose(0, 16777215).Select(n => $"#{n:X6}");
         return Prop.ForAll(Arb.From(hexGen), Arb.From(hexGen), (fg, bg) =>
@@ -97,13 +98,13 @@ public class AccessibilityPropertyTests
             // Property: EvaluateContrast の Ratio は CalcContrast と一致
             bool validRange  = ratio >= 1.0 && ratio <= 22.0;
             bool consistent  = Math.Abs(result.Ratio - ratio) < 0.001;
-            bool labelOk     = result.RatioLabel.Contains(":");
+            bool labelOk     = result.RatioLabel.Contains(':');
             return validRange && consistent && labelOk;
         });
     }
 
     [Property(MaxTest = 200)]
-    public Property LargeText_Level_AtLeastAsGoodAsNormal()
+    public Property LargeTextLevelAtLeastAsGoodAsNormal()
     {
         var hexGen = Gen.Choose(0, 16777215).Select(n => $"#{n:X6}");
         return Prop.ForAll(Arb.From(hexGen), Arb.From(hexGen), (fg, bg) =>
@@ -120,7 +121,7 @@ public class RegulatoryDomainPropertyTests
     private readonly RegulatoryDomainService _svc = new();
 
     [Property(MaxTest = 50)]
-    public Property ChannelNumbers_AreValidIEEE80211ax()
+    public Property ChannelNumbersAreValidIEEE80211ax()
     {
         var ccGen = Gen.Elements("US", "JP", "DE", "CN", "AU");
         return Prop.ForAll(Arb.From(ccGen), cc =>
@@ -131,7 +132,7 @@ public class RegulatoryDomainPropertyTests
     }
 
     [Property(MaxTest = 100)]
-    public Property FrequencyMhz_IsDerivableFromChannel()
+    public Property FrequencyMhzIsDerivableFromChannel()
     {
         var ccGen = Gen.Elements("US", "JP");
         return Prop.ForAll(Arb.From(ccGen), cc =>
@@ -145,7 +146,7 @@ public class RegulatoryDomainPropertyTests
 public class AdapterPreferencesPropertyTests
 {
     [Property(MaxTest = 100)]
-    public Property PinSsid_NoDuplicates()
+    public Property PinSsidNoDuplicates()
     {
         var ssidGen  = Gen.Elements("Home", "Office", "Cafe", "Hotel");
         var countGen = Gen.Choose(1, 5);
@@ -163,7 +164,7 @@ public class AdapterPreferencesPropertyTests
     }
 
     [Property(MaxTest = 100)]
-    public Property MoveUp_PreservesAll_NoLoss()
+    public Property MoveUpPreservesAllNoLoss()
     {
         var ssids    = new[] { "A", "B", "C", "D" };
         var indexGen = Gen.Choose(0, ssids.Length - 1);

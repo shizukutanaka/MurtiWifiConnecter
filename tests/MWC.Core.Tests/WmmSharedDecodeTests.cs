@@ -41,7 +41,7 @@ public class WmmSharedDecodeTests
         [221, 7, 0x00, 0x50, 0xF2, 0x02, 0x00, 0x01, 0x03];
 
     [Fact]
-    public void BothEntryPoints_DecodeParametersIdentically()
+    public void BothEntryPointsDecodeParametersIdentically()
     {
         var element = ParamElement();
 
@@ -54,7 +54,7 @@ public class WmmSharedDecodeTests
     }
 
     [Fact]
-    public void BothEntryPoints_ReadTheSameQosInfo()
+    public void BothEntryPointsReadTheSameQosInfo()
     {
         var element = InfoElement();
 
@@ -66,7 +66,7 @@ public class WmmSharedDecodeTests
     }
 
     [Fact]
-    public void OnePassParser_LeavesWmmNull_WhenOnlyInfoElementPresent()
+    public void OnePassParserLeavesWmmNullWhenOnlyInfoElementPresent()
     {
         // Info 要素 (Subtype 0) は AC パラメータを持たない。QoS Info だけが取れる。
         var summary = BeaconIeParser.Parse(InfoElement());
@@ -76,7 +76,7 @@ public class WmmSharedDecodeTests
     }
 
     [Fact]
-    public void ParameterBody_RejectsTruncatedElement()
+    public void ParameterBodyRejectsTruncatedElement()
     {
         // 本体が 24 バイト未満 = AC パラメータが揃っていない。null を返し、例外は投げない。
         var body = ParamElement()[2..^4];
@@ -85,7 +85,7 @@ public class WmmSharedDecodeTests
     }
 
     [Fact]
-    public void ParameterBody_RejectsForeignOui()
+    public void ParameterBodyRejectsForeignOui()
     {
         var body = ParamElement()[2..];
         body[0] = 0x00; body[1] = 0x0C; body[2] = 0xE7;   // 別ベンダーの OUI

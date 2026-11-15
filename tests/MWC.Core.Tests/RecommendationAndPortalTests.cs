@@ -30,7 +30,7 @@ public class NetworkRecommendationEngineTests
         };
 
     [Fact]
-    public void Score_SecureProfile_PrioritizesSecurity()
+    public void ScoreSecureProfilePrioritizesSecurity()
     {
         var secure   = Net("A", AuthMethod.WPA3SAE,  WifiBand.Band5GHz, 60, PmfStatus.Required);
         var insecure = Net("B", AuthMethod.Open,     WifiBand.Band6GHz, 95);
@@ -44,7 +44,7 @@ public class NetworkRecommendationEngineTests
     }
 
     [Fact]
-    public void Score_RealtimeProfile_PrioritizesRoaming()
+    public void ScoreRealtimeProfilePrioritizesRoaming()
     {
         var roamer  = Net("A", AuthMethod.WPA2Enterprise, WifiBand.Band5GHz, 70, ft: true);
         var static_ = Net("B", AuthMethod.WPA2Enterprise, WifiBand.Band5GHz, 75);
@@ -56,7 +56,7 @@ public class NetworkRecommendationEngineTests
     }
 
     [Fact]
-    public void Score_AllDimensions_InValidRange()
+    public void ScoreAllDimensionsInValidRange()
     {
         var net = Net("X", AuthMethod.WPA3SAE, WifiBand.Band6GHz, 80, PmfStatus.Required, ft: true);
         var score = _engine.Score(net);
@@ -69,7 +69,7 @@ public class NetworkRecommendationEngineTests
     }
 
     [Fact]
-    public void Rank_OrdersByTotalDescending()
+    public void RankOrdersByTotalDescending()
     {
         var networks = new[]
         {
@@ -87,7 +87,7 @@ public class NetworkRecommendationEngineTests
     }
 
     [Fact]
-    public void Recommend_BestNetwork_HasHighestScore()
+    public void RecommendBestNetworkHasHighestScore()
     {
         var networks = new[]
         {
@@ -107,18 +107,18 @@ public class NetworkRecommendationEngineTests
     [InlineData(75, RecommendationGrade.Good)]
     [InlineData(55, RecommendationGrade.Fair)]
     [InlineData(30, RecommendationGrade.Poor)]
-    public void Grade_MapsFromTotal(int signal, RecommendationGrade expectedMin)
+    public void GradeMapsFromTotal(int signal, RecommendationGrade expectedMin)
     {
         // 高信号 WPA3 で各グレードを確認
         var net = Net("G", AuthMethod.WPA3SAE, WifiBand.Band6GHz, signal,
             PmfStatus.Required, ft: signal >= 75);
         var score = _engine.Score(net);
         // グレードは Total に従う
-        ((int)score.Grade).Should().BeGreaterOrEqualTo(0);
+        ((int)score.Grade).Should().BeGreaterOrEqualTo((int)expectedMin);
     }
 
     [Fact]
-    public void Recommend_EmptyList_ReturnsNull()
+    public void RecommendEmptyListReturnsNull()
     {
         _engine.Recommend(Array.Empty<WifiNetwork>()).Should().BeNull();
     }
@@ -130,7 +130,7 @@ public class NetworkRecommendationEngineTests
 public class RetryPolicyTests
 {
     [Fact]
-    public void ComputeDeterministicDelay_GrowsExponentially()
+    public void ComputeDeterministicDelayGrowsExponentially()
     {
         var policy = new RetryPolicy(baseDelay: TimeSpan.FromMilliseconds(500));
 
@@ -144,7 +144,7 @@ public class RetryPolicyTests
     }
 
     [Fact]
-    public void ComputeDeterministicDelay_RespectsMaxCap()
+    public void ComputeDeterministicDelayRespectsMaxCap()
     {
         var policy = new RetryPolicy(
             baseDelay: TimeSpan.FromMilliseconds(500),
@@ -155,7 +155,7 @@ public class RetryPolicyTests
     }
 
     [Fact]
-    public void ComputeDelay_WithJitter_StaysWithinBounds()
+    public void ComputeDelayWithJitterStaysWithinBounds()
     {
         var policy = new RetryPolicy(
             baseDelay: TimeSpan.FromMilliseconds(500),
@@ -175,7 +175,7 @@ public class RetryPolicyTests
     }
 
     [Fact]
-    public void ComputeDelay_ProducesVariation_AvoidsThunderingHerd()
+    public void ComputeDelayProducesVariationAvoidsThunderingHerd()
     {
         var policy = new RetryPolicy(baseDelay: TimeSpan.FromMilliseconds(500));
         var delays = Enumerable.Range(0, 50)
@@ -201,7 +201,7 @@ public class RetryPolicyTests
     [InlineData(ConnectionFailure.NotInRange,            true)]
     [InlineData(ConnectionFailure.OsError,               true)]
     [InlineData(ConnectionFailure.Unknown,               true)]
-    public void IsRetriable_CorrectlyClassifies(ConnectionFailure failure, bool expected)
+    public void IsRetriableCorrectlyClassifies(ConnectionFailure failure, bool expected)
     {
         RetryPolicy.IsRetriable(failure).Should().Be(expected);
     }
@@ -215,7 +215,7 @@ public class CaptivePortalServiceTests
     private readonly CaptivePortalService _svc = new();
 
     [Fact]
-    public void ParseApiResponse_CaptiveTrue_ExtractsFields()
+    public void ParseApiResponseCaptiveTrueExtractsFields()
     {
         var json = """
             {
@@ -239,7 +239,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void ParseApiResponse_NotCaptive_MinimalFields()
+    public void ParseApiResponseNotCaptiveMinimalFields()
     {
         var json = """{ "captive": false }""";
         var state = _svc.ParseApiResponse(json);
@@ -249,7 +249,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void Evaluate_NotCaptive_NoAuthRequired()
+    public void EvaluateNotCaptiveNoAuthRequired()
     {
         var state = new CaptivePortalService.CaptivePortalState { Captive = false };
         var decision = _svc.Evaluate(state);
@@ -260,7 +260,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void Evaluate_CaptiveWithPortalUrl_ProvidesUrl()
+    public void EvaluateCaptiveWithPortalUrlProvidesUrl()
     {
         var state = new CaptivePortalService.CaptivePortalState
         {
@@ -274,7 +274,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void Evaluate_CaptiveNoUrl_SuggestsBrowserRedirect()
+    public void EvaluateCaptiveNoUrlSuggestsBrowserRedirect()
     {
         var state = new CaptivePortalService.CaptivePortalState { Captive = true };
         var decision = _svc.Evaluate(state);
@@ -285,7 +285,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void DescribeSession_WithRemaining_FormatsHumanReadable()
+    public void DescribeSessionWithRemainingFormatsHumanReadable()
     {
         var state = new CaptivePortalService.CaptivePortalState
         {
@@ -303,14 +303,14 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void DescribeSession_NotCaptive_ReturnsAuthenticated()
+    public void DescribeSessionNotCaptiveReturnsAuthenticated()
     {
         var state = new CaptivePortalService.CaptivePortalState { Captive = false };
         _svc.DescribeSession(state).Should().Be("Authenticated");
     }
 
     [Fact]
-    public void ParseApiResponse_CaptiveKeyInsideStringValue_NotMisidentified()
+    public void ParseApiResponseCaptiveKeyInsideStringValueNotMisidentified()
     {
         // Before fix (ad-hoc string scanner): a URL whose text contains "captive"
         // could confuse the substring-based parser and flip the captive field.
@@ -329,7 +329,7 @@ public class CaptivePortalServiceTests
     }
 
     [Fact]
-    public void ParseApiResponse_EscapedQuotesInUrl_ParsedCorrectly()
+    public void ParseApiResponseEscapedQuotesInUrlParsedCorrectly()
     {
         // Before fix: the custom string extractor mishandled escaped quotes (\"),
         // truncating the URL at the first \".

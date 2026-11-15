@@ -38,7 +38,7 @@ public class AutoReconnectEvilTwinGuardTests
     // ── (a) 誤検知しないこと ────────────────────────────────────────
 
     [Fact]
-    public void FirstEverConnection_NoLearningData_IsNotBlocked()
+    public void FirstEverConnectionNoLearningDataIsNotBlocked()
     {
         // 初めて見るネットワークをいきなり疑ってはならない。学習前は
         // 検査 2〜4 が発火しないため、単独で見える AP は None になる。
@@ -51,7 +51,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void SecurityUpgrade_IsNotTreatedAsDowngrade()
+    public void SecurityUpgradeIsNotTreatedAsDowngrade()
     {
         // WPA2 → WPA3 は改善であり攻撃ではない。ルーターのファームウェア更新後に
         // 自動再接続が止まってしまってはならない。
@@ -65,7 +65,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void UnchangedKnownNetwork_StaysNone_AcrossRepeatedReconnects()
+    public void UnchangedKnownNetworkStaysNoneAcrossRepeatedReconnects()
     {
         // 同じ AP に何度再接続しても警告が蓄積してはならない
         // (AutoReconnectService は成功のたびに RecordTrusted を呼ぶため、
@@ -84,7 +84,7 @@ public class AutoReconnectEvilTwinGuardTests
     // ── (b) RecordTrusted の配線に意味があること ──────────────────────
 
     [Fact]
-    public void WithoutLearning_DowngradeIsInvisible_WithLearning_ItIsDetected()
+    public void WithoutLearningDowngradeIsInvisibleWithLearningItIsDetected()
     {
         // AutoReconnectService が接続成功時に RecordTrusted を呼ぶ理由そのもの。
         // 学習しなければ、後からのダウングレードを検出する材料が存在しない。
@@ -111,7 +111,7 @@ public class AutoReconnectEvilTwinGuardTests
     // 前提の技術であり、その永続化はセキュリティ上の必須要件。
 
     [Fact]
-    public void FreshDetector_CannotReachHighRisk_OnLoneRogueAp()
+    public void FreshDetectorCannotReachHighRiskOnLoneRogueAp()
     {
         // これが永続化を必要とする理由そのもの。攻撃者が単独で偽 AP を出し
         // (本物が見えない) 学習も無い状態では、検出材料が存在しない。
@@ -125,7 +125,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void ExportImport_RestoresDetection_AcrossSimulatedRestart()
+    public void ExportImportRestoresDetectionAcrossSimulatedRestart()
     {
         // セッション 1: 正当な AP に接続して学習
         var session1 = new EvilTwinDetector();
@@ -144,7 +144,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void ImportedBaseline_DoesNotFlagTheLegitimateApItself()
+    public void ImportedBaselineDoesNotFlagTheLegitimateApItself()
     {
         // 復元したベースラインが、正当な AP を疑う原因になってはならない。
         var s1 = new EvilTwinDetector();
@@ -159,7 +159,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void ImportBaseline_MergesWithoutDiscardingLaterLearning()
+    public void ImportBaselineMergesWithoutDiscardingLaterLearning()
     {
         // 復元後に RecordTrusted しても、復元分が消えてはならない (加算的マージ)。
         var detector = new EvilTwinDetector();
@@ -180,7 +180,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void ImportBaseline_SkipsMalformedEntries_RatherThanFailing()
+    public void ImportBaselineSkipsMalformedEntriesRatherThanFailing()
     {
         // 破損データで防御全体を失うより、読める分だけでも復旧させる方が安全側。
         var detector = new EvilTwinDetector();
@@ -199,7 +199,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void ExportBaseline_RoundTripsThroughJson()
+    public void ExportBaselineRoundTripsThroughJson()
     {
         // 実際の永続化は JSON 経由 (AutoReconnectService)。
         // レコードが System.Text.Json でラウンドトリップできることを保証する。
@@ -228,7 +228,7 @@ public class AutoReconnectEvilTwinGuardTests
     // BSSID 保存を復活させないよう、この契約をテストで固定する。
 
     [Fact]
-    public void ExportedBaseline_ContainsNoBssid_SoTheFileIsNotALocationHistory()
+    public void ExportedBaselineContainsNoBssidSoTheFileIsNotALocationHistory()
     {
         var detector = new EvilTwinDetector();
         detector.RecordTrusted("HomeNet", "AA:BB:CC:11:22:33", AuthMethod.WPA2PSK);
@@ -242,7 +242,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void SessionLearning_StillTracksBssids_InMemory()
+    public void SessionLearningStillTracksBssidsInMemory()
     {
         // 永続化しないだけで、セッション中の BSSID 学習は従来どおり働く
         // (public API GetTrustedBssids の挙動は不変)。
@@ -253,7 +253,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void AfterRestart_DowngradePlusVendorMismatch_StillReachesHighRisk()
+    public void AfterRestartDowngradePlusVendorMismatchStillReachesHighRisk()
     {
         // BSSID を落としても、前コミットが守ろうとした性質は保たれることの確認。
         // 検査 3 (Auth 由来) と検査 4 (ベンダー名由来) はどちらも永続化されるため、
@@ -279,7 +279,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void AfterRestart_UnknownVendorAttacker_IsOnlySuspicious_DocumentedLimitation()
+    public void AfterRestartUnknownVendorAttackerIsOnlySuspiciousDocumentedLimitation()
     {
         // 受け入れた限界を明示的に固定する。攻撃者の OUI が OUI DB に無い場合、
         // 検査 4 は発火せず、検査 2 は BSSID 永続化を要するため使えない。
@@ -303,7 +303,7 @@ public class AutoReconnectEvilTwinGuardTests
     }
 
     [Fact]
-    public void AttackerDowngradeWithForeignBssid_ReachesHighRisk_SoAutoReconnectRefuses()
+    public void AttackerDowngradeWithForeignBssidReachesHighRiskSoAutoReconnectRefuses()
     {
         // AutoReconnectService が実際に接続を中止する閾値は HighRisk。
         // 現実的な攻撃シナリオ (既知 SSID を Open で、別ベンダー機器から出す) が

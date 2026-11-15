@@ -22,7 +22,7 @@ public class PowerSaveAdvisorServiceTests
         };
 
     [Fact]
-    public void Analyze_Rtwt_AdvancedTierMaxSaving()
+    public void AnalyzeRtwtAdvancedTierMaxSaving()
     {
         var profile = _svc.Analyze(Net(twt: true, rtwt: true));
 
@@ -33,7 +33,7 @@ public class PowerSaveAdvisorServiceTests
     }
 
     [Fact]
-    public void Analyze_Twt_StandardTier()
+    public void AnalyzeTwtStandardTier()
     {
         var profile = _svc.Analyze(Net(twt: true));
 
@@ -44,7 +44,7 @@ public class PowerSaveAdvisorServiceTests
     }
 
     [Fact]
-    public void Analyze_NoTwt_LegacyTier()
+    public void AnalyzeNoTwtLegacyTier()
     {
         var profile = _svc.Analyze(Net());
 
@@ -54,7 +54,7 @@ public class PowerSaveAdvisorServiceTests
     }
 
     [Fact]
-    public void RecommendedScanInterval_OnAc_ShortInterval()
+    public void RecommendedScanIntervalOnAcShortInterval()
     {
         _svc.RecommendedScanIntervalSeconds(Net(twt: true), onBattery: false)
             .Should().Be(15);
@@ -64,7 +64,7 @@ public class PowerSaveAdvisorServiceTests
     [InlineData(true,  true,  30)]   // rTWT (Advanced)
     [InlineData(true,  false, 60)]   // TWT (Standard)
     [InlineData(false, false, 120)]  // Legacy
-    public void RecommendedScanInterval_OnBattery_ScalesByTier(
+    public void RecommendedScanIntervalOnBatteryScalesByTier(
         bool twt, bool rtwt, int expected)
     {
         _svc.RecommendedScanIntervalSeconds(Net(twt, rtwt), onBattery: true)
@@ -76,20 +76,20 @@ public class PowerSaveAdvisorServiceTests
     [InlineData(30, true,  PowerMode.Balanced)]
     [InlineData(80, true,  PowerMode.Performance)]
     [InlineData(10, false, PowerMode.Performance)]   // AC電源なら常にPerformance
-    public void RecommendPowerMode_BatteryAndPower(int battery, bool onBattery, PowerMode expected)
+    public void RecommendPowerModeBatteryAndPower(int battery, bool onBattery, PowerMode expected)
     {
         _svc.RecommendPowerMode(battery, onBattery).Should().Be(expected);
     }
 
     [Fact]
-    public void IsIotFriendly_TwtCapable_True()
+    public void IsIotFriendlyTwtCapableTrue()
     {
         _svc.IsIotFriendly(Net(twt: true)).Should().BeTrue();
         _svc.IsIotFriendly(Net(rtwt: true)).Should().BeTrue();
     }
 
     [Fact]
-    public void IsIotFriendly_NoTwt_False()
+    public void IsIotFriendlyNoTwtFalse()
     {
         _svc.IsIotFriendly(Net()).Should().BeFalse();
     }

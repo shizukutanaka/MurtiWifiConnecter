@@ -60,7 +60,7 @@ public class AutoReconnectServiceExceptionHandlingTests
     }
 
     [Fact]
-    public async Task WatchAsync_SubscribeEventsThrows_DoesNotFaultTheBackgroundTask()
+    public async Task WatchAsyncSubscribeEventsThrowsDoesNotFaultTheBackgroundTask()
     {
         var svc = new AutoReconnectService(
             new ThrowingSubscribeWifiService(),

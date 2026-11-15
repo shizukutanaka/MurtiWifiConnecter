@@ -23,6 +23,7 @@ namespace MWC.Core.Tests;
 // ══════════════════════════════════════════════════════════════
 public class CliEnterpriseSpecContractTests
 {
+    private static readonly string[] RadiusUnivAcJp = new[] { "radius.univ.ac.jp" };
     // Exactly how the CLI composes the spec for an Enterprise connect.
     private static WifiProfileSpec CliEnterpriseSpec(
         AuthMethod auth = AuthMethod.WPA2Enterprise,
@@ -44,9 +45,9 @@ public class CliEnterpriseSpecContractTests
         };
 
     [Fact]
-    public void PeapWithUsernamePasswordAndServerName_IsValidAndBuilds()
+    public void PeapWithUsernamePasswordAndServerNameIsValidAndBuilds()
     {
-        var spec = CliEnterpriseSpec(serverNames: new[] { "radius.univ.ac.jp" });
+        var spec = CliEnterpriseSpec(serverNames: RadiusUnivAcJp);
 
         spec.Validate().IsValid.Should().BeTrue();
 
@@ -59,7 +60,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void MissingEapType_IsRejectedBeforeConnecting()
+    public void MissingEapTypeIsRejectedBeforeConnecting()
     {
         // User ran `mwc connect eduroam --auth WPA2Enterprise --username u -p p`
         // but forgot --eap-type. The CLI's early ProfileXmlBuilder.Build call
@@ -72,7 +73,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void PeapMissingPassword_IsRejectedBeforeConnecting()
+    public void PeapMissingPasswordIsRejectedBeforeConnecting()
     {
         // `--username` given but no `-p`.
         var spec = CliEnterpriseSpec(password: null);
@@ -83,7 +84,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void PeapMissingUsername_IsRejectedBeforeConnecting()
+    public void PeapMissingUsernameIsRejectedBeforeConnecting()
     {
         var spec = CliEnterpriseSpec(username: null);
 
@@ -91,7 +92,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapTtls_WithCredentials_IsValid()
+    public void EapTtlsWithCredentialsIsValid()
     {
         var spec = CliEnterpriseSpec(eap: EapType.EAP_TTLS);
         spec.Validate().IsValid.Should().BeTrue();
@@ -108,7 +109,7 @@ public class CliEnterpriseSpecContractTests
         "http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1";
 
     [Fact]
-    public void EapTls_NoUsernameOrPassword_IsValidAndBuildsCertBasedProfile()
+    public void EapTlsNoUsernameOrPasswordIsValidAndBuildsCertBasedProfile()
     {
         var spec = new WifiProfileSpec
         {
@@ -128,7 +129,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapTls_WithServerNameAndTrustedCa_PinsBoth()
+    public void EapTlsWithServerNameAndTrustedCaPinsBoth()
     {
         const string thumb = "AABBCCDDEEFF00112233445566778899AABBCCDD";
         var spec = new WifiProfileSpec
@@ -155,7 +156,7 @@ public class CliEnterpriseSpecContractTests
         "http://www.microsoft.com/provisioning/EapTtlsConnectionPropertiesV1";
 
     [Fact]
-    public void EapTtls_DomainBecomesAnonymousOuterIdentity()
+    public void EapTtlsDomainBecomesAnonymousOuterIdentity()
     {
         // `mwc connect --eap-type EAP_TTLS --username real@univ --domain anonymous@univ -p ...`
         var spec = CliEnterpriseSpec(
@@ -174,7 +175,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapTtls_NoDomain_FallsBackToAnonymousLiteral()
+    public void EapTtlsNoDomainFallsBackToAnonymousLiteral()
     {
         // Without --domain the outer identity defaults to the literal "anonymous",
         // still avoiding real-username exposure in the clear.
@@ -193,7 +194,7 @@ public class CliEnterpriseSpecContractTests
         "http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1";
 
     [Fact]
-    public void Peap_TrustedRootCaThumbprint_IsEmittedInProfileXml()
+    public void PeapTrustedRootCaThumbprintIsEmittedInProfileXml()
     {
         const string thumb = "ABCDEF1234567890ABCDEF1234567890ABCDEF12";
         var spec = new WifiProfileSpec
@@ -213,7 +214,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapTtls_TrustedRootCaThumbprint_IsEmittedAsHash()
+    public void EapTtlsTrustedRootCaThumbprintIsEmittedAsHash()
     {
         const string thumb = "1122334455667788990011223344556677889900";
         var spec = CliEnterpriseSpec(eap: EapType.EAP_TTLS);
@@ -225,7 +226,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void EapAka_IsRejected_AsUnsupported()
+    public void EapAkaIsRejectedAsUnsupported()
     {
         // The CLI exposes only PEAP/EAP-TLS/EAP-TTLS via --eap-type completions,
         // but if a user passes EAP_AKA explicitly it must still be rejected cleanly.
@@ -236,7 +237,7 @@ public class CliEnterpriseSpecContractTests
     }
 
     [Fact]
-    public void NonEnterpriseAuth_UsesPassphraseNotEapPassword()
+    public void NonEnterpriseAuthUsesPassphraseNotEapPassword()
     {
         // Sanity: the CLI's non-Enterprise branch puts -p into Passphrase.
         // A WPA2PSK spec built that way must validate and build normally.

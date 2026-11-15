@@ -55,10 +55,11 @@ public sealed class SystemTrayService : IDisposable
         var menu = new ContextMenuStrip();
 
         // ── 各アダプターの現在の接続状態 ──
-        foreach (var a in adapters.Where(x => x.ConnectedSsid is not null))
+        foreach (var a in adapters)
         {
+            if (a.ConnectedSsid is not { } connectedSsid) continue;
             var item = new ToolStripMenuItem(
-                MWC.App.Resources.L.Format("Tray_Connected", a.ConnectedSsid, a.Name))
+                MWC.App.Resources.L.Format("Tray_Connected", connectedSsid, a.Name))
             {
                 Font    = new Font(SystemFonts.MenuFont!, FontStyle.Bold),
                 Enabled = true
@@ -67,7 +68,7 @@ public sealed class SystemTrayService : IDisposable
             item.Click += async (_, _) =>
             {
                 try { await disconnectCallback(idCopy); }
-                catch (Exception ex) { _log.LogWarning(ex, "tray disconnect"); }
+                catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { _log.LogWarning(ex, "tray disconnect"); }
             };
             menu.Items.Add(item);
         }
@@ -110,7 +111,7 @@ public sealed class SystemTrayService : IDisposable
                 item.Click += async (_, _) =>
                 {
                     try { await connectCallback(adapterIdCopy, ssidCopy); }
-                    catch (Exception ex) { _log.LogWarning(ex, "tray connect"); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { _log.LogWarning(ex, "tray connect"); }
                 };
                 adapterItem.DropDownItems.Add(item);
             }
@@ -129,7 +130,7 @@ public sealed class SystemTrayService : IDisposable
             dcItem.Click += async (_, _) =>
             {
                 try { await disconnectCallback(idCopy2); }
-                catch (Exception ex) { _log.LogWarning(ex, "tray sub disconnect"); }
+                catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { _log.LogWarning(ex, "tray sub disconnect"); }
             };
             adapterItem.DropDownItems.Add(dcItem);
 

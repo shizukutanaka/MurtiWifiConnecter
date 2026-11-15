@@ -18,7 +18,7 @@ public class SignalHistoryServiceAdditionalTests
         new() { Ssid = ssid, SignalQuality = quality, Rssi = rssi };
 
     [Fact]
-    public void Record_Then_GetHistory_ReturnsNewestFirst()
+    public void RecordThenGetHistoryReturnsNewestFirst()
     {
         var svc = new SignalHistoryService();
 
@@ -40,7 +40,7 @@ public class SignalHistoryServiceAdditionalTests
     }
 
     [Fact]
-    public void GetHistory_UnknownSsid_ReturnsEmpty()
+    public void GetHistoryUnknownSsidReturnsEmpty()
     {
         var svc = new SignalHistoryService();
         var history = svc.GetHistory("Ghost");
@@ -50,7 +50,7 @@ public class SignalHistoryServiceAdditionalTests
     }
 
     [Fact]
-    public void Record_MultipleSsids_AreSeparated()
+    public void RecordMultipleSsidsAreSeparated()
     {
         var svc = new SignalHistoryService();
         svc.Record(new[] { MakeNet("Net1", 55, -55), MakeNet("Net2", 70, -45) });
@@ -64,7 +64,7 @@ public class SignalHistoryServiceAdditionalTests
     }
 
     [Fact]
-    public void Clear_RemovesHistory()
+    public void ClearRemovesHistory()
     {
         var svc = new SignalHistoryService();
         svc.Record(new[] { MakeNet("ClearNet", 60, -60) });
@@ -76,7 +76,7 @@ public class SignalHistoryServiceAdditionalTests
     }
 
     [Fact]
-    public void Record_MultiplePoints_AverageQualityIsCorrect()
+    public void RecordMultiplePointsAverageQualityIsCorrect()
     {
         var svc = new SignalHistoryService();
         svc.Record(new[] { MakeNet("AvgNet", 60, -60) });
@@ -108,7 +108,7 @@ public class ExportServiceStringOutputTests
         };
 
     [Fact]
-    public void ExportCsv_ProducesValidCsv()
+    public void ExportCsvProducesValidCsv()
     {
         var nets = new[]
         {
@@ -130,7 +130,7 @@ public class ExportServiceStringOutputTests
     }
 
     [Fact]
-    public void ExportJson_ProducesValidJson()
+    public void ExportJsonProducesValidJson()
     {
         var nets = new[]
         {
@@ -149,7 +149,7 @@ public class ExportServiceStringOutputTests
     }
 
     [Fact]
-    public void ExportTxt_ProducesReadableText()
+    public void ExportTxtProducesReadableText()
     {
         var nets = new[]
         {
@@ -164,7 +164,7 @@ public class ExportServiceStringOutputTests
     }
 
     [Fact]
-    public void ExportCsv_EmptyList_ReturnsHeaderOnly()
+    public void ExportCsvEmptyListReturnsHeaderOnly()
     {
         var csv = ExportService.ToCsv(Array.Empty<WifiNetwork>());
 
@@ -176,7 +176,7 @@ public class ExportServiceStringOutputTests
     }
 
     [Fact]
-    public void ExportCsv_EscapesCommaInSsid()
+    public void ExportCsvEscapesCommaInSsid()
     {
         var nets = new[]
         {
@@ -196,7 +196,7 @@ public class ExportServiceStringOutputTests
     [InlineData(0)]
     [InlineData(100)]
     [InlineData(150)]   // 100 超: 10 - filled が負 → throw していた
-    public void ExportTxt_OutOfRangeSignal_DoesNotThrow(int signal)
+    public void ExportTxtOutOfRangeSignalDoesNotThrow(int signal)
     {
         // SignalQuality は境界検証のない int。範囲外でも TXT の信号バーが
         // ArgumentOutOfRangeException を投げず描画できること (BuildBar の clamp)。
@@ -227,7 +227,7 @@ public class SecurityBadgeServiceAdvancedTests
     [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak)]
     [InlineData(AuthMethod.WEP,               SecurityLevel.Danger)]
     [InlineData(AuthMethod.Open,              SecurityLevel.Danger)]
-    public void GetBadge_CorrectLevel(AuthMethod auth, SecurityLevel expected)
+    public void GetBadgeCorrectLevel(AuthMethod auth, SecurityLevel expected)
     {
         var badge = SecurityBadgeService.GetBadge(auth);
 
@@ -237,7 +237,7 @@ public class SecurityBadgeServiceAdvancedTests
     }
 
     [Fact]
-    public void GetBadge_AllAuthMethods_HaveNonEmptyLabels()
+    public void GetBadgeAllAuthMethodsHaveNonEmptyLabels()
     {
         foreach (var auth in Enum.GetValues<AuthMethod>())
         {
@@ -248,7 +248,7 @@ public class SecurityBadgeServiceAdvancedTests
     }
 
     [Fact]
-    public void SecurityLevel_Ordering_IsCorrect()
+    public void SecurityLevelOrderingIsCorrect()
     {
         // Enum is ordered best→worst: Excellent(0) < Good(1) < Fair(2) < Weak(3) < Danger(4)
         // Lower ordinal = higher security (used by UI color logic: ≤Good=green, ≥Weak=red).

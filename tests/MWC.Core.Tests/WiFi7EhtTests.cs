@@ -35,7 +35,7 @@ public class EhtCapabilityTests
     /// IEEE 802.11be-2025 公開済み仕様値
     /// </summary>
     [Fact]
-    public void EhtCapability_4096Qam_320MHz_4SS_ExceedsWiFi6Max()
+    public void EhtCapability4096Qam320MHz4SSExceedsWiFi6Max()
     {
         var cap = new EhtCapability
         {
@@ -59,7 +59,7 @@ public class EhtCapabilityTests
     }
 
     [Fact]
-    public void EhtCapability_4096QamVs1024Qam_Is20PercentHigher()
+    public void EhtCapability4096QamVs1024QamIs20PercentHigher()
     {
         var wifi6 = new EhtCapability { Supports4096Qam = false, MaxMcsIndex = 11 };
         var wifi7 = new EhtCapability { Supports4096Qam = true,  MaxMcsIndex = 13 };
@@ -77,7 +77,7 @@ public class EhtCapabilityTests
     [InlineData(160, 1,  5.7)]   // 1SS 160MHz
     [InlineData(80,  1,  2.8)]   // 1SS 80MHz
     [InlineData(40,  1,  1.4)]   // 1SS 40MHz
-    public void EstimatedPeakGbps_ChannelWidth_ScalesLinearly(
+    public void EstimatedPeakGbpsChannelWidthScalesLinearly(
         int widthMhz, int ss, double expectedGbps)
     {
         var cap = new EhtCapability { Supports4096Qam = true };
@@ -88,7 +88,7 @@ public class EhtCapabilityTests
     }
 
     [Fact]
-    public void EhtCapability_Rtwt_IoTOptimization()
+    public void EhtCapabilityRtwtIoTOptimization()
     {
         // rTWT: IoT デバイスの省電力スケジューリング (新機能)
         var iotCap = new EhtCapability { SupportsRtwt = true, SupportsScs = true };
@@ -100,7 +100,7 @@ public class EhtCapabilityTests
 public class WiFi8ModelTests
 {
     [Fact]
-    public void WiFi8Capability_MultiApCoordination_AllFlags()
+    public void WiFi8CapabilityMultiApCoordinationAllFlags()
     {
         var cap = new WiFi8Capability
         {
@@ -118,7 +118,7 @@ public class WiFi8ModelTests
     }
 
     [Fact]
-    public void PhyType_Dot11bn_AfterDot11be()
+    public void PhyTypeDot11bnAfterDot11be()
     {
         PhyType.Dot11bn.ToGenerationLabel().Should().Contain("Wi-Fi 8");
         PhyType.Dot11bn.ToShortLabel().Should().Be("Wi-Fi 8");
@@ -127,7 +127,7 @@ public class WiFi8ModelTests
     }
 
     [Fact]
-    public void PhyType_AllGenerations_HaveLabels()
+    public void PhyTypeAllGenerationsHaveLabels()
     {
         // Wi-Fi 1〜8 まで全世代に表示ラベルが存在する
         foreach (var phy in Enum.GetValues<PhyType>().Where(p => p != PhyType.Unknown))
@@ -144,7 +144,7 @@ public class FrozenDictionaryOptimizationTests
     private readonly RegulatoryDomainService _svc = new();
 
     [Fact]
-    public void GetRegion_CaseInsensitive_FrozenDictionary()
+    public void GetRegionCaseInsensitiveFrozenDictionary()
     {
         // FrozenDictionary(OrdinalIgnoreCase) — すべて同じ結果
         var us1 = _svc.GetRegion("US");
@@ -158,7 +158,7 @@ public class FrozenDictionaryOptimizationTests
     }
 
     [Fact]
-    public void GetRegion_Deterministic_MultipleCallsReturnSameObject()
+    public void GetRegionDeterministicMultipleCallsReturnSameObject()
     {
         // FrozenDictionary は読み取り最適化 — 毎回同じ参照/値
         Enumerable.Range(0, 10)
@@ -172,7 +172,7 @@ public class FrozenDictionaryOptimizationTests
     }
 
     [Fact]
-    public void AllRegions_CountAndContents_Correct()
+    public void AllRegionsCountAndContentsCorrect()
     {
         var regions = _svc.AllRegions;
         regions.Count.Should().BeGreaterThan(15, "主要25ヶ国以上をカバー");
@@ -188,14 +188,14 @@ public class DotNet9LanguageFeatureTests
 {
     /// <summary>System.Threading.Lock (C# 13) のスレッド安全性確認</summary>
     [Fact]
-    public void NetworkHistoryService_ConcurrentWrites_ThreadSafe()
+    public async Task NetworkHistoryServiceConcurrentWritesThreadSafe()
     {
         var svc  = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var tasks = Enumerable.Range(0, 20).Select(i =>
             System.Threading.Tasks.Task.Run(() =>
                 svc.RecordConnection($"SSID_{i % 5}", i % 2 == 0)));
 
-        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+        await System.Threading.Tasks.Task.WhenAll(tasks);
 
         // データ破損なく全記録が完了
         var count = svc.Count;
@@ -210,7 +210,7 @@ public class DotNet9LanguageFeatureTests
     [InlineData("ValidSSID",  true)]
     [InlineData("",           false)]
     [InlineData("ToolongSSID1234567890123456789012345", false)]  // > 32 ASCII bytes
-    public void WifiProfileValidator_IsValidSsid_Correct(string ssid, bool expected)
+    public void WifiProfileValidatorIsValidSsidCorrect(string ssid, bool expected)
     {
         WifiProfileValidator.IsValidSsid(ssid).Should().Be(expected);
     }
@@ -222,7 +222,7 @@ public class DotNet9LanguageFeatureTests
 public class NetworkHistoryLockTests
 {
     [Fact]
-    public void RecordConnection_ParallelWrites_NoConcurrentModificationException()
+    public async Task RecordConnectionParallelWritesNoConcurrentModificationException()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
@@ -231,10 +231,10 @@ public class NetworkHistoryLockTests
         var tasks = Enumerable.Range(0, 50).Select(i => Task.Run(() =>
         {
             try { svc.RecordConnection($"Net{i % 10}", i % 2 == 0); }
-            catch (Exception ex) { exceptions.Add(ex); }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException and not ThreadAbortException) { exceptions.Add(ex); }
         })).ToArray();
 
-        Task.WaitAll(tasks);
+        await Task.WhenAll(tasks);
 
         // 例外なし・データ破損なし
         exceptions.Should().BeEmpty("concurrent writes must not throw exceptions");
@@ -247,7 +247,7 @@ public class NetworkHistoryLockTests
     }
 
     [Fact]
-    public void GetAll_WhileRecording_ReturnsSnapshot()
+    public void GetAllWhileRecordingReturnsSnapshot()
     {
         var svc = new NetworkHistoryService(null, TestHistoryPath.Fresh());
         svc.RecordConnection("Initial", true);
@@ -273,7 +273,7 @@ public class PhyTypeAllGenerationsTests
     [InlineData(PhyType.Dot11ax, "Wi-Fi 6")]
     [InlineData(PhyType.Dot11be, "Wi-Fi 7")]
     [InlineData(PhyType.Dot11bn, "Wi-Fi 8")]
-    public void ToShortLabel_AllWifiGenerations_CorrectLabel(PhyType phy, string expected)
+    public void ToShortLabelAllWifiGenerationsCorrectLabel(PhyType phy, string expected)
     {
         var label = phy.ToShortLabel();
         label.Should().StartWith(expected);
@@ -282,7 +282,7 @@ public class PhyTypeAllGenerationsTests
     }
 
     [Fact]
-    public void GenerationOrder_IsChronological()
+    public void GenerationOrderIsChronological()
     {
         var ordered = new[]
         {
@@ -312,7 +312,7 @@ public class RepositoryIntegrityTests
     [InlineData("CONTRIBUTING.md")]
     [InlineData("SECURITY.md")]
     [InlineData("CODE_OF_CONDUCT.md")]
-    public void RequiredFile_Exists(string fileName)
+    public void RequiredFileExists(string fileName)
     {
         var path = System.IO.Path.Combine(RepoRoot, fileName);
         if (!System.IO.Directory.Exists(RepoRoot)) return;  // ビルド環境差異を許容
@@ -321,7 +321,7 @@ public class RepositoryIntegrityTests
     }
 
     [Fact]
-    public void License_IsMit()
+    public void LicenseIsMit()
     {
         var path = System.IO.Path.Combine(RepoRoot, "LICENSE");
         if (!System.IO.File.Exists(path)) return;
@@ -336,7 +336,7 @@ public class RepositoryIntegrityTests
     [InlineData("docs/faq.md")]
     [InlineData("docs/troubleshooting.md")]
     [InlineData("docs/benchmarks.md")]
-    public void UserDocumentation_Exists(string relPath)
+    public void UserDocumentationExists(string relPath)
     {
         var path = System.IO.Path.Combine(RepoRoot, relPath);
         if (!System.IO.Directory.Exists(RepoRoot)) return;
@@ -370,7 +370,7 @@ public class BuildConfigurationTests
     }
 
     [Fact]
-    public void AllProjects_TargetNet9()
+    public void AllProjectsTargetNet9()
     {
         if (!System.IO.Directory.Exists(RepoRoot)) return;
         var srcDir = System.IO.Path.Combine(RepoRoot, "src");
@@ -382,7 +382,7 @@ public class BuildConfigurationTests
             var content = System.IO.File.ReadAllText(proj);
             // net8.0 が TargetFramework として残っていないこと(コメント除く)
             var lines = content.Split('\n')
-                .Where(l => l.Contains("TargetFramework") && !l.TrimStart().StartsWith("<!--"));
+                .Where(l => l.Contains("TargetFramework") && !l.TrimStart().StartsWith("<!--", StringComparison.Ordinal));
             foreach (var line in lines)
             {
                 line.Should().NotContain("net8.0",
@@ -392,7 +392,7 @@ public class BuildConfigurationTests
     }
 
     [Fact]
-    public void Changelog_HasVersion3Entries()
+    public void ChangelogHasVersion3Entries()
     {
         var path = System.IO.Path.Combine(RepoRoot, "CHANGELOG.md");
         if (!System.IO.File.Exists(path)) return;

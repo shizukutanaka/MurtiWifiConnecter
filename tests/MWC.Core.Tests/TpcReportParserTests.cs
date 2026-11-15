@@ -13,7 +13,7 @@ public class TpcReportParserTests
         => new byte[] { 35, 2, unchecked((byte)power), unchecked((byte)margin) };
 
     [Fact]
-    public void ParsesTransmitPower_AndLinkMargin()
+    public void ParsesTransmitPowerAndLinkMargin()
     {
         var r = TpcReportParser.Parse(Element(power: 20, margin: 5));
         r.Should().NotBeNull();
@@ -22,7 +22,7 @@ public class TpcReportParserTests
     }
 
     [Fact]
-    public void NegativeValues_DecodedSigned()
+    public void NegativeValuesDecodedSigned()
     {
         var r = TpcReportParser.Parse(Element(power: -10, margin: -2));
         r!.TransmitPowerDbm.Should().Be(-10);
@@ -38,7 +38,7 @@ public class TpcReportParserTests
     }
 
     [Fact]
-    public void TruncatedOrEmpty_ReturnsNull()
+    public void TruncatedOrEmptyReturnsNull()
     {
         TpcReportParser.Parse(System.Array.Empty<byte>()).Should().BeNull();
         TpcReportParser.Parse(new byte[] { 35, 2, 0x14 }).Should().BeNull();

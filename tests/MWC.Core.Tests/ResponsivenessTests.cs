@@ -18,7 +18,7 @@ public class ResponsivenessTests
     [InlineData(100, 600)]
     [InlineData(0, 0)]
     [InlineData(-5, 0)]
-    public void ComputeRpm_FromWorkingLatency(int workingMs, int expectedRpm)
+    public void ComputeRpmFromWorkingLatency(int workingMs, int expectedRpm)
         => NetworkQualityService.ComputeRpm(workingMs).Should().Be(expectedRpm);
 
     [Theory]
@@ -29,19 +29,19 @@ public class ResponsivenessTests
     [InlineData(10, 300, BufferbloatGrade.F)]        // +290
     [InlineData(20, 999, BufferbloatGrade.Unknown)]  // タイムアウト
     [InlineData(20, 0,   BufferbloatGrade.Unknown)]  // 無効
-    public void GradeBufferbloat_ScalesWithLatencyIncrease(
+    public void GradeBufferbloatScalesWithLatencyIncrease(
         int idle, int working, BufferbloatGrade expected)
         => NetworkQualityService.GradeBufferbloat(idle, working).Should().Be(expected);
 
     [Fact]
-    public void GradeBufferbloat_NeverNegativeIncrease()
+    public void GradeBufferbloatNeverNegativeIncrease()
     {
         // 負荷時の方が低い(計測ゆらぎ)場合でも A 扱い(増分 0)
         NetworkQualityService.GradeBufferbloat(80, 50).Should().Be(BufferbloatGrade.A);
     }
 
     [Fact]
-    public void ResponsivenessResult_DerivedProperties()
+    public void ResponsivenessResultDerivedProperties()
     {
         var r = new ResponsivenessResult(
             IdleLatencyMs: 20, WorkingLatencyMs: 95, Rpm: 631,
@@ -53,7 +53,7 @@ public class ResponsivenessTests
     }
 
     [Fact]
-    public void ResponsivenessResult_ZeroRpm_ShowsPlaceholder()
+    public void ResponsivenessResultZeroRpmShowsPlaceholder()
     {
         var r = new ResponsivenessResult(0, 0, 0, BufferbloatGrade.Unknown, DateTimeOffset.UtcNow);
         r.RpmLabel.Should().Be("—");

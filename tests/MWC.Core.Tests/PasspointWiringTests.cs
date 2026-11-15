@@ -35,20 +35,20 @@ public class PasspointWiringTests
         };
 
     [Fact]
-    public void EnterpriseWithInterworking_IsPasspoint()
+    public void EnterpriseWithInterworkingIsPasspoint()
     {
         Net(AuthMethod.WPA2Enterprise, interworking: true).IsPasspoint.Should().BeTrue();
     }
 
     [Fact]
-    public void EnterpriseWithoutInterworking_IsNotPasspoint()
+    public void EnterpriseWithoutInterworkingIsNotPasspoint()
     {
         // 社内 Wi-Fi の多くは Enterprise だが Passpoint ではない。
         Net(AuthMethod.WPA2Enterprise, interworking: false).IsPasspoint.Should().BeFalse();
     }
 
     [Fact]
-    public void InterworkingWithoutEnterprise_IsNotPasspoint()
+    public void InterworkingWithoutEnterpriseIsNotPasspoint()
     {
         // Interworking だけでは足りない。Passpoint は Enterprise 認証が前提。
         Net(AuthMethod.WPA2PSK, interworking: true).IsPasspoint.Should().BeFalse();
@@ -59,13 +59,13 @@ public class PasspointWiringTests
     [InlineData(AuthMethod.WPA2Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise192)]
-    public void AllEnterpriseVariants_QualifyWithInterworking(AuthMethod auth)
+    public void AllEnterpriseVariantsQualifyWithInterworking(AuthMethod auth)
     {
         Net(auth, interworking: true).IsPasspoint.Should().BeTrue();
     }
 
     [Fact]
-    public void NoBssEntries_IsNotPasspoint()
+    public void NoBssEntriesIsNotPasspoint()
     {
         // BSS 情報が無ければ判定材料が無い。例外ではなく false になること。
         new WifiNetwork { Ssid = "X", Auth = AuthMethod.WPA2Enterprise }
@@ -75,7 +75,7 @@ public class PasspointWiringTests
     // ── サービス側のフィルタ ──────────────────────────────────────
 
     [Fact]
-    public void FilterPasspointNetworks_KeepsOnlyQualifyingNetworks()
+    public void FilterPasspointNetworksKeepsOnlyQualifyingNetworks()
     {
         var nets = new List<WifiNetwork>
         {
@@ -90,7 +90,7 @@ public class PasspointWiringTests
     }
 
     [Fact]
-    public void FilterPasspointNetworks_OnEmptyScan_ReturnsEmpty_NotNull()
+    public void FilterPasspointNetworksOnEmptyScanReturnsEmptyNotNull()
     {
         new Hotspot20Service().FilterPasspointNetworks(new List<WifiNetwork>())
             .Should().NotBeNull().And.BeEmpty();
@@ -99,7 +99,7 @@ public class PasspointWiringTests
     // ── キャリアプリセット ────────────────────────────────────────
 
     [Fact]
-    public void CarrierPresets_AreUsable()
+    public void CarrierPresetsAreUsable()
     {
         // `mwc passpoint --carriers` が表示する内容。
         // 空だと機能が無意味になるため、最低限の健全性を固定する。
@@ -113,9 +113,9 @@ public class PasspointWiringTests
     }
 
     [Fact]
-    public void CarrierProfile_BuildsFromPreset()
+    public void CarrierProfileBuildsFromPreset()
     {
-        var preset = Hotspot20Service.KnownCarriers.First();
+        var preset = Hotspot20Service.KnownCarriers[0];
         var spec = new Hotspot20Service().BuildCarrierProfile(preset);
 
         spec.Ssid.Should().Be(preset.Ssid);

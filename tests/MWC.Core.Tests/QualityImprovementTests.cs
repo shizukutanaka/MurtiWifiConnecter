@@ -13,7 +13,7 @@ namespace MWC.Core.Tests;
 public class ErrorCategoryTests
 {
     [Fact]
-    public void ErrorCategory_HasAllExpectedValues()
+    public void ErrorCategoryHasAllExpectedValues()
     {
         var values = Enum.GetValues<ErrorCategory>();
         values.Should().Contain(ErrorCategory.Permission);
@@ -29,7 +29,7 @@ public class ErrorCategoryTests
 public class TryResultTests
 {
     [Fact]
-    public void Ok_HasValue()
+    public void OkHasValue()
     {
         var r = TryResult<int>.Ok(42);
         r.Success.Should().BeTrue();
@@ -39,7 +39,7 @@ public class TryResultTests
     }
 
     [Fact]
-    public void Fail_HasMessage()
+    public void FailHasMessage()
     {
         var r = TryResult<int>.Fail("error");
         r.Success.Should().BeFalse();
@@ -49,7 +49,7 @@ public class TryResultTests
     }
 
     [Fact]
-    public void Cancelled_FlagsCorrectly()
+    public void CancelledFlagsCorrectly()
     {
         var r = TryResult<int>.Cancelled;
         r.Success.Should().BeFalse();
@@ -66,7 +66,7 @@ public class KeyboardShortcutServiceTests
     private readonly KeyboardShortcutService _svc = new();
 
     [Fact]
-    public void Shortcuts_HaveAllCategoriesRepresented()
+    public void ShortcutsHaveAllCategoriesRepresented()
     {
         var cats = _svc.Shortcuts.Select(s => s.Category).Distinct().ToList();
         cats.Should().Contain(Category.Navigation);
@@ -75,13 +75,13 @@ public class KeyboardShortcutServiceTests
     }
 
     [Fact]
-    public void Shortcuts_AllHaveDescriptions()
+    public void ShortcutsAllHaveDescriptions()
         => _svc.Shortcuts.Should().OnlyContain(s =>
             !string.IsNullOrWhiteSpace(s.Title) &&
             !string.IsNullOrWhiteSpace(s.Description));
 
     [Fact]
-    public void Shortcuts_NoDuplicateKeyBindings()
+    public void ShortcutsNoDuplicateKeyBindings()
     {
         var bindings = _svc.Shortcuts
             .Select(s => $"{s.Modifiers}+{s.Key}")
@@ -96,18 +96,18 @@ public class KeyboardShortcutServiceTests
     [InlineData("F")]    // 検索
     [InlineData("Q")]    // QR
     [InlineData("E")]    // エクスポート
-    public void EssentialShortcuts_Exist(string keyName)
+    public void EssentialShortcutsExist(string keyName)
         => _svc.Shortcuts.Should().Contain(s => s.Key.ToString() == keyName);
 
     [Fact]
-    public void DisplayKey_FormatsModifiers()
+    public void DisplayKeyFormatsModifiers()
     {
         var ctrl = _svc.Shortcuts.First(s => s.Modifiers == System.Windows.Input.ModifierKeys.Control);
         ctrl.DisplayKey.Should().StartWith("Ctrl+");
     }
 
     [Fact]
-    public void Shortcuts_Count_AtLeast15()
+    public void ShortcutsCountAtLeast15()
         => _svc.Shortcuts.Count.Should().BeGreaterOrEqualTo(15,
             because: "Apple HIG requires comprehensive keyboard support");
 }
@@ -122,7 +122,7 @@ public class ShortcutDefinitionTests
     [InlineData(System.Windows.Input.ModifierKeys.Control, System.Windows.Input.Key.R,  "Ctrl+R")]
     [InlineData(System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift,
                 System.Windows.Input.Key.Tab, "Ctrl+Shift+Tab")]
-    public void DisplayKey_IsHumanReadable(System.Windows.Input.ModifierKeys mods,
+    public void DisplayKeyIsHumanReadable(System.Windows.Input.ModifierKeys mods,
         System.Windows.Input.Key key, string expected)
     {
         var s = new ShortcutDefinition(Category.View, key, mods, "test", "test");

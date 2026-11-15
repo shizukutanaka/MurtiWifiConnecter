@@ -6,6 +6,8 @@
     <AssemblyName>MWC</AssemblyName>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- 高DPI宣言は manifest でなくここで行う (WFO0003)。従来 manifest の dpiAwareness=PerMonitorV2 と同一 -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <Platforms>x64;ARM64</Platforms>

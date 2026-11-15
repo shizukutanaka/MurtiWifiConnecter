@@ -10,6 +10,8 @@ using MWC.Core.Services;
 
 // System.Windows.Forms.KeyEventArgs (WinForms 併用時の global using) と曖昧なため WPF 側に固定
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Application = System.Windows.Application;
+using Brush = System.Windows.Media.Brush;
 
 namespace MWC.App.Views;
 

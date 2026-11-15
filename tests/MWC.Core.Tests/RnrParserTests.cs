@@ -30,7 +30,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void ParsesSingleEntry_NoOptionalBssid()
+    public void ParsesSingleEntryNoOptionalBssid()
     {
         var bytes = RnrElement(opClass: 131, channel: 7);
         var r = RnrParser.Parse(bytes);
@@ -43,7 +43,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void ParsesSingleEntry_WithBssid()
+    public void ParsesSingleEntryWithBssid()
     {
         var bssid = new byte[] { 0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33 };
         var r = RnrParser.Parse(RnrElement(opClass: 131, channel: 7, bssid6: bssid));
@@ -53,7 +53,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void Is6GHz_Boundary()
+    public void Is6GHzBoundary()
     {
         RnrParser.Parse(RnrElement(130, 1))[0].Is6GHz.Should().BeFalse();
         RnrParser.Parse(RnrElement(131, 1))[0].Is6GHz.Should().BeTrue();
@@ -62,7 +62,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void SkipsNon201Elements_ThenFindsRnr()
+    public void SkipsNon201ElementsThenFindsRnr()
     {
         var stream = new List<byte>();
         stream.AddRange(new byte[] { 0, 3, 0x41, 0x42, 0x43 }); // SSID element
@@ -74,13 +74,13 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void EmptySpan_ReturnsEmpty()
+    public void EmptySpanReturnsEmpty()
     {
         RnrParser.Parse(System.Array.Empty<byte>()).Should().BeEmpty();
     }
 
     [Fact]
-    public void TruncatedBody_ParsedSafely()
+    public void TruncatedBodyParsedSafely()
     {
         // Declare length 10 but provide only 4 bytes of body → truncated at element boundary
         RnrParser.Parse(new byte[] { 201, 10, 0x00, 0x00, 0x01, 0x09 })
@@ -88,7 +88,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void ParsesTwoNeighborInfoSets_BothContributed()
+    public void ParsesTwoNeighborInfoSetsBothContributed()
     {
         // Two back-to-back Neighbor AP Info sets inside one RNR element body.
         // Set 1: opClass=131 (6 GHz), channel=5.
@@ -116,7 +116,7 @@ public class RnrParserTests
     }
 
     [Fact]
-    public void MalformedEntry_TbttInfoLenZero_DoesNotProduceSpuriousEntries()
+    public void MalformedEntryTbttInfoLenZeroDoesNotProduceSpuriousEntries()
     {
         // Before fix: tbttInfoLen=0 caused the inner for-loop (pos += 0) to not advance pos.
         // The outer while then re-read bytes at the same offset as a new Neighbor AP Info header.

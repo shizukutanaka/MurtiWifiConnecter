@@ -36,7 +36,7 @@ public class ThemeContractTests
 
     // The brush keys every theme must define — the contract the views consume
     // via {DynamicResource …}. Kept in sync with the views by
-    // ReferencedBrushKeys_AreAllInTheContract below.
+    // ReferencedBrushKeysAreAllInTheContract below.
     private static readonly string[] RequiredBrushKeys =
     {
         "BgBrush", "SurfaceBrush", "SurfaceHoverBrush", "SurfaceSelBrush",
@@ -61,7 +61,7 @@ public class ThemeContractTests
 
     [Theory]
     [MemberData(nameof(ThemeFileNames))]
-    public void EveryExpectedThemeFile_Exists(string fileName)
+    public void EveryExpectedThemeFileExists(string fileName)
     {
         var path = Path.Combine(ThemesDir(), fileName);
         File.Exists(path).Should().BeTrue(
@@ -70,7 +70,7 @@ public class ThemeContractTests
 
     [Theory]
     [MemberData(nameof(ThemeFileNames))]
-    public void EveryThemeDictionary_IsWellFormedXml(string fileName)
+    public void EveryThemeDictionaryIsWellFormedXml(string fileName)
     {
         var path = Path.Combine(ThemesDir(), fileName);
         // XDocument.Load throws on malformed XML such as glued attributes
@@ -81,7 +81,7 @@ public class ThemeContractTests
 
     [Theory]
     [MemberData(nameof(ThemeFileNames))]
-    public void EveryThemeDictionary_DefinesTheFullBrushContract(string fileName)
+    public void EveryThemeDictionaryDefinesTheFullBrushContract(string fileName)
     {
         var keys = BrushKeysIn(Path.Combine(ThemesDir(), fileName));
         keys.Should().Contain(RequiredBrushKeys,
@@ -89,7 +89,7 @@ public class ThemeContractTests
     }
 
     [Fact]
-    public void ReferencedBrushKeys_AreAllInTheContract()
+    public void ReferencedBrushKeysAreAllInTheContract()
     {
         // Every {DynamicResource …Brush} the views reference must be covered by
         // the contract, so a newly referenced brush forces the contract (and all
@@ -97,7 +97,7 @@ public class ThemeContractTests
         var referenced = new HashSet<string>();
         foreach (var xaml in Directory.GetFiles(AppDir(), "*.xaml", SearchOption.AllDirectories))
         {
-            if (Path.GetDirectoryName(xaml)!.EndsWith("Themes")) continue;
+            if (Path.GetDirectoryName(xaml)!.EndsWith("Themes", StringComparison.Ordinal)) continue;
             foreach (System.Text.RegularExpressions.Match m in
                      System.Text.RegularExpressions.Regex.Matches(
                          File.ReadAllText(xaml), @"DynamicResource\s+(\w+Brush)\b"))
@@ -111,7 +111,7 @@ public class ThemeContractTests
             because: "every brush a view references must be in the theme contract every dictionary defines");
     }
 
-    private static IReadOnlyCollection<string> BrushKeysIn(string path)
+    private static List<string> BrushKeysIn(string path)
         => XDocument.Load(path)
             .Descendants(Xaml + "SolidColorBrush")
             .Select(e => (string?)e.Attribute(X + "Key"))

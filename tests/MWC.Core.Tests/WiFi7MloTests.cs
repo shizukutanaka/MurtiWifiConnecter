@@ -8,7 +8,7 @@ namespace MWC.Core.Tests;
 public class EhtCapabilityMloIntegrationTests
 {
     [Fact]
-    public void EhtCapability_4096Qam_320MHz_IsHighestThroughput()
+    public void EhtCapability4096Qam320MHzIsHighestThroughput()
     {
         var cap = new EhtCapability
         {
@@ -30,7 +30,7 @@ public class EhtCapabilityMloIntegrationTests
     }
 
     [Fact]
-    public void EhtCapability_NoQam4096_LowerThroughput()
+    public void EhtCapabilityNoQam4096LowerThroughput()
     {
         var wifi6Cap = new EhtCapability { Supports4096Qam = false, MaxMcsIndex = 11 };
         var wifi7Cap = new EhtCapability { Supports4096Qam = true,  MaxMcsIndex = 13 };
@@ -44,7 +44,7 @@ public class EhtCapabilityMloIntegrationTests
     }
 
     [Fact]
-    public void PhyType_WiFi8_HasLabel()
+    public void PhyTypeWiFi8HasLabel()
     {
         PhyType.Dot11bn.ToGenerationLabel().Should().Contain("Wi-Fi 8");
         PhyType.Dot11bn.ToShortLabel().Should().Be("Wi-Fi 8");
@@ -53,7 +53,7 @@ public class EhtCapabilityMloIntegrationTests
     }
 
     [Fact]
-    public void WiFi8Capability_MultiApCoordination()
+    public void WiFi8CapabilityMultiApCoordination()
     {
         var cap = new WiFi8Capability
         {
@@ -74,7 +74,7 @@ public class FrozenDictionaryRegulatoryTests
     private readonly RegulatoryDomainService _svc = new();
 
     [Fact]
-    public void GetRegion_HotPath_IsConsistentAcrossMultipleCalls()
+    public void GetRegionHotPathIsConsistentAcrossMultipleCalls()
     {
         // FrozenDictionary はスレッドセーフで決定論的
         var r1 = _svc.GetRegion("US");
@@ -88,7 +88,7 @@ public class FrozenDictionaryRegulatoryTests
     }
 
     [Fact]
-    public void GetRegion_CaseInsensitive_Works()
+    public void GetRegionCaseInsensitiveWorks()
     {
         // FrozenDictionary(StringComparer.OrdinalIgnoreCase) の検証
         _svc.GetRegion("us").Mode.Should().Be(Band6GHzMode.FullBand);
@@ -97,7 +97,7 @@ public class FrozenDictionaryRegulatoryTests
     }
 
     [Fact]
-    public void AllRegions_ContainsExpectedCountries()
+    public void AllRegionsContainsExpectedCountries()
     {
         var regions = _svc.AllRegions;
         regions.Should().NotBeEmpty();

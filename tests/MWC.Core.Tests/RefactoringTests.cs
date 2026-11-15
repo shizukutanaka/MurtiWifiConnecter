@@ -13,7 +13,7 @@ namespace MWC.Core.Tests;
 public class SafeFireAndForgetTests
 {
     [Fact]
-    public async Task Forget_TaskCompletesSuccessfully_NoException()
+    public async Task ForgetTaskCompletesSuccessfullyNoException()
     {
         var task = Task.CompletedTask;
         task.Forget();  // 例外なし
@@ -23,7 +23,7 @@ public class SafeFireAndForgetTests
     }
 
     [Fact]
-    public async Task Forget_TaskFaults_DoesNotPropagate()
+    public async Task ForgetTaskFaultsDoesNotPropagate()
     {
         // 例外を投げる Task を fire-and-forget しても上に伝わらない
         var task = Task.Run(() => throw new InvalidOperationException("test"));
@@ -34,7 +34,7 @@ public class SafeFireAndForgetTests
     }
 
     [Fact]
-    public async Task Run_ReturnsTask()
+    public async Task RunReturnsTask()
     {
         var t = SafeFireAndForget.Run(async () =>
         {
@@ -45,16 +45,16 @@ public class SafeFireAndForgetTests
     }
 
     [Fact]
-    public async Task RunWithFallback_OnException_ReturnsFallback()
+    public async Task RunWithFallbackOnExceptionReturnsFallback()
     {
         var result = await SafeFireAndForget.RunWithFallback<string>(
-            () => throw new Exception("fail"),
+            () => throw new InvalidOperationException("fail"),
             "fallback");
         result.Should().Be("fallback");
     }
 
     [Fact]
-    public async Task RunWithFallback_OnSuccess_ReturnsValue()
+    public async Task RunWithFallbackOnSuccessReturnsValue()
     {
         var result = await SafeFireAndForget.RunWithFallback<string>(
             () => Task.FromResult("ok"), "fallback");
@@ -68,7 +68,7 @@ public class SafeFireAndForgetTests
 public class LocalizationTests
 {
     [Fact]
-    public void Get_KnownKey_ReturnsTranslation()
+    public void GetKnownKeyReturnsTranslation()
     {
         var s = MWC.App.Resources.L.Get("Action_Refresh");
         s.Should().NotBe("Action_Refresh");  // フォールバックでない=翻訳成功
@@ -76,14 +76,14 @@ public class LocalizationTests
     }
 
     [Fact]
-    public void Get_UnknownKey_ReturnsKeyAsFallback()
+    public void GetUnknownKeyReturnsKeyAsFallback()
     {
         var s = MWC.App.Resources.L.Get("NonExistent_Key_12345");
         s.Should().Be("NonExistent_Key_12345");
     }
 
     [Fact]
-    public void StaticProperties_AllReturnNonEmpty()
+    public void StaticPropertiesAllReturnNonEmpty()
     {
         MWC.App.Resources.L.AppTitle.Should().NotBeNullOrEmpty();
         MWC.App.Resources.L.ActionRefresh.Should().NotBeNullOrEmpty();
@@ -94,14 +94,14 @@ public class LocalizationTests
     }
 
     [Fact]
-    public void Format_WithArguments_Substitutes()
+    public void FormatWithArgumentsSubstitutes()
     {
         var s = MWC.App.Resources.L.Format("Status_AdapterCount", 3);
         s.Should().Contain("3");
     }
 
     [Fact]
-    public void Format_BadArguments_DoesNotThrow()
+    public void FormatBadArgumentsDoesNotThrow()
     {
         // 引数が足りない場合でも例外を投げず、テンプレートをそのまま返す
         var act = () => MWC.App.Resources.L.Format("Status_AdapterCount" /* no args */);

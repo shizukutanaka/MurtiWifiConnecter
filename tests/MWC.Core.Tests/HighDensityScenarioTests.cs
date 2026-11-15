@@ -17,7 +17,7 @@ public class HighDensityWifiUriRoundTripTests
     [InlineData("Office_5G", AuthMethod.WPA3SAE,  "secret!@#")]
     [InlineData("Free",      AuthMethod.Open,     null)]
     [InlineData("Legacy",    AuthMethod.WPAPSK,   "wpaonly12")]
-    public void RoundTrip_MultipleAuthTypes_PreservesData(
+    public void RoundTripMultipleAuthTypesPreservesData(
         string ssid, AuthMethod auth, string? passphrase)
     {
         var spec = new WifiProfileSpec { Ssid = ssid, Auth = auth, Passphrase = passphrase };
@@ -45,7 +45,7 @@ public class HighDensityWifiUriRoundTripTests
 public class HighDensityProfileXmlTests
 {
     [Fact]
-    public void Build_WPA3Enterprise_HasAllElements()
+    public void BuildWPA3EnterpriseHasAllElements()
     {
         var spec = new WifiProfileSpec
         {
@@ -67,7 +67,7 @@ public class HighDensityProfileXmlTests
     }
 
     [Fact]
-    public void Build_DifferentAuthMethods_GenerateDifferentXml()
+    public void BuildDifferentAuthMethodsGenerateDifferentXml()
     {
         var open = new WifiProfileSpec { Ssid = "X", Auth = AuthMethod.Open };
         var wpa  = new WifiProfileSpec { Ssid = "X", Auth = AuthMethod.WPA2PSK, Passphrase = "p1234567" };
@@ -86,8 +86,13 @@ public class HighDensityProfileXmlTests
 
 public class HighDensityAdapterPrefsTests
 {
+    private static readonly string[] ThirdSecondFirst = new[] { "Third", "Second", "First" };
+    private static readonly string[] FirstSecondThird = new[] { "First", "Second", "Third" };
+    private static readonly string[] FirstSecond = new[] { "First", "Second" };
+    private static readonly string[] First = new[] { "First" };
+    private static readonly string[] Other = new[] { "Other" };
     [Fact]
-    public void Pin_RemovePin_FullCycle()
+    public void PinRemovePinFullCycle()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -110,32 +115,32 @@ public class HighDensityAdapterPrefsTests
     }
 
     [Fact]
-    public void PriorityOrder_AffectsBestPick()
+    public void PriorityOrderAffectsBestPick()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
 
-        svc.SetAutoConnectPriority(id, new[] { "Third", "Second", "First" });
+        svc.SetAutoConnectPriority(id, ThirdSecondFirst);
 
         // 全候補圏内 → 最初の Third が選ばれる
-        var best1 = svc.PickBestSsid(id, new[] { "First", "Second", "Third" });
+        var best1 = svc.PickBestSsid(id, FirstSecondThird);
         best1.Should().Be("Third");
 
         // Third 圏外 → Second が選ばれる
-        var best2 = svc.PickBestSsid(id, new[] { "First", "Second" });
+        var best2 = svc.PickBestSsid(id, FirstSecond);
         best2.Should().Be("Second");
 
         // First のみ → First
-        var best3 = svc.PickBestSsid(id, new[] { "First" });
+        var best3 = svc.PickBestSsid(id, First);
         best3.Should().Be("First");
 
         // 全圏外
-        var best4 = svc.PickBestSsid(id, new[] { "Other" });
+        var best4 = svc.PickBestSsid(id, Other);
         best4.Should().BeNull();
     }
 
     [Fact]
-    public void SetLabel_PersistsCustomName()
+    public void SetLabelPersistsCustomName()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -148,14 +153,14 @@ public class HighDensityAdapterPrefsTests
         svc.SetLabel(id, "Office Dongle");
         svc.Get(id).CustomLabel.Should().Be("Office Dongle");
         svc.Get(id).CustomLabel.Should().NotBe("ホーム用ドングル");
-        svc.Get(id).CustomLabel.Length.Should().Be("Office Dongle".Length);
+        svc.Get(id).CustomLabel.Should().HaveLength("Office Dongle".Length);
     }
 }
 
 public class HighDensityNetworkHistoryTests
 {
     [Fact]
-    public void RecordConnection_SuccessAndFailure_BothPersist()
+    public void RecordConnectionSuccessAndFailureBothPersist()
     {
         var hist = new NetworkHistoryService();
         var beforeCount = hist.GetRecentSsids(100).Count;
@@ -175,7 +180,7 @@ public class HighDensityNetworkHistoryTests
 public class WiFi7MloTests
 {
     [Fact]
-    public void MloNetwork_HasLinksAndAggregatedSpeed()
+    public void MloNetworkHasLinksAndAggregatedSpeed()
     {
         var links = new[]
         {
@@ -207,7 +212,7 @@ public class WiFi7MloTests
     }
 
     [Fact]
-    public void NonMloNetwork_AggregatedSpeedIsNull()
+    public void NonMloNetworkAggregatedSpeedIsNull()
     {
         var net = new WifiNetwork
         {
@@ -226,7 +231,7 @@ public class WiFi7MloTests
     }
 
     [Fact]
-    public void MloExtensions_AggregatedSpeed_IsPositive()
+    public void MloExtensionsAggregatedSpeedIsPositive()
     {
         var links = new[]
         {
@@ -255,7 +260,7 @@ public class RegulatoryDomainTests
     [InlineData("DE", Band6GHzMode.LowerHalf)]
     [InlineData("CN", Band6GHzMode.None)]
     [InlineData("IN", Band6GHzMode.None)]
-    public void GetRegion_ReturnsCorrectMode(string cc, Band6GHzMode expected)
+    public void GetRegionReturnsCorrectMode(string cc, Band6GHzMode expected)
     {
         var region = _svc.GetRegion(cc);
         region.CountryCode.Should().Be(cc);
@@ -264,7 +269,7 @@ public class RegulatoryDomainTests
     }
 
     [Fact]
-    public void US_Has233Channels()
+    public void USHas233Channels()
     {
         var channels = _svc.GetAvailable6GHzChannels("US");
         channels.Should().NotBeEmpty();
@@ -274,7 +279,7 @@ public class RegulatoryDomainTests
     }
 
     [Fact]
-    public void EU_ChannelsCapped_At93()
+    public void EUChannelsCappedAt93()
     {
         var channels = _svc.GetAvailable6GHzChannels("DE");
         channels.Should().NotBeEmpty();
@@ -283,7 +288,7 @@ public class RegulatoryDomainTests
     }
 
     [Fact]
-    public void PscChannels_AreSubsetOfAll()
+    public void PscChannelsAreSubsetOfAll()
     {
         var all = _svc.GetAvailable6GHzChannels("US");
         var pscs = all.Where(c => c.IsPsc).ToList();
@@ -293,7 +298,7 @@ public class RegulatoryDomainTests
     }
 
     [Fact]
-    public void Unknown_CountryCode_FallsBack_ToNone()
+    public void UnknownCountryCodeFallsBackToNone()
     {
         var region = _svc.GetRegion("ZZ");
         region.Mode.Should().Be(Band6GHzMode.None);
@@ -315,7 +320,7 @@ public class RegulatoryDomainTests
     [InlineData(221,  80)]  // 221+28=249 > 233, 221+12=233 ≤ 233 → 80;  old: 221+16=237 > 234 → 40 (wrong)
     [InlineData(229,  40)]  // 229+12=241 > 233, 229+4=233 ≤ 233  → 40;  old: 229+8=237  > 234 → 20 (wrong)
     [InlineData(233,  20)]  // no span fits → 20
-    public void MaxChannelWidth_US_RegressionCases(int channel, int expectedMhz)
+    public void MaxChannelWidthUSRegressionCases(int channel, int expectedMhz)
     {
         var channels = _svc.GetAvailable6GHzChannels("US");
         var info = channels.First(c => c.Channel == channel);
@@ -329,7 +334,7 @@ public class OweSelectionTests
     private readonly OweSelectionService _svc = new();
 
     [Fact]
-    public void ApplyOwePreference_HidesOpen_WhenOweExists()
+    public void ApplyOwePreferenceHidesOpenWhenOweExists()
     {
         var nets = new[]
         {
@@ -346,7 +351,7 @@ public class OweSelectionTests
     }
 
     [Fact]
-    public void RecommendAuth_PreferOwe_WhenAvailable()
+    public void RecommendAuthPreferOweWhenAvailable()
     {
         var open = new WifiNetwork { Ssid = "FreeWifi", Auth = AuthMethod.Open, SignalQuality = 70, Band = WifiBand.Band2_4GHz };
         var owe  = new WifiNetwork { Ssid = "FreeWifi", Auth = AuthMethod.OWE,  SignalQuality = 68, Band = WifiBand.Band2_4GHz };
@@ -385,13 +390,13 @@ public class CatImportTests
         """;
 
     [Fact]
-    public void ParseEapConfig_ExtractsProfile()
+    public void ParseEapConfigExtractsProfile()
     {
         var svc = new CatImportService();
         var profiles = svc.ParseEapConfig(SampleEapConfig);
 
         profiles.Should().NotBeEmpty();
-        var p = profiles.First();
+        var p = profiles[0];
         p.Ssid.Should().Be("eduroam");
         p.EapType.Should().Be(EapType.PEAP_MSCHAPv2);  // Type 25
         p.ServerNames.Should().Contain("radius.example.ac.jp");
@@ -399,7 +404,7 @@ public class CatImportTests
     }
 
     [Fact]
-    public void ParseEapConfig_Empty_Throws()
+    public void ParseEapConfigEmptyThrows()
     {
         var svc = new CatImportService();
         var act = () => svc.ParseEapConfig("");
@@ -407,11 +412,11 @@ public class CatImportTests
     }
 
     [Fact]
-    public void BuildEduroamSpec_GeneratesValidSpec()
+    public void BuildEduroamSpecGeneratesValidSpec()
     {
         var svc = new CatImportService();
         var profiles = svc.ParseEapConfig(SampleEapConfig);
-        var spec = svc.BuildEduroamSpec(profiles.First());
+        var spec = svc.BuildEduroamSpec(profiles[0]);
 
         spec.Ssid.Should().Be("eduroam");
         spec.Auth.Should().Be(AuthMethod.WPA2Enterprise);
@@ -423,7 +428,7 @@ public class CatImportTests
 public class NetworkHistoryStatsTests
 {
     [Fact]
-    public void GetStats_ReflectsRecentConnections()
+    public void GetStatsReflectsRecentConnections()
     {
         var hist = new NetworkHistoryService();
         hist.RecordConnection("Alpha", true);
@@ -439,7 +444,7 @@ public class NetworkHistoryStatsTests
     }
 
     [Fact]
-    public void GetFrequentSsids_OrdersByCount()
+    public void GetFrequentSsidsOrdersByCount()
     {
         var hist = new NetworkHistoryService();
         hist.RecordConnection("Rare",    true);
@@ -454,7 +459,7 @@ public class NetworkHistoryStatsTests
     }
 
     [Fact]
-    public void Count_ReflectsEntries()
+    public void CountReflectsEntries()
     {
         var hist = new NetworkHistoryService();
         var before = hist.Count;
@@ -472,7 +477,7 @@ public class AccessibilityAuditTests
     [InlineData("#E6E8EB", "#00C4CC", false, WcagLevel.Fail)]  // fg on accent (低コントラスト)
     [InlineData("#001518", "#00C4CC", false, WcagLevel.AAA)]   // accentText on accent (~8.7:1 ≥ 7.0 AAA)
     [InlineData("#ECEFF4", "#2E3440", true,  WcagLevel.AAA)]   // Nord: fg on bg (大テキスト)
-    public void EvaluateContrast_MwcThemePairs(
+    public void EvaluateContrastMwcThemePairs(
         string fg, string bg, bool large, WcagLevel expected)
     {
         var result = _svc.EvaluateContrast(fg, bg, large);
@@ -483,21 +488,21 @@ public class AccessibilityAuditTests
     }
 
     [Fact]
-    public void CalcContrast_BlackOnWhite_Is21()
+    public void CalcContrastBlackOnWhiteIs21()
     {
         var ratio = _svc.CalcContrast("#000000", "#FFFFFF");
         ratio.Should().BeApproximately(21.0, 0.5);
     }
 
     [Fact]
-    public void CalcContrast_SameColor_Is1()
+    public void CalcContrastSameColorIs1()
     {
         var ratio = _svc.CalcContrast("#888888", "#888888");
         ratio.Should().BeApproximately(1.0, 0.01);
     }
 
     [Fact]
-    public void AuditMwcTheme_AllPairsHaveResults()
+    public void AuditMwcThemeAllPairsHaveResults()
     {
         var results = _svc.AuditMwcTheme("#E6E8EB", "#0F1115", "#00C4CC", "#001518");
         results.Should().HaveCount(4);
@@ -509,7 +514,7 @@ public class AccessibilityAuditTests
     }
 
     [Fact]
-    public void GetScreenReaderChecklist_HasAllRequiredItems()
+    public void GetScreenReaderChecklistHasAllRequiredItems()
     {
         var list = _svc.GetScreenReaderChecklist();
         list.Should().HaveCountGreaterOrEqualTo(10);
@@ -523,7 +528,7 @@ public class AccessibilityAuditTests
     }
 
     [Fact]
-    public void GenerateReport_AllPass_IsAaaLevel()
+    public void GenerateReportAllPassIsAaaLevel()
     {
         var pairs = new[]
         {
@@ -542,7 +547,7 @@ public class AccessibilityAuditTests
     }
 
     [Fact]
-    public void GenerateReport_WithFailure_ReportsFail()
+    public void GenerateReportWithFailureReportsFail()
     {
         var pairs = new[]
         {
@@ -560,7 +565,7 @@ public class AccessibilityAuditTests
 public class SlnRegistrationTests
 {
     [Fact]
-    public void SolutionFile_RegistersAllProjects()
+    public void SolutionFileRegistersAllProjects()
     {
         var slnPath = System.IO.Path.GetFullPath(
             System.IO.Path.Combine(
@@ -584,7 +589,7 @@ public class SlnRegistrationTests
     }
 
     [Fact]
-    public void SolutionFile_HasNoDuplicateGuids()
+    public void SolutionFileHasNoDuplicateGuids()
     {
         var slnPath = System.IO.Path.GetFullPath(
             System.IO.Path.Combine(
@@ -620,7 +625,7 @@ public class SlnRegistrationTests
 public class BssInfoModelTests
 {
     [Fact]
-    public void BssInfo_HasInterworkingElement_DefaultFalse()
+    public void BssInfoHasInterworkingElementDefaultFalse()
     {
         var bss = new BssInfo { Bssid = "" };   // Bssid は required
         bss.HasInterworkingElement.Should().BeFalse();
@@ -628,7 +633,7 @@ public class BssInfoModelTests
     }
 
     [Fact]
-    public void WifiNetwork_IsPasspoint_RequiresInterworkingElement()
+    public void WifiNetworkIsPasspointRequiresInterworkingElement()
     {
         var openNet = new WifiNetwork
         {
@@ -655,7 +660,7 @@ public class BssInfoModelTests
     [InlineData(AuthMethod.WPA2Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise)]
     [InlineData(AuthMethod.WPA3Enterprise192)]
-    public void WifiNetwork_IsPasspoint_AllEnterpriseAuthMethods_Recognized(AuthMethod auth)
+    public void WifiNetworkIsPasspointAllEnterpriseAuthMethodsRecognized(AuthMethod auth)
     {
         var net = new WifiNetwork
         {
@@ -678,7 +683,7 @@ public class TroubleshootingHelperBasicTests
     [InlineData(ConnectionFailure.AdapterDisabled)]
     [InlineData(ConnectionFailure.InsufficientPrivilege)]
     [InlineData(ConnectionFailure.Unknown)]
-    public void GetAdvice_AllFailures_ReturnsNonEmptyAdvice(ConnectionFailure f)
+    public void GetAdviceAllFailuresReturnsNonEmptyAdvice(ConnectionFailure f)
     {
         var advice = TroubleshootingHelper.GetAdvice(f, AuthMethod.WPA2PSK);
         advice.Title.Should().NotBeNullOrEmpty();
@@ -686,7 +691,7 @@ public class TroubleshootingHelperBasicTests
     }
 
     [Fact]
-    public void GetAdvice_BadCredentials_HasPasswordHint()
+    public void GetAdviceBadCredentialsHasPasswordHint()
     {
         var advice = TroubleshootingHelper.GetAdvice(ConnectionFailure.BadCredentials, AuthMethod.WPA2PSK);
         var flat = string.Join(" ", advice.Steps);
@@ -700,7 +705,7 @@ public class OweSelectionServiceTests2
     private readonly OweSelectionService _svc = new();
 
     [Fact]
-    public void BuildOweSpec_SetsCorrectAuth()
+    public void BuildOweSpecSetsCorrectAuth()
     {
         var spec = _svc.BuildOweSpec("FreeWifi");
         spec.Ssid.Should().Be("FreeWifi");
@@ -709,7 +714,7 @@ public class OweSelectionServiceTests2
     }
 
     [Fact]
-    public void ApplyOwePreference_NoOweExists_KeepsOpen()
+    public void ApplyOwePreferenceNoOweExistsKeepsOpen()
     {
         var nets = new[]
         {
@@ -721,7 +726,7 @@ public class OweSelectionServiceTests2
     }
 
     [Fact]
-    public void RecommendAuth_WhenNoOwe_ReturnsOriginal()
+    public void RecommendAuthWhenNoOweReturnsOriginal()
     {
         var net = new WifiNetwork { Ssid = "Net", Auth = AuthMethod.WPA2PSK, Band = WifiBand.Band5GHz, SignalQuality = 80 };
         _svc.RecommendAuth(net, new[] { net }).Should().Be(AuthMethod.WPA2PSK);
@@ -733,23 +738,23 @@ public class Hotspot20ServiceBasicTests
     private readonly Hotspot20Service _svc = new();
 
     [Fact]
-    public void KnownCarriers_NotEmpty()
+    public void KnownCarriersNotEmpty()
     {
         Hotspot20Service.KnownCarriers.Should().NotBeEmpty();
         Hotspot20Service.KnownCarriers.Count.Should().BeGreaterOrEqualTo(3);
     }
 
     [Fact]
-    public void BuildCarrierProfile_SetsSSID()
+    public void BuildCarrierProfileSetsSSID()
     {
-        var preset = Hotspot20Service.KnownCarriers.First();
+        var preset = Hotspot20Service.KnownCarriers[0];
         var spec   = _svc.BuildCarrierProfile(preset);
         spec.Ssid.Should().Be(preset.Ssid);
         spec.EapType.Should().Be(preset.EapType);
     }
 
     [Fact]
-    public void BuildProfile_SetsHomeOI()
+    public void BuildProfileSetsHomeOI()
     {
         var profile = _svc.BuildProfile("001122334455", "example.com", EapType.PEAP_MSCHAPv2);
         profile.HomeOI.Should().Be("001122334455");
@@ -758,7 +763,7 @@ public class Hotspot20ServiceBasicTests
     }
 
     [Fact]
-    public void FilterPasspointNetworks_OnlyReturnsPasspointAP()
+    public void FilterPasspointNetworksOnlyReturnsPasspointAP()
     {
         var nets = new[]
         {

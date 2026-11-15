@@ -17,11 +17,11 @@ public class SecurityBadgeServiceTests
     [InlineData(AuthMethod.WPAPSK,            SecurityLevel.Weak)]
     [InlineData(AuthMethod.WEP,               SecurityLevel.Danger)]
     [InlineData(AuthMethod.Open,              SecurityLevel.Danger)]
-    public void GetBadge_ReturnsCorrectLevel(AuthMethod auth, SecurityLevel expected)
+    public void GetBadgeReturnsCorrectLevel(AuthMethod auth, SecurityLevel expected)
         => SecurityBadgeService.GetBadge(auth).Level.Should().Be(expected);
 
     [Fact]
-    public void GetBadge_WPA3_HasNonTechnicalLabel()
+    public void GetBadgeWPA3HasNonTechnicalLabel()
     {
         var badge = SecurityBadgeService.GetBadge(AuthMethod.WPA3SAE);
         badge.Label.Should().NotContain("WPA3SAE");
@@ -30,7 +30,7 @@ public class SecurityBadgeServiceTests
     }
 
     [Fact]
-    public void GetBadge_Open_LabelWarning()
+    public void GetBadgeOpenLabelWarning()
         => SecurityBadgeService.GetBadge(AuthMethod.Open).Label
            .Should().Contain("No Encryption");
 
@@ -41,7 +41,7 @@ public class SecurityBadgeServiceTests
     [InlineData(35,  "Fair")]
     [InlineData(1,   "Weak")]
     [InlineData(0,   "None")]
-    public void GetSignalLabel_ReturnsHumanLabel(int quality, string expected)
+    public void GetSignalLabelReturnsHumanLabel(int quality, string expected)
         => SecurityBadgeService.GetSignalLabel(quality).Should().Be(expected);
 
     [Theory]
@@ -49,7 +49,7 @@ public class SecurityBadgeServiceTests
     [InlineData(PhyType.Dot11ax, "Wi-Fi 6/6E")]
     [InlineData(PhyType.Dot11ac, "Wi-Fi 5")]
     [InlineData(PhyType.Dot11n,  "Wi-Fi 4")]
-    public void GetPhyFriendlyLabel_ReturnsGenerationLabel(PhyType phy, string contains)
+    public void GetPhyFriendlyLabelReturnsGenerationLabel(PhyType phy, string contains)
         => SecurityBadgeService.GetPhyFriendlyLabel(phy).Should().Contain(contains);
 }
 
@@ -63,7 +63,7 @@ public class TroubleshootingHelperTests
     [InlineData(ConnectionFailure.AdapterDisabled)]
     [InlineData(ConnectionFailure.InsufficientPrivilege)]
     [InlineData(ConnectionFailure.Unknown)]
-    public void GetAdvice_AllFailures_HaveSteps(ConnectionFailure failure)
+    public void GetAdviceAllFailuresHaveSteps(ConnectionFailure failure)
     {
         var advice = TroubleshootingHelper.GetAdvice(failure, AuthMethod.WPA2PSK);
         advice.Steps.Should().NotBeEmpty();
@@ -72,7 +72,7 @@ public class TroubleshootingHelperTests
     }
 
     [Fact]
-    public void GetAdvice_BadCredentials_MentionsPassword()
+    public void GetAdviceBadCredentialsMentionsPassword()
     {
         var a = TroubleshootingHelper.GetAdvice(ConnectionFailure.BadCredentials, AuthMethod.WPA2PSK);
         // 解決手順にパスワード関連の言及があること
@@ -80,7 +80,7 @@ public class TroubleshootingHelperTests
     }
 
     [Fact]
-    public void GetAdvice_Enterprise_MentionsAdmin()
+    public void GetAdviceEnterpriseMentionsAdmin()
     {
         var a = TroubleshootingHelper.GetAdvice(
             ConnectionFailure.BadCredentials, AuthMethod.WPA2Enterprise);
@@ -88,7 +88,7 @@ public class TroubleshootingHelperTests
     }
 
     [Fact]
-    public void GetAdvice_NoJargon_InTitle()
+    public void GetAdviceNoJargonInTitle()
     {
         // タイトルに技術用語(WPA/SSID/BSSID等)が入らないこと
         foreach (var f in System.Enum.GetValues<ConnectionFailure>())
@@ -109,7 +109,7 @@ public class SecurityColorTests
     [InlineData(SecurityLevel.Fair,      "#F59E0B")]
     [InlineData(SecurityLevel.Weak,      "#F97316")]
     [InlineData(SecurityLevel.Danger,    "#EF4444")]
-    public void SecurityLevel_HasDistinctColor(SecurityLevel level, string expectedColor)
+    public void SecurityLevelHasDistinctColor(SecurityLevel level, string expectedColor)
     {
         // ViewModelExtensions のカラーマッピングが正しいこと
         // (View 依存なしで検証)

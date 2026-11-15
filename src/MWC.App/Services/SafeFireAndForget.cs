@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -29,7 +30,7 @@ public static class SafeFireAndForget
             if (t.IsFaulted && t.Exception is not null)
             {
                 log?.LogError(t.Exception,
-                    "fire-and-forget failure in {caller} (operation={op})",
+                    "fire-and-forget failure in {Caller} (operation={Op})",
                     callerName, operation ?? "-");
             }
         }, TaskContinuationOptions.OnlyOnFaulted);
@@ -49,6 +50,8 @@ public static class SafeFireAndForget
     /// <summary>
     /// 戻り値ありの fire-and-forget。
     /// </summary>
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Fire-and-forget boundary by design: every failure is logged and converted to the fallback value; the returned task is explicitly not awaited, so no caller could observe a rethrown exception.")]
     public static Task<T?> RunWithFallback<T>(Func<Task<T>> action, T? fallback,
         ILogger? log = null, string? operation = null)
         => Task.Run(async () =>
@@ -56,7 +59,7 @@ public static class SafeFireAndForget
             try { return await action().ConfigureAwait(false); }
             catch (Exception ex)
             {
-                log?.LogError(ex, "fire-and-forget failure (operation={op})", operation ?? "-");
+                log?.LogError(ex, "fire-and-forget failure (operation={Op})", operation ?? "-");
                 return fallback;
             }
         });

@@ -3,6 +3,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Animation;
 
+// WinForms 併用時の global using と曖昧なため WPF 側に固定
+using Point = System.Windows.Point;
+
 namespace MWC.App.Controls;
 
 /// <summary>

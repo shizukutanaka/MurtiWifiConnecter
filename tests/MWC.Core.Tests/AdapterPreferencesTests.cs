@@ -13,8 +13,11 @@ namespace MWC.Core.Tests;
 /// </summary>
 public class AdapterPreferencesServiceTests
 {
+    private static readonly string[] Office = new[] { "Office" };
+    private static readonly string[] HomeWiFi = new[] { "HomeWiFi" };
+    private static readonly string[] MobileRouter = new[] { "MobileRouter" };
     [Fact]
-    public void Get_NewAdapter_ReturnsDefaults()
+    public void GetNewAdapterReturnsDefaults()
     {
         var svc = new AdapterPreferencesService();
         var p   = svc.Get(Guid.NewGuid());
@@ -25,7 +28,7 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void SetLabel_PersistsCustomName()
+    public void SetLabelPersistsCustomName()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -34,7 +37,7 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void PinSsid_AddsToTop_NoDuplicates()
+    public void PinSsidAddsToTopNoDuplicates()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -47,18 +50,18 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void UnpinSsid_RemovesFromList()
+    public void UnpinSsidRemovesFromList()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.PinSsid(id, "Home");
         svc.PinSsid(id, "Office");
         svc.UnpinSsid(id, "Home");
-        svc.Get(id).PinnedSsids.Should().BeEquivalentTo(new[] { "Office" });
+        svc.Get(id).PinnedSsids.Should().BeEquivalentTo(Office);
     }
 
     [Fact]
-    public void PinSsid_ExceedsMax_TruncatesTo20()
+    public void PinSsidExceedsMaxTruncatesTo20()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -68,7 +71,7 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void SetBandFilter_PersistsBand()
+    public void SetBandFilterPersistsBand()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -77,7 +80,7 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void SetEnabled_TogglesIsEnabled()
+    public void SetEnabledTogglesIsEnabled()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -92,7 +95,7 @@ public class AdapterPreferencesServiceTests
     [InlineData(BandPreference.Only2_4GHz)]
     [InlineData(BandPreference.Only5GHz)]
     [InlineData(BandPreference.Only6GHz)]
-    public void BandPreference_AllValuesValid(BandPreference band)
+    public void BandPreferenceAllValuesValid(BandPreference band)
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -101,7 +104,7 @@ public class AdapterPreferencesServiceTests
     }
 
     [Fact]
-    public void MultipleAdapters_HaveIndependentPreferences()
+    public void MultipleAdaptersHaveIndependentPreferences()
     {
         var svc = new AdapterPreferencesService();
         var id1 = Guid.NewGuid();
@@ -117,12 +120,12 @@ public class AdapterPreferencesServiceTests
         svc.Get(id2).CustomLabel.Should().Be("Adapter B");
         svc.Get(id1).PreferredBand.Should().Be(BandPreference.Only2_4GHz);
         svc.Get(id2).PreferredBand.Should().Be(BandPreference.Only5GHz);
-        svc.Get(id1).PinnedSsids.Should().BeEquivalentTo(new[] { "HomeWiFi" });
-        svc.Get(id2).PinnedSsids.Should().BeEquivalentTo(new[] { "MobileRouter" });
+        svc.Get(id1).PinnedSsids.Should().BeEquivalentTo(HomeWiFi);
+        svc.Get(id2).PinnedSsids.Should().BeEquivalentTo(MobileRouter);
     }
 
     [Fact]
-    public void All_ReturnsAllConfiguredAdapters()
+    public void AllReturnsAllConfiguredAdapters()
     {
         var svc = new AdapterPreferencesService();
         svc.SetLabel(Guid.NewGuid(), "X");
@@ -136,8 +139,16 @@ public class AdapterPreferencesServiceTests
 // ═══════════════════════════════════════════════
 public class AdapterPreferencesExtendedTests
 {
+    private static readonly string[] FirstSecond = new[] { "First", "Second" };
+    private static readonly string[] SecondFirstThird = new[] { "Second", "First", "Third" };
+    private static readonly string[] Pinned1Other = new[] { "Pinned1", "Other" };
+    private static readonly string[] OfficeCafe = new[] { "Office", "Cafe" };
+    private static readonly string[] B = new[] { "B" };
+    private static readonly string[] ABC = new[] { "A", "B", "C" };
+    private static readonly string[] AB = new[] { "A", "B" };
+    private static readonly string[] SSID0SSID3 = new[] { "SSID0", "SSID3" };
     [Fact]
-    public void IsAutoReconnectEnabled_WithPinnedSsids_ReturnsTrue()
+    public void IsAutoReconnectEnabledWithPinnedSsidsReturnsTrue()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -146,14 +157,14 @@ public class AdapterPreferencesExtendedTests
     }
 
     [Fact]
-    public void IsAutoReconnectEnabled_NoPins_ReturnsFalse()
+    public void IsAutoReconnectEnabledNoPinsReturnsFalse()
     {
         var svc = new AdapterPreferencesService();
         svc.IsAutoReconnectEnabled(Guid.NewGuid()).Should().BeFalse();
     }
 
     [Fact]
-    public void IsAutoReconnectEnabled_DisabledAdapter_ReturnsFalse()
+    public void IsAutoReconnectEnabledDisabledAdapterReturnsFalse()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -163,37 +174,37 @@ public class AdapterPreferencesExtendedTests
     }
 
     [Fact]
-    public void PickBestSsid_ReturnsFirst_FromPriority()
+    public void PickBestSsidReturnsFirstFromPriority()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "First", "Second" });
-        var best = svc.PickBestSsid(id, new[] { "Second", "First", "Third" });
+        svc.SetAutoConnectPriority(id, FirstSecond);
+        var best = svc.PickBestSsid(id, SecondFirstThird);
         best.Should().Be("First");
     }
 
     [Fact]
-    public void PickBestSsid_FallsBackToPinned()
+    public void PickBestSsidFallsBackToPinned()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.PinSsid(id, "Pinned1");
-        var best = svc.PickBestSsid(id, new[] { "Pinned1", "Other" });
+        var best = svc.PickBestSsid(id, Pinned1Other);
         best.Should().Be("Pinned1");
     }
 
     [Fact]
-    public void PickBestSsid_NoMatch_ReturnsNull()
+    public void PickBestSsidNoMatchReturnsNull()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.PinSsid(id, "Home");
-        var best = svc.PickBestSsid(id, new[] { "Office", "Cafe" });
+        var best = svc.PickBestSsid(id, OfficeCafe);
         best.Should().BeNull();
     }
 
     [Fact]
-    public void AddPreferred_NoDuplicates()
+    public void AddPreferredNoDuplicates()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
@@ -203,38 +214,38 @@ public class AdapterPreferencesExtendedTests
     }
 
     [Fact]
-    public void RemovePreferred_RemovesFromList()
+    public void RemovePreferredRemovesFromList()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
         svc.AddPreferred(id, "A");
         svc.AddPreferred(id, "B");
         svc.RemovePreferred(id, "A");
-        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(new[] { "B" });
+        svc.GetPreferredNetworks(id).Should().BeEquivalentTo(B);
     }
 
     [Fact]
-    public void MoveUp_SwapsWithPrevious()
+    public void MoveUpSwapsWithPrevious()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "A", "B", "C" });
+        svc.SetAutoConnectPriority(id, ABC);
         svc.MoveUp(id, "B");
         svc.GetPreferredNetworks(id).Should().ContainInOrder("B", "A", "C");
     }
 
     [Fact]
-    public void MoveUp_FirstElement_NoChange()
+    public void MoveUpFirstElementNoChange()
     {
         var svc = new AdapterPreferencesService();
         var id  = Guid.NewGuid();
-        svc.SetAutoConnectPriority(id, new[] { "A", "B" });
+        svc.SetAutoConnectPriority(id, AB);
         svc.MoveUp(id, "A");
         svc.GetPreferredNetworks(id).Should().ContainInOrder("A", "B");
     }
 
     [Fact]
-    public async Task ConcurrentSaveAndRead_NoCrash()
+    public async Task ConcurrentSaveAndReadNoCrash()
     {
         // AutoReconnectService(背景スレッド)が Get/PickBestSsid で読みつつ
         // UI スレッドが Save する状況を再現。内部 Dictionary がロック無しだと
@@ -259,7 +270,7 @@ public class AdapterPreferencesExtendedTests
                 foreach (var id in ids)
                 {
                     _ = svc.Get(id);
-                    _ = svc.PickBestSsid(id, new[] { "SSID0", "SSID3" });
+                    _ = svc.PickBestSsid(id, SSID0SSID3);
                 }
             }
         }, cts.Token));

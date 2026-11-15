@@ -30,7 +30,7 @@ public class QosAdvisoryServiceTests
         => _svc.Evaluate(Resp(grade), wmm).First(s => s.App == app);
 
     [Fact]
-    public void GradeA_AllAppsExcellentOrGood()
+    public void GradeAAllAppsExcellentOrGood()
     {
         var results = _svc.Evaluate(Resp(BufferbloatGrade.A), null);
         results.Should().HaveCount(4);
@@ -39,7 +39,7 @@ public class QosAdvisoryServiceTests
     }
 
     [Fact]
-    public void GradeF_GamingPoor_BrowsingStillGood()
+    public void GradeFGamingPoorBrowsingStillGood()
     {
         For(AppClass.RealtimeGaming, BufferbloatGrade.F, null).Level
             .Should().Be(SuitabilityLevel.Poor);
@@ -48,7 +48,7 @@ public class QosAdvisoryServiceTests
     }
 
     [Fact]
-    public void Wmm_UpgradesRealtimeByOneStep()
+    public void WmmUpgradesRealtimeByOneStep()
     {
         // グレードC: WMM なしならゲームは Marginal、WMM ありなら Good
         For(AppClass.RealtimeGaming, BufferbloatGrade.C, null).Level
@@ -58,7 +58,7 @@ public class QosAdvisoryServiceTests
     }
 
     [Fact]
-    public void Wmm_DoesNotAffectNonRealtime()
+    public void WmmDoesNotAffectNonRealtime()
     {
         // 動画ストリーミングは WMM の有無で変わらない (リアルタイムでない)
         var without = For(AppClass.VideoStreaming, BufferbloatGrade.C, null).Level;
@@ -67,35 +67,35 @@ public class QosAdvisoryServiceTests
     }
 
     [Fact]
-    public void VideoStreaming_ToleratesGradeD()
+    public void VideoStreamingToleratesGradeD()
     {
         For(AppClass.VideoStreaming, BufferbloatGrade.D, null).Level
             .Should().Be(SuitabilityLevel.Good, "ストリーミングはバッファで D まで許容");
     }
 
     [Fact]
-    public void UnknownGrade_ReturnsUnknownForAll()
+    public void UnknownGradeReturnsUnknownForAll()
     {
         var results = _svc.Evaluate(Resp(BufferbloatGrade.Unknown), Wmm());
         results.Should().OnlyContain(s => s.Level == SuitabilityLevel.Unknown);
     }
 
     [Fact]
-    public void NullResponsiveness_ReturnsUnknown()
+    public void NullResponsivenessReturnsUnknown()
     {
         var results = _svc.Evaluate(null, Wmm());
         results.Should().OnlyContain(s => s.Level == SuitabilityLevel.Unknown);
     }
 
     [Fact]
-    public void WmmActiveFlag_Propagated()
+    public void WmmActiveFlagPropagated()
     {
         For(AppClass.VideoConferencing, BufferbloatGrade.A, Wmm()).WmmActive.Should().BeTrue();
         For(AppClass.VideoConferencing, BufferbloatGrade.A, null).WmmActive.Should().BeFalse();
     }
 
     [Fact]
-    public void Reason_MentionsWmmState()
+    public void ReasonMentionsWmmState()
     {
         For(AppClass.RealtimeGaming, BufferbloatGrade.A, null).Reason
             .Should().Contain("WMM disabled");

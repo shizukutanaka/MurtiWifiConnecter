@@ -109,7 +109,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void PresentElementIds_TracksAllSeenElements()
+    public void PresentElementIdsTracksAllSeenElements()
     {
         var stream = new List<byte>();
         stream.AddRange(Ssid("X"));            // ID 0
@@ -120,7 +120,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void EmptyOrTruncated_ReturnsEmptySummary()
+    public void EmptyOrTruncatedReturnsEmptySummary()
     {
         var s = BeaconIeParser.Parse(System.Array.Empty<byte>());
         s.Neighbors.Should().BeEmpty();
@@ -135,7 +135,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void MultipleNeighbors_AllCollected()
+    public void MultipleNeighborsAllCollected()
     {
         var b2 = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x01 };
         var stream = new List<byte>();
@@ -148,7 +148,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void NonWmmVendorSpecific_DoesNotSetWmm()
+    public void NonWmmVendorSpecificDoesNotSetWmm()
     {
         // OUI 00:0C:E7 (not WMM)
         var stream = new List<byte> { 221, 7, 0x00, 0x0C, 0xE7, 0x02, 0x01, 0x01, 0x00 };
@@ -159,7 +159,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void ExtendedCapabilities_Bit19_SetsBssTransitionMgmt()
+    public void ExtendedCapabilitiesBit19SetsBssTransitionMgmt()
     {
         // EID 127, Length=3, body[0]=0x00, body[1]=0x00, body[2]=0x08 (bit 3 = bit 19 overall)
         var stream = new List<byte> { 127, 3, 0x00, 0x00, 0x08 };
@@ -168,7 +168,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void ExtendedCapabilities_Bit19_Clear_DoesNotSetBssTransitionMgmt()
+    public void ExtendedCapabilitiesBit19ClearDoesNotSetBssTransitionMgmt()
     {
         // EID 127, Length=3, body[2]=0x00 (bit 3 not set)
         var stream = new List<byte> { 127, 3, 0x00, 0x00, 0x00 };
@@ -177,7 +177,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void ExtendedCapabilities_TooShort_DoesNotSetBssTransitionMgmt()
+    public void ExtendedCapabilitiesTooShortDoesNotSetBssTransitionMgmt()
     {
         // EID 127, Length=2 (< 3), no body[2] to read
         var stream = new List<byte> { 127, 2, 0xFF, 0xFF };
@@ -186,7 +186,7 @@ public class BeaconIeParserTests
     }
 
     [Fact]
-    public void Rnr_TbttInfoLenZero_ProducesNoSpuriousNeighbors()
+    public void RnrTbttInfoLenZeroProducesNoSpuriousNeighbors()
     {
         // Before fix (DecodeRnr): tbttInfoLen=0 left pos unchanged in the inner for-loop.
         // The outer while then re-read the next bytes as another Neighbor AP Info header,

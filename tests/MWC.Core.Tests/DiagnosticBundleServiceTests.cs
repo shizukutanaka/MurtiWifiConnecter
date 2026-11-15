@@ -17,7 +17,7 @@ public class DiagnosticBundleServiceTests
     // ── 秘匿ユーティリティ ──────────────────────────────────────
 
     [Fact]
-    public void MaskSsid_KeepsFirstTwoChars()
+    public void MaskSsidKeepsFirstTwoChars()
     {
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().StartWith("My");
         DiagnosticBundleService.MaskSsid("MyHomeNetwork").Should().NotContain("Home");
@@ -26,7 +26,7 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void MaskMac_KeepsOuiOnly()
+    public void MaskMacKeepsOuiOnly()
     {
         DiagnosticBundleService.MaskMac("AA:BB:CC:11:22:33")
             .Should().Be("aa:bb:cc:**:**:**");
@@ -35,7 +35,7 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void Redact_RemovesIpMacEmailPhone()
+    public void RedactRemovesIpMacEmailPhone()
     {
         var input = "client 192.168.1.50 mac aa:bb:cc:dd:ee:ff mail a@b.com tel 03-1234-5678";
         var r = DiagnosticBundleService.Redact(input);
@@ -48,7 +48,7 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void Redact_NullOrEmpty_Safe()
+    public void RedactNullOrEmptySafe()
     {
         DiagnosticBundleService.Redact(null).Should().Be("");
         DiagnosticBundleService.Redact("").Should().Be("");
@@ -57,7 +57,7 @@ public class DiagnosticBundleServiceTests
     // ── バンドル生成 ────────────────────────────────────────────
 
     [Fact]
-    public void Build_IncludesAllSections()
+    public void BuildIncludesAllSections()
     {
         var adapters = new[]
         {
@@ -88,7 +88,7 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void Build_MasksConnectedSsid()
+    public void BuildMasksConnectedSsid()
     {
         var adapters = new[]
         {
@@ -105,7 +105,7 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void Build_RedactsUserNote()
+    public void BuildRedactsUserNote()
     {
         var md = _svc.Build(new DiagnosticContext
         {
@@ -118,14 +118,14 @@ public class DiagnosticBundleServiceTests
     }
 
     [Fact]
-    public void Build_NoAdapters_StillValid()
+    public void BuildNoAdaptersStillValid()
     {
         var md = _svc.Build(new DiagnosticContext());
         md.Should().Contain("(none detected)");
     }
 
     [Fact]
-    public void Build_OutputContainsNoRawPii()
+    public void BuildOutputContainsNoRawPii()
     {
         // 生成物全体に PII が残らないことを HealthCheckService で検証
         var adapters = new[]

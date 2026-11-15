@@ -18,7 +18,7 @@ public class LinkRateEstimatorTests
     [InlineData(-50, -95, 45)]   // 強信号 → 高SNR
     [InlineData(-70, -95, 25)]
     [InlineData(-90, -95, 5)]    // 弱信号 → 低SNR
-    public void EstimateSnr_RssiMinusNoiseFloor(int rssi, int noise, int expectedSnr)
+    public void EstimateSnrRssiMinusNoiseFloor(int rssi, int noise, int expectedSnr)
     {
         _svc.EstimateSnr(rssi, noise).Should().Be(expectedSnr);
     }
@@ -30,20 +30,20 @@ public class LinkRateEstimatorTests
     [InlineData(13, 2)]    // QPSK
     [InlineData(5,  0)]    // BPSK
     [InlineData(2, -1)]    // 接続不能
-    public void EstimateMaxMcs_SnrToMcs(int snr, int expectedMcs)
+    public void EstimateMaxMcsSnrToMcs(int snr, int expectedMcs)
     {
         _svc.EstimateMaxMcs(snr).Should().Be(expectedMcs);
     }
 
     [Fact]
-    public void EstimateMaxMcs_No4096Qam_CapsAt11()
+    public void EstimateMaxMcsNo4096QamCapsAt11()
     {
         // 4096-QAM 非対応なら高SNRでもMCS11止まり
         _svc.EstimateMaxMcs(45, supports4096Qam: false).Should().Be(11);
     }
 
     [Fact]
-    public void EstimatePhyRate_HigherMcs_HigherRate()
+    public void EstimatePhyRateHigherMcsHigherRate()
     {
         var low  = _svc.EstimatePhyRateMbps(0, 80, 2);
         var high = _svc.EstimatePhyRateMbps(11, 80, 2);
@@ -51,7 +51,7 @@ public class LinkRateEstimatorTests
     }
 
     [Fact]
-    public void EstimatePhyRate_WiderChannel_HigherRate()
+    public void EstimatePhyRateWiderChannelHigherRate()
     {
         var narrow = _svc.EstimatePhyRateMbps(9, 20, 1);
         var wide   = _svc.EstimatePhyRateMbps(9, 160, 1);
@@ -59,7 +59,7 @@ public class LinkRateEstimatorTests
     }
 
     [Fact]
-    public void EstimatePhyRate_MoreStreams_ScalesLinearly()
+    public void EstimatePhyRateMoreStreamsScalesLinearly()
     {
         var ss1 = _svc.EstimatePhyRateMbps(9, 80, 1);
         var ss2 = _svc.EstimatePhyRateMbps(9, 80, 2);
@@ -67,13 +67,13 @@ public class LinkRateEstimatorTests
     }
 
     [Fact]
-    public void EstimatePhyRate_NegativeMcs_ReturnsZero()
+    public void EstimatePhyRateNegativeMcsReturnsZero()
     {
         _svc.EstimatePhyRateMbps(-1, 80, 2).Should().Be(0);
     }
 
     [Fact]
-    public void Estimate_StrongSignal_ExcellentQuality()
+    public void EstimateStrongSignalExcellentQuality()
     {
         var est = _svc.Estimate(rssiDbm: -45, channelWidthMhz: 160, spatialStreams: 2);
 
@@ -84,7 +84,7 @@ public class LinkRateEstimatorTests
     }
 
     [Fact]
-    public void Estimate_WeakSignal_PoorOrUnusable()
+    public void EstimateWeakSignalPoorOrUnusable()
     {
         var est = _svc.Estimate(rssiDbm: -92, channelWidthMhz: 20, spatialStreams: 1);
         est.Quality.Should().BeOneOf(LinkQuality.Poor, LinkQuality.Unusable, LinkQuality.Fair);
@@ -92,7 +92,7 @@ public class LinkRateEstimatorTests
     }
 
     [Fact]
-    public void Estimate_EffectiveLessThanPhy()
+    public void EstimateEffectiveLessThanPhy()
     {
         var est = _svc.Estimate(-55, 80, 2);
         est.EffectiveMbps.Should().BeLessThan(est.PhyRateMbps);
@@ -121,7 +121,7 @@ public class MloAnalyzerServiceTests
         };
 
     [Fact]
-    public void Analyze_NonMlo_ReturnsSingleLink()
+    public void AnalyzeNonMloReturnsSingleLink()
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz, SignalQuality = 70 };
         var analysis = _svc.Analyze(net);
@@ -131,7 +131,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void Analyze_MloAdvertisedButNoLinkDetail_StillReportsMlo()
+    public void AnalyzeMloAdvertisedButNoLinkDetailStillReportsMlo()
     {
         // ビーコンから MLO を検出できた AP (BeaconIeApplier が IsMlo を立てる) だが、
         // リンク詳細を供給するプラットフォーム層がまだ無い状態。
@@ -150,7 +150,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void Analyze_DualBandMlo_DetectsCrossBand()
+    public void AnalyzeDualBandMloDetectsCrossBand()
     {
         var net = MloNet(
             (WifiBand.Band5GHz, -55, 160),
@@ -168,7 +168,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void Analyze_TripleLink_HighestReliability()
+    public void AnalyzeTripleLinkHighestReliability()
     {
         var net = MloNet(
             (WifiBand.Band2_4GHz, -65, 40),
@@ -183,7 +183,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void Analyze_AggregatedThroughput_SumsLinks()
+    public void AnalyzeAggregatedThroughputSumsLinks()
     {
         var net = MloNet(
             (WifiBand.Band5GHz, -50, 160),
@@ -195,7 +195,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void EstimateLatencyReduction_DualLink_About30Percent()
+    public void EstimateLatencyReductionDualLinkAbout30Percent()
     {
         var net = MloNet(
             (WifiBand.Band5GHz, -55, 160),
@@ -205,7 +205,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void EstimateLatencyReduction_TripleLink_About45Percent()
+    public void EstimateLatencyReductionTripleLinkAbout45Percent()
     {
         var net = MloNet(
             (WifiBand.Band2_4GHz, -65, 40),
@@ -216,14 +216,14 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void EstimateLatencyReduction_NonMlo_Zero()
+    public void EstimateLatencyReductionNonMloZero()
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz, SignalQuality = 70 };
         _svc.EstimateLatencyReductionPercent(net).Should().Be(0);
     }
 
     [Fact]
-    public void BestLink_ReturnsStrongestRssi()
+    public void BestLinkReturnsStrongestRssi()
     {
         var net = MloNet(
             (WifiBand.Band5GHz, -70, 160),
@@ -237,7 +237,7 @@ public class MloAnalyzerServiceTests
     }
 
     [Fact]
-    public void BestLink_NoLinks_ReturnsNull()
+    public void BestLinkNoLinksReturnsNull()
     {
         var net = new WifiNetwork { Ssid = "X", Band = WifiBand.Band5GHz, SignalQuality = 70 };
         _svc.BestLink(net).Should().BeNull();

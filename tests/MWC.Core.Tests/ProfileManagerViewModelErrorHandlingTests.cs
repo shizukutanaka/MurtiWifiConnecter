@@ -53,7 +53,7 @@ public class ProfileManagerViewModelErrorHandlingTests
     }
 
     [Fact]
-    public async Task LoadAsync_WifiServiceThrows_SetsErrorStatusInsteadOfSwallowing()
+    public async Task LoadAsyncWifiServiceThrowsSetsErrorStatusInsteadOfSwallowing()
     {
         var vm = new ProfileManagerViewModel(
             new ThrowingWifiService(),
@@ -69,7 +69,7 @@ public class ProfileManagerViewModelErrorHandlingTests
     }
 
     [Fact]
-    public async Task DeleteAsync_WifiServiceThrows_SetsErrorStatusInsteadOfSwallowing()
+    public async Task DeleteAsyncWifiServiceThrowsSetsErrorStatusInsteadOfSwallowing()
     {
         var vm = new ProfileManagerViewModel(
             new ThrowingWifiService(),
