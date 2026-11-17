@@ -6,7 +6,7 @@ MWC (Multi WiFi Connector) は Windows / Linux / macOS で動作する Wi-Fi 管
 
 > ⚠️ **リリースはまだ公開されていない。** 現時点で入手方法は「ソースからのビルド」のみ。
 > 下記の winget/Scoop/Chocolatey/dotnet tool はリリースパイプライン
-> (`docs/ci/release.yml`)設置後、最初のリリースを切って初めて有効になる
+> (`.github/workflows/release.yml`)で最初のリリースを切って初めて有効になる
 > (詳細: [`README.md`](../README.md#インストール)、[`docs/COMPLETION-CHECKLIST.md`](COMPLETION-CHECKLIST.md))。
 
 ### Windows(リリース公開後)

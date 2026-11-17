@@ -49,23 +49,31 @@
 
     <!-- Components -->
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
-      <!-- Harvest all files from the published output.
-           ⚠ 2026-09 実測: この <Files Include> ワイルドカードハーベストは
-           WiX **v5 以降**の機能。github.com/wixtoolset/wix の実ソースを
-           v4.0.0〜v4.0.6(v4.x の全パッチ)と v5.0.0 で突き合わせたところ、
-           このハーベスト用パーサ(テストスイート "HarvestFiles" 一式含む)は
-           v5.0.0 にのみ存在し、v4.x のどのバージョンにも存在しなかった。
-           xmlns の URI が "v4/wxs" のままなのはスキーマ世代の命名であり、
-           ツールセットのバージョンとは無関係(v5.0.0 のテスト .wxs も同じ
-           xmlns を使っている)——これに惑わされて「v4 対応」と誤認しないこと。
-           docs/adr/0005-multi-channel-distribution.md は「WiX v4」を明記して
-           いるが、実際に MSI をビルドするなら **v5 系のツールセットを使うか、
-           この要素を v4 で使える手段(heat.exe 相当や手書き Component 列挙)に
-           書き換えるか**のどちらかが必要。docs/ci/release.yml のコメントが
-           「harvest 未整備」とだけ書いているのは、この版数不一致を指していない
-           可能性があるため、実際に WiX でビルドを試すセッションはまずここを
-           確認すること。 -->
-      <Files Include="$(AppPath)\**" />
+      <!-- 収録ファイルは明示的に列挙する (WiX v4 で書ける形)。
+           ⚠ 経緯 (2026-09 実測 → 2026-11 修理): 当初ここは
+           `<Files Include="$(AppPath)\**" />` というワイルドカードハーベスト
+           だったが、それは WiX **v5 以降**の機能。github.com/wixtoolset/wix の
+           実ソースを v4.0.0〜v4.0.6 (v4.x の全パッチ) と v5.0.0 で突き合わせた
+           ところ、このハーベスト用パーサ (テストスイート "HarvestFiles" 一式
+           含む) は v5.0.0 にのみ存在し、v4.x のどのバージョンにも存在しな
+           かった。xmlns の URI が "v4/wxs" なのはスキーマ世代の命名であり、
+           ツールセットのバージョンとは無関係 (v5.0.0 のテスト .wxs も同じ
+           xmlns を使っている) —— これに惑わされて「v4 対応」と誤認しないこと。
+           docs/adr/0005-multi-channel-distribution.md が決定したのは「WiX v4」
+           なので、v5 へ上げるのではなく、この要素を v4 で使える明示列挙へ
+           置き換えた。
+           収録対象が MWC.exe 1 つだけで済むのは、MWC.App が
+           PublishSingleFile=true で publish されるため (実測: win-x64 の
+           publish 出力は MWC.exe のほか .pdb と .xml のビルド成果物のみで、
+           実行に要るのは MWC.exe だけ)。
+           ⚠ PublishSingleFile を無効化したり自己完結化したりしたら、publish
+           出力のファイルが増える。そのときはこの列挙へ File を足すこと。
+           足し忘れてもビルドは成功してしまう (MSI に黙って入らない) ので、
+           publish 設定を変えたら出力とこの一覧を必ず突き合わせること。
+           逆に、列挙したファイルが無ければ wix build はエラーで落ちる。 -->
+      <Component Id="MainExecutable" Guid="*">
+        <File Id="MWC.exe" Source="$(AppPath)\MWC.exe" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
 
     <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">

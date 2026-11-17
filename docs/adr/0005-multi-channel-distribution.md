@@ -59,3 +59,17 @@ URI が `v4/wxs` のままなのはスキーマ世代の命名でツールセッ
 なお `installer/` には ADR 決定時「将来追加候補」だった MSIX/Chocolatey/Scoop の
 足場(`installer/msix/`、`installer/chocolatey/`、`installer/scoop/`)も既に
 作られている——この ADR 自体は未更新のままだが、実装は既に先へ進んでいる。
+
+## 2026-11 追記 — MSI チャネルの版数不一致を解消し、パイプラインを設置
+
+上の追記の 2 択のうち「この要素を v4 で書ける形に置き換える」を採った。
+`installer/wix/Product.wxs` の `<Files Include="...">` ハーベストを、明示的な
+`<File>` 列挙へ書き換えた(アプリは単一ファイル publish のため収録対象は
+MWC.exe のみ。WiX 4.0.6 のコンパイラで、旧定義が `WIX0005` (ComponentGroup の
+予期しない子要素 'Files') で落ち、新定義ではその要素エラーが消えることを実測)。
+あわせて `docs/ci/release.yml` を `.github/workflows/release.yml` へ設置し
+(正本は実働側へ移る。docs/ci/README.md の規約どおり)、タグ push で zip と
+win-x64 の MSI が署名・SBOM・provenance 付きで Release に出る形にした。
+workflow_dispatch では Release を作らず artifact のみを出す。
+win-arm64 の MSI は未対応のまま (zip は両 RID を出す)。パイプライン自体は
+まだ一度も実行されていない — 最初のタグ push が初回実行になる。
