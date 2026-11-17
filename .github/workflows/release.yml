@@ -99,13 +99,21 @@ jobs:
       # ツールセットも ADR-0005 の決定どおり v4 系に固定する。
       # アプリは単一ファイル publish のため、収録対象は MWC.exe のみ
       # (installer/wix/Product.wxs のコメント参照)。
+      #
+      # ⚠ UI 拡張は 2 段構えが要る (2026-11 の初回 dispatch で実測):
+      #   `wix extension add` は拡張をキャッシュへ**取得するだけ**で、
+      #   `wix build` はそれを自動では読み込まない。読み込みには build 側の
+      #   `-ext WixToolset.UI.wixext` が別途必要で、これが無いと
+      #   Product.wxs の <ui:WixUI> が WIX0200 で落ちる。
+      #   逆に `-ext` だけではキャッシュ未取得時に WIX0144 になるため、
+      #   版数を固定する extension add も削れない。両方残すこと。
       - name: Build MSI (win-x64, WiX v4)
         shell: pwsh
         run: |
           dotnet tool install --global wix --version 4.0.6
           $wix = "$env:USERPROFILE\.dotnet\tools\wix.exe"
           & $wix extension add WixToolset.UI.wixext/4.0.6
-          & $wix build installer/wix/Product.wxs -arch x64 `
+          & $wix build installer/wix/Product.wxs -arch x64 -ext WixToolset.UI.wixext `
             -d Version=${{ steps.ver.outputs.msiversion }} `
             -d AppPath=artifacts/win-x64 `
             -o "artifacts/MWC-${{ steps.ver.outputs.version }}-win-x64.msi"
