@@ -120,10 +120,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "wix build failed with exit code $LASTEXITCODE" }
 
       # SECURITY.md が「リリース毎に CycloneDX SBOM 生成」と述べている根拠。
+      # ⚠ ファイル名の指定は `-fn` (6.x の実測)。旧 `-f` は 6.3.1 に無く
+      #   "Unrecognized command or argument '-f'" で落ちる (初回 dispatch で実測)。
+      #   形式も拡張子頼みの Auto ではなく `-F Json` で明示する。
+      #   後段の upload / Release 添付は artifacts/sbom.json を前提にする。
       - name: Generate CycloneDX SBOM
         run: |
           dotnet tool install --global CycloneDX
-          dotnet CycloneDX MWC.ci-win.slnf -o artifacts -f sbom.json
+          dotnet CycloneDX MWC.ci-win.slnf -o artifacts -fn sbom.json -F Json
 
       - name: Install cosign
         if: github.event_name == 'push'
