@@ -53,19 +53,20 @@
   - 各プロジェクトの `packages.lock.json` から解決済みパッケージ(名前と版数)を抽出し、OSV(`api.osv.dev` の querybatch API、NuGet エコシステム)へ照会する。OSV は GitHub Advisory を取り込んでおり、`dotnet list package --vulnerable` と実質的に同じ情報源
   - 脆弱性が検出された場合だけでなく、restore 失敗・lock ファイル不在・OSV 照会失敗などで検査できなかった場合も CI を失敗させる(黙って通さない)
   - `dotnet list package --vulnerable` を使わない理由: TFM にプラットフォーム版数を含むプロジェクト(`net9.0-windows10.0.19041.0`)では、SDK 側の不具合で `Sequence contains no matching element` となり検査が必ず失敗するため
-- 以下は `docs/ci/` に実装済みだが **未稼働**(リリースワークフロー自体が未設置):
+- 以下は `.github/workflows/release.yml` に設置済みだが **未稼働**(まだ一度も実行されていない):
   - リリース毎の CycloneDX SBOM 生成(`release.yml`)
 
 ### 配布物保護
 
-> ⚠️ **現時点で署名済みの配布物は存在しない。** リリースが 1 度も作られておらず、
-> リリースワークフローも未設置のため、下記はすべて **設置後に有効になる設計** であり、
+> ⚠️ **現時点で署名済みの配布物は存在しない。** リリースワークフローは
+> `.github/workflows/` に設置済みだが、リリースがまだ 1 度も作られていないため、
+> 下記はすべて **最初のリリース後に有効になる設計** であり、
 > 現在の事実ではない。**「MWC の配布物」を名乗るファイルを受け取った場合、
 > それは本プロジェクトが公開したものではない。**
 
-`docs/ci/release.yml` を `.github/workflows/` に設置し、タグを push すると:
+`.github/workflows/release.yml` が設置されており、タグを push すると:
 
-- zip は **Sigstore keyless signing**(cosign)で署名される
+- zip と MSI は **Sigstore keyless signing**(cosign)で署名される
 - **SLSA build provenance** が添付される(GitHub OIDC ベース、`actions/attest-build-provenance`)
 - SHA256 ハッシュが `SHA256SUMS.txt` として Release に添付される
 - CycloneDX SBOM が添付される
@@ -81,8 +82,9 @@ cosign verify-blob \
   <file>
 ```
 
-MSI は `installer/wix/Product.wxs` が存在するが、ファイル harvest が未整備のため
-パイプラインではまだビルドしていない(zip のみ)。
+MSI は `installer/wix/Product.wxs` を WiX v4 で書ける明示的なファイル列挙に
+直したため、パイプラインが zip に加えて win-x64 の MSI もビルドする
+(win-arm64 の MSI は未対応)。
 
 ## 既知の制限
 

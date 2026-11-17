@@ -1,13 +1,14 @@
-# CI ワークフロー(残り 3 本は設置待ち、ci.yml は設置済み)
+# CI ワークフロー(残り 2 本は設置待ち、ci.yml と release.yml は設置済み)
 
-> **ci.yml の正本は `.github/workflows/ci.yml`。** 2026-11 に設置され(PR #6)、
-> 以後は実働側で保守されている(PR #7 / #8 で脆弱性検査を OSV 照会方式へ、
-> カバレッジ取得を coverlet.collector 方式へ更新)。ここ docs/ci/ に ci.yml の
-> 複製は置かない — 設置時点の複製が残っていた間に実働側だけが進化し、
-> 旧方式(dotnet list package --vulnerable、coverlet.msbuild 用プロパティ)が
-> ここに化石として残る乖離が実際に起きたため。
+> **ci.yml と release.yml の正本は `.github/workflows/` 側。** ci.yml は 2026-11 に
+> 設置され(PR #6)、以後は実働側で保守されている(PR #7 / #8 で脆弱性検査を OSV
+> 照会方式へ、カバレッジ取得を coverlet.collector 方式へ更新)。release.yml も
+> 2026-11 に設置され、以後は実働側が正本になる。ここ docs/ci/ に両者の複製は
+> 置かない — 設置時点の複製が残っていた間に実働側だけが進化し、旧方式
+> (dotnet list package --vulnerable、coverlet.msbuild 用プロパティ)がここに
+> 化石として残る乖離が実際に起きたため。
 >
-> ここに残る 3 本(`codeql.yml` / `oui-update.yml` / `release.yml`)については、
+> ここに残る 2 本(`codeql.yml` / `oui-update.yml`)については、
 > **設置されるまでここが正本(single source of truth)**。かつて
 > `ci/github-workflows/` にも別バージョンが存在したが、2026-07 に削除して
 > 一本化した(そちらは 2026-06-04 版で、こちらの 2026-06-23 版より古かった)。
@@ -18,36 +19,38 @@ GitHub がワークフローとして認識するのは `.github/workflows/` だ
 長らくそこには何も置かれておらず、GitHub Actions は一度も実走していなかった
 (詳細と経緯: `docs/FEATURE-AUDIT.md` §0)。2026-11 に所有者側の操作で
 `ci.yml` が `.github/workflows/` へ設置され(PR #6)、以後 CI は実走している。
+release.yml も 2026-11 に設置されたが、**まだ一度も実行されていない**
+(最初のタグ push が初回実行になる)。
 
 過去に一度、正しい場所へ移設する試み(コミット `1c28a9c`)があったが、**13 秒後に同一
 セッション内で自動的にリバートされている**(`9274953`)。真因は GitHub App トークンの
 `workflows` スコープ不足だったことが後に判明している(`docs/FEATURE-AUDIT.md` §0)。
 
-## 残り 3 本の設置手順
+## 残り 2 本の設置手順
 
 ```bash
-cp docs/ci/codeql.yml docs/ci/oui-update.yml docs/ci/release.yml .github/workflows/
+cp docs/ci/codeql.yml docs/ci/oui-update.yml .github/workflows/
 git add .github/workflows && git commit -m "ci: install remaining workflows" && git push
 ```
 
-**`docs/ci/*.yml` を一括コピーしないこと。** 設置済みの ci.yml まで実働側より
-古い複製で上書きする事故を防ぐため、ファイル単位でコピーする(そもそも ci.yml は
-もうここに無い)。
+**`docs/ci/*.yml` を一括コピーしないこと。** 設置済みの ci.yml / release.yml まで
+実働側より古い複製で上書きする事故を防ぐため、ファイル単位でコピーする
+(そもそも ci.yml と release.yml はもうここに無い)。
 
 設置後にやること:
 
 1. `README.md` の CodeQL バッジを復活させる(markup は README 内の HTML コメントに保存済み)
 2. `oui-update.yml` 設置で README の「月次自動更新」の主張が真になる。`release.yml`
-   設置と最初のリリースで、署名付き配布物についての記述が真になる
+   は設置済みで、最初のリリースで署名付き配布物についての記述が真になる
 
 ## 中身
 
 | ファイル | 内容 |
 |---|---|
 | (`.github/workflows/ci.yml`) | 設置済み。Windows での build + test(`MWC.ci-win.slnf` 経由)、Linux でのクロスプラットフォーム部分ビルド、OSV による脆弱性検査、カバレッジ計測。正本は実働側 |
+| (`.github/workflows/release.yml`) | 設置済み。タグ push で zip と MSI (win-x64) をビルドし、CycloneDX SBOM・Sigstore keyless 署名・SLSA provenance・SHA256SUMS を付けて Release を作る。workflow_dispatch では Release を作らず artifact のみ。正本は実働側 |
 | `codeql.yml` | CodeQL による SAST |
 | `oui-update.yml` | IEEE OUI ベンダー DB の月次更新(差分があれば PR を作る)。README が謳う「月次自動更新」はこれを設置して初めて真になる |
-| `release.yml` | タグ push で zip をビルドし、CycloneDX SBOM・Sigstore keyless 署名・SLSA provenance・SHA256SUMS を付けて Release を作る。README / SECURITY.md が謳う配布物保護はこれを設置して初めて真になる |
 
 ## 設置前に
 

@@ -116,8 +116,8 @@ mwc profile delete "OldNet"       # プロファイル削除
 ## インストール
 
 > ⚠️ **リリースはまだ公開されていない。** 現時点で入手方法は「ソースからのビルド」のみ。
-> 下の winget / MSI / dotnet tool は、リリースパイプライン(`docs/ci/release.yml`)を
-> 設置して最初のリリースを切った時点で有効になる(手順: [`docs/COMPLETION-CHECKLIST.md`](docs/COMPLETION-CHECKLIST.md))。
+> 下の winget / MSI / dotnet tool は、リリースパイプライン(`.github/workflows/release.yml`)で
+> 最初のリリースを切った時点で有効になる(手順: [`docs/COMPLETION-CHECKLIST.md`](docs/COMPLETION-CHECKLIST.md))。
 > 配布物の署名についても同じ — 詳細は [`SECURITY.md`](SECURITY.md)。
 
 ### ソースからビルド(現在これだけが有効)
@@ -192,8 +192,8 @@ dotnet test    MWC.sln                    # 910 test methods
 - `netsh.exe` / WMI を一切使わず WlanAPI 直叩き (コマンドインジェクション面ゼロ)
 - `SecureString` + 使用直後ゼロクリア
 - ※ **Sigstore keyless signing** + **SLSA provenance** + CycloneDX SBOM は
-  `docs/ci/release.yml` に実装済みだが、**まだ一度も実行されていない**
-  (`release.yml` はまだ `.github/workflows/` に設置していないため)。設置して最初のリリースを切るまで、
+  `.github/workflows/release.yml` に設置済みだが、**まだ一度も実行されていない**。
+  最初のリリースを切るまで、
   署名済みの配布物は存在しない
 - 詳細: [`SECURITY.md`](SECURITY.md)
 

@@ -10,18 +10,20 @@ name: Release
 #   (利用者が「検証済みの配布物がある」と誤認する)。
 #   このワークフローがその主張を初めて真にする。
 #
-# 設置方法: .github/workflows/ にコピーする (docs/COMPLETION-CHECKLIST.md §1)。
-# 設置しただけでは何も起きない。`git tag v1.2.3 && git push --tags` で初めて走る。
+# 設置状態: 2026-11 に docs/ci/ からここへ設置した。**今後はこのファイルが正本**
+#   (docs/ci/README.md の規約どおり、設置した側で保守する。docs/ci/ に複製は置かない)。
+#   設置しただけでは何も起きない。`git tag v1.2.3 && git push --tags` で初めて走る。
+#   workflow_dispatch は検証用で、成果物を Actions artifact として出すだけであり、
+#   署名・provenance・Release 作成は行わない (タグ push のときだけ行う)。
 #
-# **現時点の配布物は zip のみ。** installer/wix/Product.wxs は在るが、
-# その `<Files Include="...">` ワイルドカードハーベストは WiX **v5 以降**の機能で
-# (github.com/wixtoolset/wix の実ソースを v4.0.0〜v4.0.6 と v5.0.0 で突き合わせて
-# 確認済み — v4.x のどのパッチにも存在しない)、docs/adr/0005-multi-channel-distribution.md
-# が明記する「WiX v4」とは版数不一致。詳細は Product.wxs 自身のコメント参照。
-# MSI を出すようになったら、この版数不一致を先に解消すること
-# (v5 系ツールセットを使うか、この要素を v4 対応の書き方に置き換えるか)。
-# 署名・ハッシュ・provenance の各ステップは既に *.msi を拾う書き方にしてあるので、
-# それ自体はビルドステップを足すだけで済む。
+# 配布物は zip と MSI (win-x64)。installer/wix/Product.wxs は当初 WiX **v5 以降**
+#   でしか使えない `<Files Include="...">` ワイルドカードハーベストを使っており、
+#   docs/adr/0005-multi-channel-distribution.md が明記する「WiX v4」と版数不一致
+#   だった。2026-11 にハーベストを v4 で書ける明示的なファイル列挙へ置き換えた
+#   (アプリは単一ファイル publish のため収録対象は MWC.exe のみ。詳細は
+#   Product.wxs 自身のコメント参照)。MSI は win-x64 のみで、win-arm64 の MSI は
+#   未対応 (zip は両 RID を出す)。署名・ハッシュ・provenance の各ステップは
+#   *.msi も拾う書き方にしてある。
 #
 # 使う Action について:
 #   actions/checkout・setup-dotnet・attest-build-provenance・upload-artifact は
@@ -34,8 +36,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g. v1.2.3)'
-        required: true
+        description: 'Tag to build (e.g. v1.2.3). Leave empty to build the selected branch as artifacts only.'
+        required: false
 
 permissions:
   contents: write        # Release の作成
@@ -63,10 +65,15 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.event.inputs.tag }}"
-          if (-not $tag) { $tag = "${{ github.ref_name }}" }
+          if ("${{ github.event_name }}" -eq "push") { $tag = "${{ github.ref_name }}" }
           $version = $tag -replace '^v', ''
+          # タグ無しの dispatch は検証用の成果物のみ。版数は開発用に倒し、
+          # MSI の ProductVersion (数値 3 フィールド必須) には別途 0.0.0 を渡す。
+          if (-not $tag) { $version = '0.0.0-dev' }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag"         >> $env:GITHUB_OUTPUT
+          $msiVersion = if ($version -match '^\d+\.\d+\.\d+$') { $version } else { '0.0.0' }
+          "msiversion=$msiVersion" >> $env:GITHUB_OUTPUT
 
       # 配布物を作る前にテストを通す。落ちた成果物に署名すると
       # 「署名されている = 検証された」という誤解を生むため、順序が重要。
@@ -88,6 +95,22 @@ jobs:
               -DestinationPath "artifacts/MWC-${{ steps.ver.outputs.version }}-$rid.zip"
           }
 
+      # MSI (win-x64 のみ)。Product.wxs は WiX v4 構文で書かれており、
+      # ツールセットも ADR-0005 の決定どおり v4 系に固定する。
+      # アプリは単一ファイル publish のため、収録対象は MWC.exe のみ
+      # (installer/wix/Product.wxs のコメント参照)。
+      - name: Build MSI (win-x64, WiX v4)
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.6
+          $wix = "$env:USERPROFILE\.dotnet\tools\wix.exe"
+          & $wix extension add WixToolset.UI.wixext/4.0.6
+          & $wix build installer/wix/Product.wxs -arch x64 `
+            -d Version=${{ steps.ver.outputs.msiversion }} `
+            -d AppPath=artifacts/win-x64 `
+            -o "artifacts/MWC-${{ steps.ver.outputs.version }}-win-x64.msi"
+          if ($LASTEXITCODE -ne 0) { throw "wix build failed with exit code $LASTEXITCODE" }
+
       # SECURITY.md が「リリース毎に CycloneDX SBOM 生成」と述べている根拠。
       - name: Generate CycloneDX SBOM
         run: |
@@ -95,11 +118,14 @@ jobs:
           dotnet CycloneDX MWC.ci-win.slnf -o artifacts -f sbom.json
 
       - name: Install cosign
+        if: github.event_name == 'push'
         uses: sigstore/cosign-installer@v3
 
       # keyless signing: 鍵は保持せず、GitHub OIDC の身元で署名して
       # Rekor 透明性ログに記録する。検証は cosign verify-blob で行う。
+      # 署名はリリース行為の一部なので、タグ push のときだけ行う。
       - name: Sign the artifacts (Sigstore keyless)
+        if: github.event_name == 'push'
         shell: pwsh
         env:
           COSIGN_EXPERIMENTAL: '1'
@@ -119,13 +145,30 @@ jobs:
             Set-Content artifacts/SHA256SUMS.txt -Encoding ascii
 
       # SLSA build provenance。GitHub 第一者の Action で、in-toto 形式の
-      # 証明書を発行し Sigstore に記録する。
+      # 証明書を発行し Sigstore に記録する。これもタグ push のときだけ。
       - name: Attest build provenance
+        if: github.event_name == 'push'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'artifacts/*.zip'
+          subject-path: |
+            artifacts/*.zip
+            artifacts/*.msi
+
+      # 手動実行 (workflow_dispatch) では Release を作らない。パイプラインが
+      # 通ることの確認と成果物の目視のため、artifact としてだけ出す。
+      - name: Upload artifacts (manual run only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            artifacts/*.zip
+            artifacts/*.msi
+            artifacts/sbom.json
+            artifacts/SHA256SUMS.txt
 
       - name: Create the GitHub Release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -143,5 +186,5 @@ jobs:
                 --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' \\
                 --certificate-oidc-issuer     'https://token.actions.githubusercontent.com' \\
                 <file>" \
-            artifacts/*.zip artifacts/sbom.json artifacts/SHA256SUMS.txt \
+            artifacts/*.zip artifacts/*.msi artifacts/sbom.json artifacts/SHA256SUMS.txt \
             artifacts/*.sig artifacts/*.pem
