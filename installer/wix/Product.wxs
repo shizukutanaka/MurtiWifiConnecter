@@ -31,7 +31,14 @@
     <Property Id="ARPPRODUCTICON" Value="WifixIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/shizukutanaka/MurtiWifiConnecter" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/shizukutanaka/MurtiWifiConnecter" />
-    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- ARPNOMODIFY はここでは定義しない (値は 1 で意図は「変更ボタンの無効化」)。
+         ⚠ 経緯 (2026-11 実測): WixUI_InstallDir 自身が ARPNOMODIFY=1 を定義して
+         いる (WiX 4.0.6 の WixUI_InstallDir.wxs 80 行目。拡張 DLL 内蔵ライブラリの
+         実物で確認)。製品側でも定義すると重複シンボルとなり、wix build が
+         WIX0091 で落ちる (初回 dispatch は UI 拡張の未読込 WIX0200 で先に落ちて
+         いたため見えず、拡張読込の修理後に表面化した)。ライブラリ側の定義が
+         同じ値 1 で同じ意図を持つので、製品側の定義を除いても振る舞いは
+         変わらない。再び追加しないこと。 -->
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
     <Icon Id="WifixIcon" SourceFile="$(AppPath)\MWC.exe" />
