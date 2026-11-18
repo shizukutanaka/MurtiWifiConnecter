@@ -107,9 +107,9 @@ public partial class MainWindow : Window
                 case (Key.W,      ModifierKeys.Control):
                     Hide(); e.Handled = true; break;
                 case (Key.D,      ModifierKeys.Control):
-                    await _cmd.DisconnectAsync(vm); e.Handled = true; break;
+                    await MainWindowCommands.DisconnectAsync(vm); e.Handled = true; break;
                 case (Key.Q,      ModifierKeys.Control):
-                    _cmd.ShowQrCode(vm, this); e.Handled = true; break;
+                    MainWindowCommands.ShowQrCode(vm, this); e.Handled = true; break;
                 case (Key.E,      ModifierKeys.Control):
                     vm.StatusMessage = await _cmd.ExportAsync(vm, "csv"); e.Handled = true; break;
                 case (Key.K,      ModifierKeys.Control):
@@ -185,7 +185,7 @@ public partial class MainWindow : Window
 
     internal void OnShowQrClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm) _cmd?.ShowQrCode(vm, this);
+        if (DataContext is MainViewModel vm) MainWindowCommands.ShowQrCode(vm, this);
     }
 
     private void OnCopySsid(object sender, RoutedEventArgs e)
@@ -228,7 +228,7 @@ public partial class MainWindow : Window
     }
 
     private void OnAboutClick(object sender, RoutedEventArgs e)
-        => _cmd?.ShowAbout(this);
+        => MainWindowCommands.ShowAbout(this);
 
     private void OnExportDiagnostic(object sender, RoutedEventArgs e)
     {
@@ -254,7 +254,7 @@ public partial class MainWindow : Window
         var ad = GetAdapterFromMenu(sender);
         if (ad is null || _cmd is null) return;
         var allAdapters = DataContext is MainViewModel mvm ? mvm.Adapters.ToList() : null;
-        var prefs = _cmd.OpenAdapterPreferences(ad, this, allAdapters);
+        var prefs = MainWindowCommands.OpenAdapterPreferences(ad, this, allAdapters);
         if (prefs is not null && DataContext is MainViewModel vm)
             vm.LoadCommand.ExecuteAsync(null).Forget();
     }
