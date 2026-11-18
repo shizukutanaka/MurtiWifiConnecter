@@ -99,7 +99,7 @@ public sealed class MainWindowCommands
         return success;
     }
 
-    public void ShowQrCode(MainViewModel vm, Window owner)
+    public static void ShowQrCode(MainViewModel vm, Window owner)
     {
         var net = vm.SelectedAdapter?.Selected;
         if (net is null) return;
@@ -123,7 +123,7 @@ public sealed class MainWindowCommands
         }
     }
 
-    public async Task DisconnectAsync(MainViewModel vm)
+    public static async Task DisconnectAsync(MainViewModel vm)
     {
         var ad = vm.SelectedAdapter;
         if (ad is null) return;
@@ -205,7 +205,7 @@ public sealed class MainWindowCommands
         }
     }
 
-    public void ShowAbout(Window owner)
+    public static void ShowAbout(Window owner)
         => new AboutDialog { Owner = owner }.ShowDialog();
 
     /// <summary>全無線子機を俯瞰するウィンドウを表示する。</summary>
@@ -276,7 +276,7 @@ public sealed class MainWindowCommands
         }
     }
 
-    public AdapterPreferences? OpenAdapterPreferences(
+    public static AdapterPreferences? OpenAdapterPreferences(
         AdapterViewModel adapter,
         Window owner,
         System.Collections.Generic.IReadOnlyList<AdapterViewModel>? allAdapters = null)
