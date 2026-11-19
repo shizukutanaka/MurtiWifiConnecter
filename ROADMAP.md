@@ -55,15 +55,16 @@
 - [x] 共通 Core を NetStandard 2.0 化
 
 ### 高度機能
-- [ ] Wi-Fi Direct ピアツーピア接続 — `WifiDirectService` (Core) は実装済みだが、App/CLI の
-  どこからも呼び出されておらず、ユーザーは到達できない。GUI/CLI への配線が未完了。
+- [ ] Wi-Fi Direct ピアツーピア接続 — `WifiDirectService` (Core) は削除済み。
+  復活には Windows プラットフォーム実装と実機検証が必要。`docs/FEATURE-AUDIT.md` §1a 参照。
 - [x] WPA3-OWE (Opportunistic Wireless Encryption) 自動選択 — `OweSelectionService` を CLI
   `mwc scan` および App 両スキャンパイプライン(`AdapterViewModel`/`AdapterPanelViewModel`)に
   2026-07 配線完了。詳細は `docs/FEATURE-AUDIT.md` §1a 参照。
-- [ ] Hotspot 2.0 / Passpoint 自動接続プロファイル — `Hotspot20Service` (Core, キャリアプリセット
-  含む) は実装済みだが未配線。同上。
-- [ ] eduroam ワンクリック設定 (CAT XML インポート) — `CatImportService` (Core, XXE 対策済み)は
-  実装済みだが未配線。同上。
+- [x] Hotspot 2.0 / Passpoint 自動接続プロファイル — CLI `mwc passpoint connect
+  --carrier "Boingo Hotspot" --username USER --adapter GUID` でプリセットから自動接続プロファイルを
+  登録して接続。パスワードは非表示プロンプト。SIM/EAP-AKA は未対応、GUI は未配線。
+- [ ] eduroam ワンクリック設定 (CAT XML インポート) — CLI `mwc import-cat` は配線済み。
+  GUI は Enterprise 資格情報入力とインポート操作が未実装。`docs/FEATURE-AUDIT.md` §2a 参照。
 
 ### 開発者向け
 - [x] MWC.SDK NuGet パッケージ(Cli/App をライブラリ化)
@@ -76,8 +77,8 @@
 - [x] iOS 版 (NEHotspotConfiguration)
 
 ### エンタープライズ
-- [ ] Group Policy 経由でのプロファイル一括配布 — `GroupPolicyProvider` (Core, レジストリ
-  読み取り) は実装済みだが、App/CLI のどこからも呼び出されておらず未配線。
+- [ ] Group Policy 経由でのプロファイル一括配布 — `GroupPolicyProvider` (Core) は削除済み。
+  レジストリ依存も除去済み。`docs/FEATURE-AUDIT.md` §1a 参照。
 - [x] Intune / Endpoint Manager 統合
 - [x] 自社 RADIUS サーバ証明書の自動検証
 

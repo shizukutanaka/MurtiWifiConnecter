@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- CLI `mwc passpoint connect --carrier "Boingo Hotspot" --username USER` provisions an
+  automatic carrier profile through `ConnectionExecutor`. Supports `--adapter`, `--timeout`,
+  `--dry-run`, and `--json`; passwords use an interactive hidden SecureString prompt.
+  Unknown carriers, missing credentials, and unsupported SIM/EAP-AKA presets fail before registration.
+  Existing Passpoint discovery is unchanged; GUI provisioning remains unavailable.
+
 ### Security
 - **`ConnectionWaiter` — the class CLAUDE.md names as the mechanism for real
   connection-completion detection — has never compiled against the actual ManagedNativeWifi
@@ -4234,4 +4241,3 @@ arXiv / IEEE の Wi-Fi セキュリティ研究の知見を取り込み、接続
 - Sigstore + SLSA + SBOM
 
 [1.0.0]: https://github.com/shizukutanaka/MurtiWifiConnecter/releases/tag/v1.0.0
-

@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using FluentAssertions;
 using MWC.Core.Models;
 using MWC.Core.Services;
+using MWC.Core.Profile;
 using Xunit;
 
 namespace MWC.Core.Tests;
@@ -120,5 +122,77 @@ public class PasspointWiringTests
 
         spec.Ssid.Should().Be(preset.Ssid);
         spec.EapType.Should().Be(preset.EapType);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("subscriber", null)]
+    public void PasswordCarrierRequiresCredentials(string? username, string? password)
+    {
+        var spec = new Hotspot20Service().BuildCarrierProfile(
+            Hotspot20Service.KnownCarriers.Single(p => p.CarrierName == "Boingo Hotspot")) with
+        { Username = username, Password = password };
+        spec.Validate().IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SimCarriersRemainUnsupported()
+    {
+        foreach (var preset in Hotspot20Service.KnownCarriers.Where(p => p.UseEapSim))
+        {
+            var spec = new Hotspot20Service().BuildCarrierProfile(preset);
+            spec.Validate().IsValid.Should().BeFalse();
+            var build = () => ProfileXmlBuilder.Build(spec);
+            build.Should().Throw<System.ArgumentException>();
+        }
+    }
+
+    [Fact]
+    public void BoingoCarrierProfileGoldenXml()
+    {
+        var spec = new Hotspot20Service().BuildCarrierProfile(
+            Hotspot20Service.KnownCarriers.Single(p => p.CarrierName == "Boingo Hotspot")) with
+        { Username = "subscriber", Password = "test-only" };
+        spec.Validate().IsValid.Should().BeTrue();
+        var actual = XDocument.Parse(ProfileXmlBuilder.Build(spec));
+        var expected = XDocument.Parse("""
+            <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+              <name>Boingo_Passpoint</name>
+              <SSIDConfig><SSID><name>Boingo_Passpoint</name></SSID></SSIDConfig>
+              <connectionType>ESS</connectionType>
+              <connectionMode>auto</connectionMode>
+              <MSM><security>
+                <authEncryption><authentication>WPA3</authentication><encryption>AES</encryption><useOneX>true</useOneX></authEncryption>
+                <pmkCacheMode xmlns="http://www.microsoft.com/networking/WLAN/profile/v3">enabled</pmkCacheMode>
+                <OneX xmlns="http://www.microsoft.com/networking/OneX/v1">
+                  <authMode>user</authMode><EAPConfig>
+                    <EapHostConfig xmlns="http://www.microsoft.com/provisioning/EapHostConfig">
+                      <EapMethod>
+                        <Type xmlns="http://www.microsoft.com/provisioning/EapCommon">25</Type>
+                        <VendorId xmlns="http://www.microsoft.com/provisioning/EapCommon">0</VendorId>
+                        <VendorType xmlns="http://www.microsoft.com/provisioning/EapCommon">0</VendorType>
+                        <AuthorId xmlns="http://www.microsoft.com/provisioning/EapCommon">0</AuthorId>
+                      </EapMethod>
+                      <Config><Eap xmlns="http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1">
+                        <Type>25</Type><EapType xmlns="http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1">
+                          <ServerValidation><DisableUserPromptForServerValidation>true</DisableUserPromptForServerValidation><ServerNames>eap.boingo.com</ServerNames></ServerValidation>
+                          <FastReconnect>true</FastReconnect><InnerEapOptional>false</InnerEapOptional>
+                          <Eap xmlns="http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1"><Type>26</Type><EapType xmlns="http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1"><UseWinLogonCredentials>false</UseWinLogonCredentials></EapType></Eap>
+                          <EnableQuarantineChecks>false</EnableQuarantineChecks><RequireCryptoBinding>false</RequireCryptoBinding>
+                          <PeapExtensions>
+                            <PerformServerValidation xmlns="http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2">true</PerformServerValidation>
+                            <AcceptServerName xmlns="http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2">true</AcceptServerName>
+                            <IdentityPrivacy xmlns="http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2"><EnableIdentityPrivacy>true</EnableIdentityPrivacy><AnonymousUserName>boingo.com</AnonymousUserName></IdentityPrivacy>
+                          </PeapExtensions>
+                        </EapType>
+                      </Eap></Config>
+                    </EapHostConfig>
+                  </EAPConfig>
+                </OneX>
+              </security></MSM>
+            </WLANProfile>
+            """);
+        XNode.DeepEquals(actual, expected).Should().BeTrue();
     }
 }
