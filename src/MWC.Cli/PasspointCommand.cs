@@ -38,6 +38,7 @@ public static partial class Program
         var cmd = new Command("passpoint",
             "List nearby Passpoint (Hotspot 2.0) capable access points");
         cmd.AddOption(adapterOpt); cmd.AddOption(jsonOpt); cmd.AddOption(carriersOpt);
+        cmd.AddCommand(BuildPasspointConnect(sp));
 
         cmd.SetHandler(async (string? af, bool j, bool carriers) =>
         {
