@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`EapAuthStatsService` tests were not hermetic: they read and wrote the real
+  user store (`%LocalAppData%/MWC/eap-stats.json`), so they failed on any machine
+  where the file already held entries for their fixed SSIDs** — measured
+  2026-11-20: with a pre-existing store, 4 tests failed with counts at exactly
+  3× the expected values (accumulated across runs), and every test run appended
+  `EapTest_*` entries to the user's real statistics. `tools/run-tests.sh` had
+  been working around this by deleting the whole `%LocalAppData%/MWC` directory
+  before running. Root cause was the same defect `NetworkHistoryService` had in
+  2026-08: the store path was a `static readonly`, so no instance could be
+  redirected. The service now mirrors `NetworkHistoryService` exactly —
+  `DefaultStatsPath` plus an optional `statsPath` constructor parameter
+  (existing parameterless/DI constructions are unchanged) — and the tests build
+  their services through an `IsolatedStores` helper pointed at per-test temp
+  files, for both the EAP stats and the history service used by the wiring
+  tests. Two regression tests pin the seam: different paths share no state,
+  and the default path is unchanged (test count 914 → 916; README badge
+  updated to match, as `tools/verify.sh` requires).
+
 ### Added
 - CLI `mwc passpoint connect --carrier "Boingo Hotspot" --username USER` provisions an
   automatic carrier profile through `ConnectionExecutor`. Supports `--adapter`, `--timeout`,

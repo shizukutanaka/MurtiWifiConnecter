@@ -26,9 +26,24 @@ public sealed class EapAuthStatsService
 {
     private const int MaxEntries = 200; // SSID × EapType の組み合わせ上限
 
-    private static readonly string StatsPath = Path.Combine(
+    /// <summary>既定の保存先。ユーザーごとの LocalApplicationData 配下。</summary>
+    public static string DefaultStatsPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MWC", "eap-stats.json");
+
+    /// <summary>
+    /// 実際の保存先。既定は <see cref="DefaultStatsPath"/>。
+    ///
+    /// **なぜインスタンスごとに持つのか**: 以前は `static readonly` の固定パスだったため、
+    /// 全インスタンスが実ユーザーのファイルを共有していた。テストは実ファイルへ書き込む
+    /// ため、過去の実行 (や製品自体の利用) で蓄積した件数を読み込んでしまい、
+    /// 固定 SSID を使うテストが「期待 1 件に対して 3 件」のような失敗になった
+    /// (2026-11 に実測。NetworkHistoryService が 2026-08 に踏んだのと同じ欠陥で、
+    /// そちらは本プロパティと同じ形に直して解消済み)。コンストラクタで差し替え可能にし、
+    /// テストは一時ディレクトリを使う。引数を省略した既存の呼び出しは従来どおり動く
+    /// (後方互換)。
+    /// </summary>
+    private readonly string StatsPath;
 
     private static readonly JsonSerializerOptions JsonWriteOptions = new() { WriteIndented = false };
 
@@ -42,9 +57,15 @@ public sealed class EapAuthStatsService
 
     /// <summary>コンストラクタ。永続化ファイルがあれば読み込む。
     /// logger 省略時は NullLogger を使う(テスト容易性のため)。</summary>
-    public EapAuthStatsService(ILogger<EapAuthStatsService>? log = null)
+    /// <param name="log">ロガー。省略時は NullLogger。</param>
+    /// <param name="statsPath">
+    /// 統計ファイルの保存先。省略時は <see cref="DefaultStatsPath"/>。
+    /// テストは実ユーザーのファイルを汚染しないよう一時パスを渡す。
+    /// </param>
+    public EapAuthStatsService(ILogger<EapAuthStatsService>? log = null, string? statsPath = null)
     {
         _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<EapAuthStatsService>.Instance;
+        StatsPath = statsPath ?? DefaultStatsPath;
         _entries = Load();
     }
 
